@@ -1,0 +1,23 @@
+% Les deux preuves du Tome II (FR) dont la coupure de ligne a changé sous MiKTeX 26.5 (p. 103 et 131 du PDF
+% neuf : ch. 4, preuve de prop:t2n-det-decodeur ; ch. 5, preuve de prop:t2r-croisee). Est-ce l'effet de nos
+% correctifs, ou celui de MiKTeX 26.5 lui-même ? Les deux chapitres, compilés sous 26.5 avec le préambule
+% d'avant (six erreurs, nonstopmode) puis avec le préambule commité ; on compare ensuite les mots page à page.
+%   avant : lualatex -jobname=t2-avant "\def\AVANT{1}\input{t2-avant-apres.tex}"   (deux fois)
+%   après : lualatex -jobname=t2-apres "\input{t2-avant-apres.tex}"                (deux fois)
+\documentclass[11pt, a4paper, twoside, openright, parskip=false, headings=big,
+               chapterprefix=true, numbers=noenddot, bibliography=totoc, listof=totoc]{scrbook}
+\newif\ifanglais
+\anglaisfalse
+\newcommand{\Racine}{~/dev/active/troncons/memoire}
+\newcommand{\Depot}{~/dev/active/troncons}
+\ifdefined\AVANT
+  \input{~/dev/active/troncons/memoire/essai/construction-tomes/preambule-avant}
+\else
+  \input{~/dev/active/troncons/memoire/commun/preambule}
+\fi
+\input{\Racine/tome2/commun/bibliographie}
+\begin{document}
+\mainmatter
+\input{\Racine/tome2/fr/chapitres/04-noyaux}
+\input{\Racine/tome2/fr/chapitres/05-reference}
+\end{document}

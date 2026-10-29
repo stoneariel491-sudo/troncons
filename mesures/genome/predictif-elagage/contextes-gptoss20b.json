@@ -1,0 +1,181 @@
+{
+ "outil": "genome/predictif-elagage/contextes.py",
+ "fichier": "~/dev/modeles/gguf/gpt-oss-20b-MXFP4.gguf",
+ "casser": false,
+ "seuil_bits_declare": 0.015,
+ "resultats": {
+  "rien": {
+   "bits_par_poids": 3.850410438086204,
+   "bits_par_poids_tables_comprises": 3.850433586234352,
+   "poids": 3185049600.0,
+   "contextes_x_symboles": 16
+  },
+  "kappa": {
+   "bits_par_poids": 3.7921802618301865,
+   "bits_par_poids_tables_comprises": 3.792249706274631,
+   "poids": 3185049600.0,
+   "contextes_x_symboles": 48
+  },
+  "delta_5": {
+   "bits_par_poids": 3.7913854071241815,
+   "bits_par_poids_tables_comprises": 3.7915011478649223,
+   "poids": 3185049600.0,
+   "contextes_x_symboles": 80
+  },
+  "octet_kappa": {
+   "bits_par_poids": 3.7874007522524717,
+   "bits_par_poids_tables_comprises": 3.788511863363583,
+   "poids": 1592524800.0,
+   "contextes_x_symboles": 768
+  },
+  "kappa_gauche": {
+   "bits_par_poids": 3.783403867443772,
+   "bits_par_poids_tables_comprises": 3.7845844229993277,
+   "poids": 3185049600.0,
+   "contextes_x_symboles": 816
+  },
+  "kappa_dessus": {
+   "bits_par_poids": 3.7818998939526383,
+   "bits_par_poids_tables_comprises": 3.7830804495081938,
+   "poids": 3185049600.0,
+   "contextes_x_symboles": 816
+  },
+  "kappa_parent": {
+   "bits_par_poids": 3.786698946188293,
+   "bits_par_poids_tables_comprises": 3.7878795017438485,
+   "poids": 3185049600.0,
+   "contextes_x_symboles": 816
+  },
+  "kappa_colonne": {
+   "bits_par_poids": 3.760479275444309,
+   "bits_par_poids_tables_comprises": 3.7607570532220866,
+   "poids": 3185049600.0,
+   "contextes_x_symboles": 192
+  },
+  "kappa_gauche_dessus": {
+   "bits_par_poids": 3.7721203227012756,
+   "bits_par_poids_tables_comprises": 3.7921897671457203,
+   "poids": 3185049600.0,
+   "contextes_x_symboles": 13872
+  },
+  "kappa_max_bloc": {
+   "bits_par_poids": 3.7918227366646655,
+   "bits_par_poids_tables_comprises": 3.7921005144424433,
+   "poids": 3185049600.0,
+   "contextes_x_symboles": 192
+  },
+  "temoin_code_lui_meme": {
+   "bits_par_poids": 0.0,
+   "bits_par_poids_tables_comprises": 0.00037037037037037035,
+   "poids": 99532800.0,
+   "contextes_x_symboles": 256
+  },
+  "temoin_gauche_permute": {
+   "bits_par_poids": 3.8000906605317164,
+   "bits_par_poids_tables_comprises": 3.801271216087272,
+   "poids": 99532800.0,
+   "contextes_x_symboles": 816
+  },
+  "temoin_kappa_meme_lot": {
+   "bits_par_poids": 3.8001540054371796,
+   "bits_par_poids_tables_comprises": 3.8002234498816243,
+   "poids": 99532800.0,
+   "contextes_x_symboles": 48
+  }
+ },
+ "gain_sur_kappa_tables_comprises": {
+  "delta_5": 0.0006791139652642109,
+  "octet_kappa": 0.0036683984666034952,
+  "kappa_gauche": 0.007595838830858792,
+  "kappa_dessus": 0.00909981232199275,
+  "kappa_parent": 0.004300760086338062,
+  "kappa_colonne": 0.031423208608099884,
+  "kappa_gauche_dessus": -9.50531553378653e-06,
+  "kappa_max_bloc": 7.974738774318979e-05
+ },
+ "retenus": [
+  "kappa_colonne"
+ ],
+ "biais_estimateur_51_contextes": 5.435501064306051e-06,
+ "gain_contexte_permute": 6.334490546322513e-05,
+ "temoins": {
+  "code_lui_meme_H_nulle": true,
+  "gauche_permute_sans_gain": false
+ },
+ "temoins_tiennent": false,
+ "par_tenseur": [
+  {
+   "nom": "blk.0.ffn_gate_exps.weight",
+   "colonne_rapport_max_sur_mediane_rms": 2.221117896851724,
+   "blocs_sans_grand_code": 0,
+   "blocs": 8294400
+  },
+  {
+   "nom": "blk.0.ffn_up_exps.weight",
+   "colonne_rapport_max_sur_mediane_rms": 2.172198094093255,
+   "blocs_sans_grand_code": 0,
+   "blocs": 8294400
+  },
+  {
+   "nom": "blk.0.ffn_down_exps.weight",
+   "colonne_rapport_max_sur_mediane_rms": 1.1127102520561292,
+   "blocs_sans_grand_code": 0,
+   "blocs": 8294400
+  },
+  {
+   "nom": "blk.8.ffn_gate_exps.weight",
+   "colonne_rapport_max_sur_mediane_rms": 1.235440738736146,
+   "blocs_sans_grand_code": 0,
+   "blocs": 8294400
+  },
+  {
+   "nom": "blk.8.ffn_up_exps.weight",
+   "colonne_rapport_max_sur_mediane_rms": 1.230646819216093,
+   "blocs_sans_grand_code": 0,
+   "blocs": 8294400
+  },
+  {
+   "nom": "blk.8.ffn_down_exps.weight",
+   "colonne_rapport_max_sur_mediane_rms": 1.8827498853670317,
+   "blocs_sans_grand_code": 0,
+   "blocs": 8294400
+  },
+  {
+   "nom": "blk.16.ffn_gate_exps.weight",
+   "colonne_rapport_max_sur_mediane_rms": 1.5001838512340098,
+   "blocs_sans_grand_code": 0,
+   "blocs": 8294400
+  },
+  {
+   "nom": "blk.16.ffn_up_exps.weight",
+   "colonne_rapport_max_sur_mediane_rms": 1.4216394435737196,
+   "blocs_sans_grand_code": 0,
+   "blocs": 8294400
+  },
+  {
+   "nom": "blk.16.ffn_down_exps.weight",
+   "colonne_rapport_max_sur_mediane_rms": 1.1552457489696049,
+   "blocs_sans_grand_code": 0,
+   "blocs": 8294400
+  },
+  {
+   "nom": "blk.23.ffn_gate_exps.weight",
+   "colonne_rapport_max_sur_mediane_rms": 2.930994855472881,
+   "blocs_sans_grand_code": 0,
+   "blocs": 8294400
+  },
+  {
+   "nom": "blk.23.ffn_up_exps.weight",
+   "colonne_rapport_max_sur_mediane_rms": 2.73973438812832,
+   "blocs_sans_grand_code": 0,
+   "blocs": 8294400
+  },
+  {
+   "nom": "blk.23.ffn_down_exps.weight",
+   "colonne_rapport_max_sur_mediane_rms": 2.2832997676397433,
+   "blocs_sans_grand_code": 0,
+   "blocs": 8294400
+  }
+ ],
+ "duree_s": 2013.53213429451
+}

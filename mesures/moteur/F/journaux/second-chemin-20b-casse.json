@@ -1,0 +1,401 @@
+{
+ "outil": "second_chemin_c1.py",
+ "commande": [
+  "mesures/moteur/F/second_chemin_c1.py",
+  "~/dev/modeles/gguf/gpt-oss-20b-MXFP4.gguf",
+  "~/dev/modeles/trc/gpt-oss-20b.trc",
+  "mesures/moteur/F/journaux/second-chemin-20b-casse.json",
+  "--sha256-attendue",
+  "27cd6c432c7672cb812a92f611cf3ba7bbc35928262bb1e1253ff4ee6ae35901",
+  "--casser-expert",
+  "3,7",
+  "--casser-mediane",
+  "5,9",
+  "--casser-biais",
+  "11,13",
+  "--casser-parseur",
+  "--casser-sha"
+ ],
+ "debut": "2026-10-15T20:54:42",
+ "alimentation_debut": "2",
+ "python": "3.13.12",
+ "openssl": "OpenSSL 3.0.18 30 Sep 2025",
+ "lecture": "sans tampon (FILE_FLAG_NO_BUFFERING)",
+ "gguf": {
+  "taille": 12109566624,
+  "version": 3,
+  "n_tenseurs": 459,
+  "n_kv": 36,
+  "alignement": 32,
+  "debut_donnees": 13008288
+ },
+ "pavage_ecarts": [],
+ "llama_cpp_ecarts": [
+  {
+   "tenseur": 0,
+   "python": [
+    "output.weight",
+    8,
+    32,
+    615329280
+   ],
+   "llama.cpp": [
+    "output.weight",
+    8,
+    0,
+    615329280
+   ]
+  }
+ ],
+ "entete": {
+  "version": [
+   1,
+   0
+  ],
+  "drapeaux": 1,
+  "L": 24,
+  "E": 32,
+  "k": 4,
+  "dims": [
+   [
+    2880,
+    2880
+   ],
+   [
+    2880,
+    2880
+   ],
+   [
+    2880,
+    2880
+   ]
+  ],
+  "sha256": "27cd6c432c7672cb812a92f611cf3ba7bbc35928262bb1e1253ff4ee6ae35901",
+  "sections": [
+   [
+    4096,
+    12980519
+   ],
+   [
+    12988416,
+    1917714696
+   ],
+   [
+    1930706944,
+    149776
+   ],
+   [
+    1930858496,
+    49160
+   ],
+   [
+    1930911744,
+    9226493952
+   ]
+  ]
+ },
+ "entete_ecarts": [],
+ "sha256_gguf_hashlib": "57b8d769c61825ce6fdd3458129c4adbc710f82b239fb86eda2309e65c612856",
+ "sha256_egale_attendue": false,
+ "sha256_egale_entete": false,
+ "meta": {
+  "n_paires": 39,
+  "ajout": {
+   "troncons.codeur.version": "trc-codeur 0.1.0",
+   "troncons.codeur.date": "2026-10-15",
+   "troncons.source.nom": "gpt-oss-20b-MXFP4.gguf"
+  },
+  "fin_utile": 12980519,
+  "longueur_section": 12980519,
+  "bourrage_a_zero": true
+ },
+ "meta_ecarts": [],
+ "tables": {
+  "n_enregistrements": 288,
+  "fin_utile": 149776,
+  "longueur_section": 149776
+ },
+ "tables_ecarts": [],
+ "repertoire_ecarts": [],
+ "residents": {
+  "n": 315,
+  "faux": [],
+  "position_empreinte_table": 1917714688,
+  "longueur_section": 1917714696
+ },
+ "residents_ecarts": [],
+ "experts_lus": 768,
+ "experts_faux": 3,
+ "controles_faux": {
+  "empreinte_origine": 2,
+  "biais": 1,
+  "medianes": 1,
+  "empreinte_partie": 0,
+  "structure": 0
+ },
+ "faux": [
+  {
+   "c": 3,
+   "x": 7,
+   "controles": {
+    "empreinte_origine": false,
+    "biais": true,
+    "medianes": true,
+    "empreinte_partie": true,
+    "structure": true
+   },
+   "pourquoi": []
+  },
+  {
+   "c": 5,
+   "x": 9,
+   "controles": {
+    "empreinte_origine": true,
+    "biais": true,
+    "medianes": false,
+    "empreinte_partie": true,
+    "structure": true
+   },
+   "pourquoi": []
+  },
+  {
+   "c": 11,
+   "x": 13,
+   "controles": {
+    "empreinte_origine": false,
+    "biais": false,
+    "medianes": true,
+    "empreinte_partie": true,
+    "structure": true
+   },
+   "pourquoi": []
+  }
+ ],
+ "par_couche": [
+  {
+   "couche": 0,
+   "experts": 32,
+   "empreinte_origine": 0,
+   "biais": 0,
+   "medianes": 0,
+   "empreinte_partie": 0,
+   "structure": 0
+  },
+  {
+   "couche": 1,
+   "experts": 32,
+   "empreinte_origine": 0,
+   "biais": 0,
+   "medianes": 0,
+   "empreinte_partie": 0,
+   "structure": 0
+  },
+  {
+   "couche": 2,
+   "experts": 32,
+   "empreinte_origine": 0,
+   "biais": 0,
+   "medianes": 0,
+   "empreinte_partie": 0,
+   "structure": 0
+  },
+  {
+   "couche": 3,
+   "experts": 32,
+   "empreinte_origine": 1,
+   "biais": 0,
+   "medianes": 0,
+   "empreinte_partie": 0,
+   "structure": 0
+  },
+  {
+   "couche": 4,
+   "experts": 32,
+   "empreinte_origine": 0,
+   "biais": 0,
+   "medianes": 0,
+   "empreinte_partie": 0,
+   "structure": 0
+  },
+  {
+   "couche": 5,
+   "experts": 32,
+   "empreinte_origine": 0,
+   "biais": 0,
+   "medianes": 1,
+   "empreinte_partie": 0,
+   "structure": 0
+  },
+  {
+   "couche": 6,
+   "experts": 32,
+   "empreinte_origine": 0,
+   "biais": 0,
+   "medianes": 0,
+   "empreinte_partie": 0,
+   "structure": 0
+  },
+  {
+   "couche": 7,
+   "experts": 32,
+   "empreinte_origine": 0,
+   "biais": 0,
+   "medianes": 0,
+   "empreinte_partie": 0,
+   "structure": 0
+  },
+  {
+   "couche": 8,
+   "experts": 32,
+   "empreinte_origine": 0,
+   "biais": 0,
+   "medianes": 0,
+   "empreinte_partie": 0,
+   "structure": 0
+  },
+  {
+   "couche": 9,
+   "experts": 32,
+   "empreinte_origine": 0,
+   "biais": 0,
+   "medianes": 0,
+   "empreinte_partie": 0,
+   "structure": 0
+  },
+  {
+   "couche": 10,
+   "experts": 32,
+   "empreinte_origine": 0,
+   "biais": 0,
+   "medianes": 0,
+   "empreinte_partie": 0,
+   "structure": 0
+  },
+  {
+   "couche": 11,
+   "experts": 32,
+   "empreinte_origine": 1,
+   "biais": 1,
+   "medianes": 0,
+   "empreinte_partie": 0,
+   "structure": 0
+  },
+  {
+   "couche": 12,
+   "experts": 32,
+   "empreinte_origine": 0,
+   "biais": 0,
+   "medianes": 0,
+   "empreinte_partie": 0,
+   "structure": 0
+  },
+  {
+   "couche": 13,
+   "experts": 32,
+   "empreinte_origine": 0,
+   "biais": 0,
+   "medianes": 0,
+   "empreinte_partie": 0,
+   "structure": 0
+  },
+  {
+   "couche": 14,
+   "experts": 32,
+   "empreinte_origine": 0,
+   "biais": 0,
+   "medianes": 0,
+   "empreinte_partie": 0,
+   "structure": 0
+  },
+  {
+   "couche": 15,
+   "experts": 32,
+   "empreinte_origine": 0,
+   "biais": 0,
+   "medianes": 0,
+   "empreinte_partie": 0,
+   "structure": 0
+  },
+  {
+   "couche": 16,
+   "experts": 32,
+   "empreinte_origine": 0,
+   "biais": 0,
+   "medianes": 0,
+   "empreinte_partie": 0,
+   "structure": 0
+  },
+  {
+   "couche": 17,
+   "experts": 32,
+   "empreinte_origine": 0,
+   "biais": 0,
+   "medianes": 0,
+   "empreinte_partie": 0,
+   "structure": 0
+  },
+  {
+   "couche": 18,
+   "experts": 32,
+   "empreinte_origine": 0,
+   "biais": 0,
+   "medianes": 0,
+   "empreinte_partie": 0,
+   "structure": 0
+  },
+  {
+   "couche": 19,
+   "experts": 32,
+   "empreinte_origine": 0,
+   "biais": 0,
+   "medianes": 0,
+   "empreinte_partie": 0,
+   "structure": 0
+  },
+  {
+   "couche": 20,
+   "experts": 32,
+   "empreinte_origine": 0,
+   "biais": 0,
+   "medianes": 0,
+   "empreinte_partie": 0,
+   "structure": 0
+  },
+  {
+   "couche": 21,
+   "experts": 32,
+   "empreinte_origine": 0,
+   "biais": 0,
+   "medianes": 0,
+   "empreinte_partie": 0,
+   "structure": 0
+  },
+  {
+   "couche": 22,
+   "experts": 32,
+   "empreinte_origine": 0,
+   "biais": 0,
+   "medianes": 0,
+   "empreinte_partie": 0,
+   "structure": 0
+  },
+  {
+   "couche": 23,
+   "experts": 32,
+   "empreinte_origine": 0,
+   "biais": 0,
+   "medianes": 0,
+   "empreinte_partie": 0,
+   "structure": 0
+  }
+ ],
+ "durees": {
+  "metadonnees_s": 0.7,
+  "sha256_s": 16.17,
+  "residents_s": 7.31,
+  "experts_s": 46.47
+ },
+ "fin": "2026-10-15T20:55:53",
+ "alimentation_fin": "2",
+ "verdict": "écart"
+}

@@ -1,0 +1,309 @@
+   Compiling windows-sys v0.61.2
+   Compiling serde_core v1.0.229
+   Compiling zmij v1.0.23
+   Compiling serde_json v1.0.151
+   Compiling libloading v0.8.9
+   Compiling trc-cache v0.1.0 (~\dev\active\troncons\moteur\crates\trc-cache)
+   Compiling itoa v1.0.18
+   Compiling trc-cuda v0.1.0 (~\dev\active\troncons\moteur\crates\trc-cuda)
+   Compiling trc-noyaux v0.1.0 (~\dev\active\troncons\moteur\crates\trc-noyaux)
+   Compiling trc-es v0.1.0 (~\dev\active\troncons\moteur\crates\trc-es)
+   Compiling memchr v2.8.3
+   Compiling trc-modele v0.1.0 (~\dev\active\troncons\moteur\crates\trc-modele)
+   Compiling serde v1.0.229
+   Compiling trc-jetons v0.1.0 (~\dev\active\troncons\moteur\crates\trc-jetons)
+   Compiling serde_derive v1.0.229
+   Compiling trc-ordo v0.1.0 (~\dev\active\troncons\moteur\crates\trc-ordo)
+   Compiling banc-chemin v0.1.0 (~\dev\active\troncons\moteur\bins\banc-chemin)
+   Compiling trc-codeur v0.1.0 (~\dev\active\troncons\moteur\bins\trc-codeur)
+   Compiling trc-juge v0.1.0 (~\dev\active\troncons\moteur\crates\trc-juge)
+   Compiling troncons v0.1.0 (~\dev\active\troncons\moteur\bins\troncons)
+   Compiling trc-reference v0.1.0 (~\dev\active\troncons\moteur\crates\trc-reference)
+   Compiling trc-format v0.1.0 (~\dev\active\troncons\moteur\crates\trc-format)
+    Finished `test` profile [optimized + debuginfo] target(s) in 1m 01s
+     Running unittests src\main.rs (~/dev/cibles/troncons-codon\debug\deps\banc_chemin-7531e3482be86937.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (~/dev/cibles/troncons-codon\debug\deps\trc_cache-380e8a936935faa4.exe)
+
+running 13 tests
+test tests::belady_cas_calcule_a_la_main ... ok
+test tests::belady_jamais_sous_lru ... ok
+test tests::deux_etages_egalent_deux_caches_a_pile ... ok
+test tests::en_vol_jamais_evince - should panic ... ok
+test tests::epinglage_tient_les_k_experts_ensemble ... ok
+test tests::falaise_du_lru_global ... ok
+test tests::lru_ordre_et_victime ... ok
+test tests::octets_comptes_par_etage ... ok
+test tests::politique_faussee_donne_un_autre_compte ... ok
+test tests::present_desepingle_est_evincable ... ok
+test tests::routage_fige_reponses_exactes ... ok
+test tests::trace_lue_comme_l_outil_python ... ok
+test tests::trace_mal_formee_refusee ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.38s
+
+     Running unittests src\bin\rejouer.rs (~/dev/cibles/troncons-codon\debug\deps\rejouer-73c2cb92b52155e7.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (~/dev/cibles/troncons-codon\debug\deps\trc_codec-71983f9b7a706058.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\rans.rs (~/dev/cibles/troncons-codon\debug\deps\rans-c3d2ef51af843b24.exe)
+
+running 8 tests
+test aller_retour_par_voie_et_chemin_rapide ... ok
+test bourrage_et_sauts_et_contexte_decode ... ok
+test cassures_tombent ... ok
+test identite_avec_03_geometrie_demi ... ok
+test identite_avec_03_geometrie_octet ... ok
+test matrice_canonique_se_reconstruit_et_gagne ... ok
+test matrice_v10_se_reconstruit ... ok
+test table_depuis_frequences_refuse ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.44s
+
+     Running unittests src\main.rs (~/dev/cibles/troncons-codon\debug\deps\trc_codeur-4ac46da6a27c714b.exe)
+
+running 1 test
+test gguf::tests::lectures_alignees_et_non_alignees ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.08s
+
+     Running unittests src\lib.rs (~/dev/cibles/troncons-codon\debug\deps\trc_cuda-c069eb09c69b4a8e.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\carte.rs (~/dev/cibles/troncons-codon\debug\deps\carte-bb152061fa235ada.exe)
+
+running 6 tests
+test aller_retour_et_cassure ... ok
+test contexte_et_attributs ... ok
+test duree_de_vie_du_contexte ... ok
+test erreurs_nommees ... ok
+test evenements_et_ordre_entre_flux ... ok
+test module_lancement_et_memoire_projetee ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.38s
+
+     Running unittests src\lib.rs (~/dev/cibles/troncons-codon\debug\deps\trc_es-60890c94819f62ef.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\lecture.rs (~/dev/cibles/troncons-codon\debug\deps\lecture-bcac0b4a32d83c1d.exe)
+
+running 4 tests
+test abandon_en_vol ... ok
+test derniere_page_partielle_et_refus ... ok
+test lectures_alignees_profondeur_et_file ... ok
+test soumission_et_recolte_concurrentes ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.29s
+
+     Running unittests src\lib.rs (~/dev/cibles/troncons-codon\debug\deps\trc_format-bbf533ec15cc6b7c.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\aller_retour.rs (~/dev/cibles/troncons-codon\debug\deps\aller_retour-7c1a99b74987e021.exe)
+
+running 6 tests
+test aller_retour_identique ... ok
+test aller_retour_v12_canonique ... ok
+test cassures_refusees ... ok
+test cassures_v12_refusees ... ok
+test empreinte64_connue ... ok
+test temoin_du_temoin ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.60s
+
+     Running unittests src\lib.rs (~/dev/cibles/troncons-codon\debug\deps\trc_jetons-d66a5b45e8a18161.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (~/dev/cibles/troncons-codon\debug\deps\trc_juge-9f3543b822c29d02.exe)
+
+running 5 tests
+test abba::tests::bruit_et_seuil ... ok
+test kld::tests::aller_retour_d_une_entree ... ok
+test stats::tests::entree_decodee_contre_elle_meme ... ok
+test stats::tests::kl_nulle_contre_soi_meme_et_positive_sinon ... ok
+test stats::tests::wilson_connu ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src\bin\juge.rs (~/dev/cibles/troncons-codon\debug\deps\juge-7b0ac0fc96a5f37d.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (~/dev/cibles/troncons-codon\debug\deps\trc_modele-d8b276b7fc29e3bc.exe)
+
+running 2 tests
+test tests::alignements ... ok
+test tests::anneau_des_couches_paires ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src\lib.rs (~/dev/cibles/troncons-codon\debug\deps\trc_noyaux-650a49a92dbe937f.exe)
+
+running 7 tests
+test abi::tests::disposition_de_gpt_oss_egale_la_specification ... ok
+test abi::tests::fenetre_et_cases_de_gpt_oss ... ok
+test abi::tests::grilles_de_gpt_oss ... ok
+test abi::tests::grilles_lues_dans_la_partie ... ok
+test abi::tests::lut_d_une_table_connue ... ok
+test abi::tests::symbole_unique_a_frequence_pleine ... ok
+test abi::tests::tailles_des_structures_partagees ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests\carte.rs (~/dev/cibles/troncons-codon\debug\deps\carte-bde460f4e367173d.exe)
+
+running 6 tests
+test decodeur_en_lot_egal_au_seul ... ok
+test decodeur_exact_et_cassures ... ok
+test enveloppes_refusent_les_tailles_fausses ... ok
+test gemv_base_exacte_au_bit_et_mode_exact_inchange ... ok
+test gemv_exacte_au_bit_et_lot_egal_au_seul ... ok
+test gemv_lit_le_code_8_comme_0 ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 16.33s
+
+     Running tests\passe.rs (~/dev/cibles/troncons-codon\debug\deps\passe-3cb27c164c97788b.exe)
+
+running 6 tests
+test attention_puits_et_anneau ... ok
+test kv_f32_egal_au_bit_au_chemin_f16_sur_valeurs_representables ... ok
+test ligne_q8_0_exacte_et_ecrire_kv_au_plus_proche_pair ... ok
+test produits_q8_0_et_f32_exacts_au_bit_sur_entiers ... ok
+test rmsnorm_rope_swiglu_contre_l_hote ... ok
+test routeur_argmax_combiner ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.14s
+
+     Running unittests src\lib.rs (~/dev/cibles/troncons-codon\debug\deps\trc_ordo-99afa9064b7fa9bb.exe)
+
+running 3 tests
+test garde::tests::la_garde_voit_un_octet_faux_et_attend_sa_zone ... ok
+test garde::tests::lignes_par_morceaux_quelconques ... ok
+test tests::empreinte_d_un_emplacement_synthetique ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
+     Running unittests src\lib.rs (~/dev/cibles/troncons-codon\debug\deps\trc_reference-6462ebe0b32f4ecc.exe)
+
+running 12 tests
+test ops::tests::bornes_de_la_rampe_gpt_oss ... ok
+test ops::tests::puits_dans_le_denominateur ... ok
+test ops::tests::rotation_conserve_la_norme_a_la_concentration_pres ... ok
+test ops::tests::swiglu_bornes ... ok
+test ops::tests::topk_egalites_et_poids ... ok
+test poids::tests::echelle_exacte ... ok
+test poids::tests::imitation_q8_0 ... ok
+test poids::tests::mxfp4_ordre_des_demi_octets ... ok
+test poids::tests::produit_egal_scalaire_au_bit ... ok
+test poids::tests::produit_independant_du_decoupage ... ok
+test poids::tests::q8_0_exact ... ok
+test poids::tests::scalaire_avx2_egal_portable ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+     Running tests\code_8.rs (~/dev/cibles/troncons-codon\debug\deps\code_8-bf1fe7dca540468a.exe)
+
+running 1 test
+test reference_lit_le_code_8_comme_0 ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running unittests src\main.rs (~/dev/cibles/troncons-codon\debug\deps\troncons-0c967a6f6b4929d6.exe)
+
+running 2 tests
+test tests::date_bien_formee ... ok
+test tests::lie_au_cache ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests trc_cache
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests trc_codec
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests trc_cuda
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests trc_es
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests trc_format
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests trc_jetons
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests trc_juge
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests trc_modele
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests trc_noyaux
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests trc_ordo
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests trc_reference
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

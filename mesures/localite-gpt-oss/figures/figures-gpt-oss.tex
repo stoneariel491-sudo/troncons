@@ -1,0 +1,104 @@
+\documentclass[border=4pt]{standalone}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage[T1]{fontenc}
+\begin{document}
+\begin{tabular}{@{}c@{}}
+\begin{tikzpicture}
+\begin{axis}[width=8cm, height=6cm, xlabel={budget (\% des experts)},
+ylabel={succ\`es du cache global}, ymin=0, ymax=1, xmin=0, xmax=45, grid=major,
+title={gpt-oss-20b : succ\`es selon le budget (lecture, 4 genres)}, legend pos=outer north east, legend style={font=\tiny}]
+\addplot[blue, mark=*] table[x=budget, y=lru, col sep=comma] {succes-gpt-oss-20b-lecture.csv};
+\addlegendentry{LRU}
+\addplot[orange, mark=square*] table[x=budget, y=lfu, col sep=comma] {succes-gpt-oss-20b-lecture.csv};
+\addlegendentry{LFU (demi-vie 8)}
+\addplot[gray, mark=triangle*] table[x=budget, y=statique_calibre, col sep=comma] {succes-gpt-oss-20b-lecture.csv};
+\addlegendentry{statique calibr\'e}
+\addplot[black, mark=diamond*] table[x=budget, y=statique_oracle, col sep=comma] {succes-gpt-oss-20b-lecture.csv};
+\addlegendentry{statique oracle}
+\addplot[red, mark=x] table[x=budget, y=belady, col sep=comma] {succes-gpt-oss-20b-lecture.csv};
+\addlegendentry{Belady (optimum)}
+\addplot[dashed, gray] table[x=budget, y=sans_localite, col sep=comma] {succes-gpt-oss-20b-lecture.csv};
+\addlegendentry{ensemble fixe, routage uniforme}
+\end{axis}
+\end{tikzpicture}
+\\
+\begin{tikzpicture}
+\begin{axis}[width=8cm, height=5cm, xlabel={couche}, ylabel={r\'eutilisation $|S_t\cap S_{t-1}|/k$},
+ymin=0, ymax=1, grid=major, title={gpt-oss-20b : r\'eutilisation d'un jeton au suivant}, legend pos=north east, legend style={font=\tiny}]
+\addplot[blue, mark=*] table[x=couche, y=reutilisation, col sep=comma] {reutilisation-gpt-oss-20b.csv};
+\addlegendentry{mesur\'ee}
+\addplot[black, dashed] table[x=couche, y=hasard_popularite, col sep=comma] {reutilisation-gpt-oss-20b.csv};
+\addlegendentry{hasard \`a popularit\'e r\'eelle}
+\addplot[gray, dotted, thick] table[x=couche, y=hasard_uniforme, col sep=comma] {reutilisation-gpt-oss-20b.csv};
+\addlegendentry{hasard uniforme $k/E$}
+\end{axis}
+\end{tikzpicture}
+\\
+\begin{tikzpicture}
+\begin{axis}[width=8cm, height=6cm, xlabel={budget (\% des experts)}, ylabel={jetons/s (plafond)},
+ymode=log, log ticks with fixed point, xmin=-2, xmax=48, grid=major, title={gpt-oss-20b : plafond, lecture (d\'ebits mesur\'es, sc\'enario RAM)}, legend pos=north west, legend style={font=\tiny}]
+\addplot[blue, mark=*] table[x=budget, y=lru_serie, col sep=comma] {plafonds-gpt-oss-20b.csv};
+\addlegendentry{LRU, \'etages en s\'erie}
+\addplot[blue, dashed] table[x=budget, y=lru_recouvert, col sep=comma] {plafonds-gpt-oss-20b.csv};
+\addlegendentry{LRU, recouverts}
+\addplot[red, mark=x] table[x=budget, y=belady_serie, col sep=comma] {plafonds-gpt-oss-20b.csv};
+\addlegendentry{Belady, s\'erie}
+\addplot[black, mark=diamond*] table[x=budget, y=statique_serie, col sep=comma] {plafonds-gpt-oss-20b.csv};
+\addlegendentry{statique oracle, s\'erie}
+\addplot[only marks, mark=square*, mark size=2.5pt, green!50!black, error bars/.cd, y dir=both, y explicit] table[x=budget, y=generation_js, y error plus=err_plus, y error minus=err_moins, col sep=comma] {base-gpt-oss-20b.csv};
+\addlegendentry{base llama.cpp, mesur\'ee (min--max)}
+\addplot[only marks, mark=none, nodes near coords, point meta=explicit symbolic, every node near coord/.append style={font=\tiny, anchor=west}] table[x=budget, y=generation_js, meta=config, col sep=comma] {base-gpt-oss-20b.csv};
+\end{axis}
+\end{tikzpicture}
+\\
+\begin{tikzpicture}
+\begin{axis}[width=8cm, height=6cm, xlabel={budget (\% des experts)},
+ylabel={succ\`es du cache global}, ymin=0, ymax=1, xmin=0, xmax=45, grid=major,
+title={gpt-oss-120b : succ\`es selon le budget (lecture, 4 genres)}, legend pos=outer north east, legend style={font=\tiny}]
+\addplot[blue, mark=*] table[x=budget, y=lru, col sep=comma] {succes-gpt-oss-120b-lecture.csv};
+\addlegendentry{LRU}
+\addplot[orange, mark=square*] table[x=budget, y=lfu, col sep=comma] {succes-gpt-oss-120b-lecture.csv};
+\addlegendentry{LFU (demi-vie 8)}
+\addplot[gray, mark=triangle*] table[x=budget, y=statique_calibre, col sep=comma] {succes-gpt-oss-120b-lecture.csv};
+\addlegendentry{statique calibr\'e}
+\addplot[black, mark=diamond*] table[x=budget, y=statique_oracle, col sep=comma] {succes-gpt-oss-120b-lecture.csv};
+\addlegendentry{statique oracle}
+\addplot[red, mark=x] table[x=budget, y=belady, col sep=comma] {succes-gpt-oss-120b-lecture.csv};
+\addlegendentry{Belady (optimum)}
+\addplot[dashed, gray] table[x=budget, y=sans_localite, col sep=comma] {succes-gpt-oss-120b-lecture.csv};
+\addlegendentry{ensemble fixe, routage uniforme}
+\end{axis}
+\end{tikzpicture}
+\\
+\begin{tikzpicture}
+\begin{axis}[width=8cm, height=5cm, xlabel={couche}, ylabel={r\'eutilisation $|S_t\cap S_{t-1}|/k$},
+ymin=0, ymax=1, grid=major, title={gpt-oss-120b : r\'eutilisation d'un jeton au suivant}, legend pos=north east, legend style={font=\tiny}]
+\addplot[blue, mark=*] table[x=couche, y=reutilisation, col sep=comma] {reutilisation-gpt-oss-120b.csv};
+\addlegendentry{mesur\'ee}
+\addplot[black, dashed] table[x=couche, y=hasard_popularite, col sep=comma] {reutilisation-gpt-oss-120b.csv};
+\addlegendentry{hasard \`a popularit\'e r\'eelle}
+\addplot[gray, dotted, thick] table[x=couche, y=hasard_uniforme, col sep=comma] {reutilisation-gpt-oss-120b.csv};
+\addlegendentry{hasard uniforme $k/E$}
+\end{axis}
+\end{tikzpicture}
+\\
+\begin{tikzpicture}
+\begin{axis}[width=8cm, height=6cm, xlabel={budget (\% des experts)}, ylabel={jetons/s (plafond)},
+ymode=log, log ticks with fixed point, xmin=-2, xmax=48, grid=major, title={gpt-oss-120b : plafond, lecture (d\'ebits mesur\'es, sc\'enario deux \'etages)}, legend pos=north west, legend style={font=\tiny}]
+\addplot[blue, mark=*] table[x=budget, y=lru_serie, col sep=comma] {plafonds-gpt-oss-120b.csv};
+\addlegendentry{LRU, \'etages en s\'erie}
+\addplot[blue, dashed] table[x=budget, y=lru_recouvert, col sep=comma] {plafonds-gpt-oss-120b.csv};
+\addlegendentry{LRU, recouverts}
+\addplot[red, mark=x] table[x=budget, y=belady_serie, col sep=comma] {plafonds-gpt-oss-120b.csv};
+\addlegendentry{Belady, s\'erie}
+\addplot[black, mark=diamond*] table[x=budget, y=statique_serie, col sep=comma] {plafonds-gpt-oss-120b.csv};
+\addlegendentry{statique oracle, s\'erie}
+\addplot[only marks, mark=square*, mark size=2.5pt, green!50!black, error bars/.cd, y dir=both, y explicit] table[x=budget, y=generation_js, y error plus=err_plus, y error minus=err_moins, col sep=comma] {base-gpt-oss-120b.csv};
+\addlegendentry{base llama.cpp, mesur\'ee (min--max)}
+\addplot[only marks, mark=none, nodes near coords, point meta=explicit symbolic, every node near coord/.append style={font=\tiny, anchor=west}] table[x=budget, y=generation_js, meta=config, col sep=comma] {base-gpt-oss-120b.csv};
+\end{axis}
+\end{tikzpicture}
+\\
+\end{tabular}
+\end{document}

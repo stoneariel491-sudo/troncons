@@ -1,0 +1,22 @@
+% Sources propres aux chapitres « Architecture et structure du programme » et « Le format .trc
+% au bit près » du Tome II. Les autres sources de ces chapitres sont celles des lots
+% (moteur-E.bib, moteur-F.bib, moteur-K.bib, moteur-O.bib, moteur-epreuve-J1.bib).
+% Pages relues en ligne par le rédacteur le 2026-10-16.
+
+@online{cargo2026workspaces,
+  author       = {{The Cargo Team}},
+  title        = {Workspaces, The Cargo Book},
+  url          = {https://doc.rust-lang.org/cargo/reference/workspaces.html},
+  urldate      = {2026-10-16},
+  note         = {Membres par motifs (\texttt{crates/*}), \texttt{Cargo.lock} et dossier de sortie communs, héritage des versions par \texttt{[workspace.dependencies]} et \texttt{workspace = true} ; ce que fait \texttt{moteur/Cargo.toml}},
+}
+
+@manual{nvidia2026modulemgmt,
+  author       = {{NVIDIA Corporation}},
+  title        = {{CUDA} Driver {API} Reference Manual, 6.27 Module Management},
+  version      = {13.4},
+  date         = {2026-10-12},
+  url          = {https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MODULE.html},
+  urldate      = {2026-10-16},
+  note         = {\texttt{cuModuleLoadData} accepte une image cubin ou fatbin produite par nvcc, ou du PTX terminé par un octet nul : c'est ce qui permet d'embarquer l'image des noyaux dans le binaire (\texttt{include\_bytes!}) sans aucune DLL d'exécution de CUDA},
+}

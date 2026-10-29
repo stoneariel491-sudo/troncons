@@ -1,0 +1,114 @@
+{
+ "outil": "quant-vitesse.py",
+ "date": "2026-10-15 07:32:26",
+ "n_gen": 128,
+ "repetitions": 5,
+ "reference": "Qwen3.5-4B-Q4_K_M.gguf",
+ "mesures": [
+  {
+   "fichier": "qwen35-4B-IQ4_XS.gguf",
+   "bpp_tenseurs": 4.7617,
+   "octets_lus_par_jeton": 2503317504,
+   "serie_abba": [
+    {
+     "role": "A",
+     "jetons_s": 22.344262,
+     "ecart_type": 4.080168
+    },
+    {
+     "role": "B",
+     "jetons_s": 29.477855,
+     "ecart_type": 1.702719
+    },
+    {
+     "role": "B",
+     "jetons_s": 32.383287,
+     "ecart_type": 1.740177
+    },
+    {
+     "role": "A",
+     "jetons_s": 28.107446,
+     "ecart_type": 1.610276
+    }
+   ],
+   "jetons_s": 30.93,
+   "go_s_effectifs": 77.4,
+   "part_du_plafond_256": 0.302,
+   "reference_jetons_s": 25.23,
+   "bruit_reference_relatif": 0.228
+  },
+  {
+   "fichier": "qwen35-4B-IQ3_XXS.gguf",
+   "bpp_tenseurs": 3.6018,
+   "octets_lus_par_jeton": 1893525504,
+   "serie_abba": [
+    {
+     "role": "A",
+     "jetons_s": 28.972315,
+     "ecart_type": 2.298494
+    },
+    {
+     "role": "B",
+     "jetons_s": 21.185936,
+     "ecart_type": 5.378667
+    },
+    {
+     "role": "B",
+     "jetons_s": 26.197752,
+     "ecart_type": 11.684089
+    },
+    {
+     "role": "A",
+     "jetons_s": 31.121775,
+     "ecart_type": 2.164467
+    }
+   ],
+   "jetons_s": 23.69,
+   "go_s_effectifs": 44.9,
+   "part_du_plafond_256": 0.175,
+   "reference_jetons_s": 30.05,
+   "bruit_reference_relatif": 0.072
+  },
+  {
+   "fichier": "qwen35-4B-IQ2_XXS.gguf",
+   "bpp_tenseurs": 2.9054,
+   "octets_lus_par_jeton": 1527425024,
+   "serie_abba": [
+    {
+     "role": "A",
+     "jetons_s": 29.654493,
+     "ecart_type": 1.750541
+    },
+    {
+     "role": "B",
+     "jetons_s": 29.420733,
+     "ecart_type": 1.310426
+    },
+    {
+     "role": "B",
+     "jetons_s": 30.929871,
+     "ecart_type": 2.197731
+    },
+    {
+     "role": "A",
+     "jetons_s": 27.481612,
+     "ecart_type": 1.663892
+    }
+   ],
+   "jetons_s": 30.18,
+   "go_s_effectifs": 46.1,
+   "part_du_plafond_256": 0.18,
+   "reference_jetons_s": 28.57,
+   "bruit_reference_relatif": 0.076
+  }
+ ],
+ "reference_bilan": {
+  "bpp_tenseurs": 5.1928,
+  "octets_lus_par_jeton": 2729969664,
+  "jetons_s_moyen": 27.95,
+  "jetons_s_min": 22.34,
+  "jetons_s_max": 31.12,
+  "go_s_effectifs": 76.3,
+  "part_du_plafond_256": 0.298
+ }
+}

@@ -1,0 +1,319 @@
+% Figures du chapitre « Les noyaux sur la carte » (Tome II). Graphes pgfplots qui lisent les CSV
+% commités du lot K (et de la ronde du lot O pour le cache KV), directement ou réordonnés par
+% memoire/outils/tome2_chemin_noyaux.py ; schémas TikZ des structures au bit près. Styles « noy ».
+\ifdefined\TdeuxChmNoyCommun\else\input{\Racine/figures/tome2/chemin-noyaux-commun}\fi
+
+\tikzset{
+  noycase/.style={draw=black!55, line width=0.4pt, minimum height=0.6cm, inner sep=0pt,
+    font=\sffamily\tiny, align=center},
+  noyboite/.style={draw=#1, fill=#1!10, rounded corners=1.5pt, line width=0.7pt, align=center,
+    font=\sffamily\scriptsize, minimum height=0.55cm, inner sep=2pt},
+  noyfl/.style={-{Latex[length=1.8mm]}, line width=0.7pt, black!65},
+  noylab/.style={font=\sffamily\scriptsize, align=center, text=black!80},
+}
+
+% ------------------------------------------------------------------------------------------------
+% La tuile rANS et la table par voie : un macro-pas, 32 voies, quatre voies par bloc MXFP4.
+\newcommand{\SchemaNoyTuile}{%
+\begin{tikzpicture}[x=0.44cm, y=1cm]
+  % Classes d'échelle des huit blocs du macro-pas (exemple).
+  \def\noykappa{{0,1,2,1,1,0,2,1}}
+  \foreach \l in {0,...,31}{
+    \pgfmathtruncatemacro{\q}{\l/4}
+    \pgfmathtruncatemacro{\k}{\noykappa[\q]}
+    \ifcase\k \def\noyc{Accent}\or\def\noyc{Mant}\or\def\noyc{Echelle}\fi
+    \node[noycase, fill=\noyc!30, minimum width=0.44cm] at (\l+0.5,0) {\l};
+  }
+  \node[anchor=east, font=\sffamily\scriptsize] at (-0.2,0) {\EF{lanes $l$}{voies $l$}};
+  \foreach \q in {0,...,7}{
+    \draw[decorate, decoration={brace, amplitude=3pt}] (4*\q+0.05,0.36) -- (4*\q+3.95,0.36)
+      node[midway, above=3pt, font=\sffamily\tiny] {\EF{block}{bloc} $8m{+}\q$};
+  }
+  % Les octets produits.
+  \foreach \l in {0,...,31}{
+    \draw[black!40, fill=black!4] (\l,-1.35) rectangle ++(1,0.5);
+    \node[font=\sffamily\tiny, black!60] at (\l+0.5,-1.1) {$w$};
+    \draw[black!25, -{Latex[length=1mm]}] (\l+0.5,-0.32) -- (\l+0.5,-0.82);
+  }
+  \node[anchor=east, font=\sffamily\scriptsize, align=right] at (-0.2,-1.1) {\EF{output words}{mots de sortie}\\$w = 32m + l$};
+  \draw[decorate, decoration={brace, amplitude=4pt, mirror}] (0,-1.45) -- (32,-1.45)
+    node[midway, below=5pt, font=\sffamily\scriptsize] {\EF{128 contiguous bytes per macro-step; sub-step $k = 0..3$ writes byte $k$ of each word (low to high)}{128 octets contigus par macro-pas ; le sous-pas $k = 0..3$ écrit l'octet $k$ de chaque mot (du poids faible au fort)}};
+  % La légende des tables.
+  \foreach \k/\c/\t in {0/Accent/{$\kappa = 0$ : $\delta < 128$}, 1/Mant/{$\kappa = 1$ : $\delta = 128$}, 2/Echelle/{$\kappa = 2$ : $\delta > 128$}}{
+    \node[noycase, fill=\c!30, minimum width=0.5cm] at (3+\k*10,-2.75) {};
+    \node[anchor=west, font=\sffamily\scriptsize] at (3.4+\k*10,-2.75) {LUT \t};
+  }
+  % Le flux de mots et le vote.
+  \foreach \i in {0,...,15}{
+    \draw[black!50, fill=Code!15] (2*\i,-4.0) rectangle ++(2,0.45);
+    \node[font=\sffamily\tiny] at (2*\i+1,-3.78) {$p{+}\i$};
+  }
+  \node[anchor=east, font=\sffamily\scriptsize, align=right] at (-0.2,-3.78) {\EF{shared 16-bit}{mots de 16 bits}\\\EF{words}{partagés}};
+  \node[anchor=west, font=\sffamily\scriptsize, text width=14cm, align=left] at (0,-4.6)
+    {\EF{Lane $l$ renormalises if $y_l < L$; $\mathrm{vote} = \mathrm{ballot}(y < L)$; it reads word $p + \mathrm{popc}(\mathrm{vote} \mathbin{\&} (2^l - 1))$; then $p \leftarrow p + \mathrm{popc}(\mathrm{vote})$.}{La voie $l$ renormalise si $y_l < L$ ; $\mathrm{vote} = \mathrm{ballot}(y < L)$ ; elle lit le mot $p + \mathrm{popc}(\mathrm{vote} \mathbin{\&} (2^l - 1))$ ; puis $p \leftarrow p + \mathrm{popc}(\mathrm{vote})$.}};
+\end{tikzpicture}}
+
+% ------------------------------------------------------------------------------------------------
+% L'emplacement SoA d'un expert de gpt-oss, à l'échelle.
+\newcommand{\SchemaNoySoA}{%
+\begin{tikzpicture}[x=1cm, y=1cm]
+  \def\echx{1.04}  % cm par million d'octets (13,254 Mo -> 13,8 cm)
+  \foreach \j/\nom in {0/gate, 1/up, 2/down}{
+    \pgfmathsetmacro{\x}{\j*4.418048*\echx}
+    \draw[fill=Code!30, draw=Code!80!black] (\x,0) rectangle ++(4.1472*\echx,0.8) node[midway, font=\sffamily\scriptsize, align=center] {codes\\4\,147\,200\,\EF{B}{o}};
+    \draw[fill=Echelle!45, draw=Echelle!80!black] (\x+4.1472*\echx,0) rectangle ++(0.2592*\echx,0.8);
+    \draw[fill=Signe!50, draw=Signe] (\x+4.406528*\echx,0) rectangle ++(0.06*\echx,0.8);
+    \node[font=\sffamily\small\bfseries, anchor=south] at (\x+2.2*\echx,0.85) {\nom\ ($j = \j$)};
+  }
+  \draw[black!60] (0,-0.1) -- (0,-0.25) node[below, font=\sffamily\tiny] {0};
+  \draw[black!60] (4.1472*\echx,-0.1) -- ++(0,-0.6) node[below left=-2pt, font=\sffamily\tiny, align=right] {\EF{scales}{échelles}\\4\,147\,200};
+  \draw[black!60] (4.406528*\echx,-0.1) -- ++(0,-1.25) node[below right=-2pt, font=\sffamily\tiny, align=left] {\EF{biases}{biais}\\4\,406\,528};
+  \draw[black!60] (4.418048*\echx,-0.1) -- ++(0,-0.25) node[below right=-1pt, font=\sffamily\tiny, align=left] {\EF{stride}{pas}\\4\,418\,048};
+  \draw[black!60] (3*4.418048*\echx,-0.1) -- ++(0,-0.25) node[below, font=\sffamily\tiny] {13\,254\,144};
+  \node[anchor=north west, font=\sffamily\scriptsize, text width=13.5cm, align=left] at (0,-2.2)
+    {\EF{Per matrix ($R = C = 2\,880$, $B = 90$): codes $R B \cdot 16 = 4\,147\,200$\,B in block order $\beta$; scales $R B = 259\,200$\,B at $\mathrm{al}_{256}(4\,147\,200) = 4\,147\,200$; biases $4R = 11\,520$\,B at $\mathrm{al}_{256}(4\,147\,200 + 259\,200) = 4\,406\,528$; stride $\mathrm{al}_{256}(4\,406\,528 + 11\,520) = 4\,418\,048$. Slot: $3 \times 4\,418\,048 = 13\,254\,144$\,B (test \texttt{disposition\_de\_gpt\_oss\_egale\_la\_specification}).}%
+        {Par matrice ($R = C = 2\,880$, $B = 90$) : codes $R B \cdot 16 = 4\,147\,200$\,o dans l'ordre des blocs $\beta$ ; échelles $R B = 259\,200$\,o au décalage $\mathrm{al}_{256}(4\,147\,200) = 4\,147\,200$ ; biais $4R = 11\,520$\,o au décalage $\mathrm{al}_{256}(4\,147\,200 + 259\,200) = 4\,406\,528$ ; pas $\mathrm{al}_{256}(4\,406\,528 + 11\,520) = 4\,418\,048$. Emplacement : $3 \times 4\,418\,048 = 13\,254\,144$\,o (test \texttt{disposition\_de\_gpt\_oss\_egale\_la\_specification}).}};
+\end{tikzpicture}}
+
+% ------------------------------------------------------------------------------------------------
+% Une entrée de LUT (géométrie 1), le bloc MXFP4 et l'échelle E8M0 décodée en f32.
+\newcommand{\NoyChamp}[5]{% x0, largeur, couleur, texte, bornes
+  \draw[fill=#3!30, draw=black!60] (#1,0) rectangle ++(#2,0.6) node[midway, font=\sffamily\scriptsize, align=center] {#4};
+  \node[font=\sffamily\tiny, black!60, anchor=north] at (#1+#2/2,-0.02) {#5};}
+\newcommand{\SchemaNoyBits}{%
+\begin{tikzpicture}[x=0.42cm, y=1cm]
+  % Entrée de LUT : 32 bits, poids fort à gauche.
+  \node[anchor=east, font=\sffamily\scriptsize\bfseries] at (-0.3,0.3) {\EF{LUT entry}{entrée de LUT}};
+  \NoyChamp{0}{12}{Index}{\EF{slot $-$ cumul}{fente $-$ cumul}}{\EF{bits}{bits} 31--20}
+  \NoyChamp{12}{12}{Mant}{$f - 1$}{19--8}
+  \NoyChamp{24}{8}{Signe}{\EF{symbol $s$}{symbole $s$}}{7--0}
+  % Bloc MXFP4 d'origine : 17 octets.
+  \begin{scope}[yshift=-1.55cm]
+  \node[anchor=east, font=\sffamily\scriptsize\bfseries, align=right] at (-0.3,0.3) {\EF{MXFP4 block}{bloc MXFP4}\\(17\,\EF{B}{o})};
+  \NoyChamp{0}{2}{Echelle}{$e$}{E8M0}
+  \foreach \i in {0,...,15}{\NoyChamp{2+\i*1.875}{1.875}{Code}{\tiny $q_{\i}$}{}}
+  \node[font=\sffamily\tiny, black!60, anchor=north, align=center] at (17,-0.05) {\EF{byte $i$: low nibble = weight $i$, high nibble = weight $16 + i$}{octet $i$ : demi-octet bas = poids $i$, haut = poids $16 + i$}};
+  \end{scope}
+  % Un demi-octet E2M1.
+  \begin{scope}[yshift=-3.1cm]
+  \node[anchor=east, font=\sffamily\scriptsize\bfseries] at (-0.3,0.3) {\EF{one code}{un code}};
+  \NoyChamp{0}{2}{Signe}{\tiny S}{3}
+  \NoyChamp{2}{6}{Code}{\tiny $m$}{2--0}
+  \node[anchor=west, font=\sffamily\scriptsize] at (8.6,0.3) {$k[m] = \{0, 1, 2, 3, 4, 6, 8, 12\}$ \EF{(doubled E2M1 magnitudes)}{(grandeurs E2M1 doublées)}, \EF{weight}{poids} $= (-1)^S\,k[m]\,2^{e-128}$};
+  \end{scope}
+  % E8M0 vers f32.
+  \begin{scope}[yshift=-4.65cm]
+  \node[anchor=east, font=\sffamily\scriptsize\bfseries, align=right] at (-0.3,0.3) {$2^{e-128}$\\\EF{as f32}{en f32}};
+  \NoyChamp{0}{1}{Signe}{\tiny 0}{31}
+  \NoyChamp{1}{8}{Expo}{\EF{$e - 1$ if $e \ge 2$}{$e - 1$ si $e \ge 2$}}{30--23}
+  \NoyChamp{9}{23}{Mant}{\EF{0, or for $e \in \{0, 1\}$: bit $21 + e$ alone (subnormal)}{0, ou pour $e \in \{0, 1\}$ : le seul bit $21 + e$ (sous-normal)}}{22--0}
+  \end{scope}
+\end{tikzpicture}}
+
+% ------------------------------------------------------------------------------------------------
+% Les structures passées aux noyaux, octet par octet.
+\newcommand{\NoyOctets}[4]{% y, liste « début/fin/couleur/texte », nom, taille
+  \node[anchor=east, font=\sffamily\scriptsize\bfseries, align=right] at (-0.2,#1+0.3) {#3\\[-2pt]{\tiny\mdseries #4}};
+  \foreach \a/\b/\c/\t in {#2}{
+    \draw[fill=\c!28, draw=black!55] (\a,#1) rectangle (\b,#1+0.6);
+    \node[font=\sffamily\tiny, align=center] at ({(\a+\b)/2},#1+0.3) {\t};
+    \node[font=\sffamily\tiny, black!55, anchor=north] at (\a,#1-0.01) {\a};
+  }}
+\newcommand{\SchemaNoyStructures}{%
+\begin{tikzpicture}[x=0.27cm, y=1cm]
+  \NoyOctets{0}{0/8/Disque/partie, 8/16/Vram/\EF{slot}{emplacement}, 16/24/Index/LUT, 24/32/Signe/\EF{control}{contrôle}}{DescDecodage}{32\,\EF{B}{o}}
+  \NoyOctets{-1.2}{0/8/Vram/\EF{matrix}{matrice}, 8/16/Accent/x, 16/24/Mant/y, 24/28/Code/R, 28/32/Code/C}{DescGemv}{32\,\EF{B}{o}}
+  \NoyOctets{-2.4}{0/8/Expo/base, 8/16/Expo/\EF{factor}{facteur}, 16/24/Expo/ctx\textsubscript{0}, 24/32/Expo/$\beta_r$, 32/40/Expo/$\beta_l$, 40/44/Code/$d$, 44/48/Code/var.}{ParamsRope}{48\,\EF{B}{o}}
+  \NoyOctets{-3.6}{0/4/Code/{\EF{heads}{têtes}}, 4/8/Code/kv, 8/12/Code/$d$, 12/16/Index/\EF{start}{début}, 16/20/Index/fin, 20/24/Index/\EF{ring}{anneau}, 24/28/Mant/\EF{scale}{éch.}, 28/32/black/0}{ParamsAttention}{32\,\EF{B}{o}}
+  \node[anchor=west, font=\sffamily\tiny, black!60] at (49,-2.1) {f64 ; u32};
+\end{tikzpicture}}
+
+% ------------------------------------------------------------------------------------------------
+% La fenêtre de mots à trois registres.
+\newcommand{\SchemaNoyFenetreMots}{%
+\begin{tikzpicture}[x=0.15cm, y=1cm]
+  \foreach \r/\c/\n in {0/Accent/cour, 32/Mant/suiv, 64/Echelle/apres}{
+    \draw[fill=\c!25, draw=\c!80!black] (\r,0) rectangle ++(32,0.7) node[midway, font=\sffamily\small] {\texttt{\n}};
+    \node[font=\sffamily\tiny, black!60, anchor=north] at (\r,-0.02) {base${}+\r$};
+  }
+  \node[font=\sffamily\tiny, black!60, anchor=north] at (96,-0.02) {base${}+96$};
+  \draw[Signe, line width=1pt, -{Latex[length=1.8mm]}] (11,1.45) -- (11,0.75);
+  \node[Signe, font=\sffamily\scriptsize, anchor=south] at (11,1.45) {$p \gg 1$};
+  \draw[decorate, decoration={brace, amplitude=3pt}, Signe] (11,0.85) -- (27,0.85) node[midway, above=3pt, font=\sffamily\tiny, Signe] {\EF{one sub-step reads $\le 16$ words of 32 bits}{un sous-pas lit $\le 16$ mots de 32 bits}};
+  \draw[decorate, decoration={brace, amplitude=3pt, mirror}] (0,-0.45) -- (32,-0.45) node[midway, below=3pt, font=\sffamily\tiny] {\EF{invariant: $(p \gg 1) - \mathrm{base} < 32$}{invariant : $(p \gg 1) - \mathrm{base} < 32$}};
+  \draw[decorate, decoration={brace, amplitude=3pt, mirror}] (0,-1.05) -- (48,-1.05) node[midway, below=3pt, font=\sffamily\tiny] {\EF{any read: index $< 48$ (in \texttt{cour} or \texttt{suiv})}{toute lecture : indice $< 48$ (dans \texttt{cour} ou \texttt{suiv})}};
+  \node[anchor=north west, font=\sffamily\scriptsize, text width=14cm, align=left] at (0,-1.75) {\EF{If $(p' \gg 1) - \mathrm{base} \ge 32$: base $+= 32$, \texttt{cour} $\leftarrow$ \texttt{suiv}, \texttt{suiv} $\leftarrow$ \texttt{apres}, \texttt{apres} $\leftarrow$ \texttt{mot32}(base $+ 64 +$ lane), a global load used one advance later.}{Si $(p' \gg 1) - \mathrm{base} \ge 32$ : base $+= 32$, \texttt{cour} $\leftarrow$ \texttt{suiv}, \texttt{suiv} $\leftarrow$ \texttt{apres}, \texttt{apres} $\leftarrow$ \texttt{mot32}(base $+ 64 +$ voie), une lecture globale qui ne sert qu'une avance plus tard.}};
+\end{tikzpicture}}
+
+% ------------------------------------------------------------------------------------------------
+% La passe avant d'une couche, noyau par noyau.
+\newcommand{\NoyEtape}[4]{\node[noyboite=#2, minimum width=4.4cm] (#1) at #3 {#4};}
+\newcommand{\SchemaNoyPasse}{%
+\begin{tikzpicture}[x=1cm, y=1cm]
+  \NoyEtape{e0}{Code}{(0,0)}{\texttt{ligne\_q8\_0} : $x$ \EF{(row of the embedding)}{(ligne de l'enchâssement)}}
+  \NoyEtape{e1}{Accent}{(0,-0.85)}{\texttt{rmsnorm} $\to h$}
+  \NoyEtape{e2}{Code}{(0,-1.7)}{\texttt{gemv\_q8\_0} $\times 3$ (+\EF{bias}{biais}) $\to q, k, v$}
+  \NoyEtape{e3}{Accent}{(0,-2.55)}{\texttt{rope\_yarn} (f64)}
+  \NoyEtape{e4}{Vram}{(0,-3.4)}{\texttt{ecrire\_kv} $\to$ \EF{cache f16}{cache f16}}
+  \NoyEtape{e5}{Calcul}{(0,-4.25)}{\texttt{attention} (\EF{sinks, window}{puits, fenêtre} 128)}
+  \NoyEtape{e6}{Code}{(0,-5.1)}{\texttt{gemv\_q8\_0} $W_o$ ; \texttt{combiner} ($n = 1$)}
+  \NoyEtape{e7}{Accent}{(7,0)}{\texttt{rmsnorm} $\to h_2$ ; \texttt{gemv\_f32} \EF{(router)}{(routeur)}}
+  \NoyEtape{e8}{Signe}{(7,-0.85)}{\texttt{routeur\_topk} $\to$ u32[4], f32[4], \EF{mailbox}{boîte}}
+  \NoyEtape{e9}{Disque}{(7,-1.7)}{\EF{host: hits, misses, reads}{hôte : succès, défauts, lectures}}
+  \NoyEtape{e10}{Vram}{(7,-2.55)}{\texttt{gemv\_mxfp4} gate, up ($\times 4$)}
+  \NoyEtape{e11}{Accent}{(7,-3.4)}{\texttt{swiglu\_oai} (f64)}
+  \NoyEtape{e12}{Vram}{(7,-4.25)}{\texttt{gemv\_mxfp4} down ($\times 4$)}
+  \NoyEtape{e13}{Code}{(7,-5.1)}{\texttt{combiner} ($n = 4$, \EF{fixed order}{ordre fixe})}
+  \foreach \a/\b in {e0/e1, e1/e2, e2/e3, e3/e4, e4/e5, e5/e6, e7/e8, e8/e9, e9/e10, e10/e11, e11/e12, e12/e13} \draw[noyfl] (\a) -- (\b);
+  \draw[noyfl] (e6.east) -- ++(0.6,0) |- (e7.west);
+  \draw[noyfl, densely dashed] (e13.east) -- ++(0.4,0) |- ([yshift=4pt]e7.east) node[pos=0.25, right, noylab] {$\ell{+}1$};
+  \node[noyboite=Code, minimum width=4.4cm] (s) at (3.5,-6.25) {\EF{output}{sortie} : \texttt{rmsnorm}, \texttt{gemv\_q8\_0} (201\,088 $\times$ 2\,880), \texttt{argmax}};
+  \draw[noyfl] (e13.south) |- (s.east);
+  % Types et tailles.
+  \node[noylab, anchor=east, align=right] at (-2.4,-1.7) {f32[4\,096], \\ f32[512], f32[512]};
+  \node[noylab, anchor=east, align=right] at (-2.4,-3.4) {f16 [\EF{slot}{case}][8][64]};
+  \node[noylab, anchor=east, align=right] at (-2.4,-0.85) {f32[2\,880]};
+\end{tikzpicture}}
+
+% ================================================================================================
+% Graphes.
+
+% K1 : débit du décodeur par passe, variantes A, C, D, D + lot (deux processus chacune).
+\newcommand{\GrapheNoyDecodeur}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=\linewidth, height=0.6\linewidth, xmin=-0.7, xmax=19.7, ymin=30, ymax=74,
+  xlabel={\EF{pass (two processes of 5 $\times$ A B C C B A each)}{passe (deux processus de 5 $\times$ A B C C B A chacun)}},
+  ylabel={\EF{GB/s of codes written}{Go/s de codes écrits}}, legend pos=north west, legend columns=2, legend style={font=\scriptsize}]
+\addplot[only marks, SerieB, mark=*, mark size=1.8pt] table[x expr={\thisrow{passe}+10*(\thisrow{proc}-1)}, y=go_s, restrict expr to domain={\thisrow{code}}{0:0}] {\DonneesTdeux/t2n-k1.csv};
+\addlegendentry{\EF{A: one expert at a time (declared)}{A : un expert à la fois (déclarée)}}
+\addplot[only marks, SerieA, mark=square*, mark size=1.6pt] table[x expr={\thisrow{passe}+10*(\thisrow{proc}-1)}, y=go_s, restrict expr to domain={\thisrow{code}}{2:2}] {\DonneesTdeux/t2n-k1.csv};
+\addlegendentry{\EF{C: batch of 4}{C : lot de 4}}
+\addplot[only marks, SerieC, mark=triangle*, mark size=2.1pt] table[x expr={\thisrow{passe}+10*(\thisrow{proc}-1)}, y=go_s, restrict expr to domain={\thisrow{code}}{3:3}] {\DonneesTdeux/t2n-k1.csv};
+\addlegendentry{\EF{D: DELTA in tiles of 32}{D : DELTA en tuiles de 32}}
+\addplot[only marks, SerieE, mark=diamond*, mark size=2.1pt] table[x expr={\thisrow{passe}+10*(\thisrow{proc}-1)}, y=go_s, restrict expr to domain={\thisrow{code}}{4:4}] {\DonneesTdeux/t2n-k1.csv};
+\addlegendentry{D + \EF{batch}{lot}}
+\addplot[Signe, dashed, no markers, domain=-0.7:19.7] {33.28};
+\addlegendentry{\EF{threshold 33.28}{seuil 33,28}}
+\addplot[black!55, densely dotted, no markers, domain=-0.7:19.7] {45.8};
+\addlegendentry{\EF{reference redone (CUDA) 45.8}{référence refaite (CUDA) 45,8}}
+\draw[black!35] (axis cs:9.5,30) -- (axis cs:9.5,61);
+\end{axis}
+\end{tikzpicture}}
+
+% K1 : décomposition du temps d'un expert (DELTA, CODES_CTX, trou), A et D.
+\newcommand{\GrapheNoyDecomposition}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=0.8\linewidth, height=0.5\linewidth, ybar stacked, bar width=22pt,
+  ymin=0, ymax=380, xmin=-0.6, xmax=3.6, xtick={0,1,2,3}, xticklabels={A (1), A (2), D (1), D (2)},
+  ylabel={\EF{µs per expert}{µs par expert}}, major x grid style={draw=none}, legend pos=north east, legend style={font=\scriptsize}]
+\addplot[fill=Echelle!60, draw=Echelle] table[x expr=\coordindex, y expr=\thisrow{s_delta}*1e6] {\MesMoteur/K/csv/k1-decomposition.csv};
+\addlegendentry{DELTA}
+\addplot[fill=Code!50, draw=Code] table[x expr=\coordindex, y expr=\thisrow{s_codes}*1e6] {\MesMoteur/K/csv/k1-decomposition.csv};
+\addlegendentry{CODES\_CTX}
+\addplot[fill=Signe!70, draw=Signe] table[x expr=\coordindex, y expr=\thisrow{s_trou}*1e6] {\MesMoteur/K/csv/k1-decomposition.csv};
+\addlegendentry{\EF{gap}{trou}}
+\end{axis}
+\end{tikzpicture}}
+
+% K2 : GEMV MXFP4, lot de 12 matrices contre une matrice par lancement.
+\newcommand{\GrapheNoyGemv}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=\linewidth, height=0.48\linewidth, xmin=-0.7, xmax=19.7, ymin=140, ymax=250,
+  xlabel={\EF{pass (two processes)}{passe (deux processus)}}, ylabel={\EF{GB/s of MXFP4 equivalent}{Go/s de MXFP4 équivalents}},
+  legend columns=2, legend style={font=\scriptsize, at={(0.5,0.42)}, anchor=center}]
+\addplot[only marks, SerieA, mark=*, mark size=1.8pt] table[x expr={\thisrow{passe}+10*(\thisrow{proc}-1)}, y=go_s, restrict expr to domain={\thisrow{code}}{0:0}] {\DonneesTdeux/t2n-k2.csv};
+\addlegendentry{\EF{batch of 12 matrices (a layer)}{lot de 12 matrices (une couche)}}
+\addplot[only marks, SerieB, mark=square*, mark size=1.6pt] table[x expr={\thisrow{passe}+10*(\thisrow{proc}-1)}, y=go_s, restrict expr to domain={\thisrow{code}}{1:1}] {\DonneesTdeux/t2n-k2.csv};
+\addlegendentry{\EF{one matrix per launch}{une matrice par lancement}}
+\addplot[Signe, dashed, no markers, domain=-0.7:19.7] {167.5};
+\addlegendentry{\EF{threshold 167.5}{seuil 167,5}}
+\addplot[black!55, densely dotted, no markers, domain=-0.7:19.7] {209.4};
+\addlegendentry{Vulkan (03) 209,4}
+\draw[black!35] (axis cs:9.5,140) -- (axis cs:9.5,250);
+\end{axis}
+\end{tikzpicture}}
+
+% K2 : écart relatif de la GEMV sur les 24 matrices réelles (8 experts × 3).
+\newcommand{\GrapheNoyEcarts}{%
+\begin{tikzpicture}
+\begin{semilogyaxis}[memoire, width=0.95\linewidth, height=0.42\linewidth, xmin=-0.7, xmax=23.7, ymin=5e-8, ymax=3e-5,
+  xlabel={\EF{matrix (expert $\times$ 3 + gate/up/down)}{matrice (expert $\times$ 3 + gate/up/down)}}, ylabel={$\max|y - y_{64}| / \max|y_{64}|$}, legend pos=north east, legend style={font=\scriptsize}]
+\addplot[only marks, SerieA, mark=*, mark size=1.8pt] table[x expr=\coordindex, y=ecart_relatif] {\MesMoteur/K/csv/k2-ecarts-reels.csv};
+\addlegendentry{\EF{measured (gpt-oss-120b)}{mesuré (gpt-oss-120b)}}
+\addplot[Signe, dashed, no markers, domain=-0.7:23.7] {1e-5};
+\addlegendentry{\EF{threshold $10^{-5}$}{seuil $10^{-5}$}}
+\addplot[black!50, densely dotted, no markers, domain=-0.7:23.7] {2.4e-6};
+\addlegendentry{$\gamma_{40}$ \EF{(a priori, per unit of $\Sigma|\cdot|$)}{(a priori, par unité de $\Sigma|\cdot|$)}}
+\end{semilogyaxis}
+\end{tikzpicture}}
+
+% K3 : marge de chaque noyau à seuil, 20b et 120b.
+\newcommand{\GrapheNoyMarges}{%
+\begin{tikzpicture}
+\begin{semilogyaxis}[memoire, width=\linewidth, height=0.48\linewidth, ybar=1pt, bar width=9pt, ymin=1, ymax=100,
+  xmin=-0.6, xmax=7.6, xtick={0,...,7},
+  xticklabels={\texttt{gemv\_mxfp4}, \texttt{gemv\_q8\_0}, \texttt{gemv\_f32}, \texttt{rmsnorm}, \texttt{rope\_yarn}, \texttt{attention}, \EF{router weights}{poids du routeur}, \texttt{swiglu\_oai}},
+  x tick label style={font=\scriptsize, rotate=25, anchor=north east}, ylabel={\EF{threshold / worst error}{seuil / pire écart}},
+  log ticks with fixed point, ytick={1,2,5,10,20,50,100}, major x grid style={draw=none}, legend pos=north east, legend style={font=\scriptsize}]
+\addplot[fill=SerieA!55, draw=SerieA] table[x=i, y=m20] {\DonneesTdeux/t2n-marges.csv};
+\addlegendentry{gpt-oss-20b}
+\addplot[fill=SerieD!55, draw=SerieD] table[x=i, y=m120] {\DonneesTdeux/t2n-marges.csv};
+\addlegendentry{gpt-oss-120b}
+\end{semilogyaxis}
+\end{tikzpicture}}
+
+% K3 : la chaîne de bout en bout, KL par position, routage libre contre imposé.
+\newcommand{\GrapheNoyChaine}{%
+\begin{tikzpicture}
+\begin{semilogyaxis}[memoire, width=0.95\linewidth, height=0.5\linewidth, xmin=0, xmax=160, ymin=1e-10, ymax=10,
+  xlabel={\EF{position}{position}}, ylabel={KL(\EF{ref.}{réf.} $\|$ \EF{chain}{chaîne}) (nat)}, legend pos=north west, legend style={font=\scriptsize}]
+\addplot[SerieB, mark=*, mark size=0.9pt, line width=0.5pt] table[x=position, y=kl_libre] {\MesMoteur/K/csv/k3-chaine-kl.csv};
+\addlegendentry{\EF{free routing}{routage libre}}
+\addplot[SerieA, mark=square*, mark size=0.8pt, line width=0.5pt] table[x=position, y=kl_impose] {\MesMoteur/K/csv/k3-chaine-kl.csv};
+\addlegendentry{\EF{imposed routing (D2)}{routage imposé (D2)}}
+\addplot[Signe, dashed, no markers, domain=0:160] {7e-5};
+\addlegendentry{\EF{threshold $7\cdot10^{-5}$ (mean)}{seuil $7\cdot10^{-5}$ (moyenne)}}
+\end{semilogyaxis}
+\end{tikzpicture}}
+
+% K3 : la cassure « fenêtre » sous routage imposé : la marche à la position 128.
+\newcommand{\GrapheNoyFenetre}{%
+\begin{tikzpicture}
+\begin{semilogyaxis}[memoire, width=0.95\linewidth, height=0.42\linewidth, xmin=0, xmax=160, ymin=1e-10, ymax=10,
+  xlabel={\EF{position}{position}}, ylabel={KL (nat)}, legend pos=north west, legend style={font=\scriptsize}]
+\addplot[SerieA, mark=none, line width=0.6pt] table[x=position, y=kl_impose] {\MesMoteur/K/csv/k3-chaine-kl.csv};
+\addlegendentry{\EF{imposed, sound}{imposé, sain}}
+\addplot[SerieB, mark=none, line width=0.6pt] table[x=position, y=kl_impose_casse_fenetre] {\MesMoteur/K/csv/k3-chaine-kl.csv};
+\addlegendentry{\EF{imposed, window on odd layers}{imposé, fenêtre sur les couches impaires}}
+\draw[black!55, densely dotted] (axis cs:128,1e-10) -- (axis cs:128,10) node[pos=0.92, left, font=\scriptsize] {128};
+\end{semilogyaxis}
+\end{tikzpicture}}
+
+% K3, D1 : chaque décision de routage, marge de la référence, et les bascules.
+\newcommand{\GrapheNoyRoutage}{%
+\begin{tikzpicture}
+\begin{semilogxaxis}[memoire, width=0.95\linewidth, height=0.5\linewidth, xmin=1e-6, xmax=1, ymin=-0.8, ymax=23.8,
+  xlabel={\EF{reference router margin (4th $-$ 5th logit)}{marge du routeur de la référence (4\textsuperscript{e} $-$ 5\textsuperscript{e} logit)}}, ylabel={\EF{layer}{couche}},
+  legend pos=north west, legend style={font=\scriptsize}]
+\addplot[only marks, black!30, mark=*, mark size=0.6pt, restrict expr to domain={\thisrow{bascule}}{0:0}] table[x=marge, y=couche] {\DonneesTdeux/t2n-routage.csv};
+\addlegendentry{\EF{same set (3\,818)}{même ensemble (3\,818)}}
+\addplot[only marks, Signe, mark=x, mark size=2.6pt, line width=0.9pt, restrict expr to domain={\thisrow{bascule}}{1:1}] table[x=marge, y=couche] {\DonneesTdeux/t2n-routage.csv};
+\addlegendentry{\EF{flip (different set)}{bascule (ensemble différent)}}
+\draw[Signe, densely dotted] (axis cs:1e-3,-0.8) -- (axis cs:1e-3,23.8);
+\end{semilogxaxis}
+\end{tikzpicture}}
+
+% Ronde M5 : cache KV f16 contre f32, KL moyenne courante, fenêtre 0 du 120b.
+\newcommand{\GrapheNoyKV}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=0.95\linewidth, height=0.45\linewidth, xmin=256, xmax=511, ymin=-0.001, ymax=0.0045,
+  xlabel={\EF{position in window 0}{position dans la fenêtre 0}}, ylabel={\EF{running mean of KL (nat)}{KL moyenne courante (nat)}},
+  scaled y ticks=false, yticklabel style={/pgf/number format/fixed, /pgf/number format/precision=4}, legend pos=north west, legend style={font=\scriptsize}]
+\addplot[SerieB, mark=none, line width=0.9pt] table[x=position, y=moy_f16] {\DonneesTdeux/t2n-kv-120b.csv};
+\addlegendentry{\EF{KV cache in f16}{cache KV en f16}}
+\addplot[SerieA, mark=none, line width=0.9pt] table[x=position, y=moy_f32] {\DonneesTdeux/t2n-kv-120b.csv};
+\addlegendentry{\EF{KV cache in f32}{cache KV en f32}}
+\addplot[black!50, densely dotted, no markers, domain=256:511] {-0.00048};
+\addlegendentry{\EF{format floor $-4.8\cdot10^{-4}$}{plancher du format $-4{,}8\cdot10^{-4}$}}
+\end{axis}
+\end{tikzpicture}}

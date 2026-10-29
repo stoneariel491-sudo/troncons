@@ -1,0 +1,28 @@
+% Loi des codes de 4 bits : Q4_K de Qwen3.5-9B (tous les tenseurs Q4_K) et MXFP4 de
+% gpt-oss-20b (tous les experts). La ligne pointillée est la loi uniforme (1/16).
+% Données : fondations/journaux/03-entropie/csv/fig-histogramme-codes.csv (vers_csv.py,
+% depuis entropie-9B.json et entropie-gptoss20b.json).
+% Compilation seule : lualatex fig-histogramme-codes.tex (depuis ce dossier).
+\documentclass[tikz,border=4pt]{standalone}
+\usepackage{fontspec}
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
+\pgfplotsset{compat=1.18}
+\providecommand{\donnees}{../../../fondations/journaux/03-entropie/csv}
+\begin{document}
+\pgfplotstableread[col sep=comma]{\donnees/fig-histogramme-codes.csv}\table
+\begin{tikzpicture}
+\begin{axis}[
+  ybar, bar width=4pt, width=12cm, height=6cm, ymin=0,
+  xlabel={code (4 bits)}, ylabel={fréquence}, xtick={0,...,15},
+  legend style={at={(0.5,-0.3)}, anchor=north, font=\small, legend columns=1},
+  ymajorgrids, grid style={gray!25},
+  yticklabel style={/pgf/number format/fixed, /pgf/number format/precision=3},
+]
+\addplot[fill=blue!55] table[x=code, y=q4k_9B] {\table};
+\addplot[fill=orange!70] table[x=code, y=mxfp4_gptoss20b] {\table};
+\addplot[ybar=0pt, sharp plot, red!60, dashed, thick] coordinates {(-0.5,0.0625) (15.5,0.0625)};
+\legend{{Q4\_K de Qwen3.5-9B (H = 3{,}865 bits)}, {MXFP4 de gpt-oss-20b (H = 3{,}862 bits)}, {uniforme (1/16)}}
+\end{axis}
+\end{tikzpicture}
+\end{document}

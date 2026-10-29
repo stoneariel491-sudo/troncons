@@ -1,0 +1,69 @@
+{
+  "etude": "07-synthese",
+  "casser": true,
+  "modeles": [
+    {
+      "modele": "gpt-oss-20b",
+      "fichier": "~/dev/modeles/gguf/gpt-oss-20b-MXFP4.gguf",
+      "taille_fichier_octets": 12109566624,
+      "architecture": "gpt-oss",
+      "couches": 24,
+      "experts_par_couche_E": 32,
+      "experts_actifs_k": 4,
+      "temoin_fin_du_dernier_tenseur": {
+        "fin": 12109570720,
+        "taille": 12109566624,
+        "alignement": 32,
+        "tient": false
+      },
+      "A_octets_toujours_lus": 1302341376,
+      "A_par_type": {
+        "Q8_0": 1292152320,
+        "F32": 10189056
+      },
+      "R_octets_experts_par_jeton": 1272360960.0,
+      "octets_tous_experts": 10178887680,
+      "octets_table_enchassement": 615329280,
+      "e_octets_par_expert": 13253760.0,
+      "matrice_contigue_par_expert_octets": [
+        4406400
+      ],
+      "biais_contigu_par_expert_octets": [
+        11520
+      ],
+      "experts_lus_par_jeton": 96
+    },
+    {
+      "modele": "gpt-oss-120b",
+      "fichier": "~/dev/modeles/gguf/gpt-oss-120b-MXFP4.gguf",
+      "taille_fichier_octets": 63387346208,
+      "architecture": "gpt-oss",
+      "couches": 36,
+      "experts_par_couche_E": 128,
+      "experts_actifs_k": 4,
+      "temoin_fin_du_dernier_tenseur": {
+        "fin": 63387350304,
+        "taille": 63387346208,
+        "alignement": 32,
+        "tient": false
+      },
+      "A_octets_toujours_lus": 1685668608,
+      "A_par_type": {
+        "Q8_0": 1630563840,
+        "F32": 55104768
+      },
+      "R_octets_experts_par_jeton": 1908541440.0,
+      "octets_tous_experts": 61073326080,
+      "octets_table_enchassement": 615329280,
+      "e_octets_par_expert": 13253760.0,
+      "matrice_contigue_par_expert_octets": [
+        4406400
+      ],
+      "biais_contigu_par_expert_octets": [
+        11520
+      ],
+      "experts_lus_par_jeton": 144
+    }
+  ],
+  "temoins_tiennent": false
+}

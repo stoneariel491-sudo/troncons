@@ -1,0 +1,247 @@
+\chapter{Architecture : les candidates, la décision, ce qui vient}\label{ch:avenir}
+
+\begin{origine}
+\textbf{Au départ}, l'équation du jeton (\cref{ch:formulation}) et quatre leviers mesurés. Aucune architecture n'était choisie.
+\textbf{Ce chapitre établit} trois architectures candidates, opposées par leur angle et calculées sur les mêmes débits (\fichier{fondations/07-ce-qui-manque.md}, § 4) ; le mécanisme neuf de la deuxième, le raffinement exact d'un code 4 bits natif, avec sa proposition démontrée et sa mesure sur les poids réels ; la correction d'un chiffre qui l'avantageait à tort, barrée à sa place ; le débat des deux partisans et la décision de l'arbitre ; et les premières mesures du modèle visé, encore provisoires.
+\textbf{Il reste} les chapitres d'implémentation (le jalon J1) et de résultats, qui ne s'écrivent qu'avec un programme qui tourne.
+Sources : \fichier{fondations/07-ce-qui-manque.md}, \fichier{decisions/partisan-A.md}, \fichier{decisions/partisan-B.md}, \fichier{decisions/ARCHITECTURE.md} (commit \texttt{f0b0fea}), \fichier{mesures/} (agent de mesure, étude non rendue au moment où ce chapitre s'écrit).
+\end{origine}
+
+\section{Trois angles}\label{sec:trois-angles}
+
+Les trois candidates partagent la machine, le juge (\cref{sec:protocole-jugement}) et l'équation du jeton ; toutes font décoder la carte (\cref{cor:sans-croisement}). Elles s'opposent par l'angle :
+\begin{description}
+\item[A] réduit les octets \emph{sans rien perdre} et compte sur la carte seule ;
+\item[B] échange de la précision, \emph{là seulement où l'octet est cher} : au défaut de cache ;
+\item[C] \emph{lit moins souvent} au lieu de lire moins : une lecture des poids amortie sur plusieurs jetons par une vérification en arbre.
+\end{description}
+La \cref{fig:architectures-plafonds} les place sur le même axe, avec la base estimée de llama.cpp.
+
+\begin{figure}[ht]
+\centering
+\GrapheArchitectures
+\caption[Plafonds des architectures candidates]{Plafonds des architectures candidates sur gpt-oss-120b, trois scénarios de localité (\cref{hyp:beta}) ; le trait noir est le plancher en série du scénario LRU \calc. La rangée barrée en rouge est le chiffre de l'étude 07 pour B1, qui ne comptait pas les compléments (\cref{sec:correction-b1}). La base llama.cpp est estimée, pas mesurée.}
+\label{fig:architectures-plafonds}
+\sourcefig{\fichier{fondations/journaux/07-synthese/csv/architectures-gptoss120b.csv} et \fichier{decisions/journaux/csv/b-complements-gptoss120b.csv}, tirés par \fichier{memoire/outils/donnees_figures.py}.}
+\end{figure}
+
+\section{A : tout par la carte, octets codés de bout en bout, sans perte}\label{sec:archi-a}
+
+\paragraph{Le modèle.} gpt-oss-120b MXFP4, déjà sur la machine, empreinte vérifiée ; jumeau de développement : gpt-oss-20b (12,1\,Go, plus gros que la VRAM lui aussi). Aucun téléchargement.
+
+\paragraph{Le chemin des octets} (\cref{fig:chemin-a}). Le disque livre les experts codés par le rANS de l'étude de l'entropie ($r = 1{,}1026$), à la taille d'une matrice d'expert : dans les fichiers de gpt-oss, l'expert est la dimension la plus lente de chaque tenseur, donc chaque matrice d'expert est un bloc contigu de 4\,406\,400 octets, lisible d'un seul tenant sans réécrire le fichier \mes~(\fichier{fondations/journaux/07-synthese/inventaire-gptoss.json}). La RAM épinglée tient les tampons d'arrivée et un cache tiède d'experts \emph{codés} ; la DMA porte les octets codés ; la carte décode à l'arrivée et garde un cache d'experts \emph{décodés}, parce que le produit fondu au décodeur est 3,7 fois plus lent que le produit brut (\cref{ch:formulation}, \cref{sec:temoins-equation}).
+
+\begin{figure}[ht]
+\centering
+\SchemaCheminA
+\caption[Le chemin des octets de l'architecture A]{Le chemin des octets de l'architecture candidate A. Le processeur ne fait que lire et tenir les files ; la carte décode et calcule. Débits mesurés (\cref{tab:grandeurs}).}
+\label{fig:chemin-a}
+\end{figure}
+
+\paragraph{Le chronogramme d'un jeton} (\cref{fig:chrono-a}). Pendant la couche $\ell$, la file du disque reçoit les défauts prédits pour $\ell+1$ par le routeur de $\ell+1$ appliqué au résidu de $\ell$ (96\,\% juste à une couche d'avance \litt, \cref{ch:chargement}). Le disque est occupé en permanence et la carte l'attend : environ 1\,ms de carte par couche contre 4,4\,ms de disque en moyenne. Le plafond suppose que la file ne se vide jamais ; le plancher, qu'aucune lecture n'est lancée avant que le routeur de sa couche n'ait parlé.
+
+\begin{figure}[ht]
+\centering
+\SchemaChronoA
+\caption[Chronogramme d'un jeton dans A]{Chronogramme d'un jeton dans l'architecture candidate A : trois couches successives. Le disque ne s'arrête jamais ; la carte calcule environ un quart du temps et attend le reste. C'est le régime de la \cref{prop:elasticites}.}
+\label{fig:chrono-a}
+\end{figure}
+
+\begin{table}[ht]
+\centering\small
+\caption[Plafonds de A]{Plafonds de l'architecture candidate A sur gpt-oss-120b, disque à 2,58\,Go/s, 11\,Go de cache tiède \calc. Le même chemin sans codage ($r = 1$) donne 1,81 / 5,42 / 8,98.}
+\label{tab:plafonds-a}
+\begin{tabular}{@{}lccrr@{}}
+\toprule
+Scénario & $h_v$ / $h_r$ / $h_s$ & $T_{\mathrm{D}}$ / $T_{\mathrm{P}}$ / $T_{\mathrm{G}}$ (ms) & Plafond & Plancher en série \\
+\midrule
+uniforme ($\beta = 1$) & 0,079 / 0,199 / 0,723 & 485 / 131 / 59 & 2,05 & 1,47 \\
+LRU calé ($\beta = 0{,}207$) & 0,590 / 0,176 / 0,234 & 157 / 58 / 36 & \textbf{6,24} & 3,93 \\
+Belady calé ($\beta = 0{,}117$) & 0,744 / 0,118 / 0,139 & 93 / 36 / 29 & 10,34 & 6,17 \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{fondations/journaux/07-synthese/csv/architectures-gptoss120b.csv}, lignes \texttt{A\_sans\_perte} et \texttt{A\_brut\_r1}.}
+\end{table}
+
+\paragraph{La mémoire de pointe.} VRAM $\approx 7{,}5$\,Go : les toujours-lus (1,69\,Go), un cache d'experts de 4,8\,Go, le cache KV, les activations et les tampons de décodage ($\approx 1$\,Go). L'écran passe par la carte intégrée : les 8\,188\,Mio de la carte sont disponibles. RAM : de 1,9 à 12,3\,Go selon le cache tiède, et 0,64\,Go dans la fenêtre minimale du partisan de A (\cref{sec:fenetre-chiffree}).
+
+\paragraph{La qualité.} Exacte par construction, et le témoin est double : chaque tronçon décodé est comparé à son empreinte (le décodeur rANS est exact au bit sur les 108 tenseurs de gpt-oss-120b \mes) ; et les logits de A doivent être \emph{identiques au bit} à ceux du même moteur lisant les experts non codés. Contre llama.cpp, on compare à l'écart mesuré entre deux moteurs justes (\cref{sec:protocole-jugement}).
+
+\paragraph{Ce qu'elle sacrifie.} Le processeur reste presque inactif (calculer les experts tièdes sur lui n'aiderait que le lien, qui ne tient pas le maximum : 58\,ms contre 157) ; tout le passage avant de gpt-oss est à écrire (attention à puits et à fenêtre glissante une couche sur deux, RoPE YaRN, routeur, SwiGLU bornée) ; la vitesse reste bornée par la localité.
+
+\section{B : la précision selon l'étage}\label{sec:archi-b}
+
+\subsection{Le mécanisme}
+
+Un code E2M1 (le demi-octet du MXFP4) porte un signe $s$ et une magnitude $m \in \{0 ; 0{,}5 ; 1 ; 1{,}5 ; 2 ; 3 ; 4 ; 6\}$, multipliée par l'échelle E8M0 de son bloc de 32 (\cref{ch:quant}). On le range en deux flux codés par rANS (\cref{fig:base-complement}) :
+\begin{itemize}
+\item la \textbf{base} $b = (s, \mathrm{classe}(m))$, avec quatre classes de magnitude ;
+\item le \textbf{complément}, la position de $m$ dans sa classe, codé avec une table par classe.
+\end{itemize}
+Au défaut de cache, le disque ne lit que la base et la carte la sert, chaque classe remplacée par son centre ; quand l'expert entre au cache, la lecture du complément le rend exact.
+
+\begin{figure}[ht]
+\centering
+\SchemaBaseComplement
+\caption[La base et le complément d'un code E2M1]{La base et le complément d'un code E2M1, meilleure partition à quatre classes \mes. En haut, les huit magnitudes à l'échelle et leurs codes de 3 bits ; dessous, les centres de classe (unités E2M1). En bas, la découpe d'un code de 4 bits.}
+\label{fig:base-complement}
+\sourcefig{\fichier{fondations/journaux/07-synthese/raffinement-mxfp4-gptoss20b.json} (outil \fichier{outils/07-synthese/raffinement\_mxfp4.py}).}
+\end{figure}
+
+\begin{proposition}[Le raffinement exact ne coûte rien en entropie]\label{prop:raffinement}
+Soit $X$ une variable discrète (le code) et $B = f(X)$ une fonction déterministe de $X$ (la base). Alors
+\begin{equation}\label{eq:raffinement}
+H(X) \;=\; H(B) + H(X \mid B).
+\end{equation}
+Un codeur entropique idéal qui code $B$, puis $X$ sachant $B$, écrit donc autant de bits que s'il codait $X$ d'un seul tenant.
+\end{proposition}
+
+\begin{proof}
+Par la règle de chaîne, $H(X, B) = H(X) + H(B \mid X) = H(B) + H(X \mid B)$. Comme $B$ est une fonction de $X$, connaître $X$ fixe $B$ : $H(B \mid X) = 0$. Donc $H(X) = H(B) + H(X \mid B)$. Le code optimal de $X$ sachant $B$ atteint $H(X \mid B)$ en moyenne, celui de $B$ atteint $H(B)$, et la somme est $H(X)$.
+\end{proof}
+
+C'est le cas trivial, pour une source discrète et un sommet sans perte, du raffinement successif d'Equitz et Cover~\cite{equitz1991successive} ; le résultat continu est démontré par Drop-by-Drop~\cite{babaoglu2026dropbydrop} \litt. Ce qui est neuf ici n'est pas l'identité : c'est son emploi sur un format 4 bits \emph{natif} (le modèle a été entraîné dans ce format, la couche exacte est l'original lui-même), lié à l'étage, choisi pour sa distorsion et non par troncature, et sa mesure. Les voisins lus en entier par le partisan de B le confirment : SliceMoE tronque les bits de poids faible d'un entier~\cite{choi2025slicemoecorps}, HOBBIT garde deux copies séparées~\cite{tang2024hobbit} \litt.
+
+\subsection{La mesure sur les poids réels}
+
+\begin{table}[ht]
+\centering\small
+\caption[Couches de base d'un code E2M1]{Couches de base d'un code E2M1, 12 tenseurs de gpt-oss-20b (couches 0, 8, 16, 23 ; gate, up, down ; 3\,185\,049\,600 poids) \mes. $H(\text{code}) = 3{,}860$ bits ; la somme base + complément l'égale à $10^{-9}$ près sur chaque ligne (témoin de la \cref{prop:raffinement}).}
+\label{tab:bases}
+\begin{tabular}{@{}p{0.28\linewidth}p{0.27\linewidth}rrr@{}}
+\toprule
+Base & Classes de magnitude & $H$(base) & $H$(compl.) & Erreur relative \\
+\midrule
+signe + 2 bits, meilleure partition & \{0 ; 0,5\} \{1 ; 1,5 ; 2\} \{3 ; 4\} \{6\} & \textbf{2,642} & 1,218 & \textbf{4,29\,\%} \\
+signe + 2 bits, troncature (« Matryoshka ») & \{0 ; 0,5\} \{1 ; 1,5\} \{2 ; 3\} \{4 ; 6\} & 2,907 & 0,953 & 4,47\,\% \\
+signe + 1 bit & \{0 \ldots\ 1,5\} \{2 \ldots\ 6\} & 1,957 & 1,903 & 16,4\,\% \\
+\emph{référence : MXFP4 sur une gaussienne} & & & & \emph{1,33\,\%} \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{fondations/journaux/07-synthese/raffinement-mxfp4-gptoss20b.json} ; cassure : \fichier{raffinement-mxfp4-gptoss20b-casse.json}.}
+\end{table}
+
+Trois lectures du \cref{tab:bases}. \textbf{La troncature perd 0,27 bit par poids à erreur égale} : les niveaux du format ne sont pas uniformes, et couper les bits de poids faible regroupe mal les magnitudes. \textbf{La base à 1 bit est tuée par le nombre} : 16,4\,\% d'erreur, douze fois le bruit propre du format. \textbf{Les centres de classe} sont les centres de gravité pondérés par le carré de l'échelle E8M0, donc optimaux dans le domaine réel : 0,237 ; 1,424 ; 3,419 ; 6,0 ; le décodeur les tient dans quatre registres, et le produit sur la base coûte celui du MXFP4. Avec les échelles et les en-têtes, la base se lit à 2,684 bits par poids contre 3,855 pour le sans-perte : $3{,}855/2{,}684 = 1{,}436$ fois moins d'octets par défaut \calc.
+
+\subsection{Le chiffre qu'il a fallu barrer}\label{sec:correction-b1}
+
+L'étude 07 définissait deux variantes : \textbf{B1} (la VRAM et la RAM gardent des experts exacts ; un défaut lit la base seule et la sert ; le complément ne se lit que si l'expert entre au cache) et \textbf{B2} (la RAM ne garde que des bases). Elle chiffrait B1 à \barre{8,88 jetons/s, soit $\times 1{,}42$ sur le plafond de A dans le scénario LRU calé}.
+
+Le partisan de B a trouvé l'erreur, contre son propre camp : l'outil ne comptait pas les octets des compléments. Or, sous LRU, tout défaut entre au cache, donc tout défaut finit par lire son complément. Comptés, \textbf{le plafond de B1 retombe à celui de A} : 6,16 jetons/s contre 6,24, parce que le disque lit base et complément, 3,906 bits contre 3,855 ; le gain de B1 ne vit plus que dans le plancher en série, 3,93 $\to$ \textbf{4,83} jetons/s ($+23\,\%$), parce que le complément quitte le chemin critique \calc~(\fichier{decisions/partisan-B.md}, § 2). L'arbitre l'a refait par un chemin indépendant, sans importer aucun outil d'un autre : le chiffre barré se reproduit (8,879, témoin W4), le chiffre corrigé aussi (6,161 et 4,827, témoin W5), et la cassure qui remet les compléments à zéro fait tomber W5 seul \calc~(\fichier{decisions/journaux/arbitre/verif-plafonds.json}, \fichier{verif-plafonds-casse.json}). Le $\times 1{,}42$ est barré dans l'étude 07 elle-même.
+
+\subsection{Où B gagne vraiment : B3 et le bouton \texorpdfstring{$\lambda$}{λ}}
+
+Le vrai gain de débit de B est \textbf{B3} : la RAM garde des bases (1,44 fois plus d'experts tièdes), la VRAM un ensemble chaud exact, et une part $\lambda$ des usages hors VRAM exige l'exact (le complément est alors lu). À $\lambda = 0$, le plafond vaut 10,89 jetons/s ($\times 1{,}74$ sur A, LRU calé), au prix de 48,5\,\% des usages d'experts servis par la base ; il rejoint A vers $\lambda \approx 0{,}67$ (\cref{fig:b3-lambda}). Le bouton $\lambda$ est la politique de défaut selon le poids du routeur : servir la base aux experts qui pèsent peu, l'exact aux autres.
+
+\begin{figure}[ht]
+\centering
+\GrapheBtroisLambda
+\caption[B3 : le débit contre l'exactitude]{Architecture B3 sur gpt-oss-120b : plafond selon la part $\lambda$ des usages hors VRAM qui exigent l'exact \calc. À $\lambda = 0$, $\times 1{,}74$ sur A (LRU calé) ; la courbe LRU croise A vers $\lambda \approx 0{,}67$.}
+\label{fig:b3-lambda}
+\sourcefig{\fichier{decisions/journaux/csv/b3-lambda-gptoss120b.csv} (outil \fichier{outils/decisions/partisan\_b.py}).}
+\end{figure}
+
+\paragraph{La qualité, l'inconnue qui décide.} Par la linéarité de HIGGS (petites erreurs, perte $\approx$ somme pondérée des erreurs quadratiques relatives \litt), le partisan de B estime la divergence KL de B3 sans politique entre 0,05 et 0,12, soit 9 à 22 fois le budget $\kappa = 0{,}0055$ du \cref{def:probleme} ; avec une politique qui ne sert la base qu'aux experts portant un dixième de l'énergie de routage, B1 tomberait entre 0,002 et 0,006 \emph{(hypothèse)}. Ce ne sont pas des mesures. Elles se font sans moteur : une base « aimantée » sur des valeurs E2M1 existantes (0 ; 1,5 ; 3 ; 6) laisse un fichier MXFP4 valide que llama.cpp lit tel quel, à 5,91\,\% d'erreur au lieu de 4,29\,\% (banc Q0).
+
+\section{C : lire moins souvent}\label{sec:archi-c}
+
+Un modèle dense lit tous ses poids à chaque passe, mais une passe de vérification de $n$ jetons coûte presque le même temps tant que $n < n^\star = F\,b/(2\,W_{\mathrm{eff}})$ (\cref{prop:coude}). Pour Llama-3.3-70B IQ3\_XXS (27\,469\,499\,360 octets, licence Llama 3.3 Community), avec $F \approx 8$\,Tflop/s utiles (hypothèse : 60\,\% des 13,4 mesurés en f16), $b = 26{,}9/70{,}6 = 0{,}381$ octet par paramètre et $W_{\mathrm{eff}} = 26{,}9\,\text{Go}/3{,}79\,\text{s} = 7{,}10$\,Go/s :
+\[
+n^\star = \frac{8\cdot10^{12} \times 0{,}381}{2 \times 7{,}10\cdot10^{9}} \approx 215 \quad \calc.
+\]
+Un arbre de 64 à 128 nœuds est gratuit en calcul. Sans spéculation, 0,26 jeton/s ; avec l'arbre de SpecExec (9,7 jetons par passe, mesuré sur une RTX 4060 de bureau avec un 70B GPTQ \litt), \textbf{2,50} jetons/s (plancher en série 1,68) \calc. C'est moins que A dans le scénario LRU, pour 28,3\,Go de téléchargement, un moteur d'arbre à écrire et un Llama 3 qui se quantifie mal (+76\,\% de perplexité à 2,07 bits \litt, \cref{ch:quant}).
+
+\section{Le débat et la décision}\label{sec:decision}
+
+Le cycle de décision du projet oppose deux partisans qui ne se lisent pas, puis un arbitre qui tranche avec ses propres mesures.
+\begin{description}
+\item[Le partisan de A] (\fichier{decisions/partisan-A.md}) : A n'est pas une alternative à B, c'est son \emph{plancher} (B qui sert tous ses défauts exacts \emph{est} A) et son \emph{juge} (le budget de qualité de B se mesure contre A ; sans un A exact au bit, une erreur ordinaire de moteur mange tout le budget). Il concède : « un A seul ferait un bon rapport d'ingénierie, pas un article de recherche ».
+\item[Le partisan de B] (\fichier{decisions/partisan-B.md}) : B est le seul mécanisme qui n'existe pas encore, et c'est ce que Stone demande ; il corrige le chiffre de B1 contre son propre camp, et propose de mesurer la qualité de B d'abord, sans moteur.
+\end{description}
+
+\paragraph{La décision de l'arbitre} (\fichier{decisions/ARCHITECTURE.md} ; réponse par délégation du 2026-10-15, réversible). On construit \textbf{troncons}, un moteur à nous, en Rust avec des noyaux CUDA lancés par l'API du pilote.
+
+\begin{table}[ht]
+\centering\small
+\caption[Les jalons décidés]{Les jalons décidés par l'arbitre.}
+\label{tab:jalons}
+\begin{tabular}{@{}lp{0.5\linewidth}p{0.3\linewidth}@{}}
+\toprule
+Jalon & Contenu & Porte d'entrée \\
+\midrule
+\textbf{J1} & A exact sur gpt-oss-120b : format \texttt{.trc} v1.0, lectures IOCP à la taille d'un expert, DMA depuis la mémoire épinglée, décodage rANS sur la carte, cache d'experts en VRAM, passage avant complet ; modes A0 et A & aucune \\
+J1+ & préchargement (routeur de $\ell+1$ sur le résidu de $\ell$), cache SLRU & J1 \\
+\textbf{Q0} & qualité de B sans moteur, par fichiers statiques jugés par llama.cpp, en parallèle dès le premier jour & la carte libre 2 à 4\,h \\
+\textbf{J2} & B dans le moteur : format v1.1 à deux niveaux, B1 (latence), B3 (débit, politique $\lambda$) & J1 tient et Q0 n'a pas tué B \\
+J3 & disque non chiffré, spéculation si $\rho$ le permet, portage Vulkan & décision future \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Ses raisons, chiffrées : B d'abord, c'est A plus quatre modules, sans un jour gagné sur le premier programme qui marche, et B1 ne gagne plus rien au plafond ; A seul ne remplit pas l'exigence d'une contribution ; C plafonne à 2,50 contre 6,24. \textbf{CUDA plutôt que Vulkan pour J1}, par les mesures : le décodeur rANS est 14,9\,\% plus rapide sous CUDA (80,8 et 82,1 contre 70,2 et 71,6\,Go/s, en ABBA \mes) ; le recouvrement copie-calcul (part cachée 0,98 à 1,01) et la mémoire épinglée ($+21\,\%$) n'ont été mesurés que par des flux CUDA ; wgpu n'offre ni import de mémoire hôte ni seconde file. Le prix, dit : le programme exige une carte NVIDIA ; les noyaux WGSL mesurés restent le second chemin.
+
+\paragraph{La mesure F1 de l'arbitre : ce que coûte la découpe.} Les partisans s'opposaient sur le format : un flux unique en v1 (A), ou la découpe base + complément comme format unique (B). L'arbitre l'a mesuré avec le codeur rANS réel, expert par expert, chaque flux décodé et comparé octet à octet, seuils déclarés avant le lancement (\cref{fig:f1}). Résultats \mes : la table choisie \emph{par voie} selon la classe d'échelle du bloc égale les trois flux de classe de l'étude de l'entropie (3,8431 contre 3,8434 bits par poids, seuil S2 tenu) sans réassemblage ; la découpe conditionnée par la classe d'échelle coûte $+0{,}41\,\%$ (seuil S1 de $0{,}40\,\%$, le coût d'en-tête d'un flux de plus, manqué de 0,01 point) ; le complément codé par rANS fait 0,970 fois son empaquetage brut (S3) ; l'erreur de la base (4,2920\,\%) et celle de la base aimantée (5,913\,\%) sont retrouvées par ce second chemin (S4). Après la première passe, l'arbitre a déclaré une variante et son seuil S1bis (le même 0,40\,\%) avant la seconde : le complément conditionné aussi par la classe du demi-octet voisin et, pour le demi-octet fort, par le complément faible déjà décodé. Elle coûte $+0{,}31\,\%$ : \textbf{S1bis tient}. D'où la règle : la v1.0 de J1 prend la table par voie (un seul niveau, le noyau le plus simple) ; \textbf{la v1.1 à deux niveaux devient le format unique de J2}, où A paie 0,31\,\% d'octets, sous le bruit de la lecture. Avec les bits mesurés par F1, B1 complété monte à 6,22 jetons/s (série 4,87) contre 6,24 pour A, et B3 à 11,10 ($\times 1{,}78$) \calc~(\fichier{decisions/journaux/arbitre/verif-plafonds.json}, section \texttt{avec\_F1}). L'arbitre le résume ainsi : le partisan de A avait raison sur l'ordre, le partisan de B sur le format final.
+
+\begin{figure}[ht]
+\centering
+\GrapheFun
+\caption[Mesure F1 : bits par poids de chaque variante du format]{Mesure F1 de l'arbitre : bits par poids écrits par chaque variante du format, 12 tenseurs de gpt-oss-20b, codeur rANS réel, décodage exact \mes. Le total est inscrit au bout de chaque barre ; la découpe base + complément coûte $+0{,}41\,\%$, $+0{,}31\,\%$ avec le contexte riche retenu pour J2.}
+\label{fig:f1}
+\sourcefig{\fichier{decisions/journaux/arbitre/decoupe-gptoss20b.json} (passe 2 ; outil \fichier{outils/arbitre/decoupe/}).}
+\end{figure}
+
+\paragraph{Le format \texttt{.trc}} (\cref{fig:troncon}). Un fichier autonome par modèle, petit-boutiste, aligné sur 4\,096 octets (ce qu'exige la lecture sans tampon de Windows) ; \textbf{un tronçon par expert}, d'un seul tenant, pour qu'un défaut coûte une requête ; des flux rangés par \textbf{niveau de raffinement}, tout préfixe qui s'arrête à la fin d'un niveau se décodant seul. En J1, un seul niveau ; les sortes de flux de B sont réservées dès maintenant, pour que J2 ne change ni le lecteur, ni le cache, ni l'ordonnanceur. Le nom vient du projet : un tronçon est la part d'un modèle qu'on lit, décode, sert et oublie, les « chunks comme dans minecraft » de Stone.
+
+\begin{figure}[ht]
+\centering
+\SchemaTroncon
+\caption[Un tronçon du format .trc]{Un tronçon du format \texttt{.trc} : un expert d'un seul tenant, ses niveaux de raffinement alignés sur 4\,Kio. En v1.0 (J1), un seul niveau ; en v1.1 (J2), la base puis le complément, et le défaut de B ne lit que le préfixe.}
+\label{fig:troncon}
+\sourcefig{\fichier{decisions/ARCHITECTURE.md} (§ 4, principes) et \fichier{decisions/journaux/arbitre/decoupe-gptoss20b-passe1.json} (tailles).}
+\end{figure}
+
+\paragraph{Les critères de réussite de J1}, déclarés avant toute construction et dérivés de mesures nommées : logits du chemin codé identiques au bit à ceux du chemin brut du même moteur ; un moteur au moins aussi près des mathématiques exactes du modèle (référence en double précision) que llama.cpp ; RAM de pointe $\le 1{,}9$\,Go en mode A0, égale à 0,5\,Mo près entre gpt-oss-20b et gpt-oss-120b (le témoin de la \cref{def:fenetre}) ; VRAM sous $8\,188 - 909$\,Mio ; jetons/s au moins $0{,}8$ fois le plancher en série recalculé avec le succès compté par le moteur.
+
+\section{Les premières mesures du modèle visé}\label{sec:premieres-mesures}
+
+L'agent de mesure travaille sur la carte pendant que ce chapitre s'écrit ; son étude n'est pas rendue, mais ses séries et ses traces sont commitées avec leurs témoins. On en tire deux figures, à lire comme provisoires.
+
+\paragraph{La base llama.cpp sur gpt-oss-20b} (\cref{fig:base-20b}). Séries ABBA de quatre passes, sur secteur, llama.cpp b11515 : experts sur le processeur, 11,38 jetons/s en génération ; placement ajusté par l'outil de llama.cpp (dix couches d'experts sur 24 en carte), 18,92 ; cache d'experts de 4\,096\,Mio, 10,15, à 84,59\,\% de succès selon le journal de llama.cpp \mes. L'écart du placement ajusté sur les experts au processeur est réel ($+66\,\%$, au-dessus du bruit de 0,30) ; celui du cache est dans le bruit (\fichier{mesures/base-gpt-oss/20b/resume.csv}). Sur gpt-oss-120b, une exploration d'une seule passe, non retenue par l'agent lui-même, donne 0,49 jeton/s avec les experts sur le processeur et 295\,Go lus en 12 minutes et 46 secondes (\fichier{mesures/REPRISE-gpt-oss.md}) : de l'ordre du bas de la fourchette estimée pour la base (0,14 à 0,81 dans le scénario uniforme).
+
+\begin{figure}[ht]
+\centering
+\GrapheBaseVingt
+\caption[Base llama.cpp sur gpt-oss-20b]{Base llama.cpp b11515 sur gpt-oss-20b, génération, trois configurations, séries ABBA de quatre passes sur secteur \mes. Barres : minimum et maximum. Mesure provisoire de l'agent de mesure.}
+\label{fig:base-20b}
+\sourcefig{\fichier{mesures/base-gpt-oss/20b/resume.csv}, tiré par \fichier{memoire/outils/donnees_figures.py}.}
+\end{figure}
+
+\paragraph{La localité sur gpt-oss-20b} (\cref{fig:localite-mesuree}). Traces de routage réelles (quatre genres de texte, lecture et génération), rejouées par l'instrument de l'étude du chargement ; témoin exact : une réplique de la politique de cache de llama.cpp rejouée sur ces traces redonne au succès près les nombres du journal de llama.cpp. Sur la trace de génération :
+\begin{itemize}
+\item \textbf{La forme de l'\cref{hyp:beta} ne tient pas, mais son ordre de grandeur oui.} Aux petits budgets, le succès mesuré est sous l'hypothèse (cache par couche, 15\,\% : LRU 0,627 contre $0{,}15^{0{,}2075} = 0{,}675$ ; Belady 0,686 contre 0,801) ; aux grands, au-dessus (40\,\% : LRU 0,882 contre 0,827 ; Belady 0,935 contre 0,899) \calc~sur \mes. La courbe réelle est plus raide qu'une loi de puissance calée en un point.
+\item \textbf{Un cache LRU global sous $L\,k$ emplacements rend zéro} (96 emplacements pour 24 couches à 4 experts actifs) : chaque couche évince les experts de la suivante avant qu'ils ne servent. C'est une pathologie cyclique, que Belady et LFU évitent.
+\item \textbf{La réutilisation d'un jeton au suivant vaut $\rho = 0{,}577$}, contre 0,125 au hasard uniforme et 0,223 au hasard à popularité réelle (\fichier{mesures/localite-gpt-oss/20b/localite-gpt-oss-20b.json}) ; l'instrument la mesure comme la part des experts d'un jeton déjà choisis au jeton précédent, dans la même couche, c'est-à-dire le $\rho$ de la \cref{prop:spec-rho}. Sur gpt-oss-20b, la spéculation paierait donc dès $\alpha > 0{,}42$, loin du $0{,}875$ qu'impose l'indépendance \calc. Reste à le mesurer sur le 120b.
+\end{itemize}
+
+\begin{figure}[ht]
+\centering
+\GrapheLocaliteMesuree
+\caption[Localité mesurée sur gpt-oss-20b contre les hypothèses]{Succès du cache d'experts sur les traces de routage réelles de gpt-oss-20b (trace de génération) \mes, contre les scénarios calés du \cref{ch:formulation} (tirets). Le cache par couche n'a pas de point sous un expert par couche ; le LRU global rend zéro sous $L\,k = 96$ emplacements. Mesure provisoire de l'agent de mesure, sur le 20b et non sur le 120b.}
+\label{fig:localite-mesuree}
+\sourcefig{\fichier{mesures/localite-gpt-oss/20b/courbes-gpt-oss-20b.csv}, tiré par \fichier{memoire/outils/donnees_figures.py}.}
+\end{figure}
+
+\section{Ce qui vient}\label{sec:ce-qui-vient}
+
+Les chapitres suivants de cette partie s'écriront avec le programme, dont la construction a commencé pendant la rédaction de celui-ci : au moment où ce mémoire est construit, le lot K a commité les noyaux du décodeur à table par voie et de la GEMV MXFP4 avec un banc indépendant, le lot E le relevé de l'ordonnancement matériel de WDDM, le lot R les compteurs du juge et leurs témoins (journal de \texttt{git}, 2026-10-15). \textbf{Implémentation} : les modules de troncons et leurs coutures, le format \texttt{.trc} au bit près, les noyaux CUDA et leurs témoins, chaque lot fini par une cassure qui tombe. \textbf{Résultats} : jetons/s, RAM et VRAM de pointe, octets lus (compteur du système), rendement physique (mesuré sur plafond) sur gpt-oss-120b, contre la base llama.cpp mesurée en ABBA ; puis, au jalon J2, la qualité de B contre A. Le \cref{ch:futurs} en donne l'ordre.
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{Tous les plafonds de ce chapitre dépendent de l'\cref{hyp:beta}}, que la première mesure sur gpt-oss-20b contredit dans sa forme ; ils sont à recalculer avec la courbe mesurée du 120b.
+\item \textbf{La décision est une réponse par délégation, réversible} : elle se change par une décision écrite et datée de \fichier{decisions/ARCHITECTURE.md}, et ce chapitre suivra.
+\item \textbf{La qualité de B n'est qu'estimée}, par une linéarité valable pour de petites erreurs ; 4,29\,\% sur un expert n'est pas petit.
+\item \textbf{La couche de base est mesurée sur 12 tenseurs de gpt-oss-20b}, pas sur le 120b ; les entropies des codes des deux modèles diffèrent de 0,001 bit, ce qui rend l'écart improbable, mais il n'est pas mesuré.
+\item \textbf{Les voisins de B} (SliceMoE, TRACE, MatGPTQ, AnyBCQ) ne sont pas tous lus en entier ; l'un d'eux peut faire, dans son corps, une partie de ce que ce chapitre appelle neuf.
+\item \textbf{Les mesures de la \cref{sec:premieres-mesures} sont provisoires} : l'étude qui les porte n'est pas rendue, et la machine était partagée pendant les séries.
+\end{itemize}
+\end{faux}

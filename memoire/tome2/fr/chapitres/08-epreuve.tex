@@ -1,0 +1,383 @@
+% Tome~II, chapitre « L'épreuve indépendante et la ronde de corrections » (rédacteur « résultats »).
+% Chiffres : mesures/epreuve-J1.md, moteur/epreuve-J1-pour-le-memoire.md, moteur/O-pour-le-memoire.md
+% (partie III), mesures/moteur/O/corrections/ ; recalculs dans memoire/figures/tome2/donnees/res-chiffres.json.
+\ifdefined\GrapheResVitesse\else\input{\Racine/figures/tome2/resultats-figures}\fi
+
+\chapter{L'épreuve indépendante et la ronde de corrections}\label{ch:t2-epreuve}
+
+\begin{origine}
+\textbf{Au départ}, un jalon déclaré tenu par les lots qui l'avaient construit, sur leurs propres instruments. Le SOCLE exige davantage : « le travail est relu par un juge qui ne l'a pas fait ».
+\textbf{Ce chapitre établit} ce qu'un juge indépendant a trouvé en une nuit (16 octobre 2026, de 02 h 12 à 06 h 10) : la spécification décode au bit près sous un troisième implémenteur ; la référence f64 est confirmée par un troisième calcul, à l'arrondi près ; C3 tient d'une construction à l'autre ; C4 tient sur le 120b ; et onze choses que personne n'avait vues, dont deux graves. Il établit ensuite ce que la ronde de corrections en a fait, le matin même : chaque constat avec sa correction, son témoin, la cassure qui fait tomber le témoin, et son verdict.
+\textbf{Il reste} la cause première du blocage G1 (non reproduite), et les décisions remises à l'arbitre.
+Sources : \fichier{mesures/epreuve-J1.md}, \fichier{moteur/epreuve-J1-pour-le-memoire.md}, \fichier{moteur/O-pour-le-memoire.md} (partie III), \fichier{moteur/REPRISE-O.md}, \fichier{mesures/moteur/epreuve-J1/} et \fichier{mesures/moteur/O/corrections/}.
+\end{origine}
+
+\section{Le protocole}\label{t2e-sec:protocole}
+
+L'architecture a écrit le protocole de l'épreuve avant toute construction (\fichier{decisions/ARCHITECTURE.md}, § 8). Le juge est un agent qui n'a écrit ni la spécification ni une ligne du code jugé ; il travaille depuis un clone propre, sur secteur, carte libre, et ne lit que la spécification, le code et les journaux. Il suit sept gestes : (1) écrire, \emph{depuis le seul § 4} de la spécification, un décodeur du format et redonner au bit près des tronçons tirés au hasard ; (2) rejouer les cassures et vérifier que chaque témoin tombe puis tient ; (3) refaire les chiffres en séries ABBA ; (4) vérifier que la base n'est pas mal réglée ; (5) vérifier que l'instrument de mémoire voit la fenêtre ; (6) lire le texte ; (7) écrire son verdict, avec sa propre section « Ce qui pourrait être faux ».
+
+\paragraph{Les conditions, notées.} Secteur à chaque passe ; carte libre au départ (\SI{346}{\Mio}) ; verrou de la carte pris à 02 h 26 et rendu à 04 h 44. Charge étrangère relevée et laissée : un \texttt{find} d'un autre agent (un cœur), une surveillance \texttt{nvidia-smi} depuis la veille, et un \texttt{nvidia-smi} orphelin né à 01 h 38 (il deviendra le constat G2). Construction depuis un clone au commit \texttt{527dff5}, en \SI{21}{\second}, \emph{sans} la recette du SOCLE (qui cassait : constat m2). Le juge n'a ouvert les crates du format qu'\emph{après} le geste 1, et son décodeur n'en a rien pris. Il restait \SI{128}{\Go} libres sur le disque.
+
+\section{Geste 1 : la spécification est-elle vraie ?}\label{t2e-sec:geste1}
+
+\paragraph{L'outil.} \fichier{decodeur\_s4.py} (Python 3.13, numpy) : un lecteur GGUF v3 écrit depuis la spécification publique ; l'en-tête du \texttt{.trc} champ par champ ; les sections MÉTA, RÉSIDENTS, TABLES et RÉPERTOIRE comparées au GGUF ; et, par tronçon, l'en-tête de partie, la table des flux, le décodage rANS du § 4.9.2, la table par voie du § 4.9.3 et la reconstruction exacte du § 4.11. Chaque expert reconstruit est comparé à l'empreinte d'origine du répertoire et aux octets du GGUF ; s'y ajoutent deux contrôles que le décodeur n'exige pas (médiane égale à \texttt{tri[B/2]}, fin de chaque tuile égale au début de la suivante).
+
+\paragraph{Le décodeur vectorisé.} Un flux rANS de la spécification est découpé en tuiles indépendantes de 32 voies ; un expert en compte 127, et chaque flux se décode en \num{1024} pas séquentiels. Le juge décode les 127 tuiles à la fois, voie par voie en parallèle : \SI{0.8}{\second} par expert au lieu de minutes. Il faut alors prouver que cette forme vectorisée est bien le décodage normatif, qui lit les mots « pour $l = 0$ à 31, dans l'ordre ».
+
+\begin{lemme}[Le rANS vectorisé est le rANS du § 4.9.2]\label{t2e-lem:vectorise}
+Soit, dans une tuile, le sous-pas $k$ du macro-pas $m$, $p$ la position courante dans le flux de mots de 16 bits, et pour chaque voie $l$ l'état intermédiaire $y_l$ après l'étape de décodage. Le décodage normatif fait renormaliser la voie $l$ si et seulement si $y_l < L = 2^{16}$, en lisant alors un mot. Il est équivalent de calculer $b_l = [y_l < L]$ pour les 32 voies à la fois, de faire lire à chaque voie qui renormalise le mot d'indice $p + \sum_{l' \le l} b_{l'} - 1$, puis de poser $p \leftarrow p + \sum_l b_l$.
+\end{lemme}
+\begin{proof}
+Dans l'ordre normatif, la voie $l$ lit, si elle renormalise, le mot qui suit ceux qu'ont lus les voies $l' < l$ au même sous-pas, soit le mot $p + \#\{l' < l : y_{l'} < L\} = p + \sum_{l' \le l} b_{l'} - 1$ quand $b_l = 1$. Il reste à voir qu'aucune voie ne renormalise deux fois au même sous-pas, sans quoi l'ordre normatif lirait deux mots pour une voie. Avant l'étape, l'état vérifie $x \ge L$ ; l'étape donne $y = f_s \,(x \gg 12) + (x \bmod 2^{12}) - c_s$ avec $f_s \ge 1$, donc $y \ge x \gg 12 \ge 2^{16} \gg 12 = 16$. Si $y < L$, la renormalisation donne $(y \ll 16) \mid w \ge 16 \cdot 2^{16} \ge L$ : un seul mot suffit toujours. Les tuiles ont chacune leur début et leurs états, donc elles sont indépendantes.
+\end{proof}
+
+\paragraph{Les résultats} (\cref{t2e-tab:geste1}). Rien n'a manqué au § 4 pour décoder au bit près.
+
+\begin{table}[ht]
+\centering\small
+\caption[Geste 1 : un troisième décodeur depuis le seul § 4]{Geste 1 : le décodeur du juge, écrit depuis le seul § 4, sur les fichiers de production \mes.}
+\label{t2e-tab:geste1}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}Xll@{}}
+\toprule
+& gpt-oss-120b & gpt-oss-20b \\
+\midrule
+Tronçons tirés (graine 20261016), égaux au GGUF au bit près & \textbf{20 / 20} & \textbf{20 / 20} \\
+Voies hors de $L$ ; tuiles dont la fin $\ne$ début de la suivante & 0 ; 0 & 0 ; 0 \\
+Médianes égales à \texttt{tri[B/2]} & \num{172800} / \num{172800} lignes & idem \\
+Résidents octet pour octet (et empreinte) & \textbf{471 / 471} & \textbf{315 / 315} \\
+MÉTA : paires du GGUF octet pour octet, plus 3 clés du codeur & oui (39 = 36 + 3) & oui \\
+TABLES : toutes de somme \num{4096} ; empreinte & 432 tables ; oui & 288 ; oui \\
+RÉPERTOIRE : entrées contiguës jusqu'à la fin du fichier & \num{4608} ; oui & 768 ; oui \\
+En-tête : empreinte, taille, SHA-256 du source = registre des téléchargements & oui (\texttt{582bd40f}…) & oui (\texttt{27cd6c43}…) \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{mesures/moteur/epreuve-J1/journaux/s4-gptoss120b-20.json}, \fichier{s4-gptoss20b-20.json}.}
+\end{table}
+
+\paragraph{Le témoin du décodeur tombe-t-il ?} Chaque cassure est appliquée en mémoire au premier tronçon tiré (couche 12, expert 54) ; le second (couche 25, expert 109) doit tenir (\cref{t2e-tab:cassures-dec}).
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[Les cassures du décodeur du juge]{Les cassures du décodeur du juge : chacune tombe sur le seul tronçon visé \mes.}
+\label{t2e-tab:cassures-dec}
+\begin{tabular}{@{}lrrl@{}}
+\toprule
+Cassure & Voies hors de $L$ & Octets faux & Le second tient \\
+\midrule
+un bit retourné dans les mots de CODES\_CTX & 32 (une tuile) & \num{31122} & oui \\
+deux fréquences d'une table échangées & \num{4064} & \num{3624195} & oui \\
+une médiane changée d'une unité & \textbf{0} & 90 (une ligne d'échelles) & oui \\
+une fente de LUT corrompue & \num{4032} & \num{3262607} & oui \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{journaux/s4-gptoss120b-casse-\{mot,table,mediane,lut\}.json}.}
+\end{table}
+
+La médiane faussée laisse toutes les voies sur $L$ : seule l'empreinte de l'expert la voit. C'est le germe du constat M1.
+
+\paragraph{Les copies corrompues des lots.} Sur la copie du lot E (12 bits retournés au hasard dans le 20b), les 12 tronçons touchés sont détectés, et le détail dit qui voit quoi : 6 par les voies hors de $L$, 2 par une erreur de format, 2 par l'en-tête de partie (dont les octets décodés égalent pourtant le GGUF), et \textbf{2 seulement par l'empreinte de l'expert} : un octet de MEDIANES (couche 23, expert 4) et un octet de BIAIS (couche 21, expert 24), qui gardent toutes leurs voies sur $L$. Sur la copie à médiane faussée du lot O, l'expert est faux et les voies sont sur $L$.
+
+\paragraph{Ce que l'écriture a appris sur le § 4.} Trois imprécisions, qui n'ont trompé personne mais qu'un second implémenteur devra deviner (constat m4) : les longueurs de section de l'en-tête sont les longueurs \emph{utiles}, sans bourrage ; l'empreinte de la table des résidents est aux 8 derniers octets de la section, pas « après la zone de données » ; et « la fin de la tuile $t$ est le début de la tuile $t+1$ », vrai sur \num{100}\,\% des tuiles décodées, est un contrôle gratuit que le § 4 ne rend pas normatif.
+
+\section{Les témoins tombent-ils ?}\label{t2e-sec:temoins}
+
+\begin{table}[ht]
+\centering\small
+\caption[Les cassures rejouées par le juge]{Les cassures rejouées par le juge \mes.}
+\label{t2e-tab:temoins}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.34\linewidth}>{\raggedright\arraybackslash}p{0.2\linewidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+Cassure & Attendu & Observé \\
+\midrule
+décodeur du juge : mot, table, médiane, fente de LUT & le tronçon visé tombe, l'autre tient & oui, 4 sur 4 \\
+décodeur du juge sur les copies E2 (12 bits) et O3 (médiane) & 13 sur 13 détectés & oui \\
+moteur, production, copie E2 & erreur fatale nommée & « couche 2, expert 19 : décodage faux (32 voies hors de L, 0 erreurs de format, 1 pointeurs de tuile faux) » \\
+moteur, production, copie O3 & rien en production & le moteur va au bout, et son texte de 32 jetons \textbf{égale celui du fichier sain} (\texttt{48f70a45}…) \\
+moteur, mode témoin, copie O3 & empreinte nommée & « témoin : couche 0, expert 30 : empreinte \texttt{2e3544c4}… au lieu de \texttt{c9f614cc}… » \\
+C7 : \SI{1}{\Go} de cache tiède & $\approx +\SI{1}{\Go}$ & $+\SI{994}{\Mo}$ \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{mesures/epreuve-J1.md} § 4 ; \fichier{journaux/seances/complements-2026-10-16.json}.}
+\end{table}
+
+Le juge n'a pas rejoué les cassures des noyaux (K1 à K3), de la référence (R0, R1), du cache (O1) et du chemin des octets (E0, E2) : leurs journaux existent chez les lots.
+
+\section{Une troisième passe avant en double précision}\label{t2e-sec:numpy}
+
+\paragraph{Pourquoi un troisième calcul.} C4 juge troncons contre une « vérité » : la passe avant f64 du lot R. Si cette vérité était fausse, C4 ne vaudrait rien. Le juge en a écrit une autre, en numpy f64, depuis la forme du modèle publiée par OpenAI (implémentation de référence sous Apache-2.0, \cite{openai2025gptossref} ; rien n'est copié), sans rien lire du lot R. Elle comprend l'enchâssement Q8\_0, RMSNorm, les projections et leurs biais, RoPE par moitiés avec la rampe de YaRN réelle et la concentration $0{,}1 \ln 32 + 1$, l'attention à 64 têtes de requête et 8 de clé, l'échelle $1/8$, le puits par tête au dénominateur et une fenêtre de 128 clés sur les couches paires, le routeur top-4 puis le softmax sur les quatre, la SwiGLU bornée à 7, les experts MXFP4 déquantifiés exactement et la tête de sortie. Les bornes de rampe qu'elle trouve, \num{8.09278} et \num{17.39802}, égalent celles du lot R. Durée : \SI{6}{\minute} pour le 20b, \SI{17}{\minute} pour le 120b, sur 511 positions.
+
+\begin{figure}[ht]
+\centering
+\SchemaResChemins
+\caption[Les chemins de la vérité]{Les chemins de la vérité : cinq programmes, trois implémenteurs indépendants (le lot R, le juge, llama.cpp) pour la passe avant, deux (le lot F, le juge) pour le format, et la mesure qui relie chaque paire.}
+\label{t2e-fig:chemins}
+\end{figure}
+
+\paragraph{La référence contre la passe du juge.} Sur les 255 positions notées de la fenêtre 0 du 20b, et les \num{201088} jetons de chacune, l'écart maximal des log-probabilités au-dessus du plancher du format vaut \num{0.000123} nat, soit \textbf{\num{0.504} pas de quantification} (pas médian \num{2.44e-4}) ; 255 positions sur 255 sous un pas ; \num{100}\,\% de premiers choix identiques \mes. Ce nombre a une borne théorique.
+
+\begin{proposition}[L'écart dû au seul format]\label{t2e-prop:format}
+Un fichier \texttt{.kld} code, par position, $\log q_i = \text{pas} \cdot \text{code}_i + \log q_{\min}$ avec un code entier arrondi au plus proche, et donne le code 0 à tout logit sous le plancher. Si deux calculs rendent les mêmes $\log q_i$ réels, les valeurs lues dans leurs fichiers s'écartent d'au plus $\text{pas}/2$ sur chaque jeton au-dessus du plancher, plus l'arrondi f32 de pas et de $\log q_{\min}$ (de l'ordre de $10^{-6}$ en relatif).
+\end{proposition}
+\begin{proof}
+Un arrondi au plus proche déplace une valeur d'au plus un demi-pas ; la valeur lue est $\text{pas} \cdot \text{code} + \log q_{\min}$, calculée à partir de deux flottants f32 stockés dans le fichier, dont l'arrondi ajoute son propre terme.
+\end{proof}
+
+Mesuré : \num{0.504} pas, soit $\text{pas}/2$ plus \num{0.004} pas. La référence du lot R égale donc la passe du juge \emph{à l'arrondi du format près, et à rien d'autre}. La rampe de llama.cpp, elle, s'en écarte jusqu'à \SI{6.5}{nat} sur certains jetons.
+
+\paragraph{Pourquoi une KL exacte est négative.} Les jetons sous le plancher du format (environ \num{85000} sur \num{201088}) reçoivent tous $\log \tilde q = \log q_{\min}$, plus grand que leur vraie valeur : la distribution lue $\tilde q$ n'est pas normalisée, $\sum_i \tilde q_i = e^{\delta}$, avec $\delta = \num{0.0020}$ en moyenne \mes.
+
+\begin{lemme}[La KL d'un calcul exact contre un fichier]\label{t2e-lem:kl-negative}
+Pour un calcul identique à la vérité, $\mathrm{KL}(p\,\|\,\tilde q) = \sum_i p_i (\log p_i - \log \tilde q_i)$ tend vers $-\sum_{i \,\text{sous le plancher}} p_i\,(\log q_{\min} - \log p_i) < 0$.
+\end{lemme}
+\begin{proof}
+Au-dessus du plancher, $\log \tilde q_i = \log p_i$ au demi-pas près (\cref{t2e-prop:format}), et ces écarts, de signes mêlés, se compensent en moyenne. Sous le plancher, $\log \tilde q_i = \log q_{\min} > \log p_i$, et chaque terme $p_i(\log p_i - \log q_{\min})$ est négatif.
+\end{proof}
+
+Mesuré : \num{-4.8e-4} pour la référence f64 du lot R contre la vérité du juge. Ce biais, commun à tous les fichiers, ne change aucun ordre ; il fixe le zéro de l'instrument, et c'est exactement la KL que le cache KV en f32 atteindra plus tard (\cref{t2res-sec:kv}).
+
+\paragraph{C4, enfin jugé sur le 120b.} Contre cette vérité, troncons fait \num{0.00308} et \num{95.7}\,\% de premiers choix sur la fenêtre 0 du 120b, llama.cpp \num{0.0607} et \num{80.4}\,\% ; différence appariée $-\num{0.0576} \pm \num{0.0120}$, intervalles de Wilson disjoints. Le détail est au \cref{t2res-tab:c4}. Sur la même fenêtre, la rampe de YaRN seule explique \num{55}\,\% de l'écart de llama.cpp sur le 20b : le « six fois plus près » du lot O est vrai, mais il porte surtout sur un choix de modélisation (constat m5).
+
+\section{La séance de vitesse et de mémoire}\label{t2e-sec:seance}
+
+Le pilote du juge est indépendant de celui des lots : processus neufs, ordre en palindrome déclaré avant toute passe (commit \texttt{4832184}), pointes tenues par le système et lues sur la poignée après la sortie, mémoire disponible de toute la machine toutes les \SI{100}{\milli\second}, VRAM toutes les \SI{250}{\milli\second}, alimentation avant et après. La \cref{t2e-fig:seance} trace les douze passes.
+
+\begin{figure}[ht]
+\centering
+\GrapheResSeance
+\caption[La séance de l'épreuve, passe par passe]{La séance \texttt{s1-2026-10-16} de l'épreuve, dans l'ordre du palindrome \mes. En haut, la génération du 120b : troncons (rond), avec \SI{1}{\Go} de cache tiède (losange), llama.cpp à 6 fils (carré) et à 10 fils (triangle). En bas, par passe : ensemble de travail de pointe, mémoire engagée de pointe, et perte de mémoire disponible de toute la machine (échelle logarithmique). Les passes D (disque seul) et T20 (20b) n'ont pas de génération du 120b.}
+\label{t2e-fig:seance}
+\sourcefig{\fichier{memoire/figures/tome2/donnees/res-epreuve-seance.csv}, tiré de \fichier{mesures/moteur/epreuve-J1/csv/s1-2026-10-16-passes.csv}.}
+\end{figure}
+
+\paragraph{Reproduction.} troncons fait \num{2.03} jetons/s en moyenne contre \num{2.18} au lot O : écart de \num{7.4}\,\%, sous $2 \times 5{,}5\,\%$ de bruit, \emph{reproduit}. llama.cpp \texttt{fit -t 6} fait \num{0.627} contre \num{0.568} publiés : \num{10.4}\,\%, sous $2 \times 9{,}5\,\%$, \emph{reproduit}. Les textes égalent ceux du lot O et de la base.
+
+\paragraph{C5, et le piège d'un disque froid (m1).} La première passe disque seul lisait \SI{0.725}{\Go\per\second} (90\textsuperscript{e} centile de \SI{172}{\milli\second} pour une lecture de \SI{12}{\Mo}), la seconde \SI{1.822}{\Go\per\second} ; le moteur lisait à \SI{1.79}{\Go\per\second} la minute suivante. La formule du lot O prenait la médiane des deux passes D : elle déplace le seuil de \SI{25}{\percent} (\numrange{1.10}{1.13} au lieu de \numrange{1.43}{1.48}). Avec la seule passe chaude, pour la passe 01 \calc :
+\[
+t_{\text{série}} = \underbrace{\frac{\SI{710.12}{\Mo}}{\SI{1.822}{\Go\per\second}}}_{\SI{389.7}{\milli\second}} + \underbrace{79{,}2}_{\text{PCIe}} + \underbrace{57{,}0}_{\text{déc.}} + \underbrace{\frac{\SI{1.686}{\Go} + 4 \cdot 36 \cdot \SI{13254144}{\octet}}{\SI{235}{\Go\per\second}}}_{\SI{15.3}{\milli\second}} + 3{,}5 = \SI{544.7}{\milli\second},
+\]
+soit un plancher de \num{1.836} jeton/s et un seuil de \num{1.469}. Les trois passes T120 tiennent dans les deux cas. La ronde a corrigé la formule : une passe D d'échauffement, jetée.
+
+\paragraph{Ce que la machine perd.} Pendant une passe de troncons, la mémoire disponible de toute la machine baisse de \SIrange{0.46}{0.73}{\Go} ; pendant une passe de llama.cpp, de \SIrange{6.3}{11.6}{\Go} \mes. Le seuil déclaré d'un constat (deux fois l'ensemble de travail plus \SI{200}{\Mo}, \SI{0.97}{\Go}) n'est pas franchi. La mémoire \emph{engagée} de troncons, \SI{6.93}{\Go}, est dix-huit fois son ensemble de travail : C7 ne la voit pas (constat m3).
+
+\paragraph{C8, par deux instruments.} Le critère comparait les octets lus selon le compteur PDH du système à ceux que le moteur compte. Le juge a ajouté les compteurs d'entrée-sortie du \emph{processus} (\texttt{GetProcessIoCounters}), témoignés par des lectures sans tampon de \SI{4}{\Kio} à \SI{64}{\Mio} comptées à l'octet près (\cref{t2e-tab:c8}).
+
+\begin{table}[ht]
+\centering\small
+\caption[C8 par deux instruments]{C8 par deux instruments \mes : le compteur global du système (PDH) et les compteurs du processus, contre le compte du moteur.}
+\label{t2e-tab:c8}
+\begin{tabular}{@{}lrrll@{}}
+\toprule
+Passe & PDH $-$ moteur & Borne déclarée & PDH & Processus $-$ moteur \\
+\midrule
+s1 01 T120 (première passe 120b) & $+\SI{2372.8}{\Mo}$ & \num{100.8} & tombe & --- \\
+s1 06 T120 & $+\num{314.9}$ & \num{244.2} & tombe & --- \\
+s1 08, 09 T20 & $+\num{96.5}$ ; $+\num{39.7}$ & \num{103.5} ; \num{121.3} & tient & --- \\
+s1 10 T120 tiède & $+\num{241.9}$ & \num{2689.4} & tient & --- \\
+s1 11 T120 & $+\num{125.4}$ & \num{154.4} & tient & --- \\
+c3 (codé ; brut, 3 fenêtres) & --- & --- & --- & $+\num{22.8}$ ; $+\SI{22.6}{\Mo}$ \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/moteur/epreuve-J1/journaux/c8-juge.json}, \fichier{temoin-compteurs-es.json}.}
+\end{table}
+
+Le moteur compte juste : le processus lit \SI{22.8}{\Mo} de plus, les lectures tamponnées de l'ouverture (MÉTA, tables, répertoire, $\approx \SI{13.5}{\Mo}$) et environ \SI{9}{\Mo} d'autres. Les gros écarts du PDH sont hors du processus : sur une première passe à froid, $+\SI{2.37}{\Go}$, très probablement les images des bibliothèques (CUDA, llama) chargées par fautes de page, que le PDH voit et que \texttt{ReadFile} ne compte pas [hyp.]. Constat M3 : C8 tel qu'écrit mesure la machine.
+
+\section{La base est-elle honnête ?}\label{t2e-sec:base}
+
+Le juge a fait tourner la meilleure configuration publiée (\texttt{fit}, 6 fils) et une autre de son choix, \texttt{fit -t 10}, dans la même séance ; sa raison, déclarée avant : sous \texttt{mmap}, chaque fil en faute de page est une lecture en vol, donc plus de fils font une file plus profonde sur le disque. Résultat : \num{0.627} jeton/s à 6 fils (bruit \SI{3.0}{\percent}), \textbf{\num{0.702}} à 10 fils (bruit \SI{0.6}{\percent}) ; écart de \num{11.9}\,\%, réel ; mêmes textes. La base publiée sous-estimait llama.cpp, et le $\times 3{,}85$ du lot O était à barrer (constat M2). Le juge a écrit lui-même ce qu'il n'avait pas fait : ni 12, ni 16 fils, ni \texttt{--n-cpu-moe}. La ronde l'a fait ; le résultat est au \cref{t2res-sec:base} : à 16 fils, \num{0.884}, et l'écart était de \num{54}\,\%, pas de 12.
+
+\section{Le texte est-il juste ?}\label{t2e-sec:texte}
+
+\paragraph{C12.} Les 256 jetons gloutons du 120b commencent par « am », puis un résumé cohérent et exact du texte d'invite (Robert Boulter, \emph{The Bill} en 2000, \emph{Herons} au Royal Court en 2001), avant de tomber, après une centaine de jetons, dans une boucle (« Here is a summary » raccourci jusqu'à « Here » répété). La sortie gloutonne de llama.cpp sur la même invite boucle elle aussi, sur des appels d'outil simulés : c'est le comportement du décodage glouton de ce modèle, pas un défaut visible du moteur.
+
+\paragraph{Le premier jeton, tranché par la vérité.} Les deux moteurs diffèrent dès le premier jeton : troncons dit « am » (313), llama.cpp « ... » (1008). Le juge a passé les 708 jetons de l'invite à sa passe f64 du 120b ; le moteur les a rejoués par flux et en boucle (égaux au bit), et la position 707 redonne bien le jeton 313.
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[Le premier jeton de C12]{Le premier jeton de C12 (position 707 de l'invite) selon chaque calcul \mes.}
+\label{t2e-tab:premier}
+\begin{tabular}{@{}llll@{}}
+\toprule
+Calcul & argmax & $\log p$ vrai de 313 (« am ») & $\log p$ vrai de 1008 (« ... ») \\
+\midrule
+vérité f64 & \textbf{1008} & $-10{,}03$ & $-1{,}46$ \\
+llama.cpp & 1008 & & \\
+troncons (KV f16) & \textbf{313} & & \\
+vérité f64 avec le seul KV arrondi en f16 & \textbf{313} & $-1{,}47$ (sous l'imitation) & $-3{,}84$ (sous l'imitation) \\
+troncons (KV f32, ronde) & \textbf{1008} & & \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{journaux/premier-jeton-c12-120b.json}, \fichier{premier-jeton-kvf16-120b.json} ; \fichier{mesures/moteur/O/corrections/journaux/m5-invite-120b-f32.json}.}
+\end{table}
+
+Ce n'est pas une rupture à 512 : les PPL des positions 354 à 706 valent \num{1200.3} pour troncons et \num{1221.8} pour la vérité, ce passage est difficile pour le modèle lui-même ; et \texttt{--contexte 1024} comme \texttt{--emplacements 200} laissent les 708 empreintes inchangées. C'est une cascade de bascules de routage : à la position 707, 20 couches sur 36 routent autrement que la vérité, à partir de la couche 12 ; à la position 706, aucune. Le cache KV en f16 en est la cause suffisante, et la cause principale : expérience déclarée avant sa passe (commit \texttt{549b38b}), la vérité avec le seul KV arrondi en f16 fait la même erreur, et troncons est bien plus près de cette vérité-là (routage égal à \num{99.3} et \num{97.9}\,\% contre \num{96.9} et \num{93.1}\,\%) : l'arrondi porte environ \SIrange{70}{77}{\percent} des bascules. Constat M5. La suite, le cache en f32 qui rend troncons égal à la vérité, est au \cref{t2res-sec:kv}.
+
+\paragraph{La conversation harmony} (publiée, non jugée) : une réponse en français, structurée en tableaux, sur l'inférence d'un mélange d'experts avec déchargement ; le canal \texttt{analysis} précède \texttt{final}, conformément au format \cite{openai2025harmony}. Le fond contient des approximations du modèle, pas du moteur ; les caractères coupés entre deux jetons sortent en « \textsf{?} » (défaut d'assemblage du texte, connu du lot O).
+
+\section{Les constats}\label{t2e-sec:constats}
+
+Le juge a classé ses constats par gravité ; chacun dit où, ce qui est constaté, la preuve et une correction proposée (\cref{t2e-tab:constats}). Toute correction est une proposition ; les coutures ne changent que par l'arbitre.
+
+\begin{table}[p]
+\centering\small
+\caption[Les constats de l'épreuve, et ce que la ronde en a fait]{Les constats de l'épreuve, et ce que la ronde de corrections en a fait.}
+\label{t2e-tab:constats}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.07\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.17\linewidth}@{}}
+\toprule
+& Constat de l'épreuve & Correction et témoin de la ronde & Verdict \\
+\midrule
+\textbf{G1} grave & une passe sous charge se fige sans fin et sans message : la destruction du moteur tourne dans \texttt{nvcuda64.dll} & erreur écrite avant toute destruction, sortie sans détruire, battement par couche ; tampons d'arrivée du flux corrigés (\cref{t2e-lem:tampons}) & corrigé ; cause première non reproduite \\
+\textbf{G2} grave & après une erreur, un \texttt{nvidia-smi} orphelin tient les tuyaux du pilote, qui attend sans fin & \texttt{Drop} qui tue l'enfant, tâche « tuer à la fermeture », entrée nulle, poignées non héritables ; 3 cas, 0 orphelin & corrigé \\
+\textbf{M1} & la production ne garde pas les flux bruts : une médiane fausse donne un texte identique au sain & garde de production (\cref{t2e-prop:garde}) ; copie O3 : erreur nommée & corrigé, $-1{,}6\,\%$ à disque égal \\
+\textbf{M2} & base sous-réglée ; $\times 3{,}85$ à barrer & base balayée : \texttt{fit -t 16}, \num{0.884} ; C6 $\times 2{,}22$ & fait \\
+\textbf{M3} & C8 mesure la machine & compteurs du processus dans le journal : écart constant \SI{19.92}{\Mo} & instrument fait ; critère à l'arbitre \\
+\textbf{M4} & C7-écart tombe encore & borne à termes nommés (\cref{t2res-tab:termes}) & non fermée ; à l'arbitre \\
+\textbf{M5} & le KV f16 décide du premier jeton de C12 & option \texttt{--kv-f32} : égal à la vérité au format près & mesuré ; couture N à l'arbitre \\
+m1 & le seuil de C5 dépend d'une passe D froide & passe D d'échauffement jetée & fait \\
+m2 & la recette du SOCLE casse la construction & \texttt{build.rs} appelle \texttt{nvcc} sans \texttt{cmd} & corrigé \\
+m3 & C7 ne voit pas la mémoire engagée & publiée : \SIrange{6.92}{6.97}{\Go} ; perte machine \SIrange{0.47}{0.63}{\Go} & publiée, non jugée \\
+m4, m6 & trois imprécisions du § 4 ; où va le verdict & phrases proposées & à l'arbitre \\
+m5 & « six fois plus près » demande sa raison & requalifié : dont la rampe de YaRN & fait \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{mesures/epreuve-J1.md} § 8 ; \fichier{moteur/O-pour-le-memoire.md} § 14 ; \fichier{moteur/REPRISE-O.md}, état final de la ronde.}
+\end{table}
+
+\section{La ronde de corrections}\label{t2e-sec:ronde}
+
+La ronde a déclaré son premier seuil le 16 octobre à 06 h 12 (commit \texttt{ca5d338}), sept minutes après le dernier commit du rapport de l'épreuve ; son état final est daté de 10 h 15 (\fichier{moteur/REPRISE-O.md}, commit \texttt{30d8165}). Ses règles étaient celles du projet, appliquées à chaque constat : \emph{reproduire d'abord} le défaut avec le binaire d'avant (gardé, copie figée du commit \texttt{7b288a6}), déclarer le seuil avant la passe (\fichier{mesures/moteur/O/corrections/seuils-declares.md}, un bloc commité par constat), corriger, puis montrer que le témoin tombe avec l'ancien binaire et tient avec le nouveau. La cassure du témoin, c'est l'ancien binaire.
+
+\subsection{G1 : la passe figée}\label{t2e-sec:g1}
+
+\paragraph{Ce que le juge a vu.} La passe \texttt{evaluer --flux --brut} des dix fenêtres du 120b, lancée à 03 h 33 pendant que la passe numpy du juge lisait \SI{61}{\Go} et occupait le processeur, n'a jamais fini. Au bout de \SI{35}{\minute} : aucune lecture de plus en \SI{10}{\second} (\num{1863} lectures, \SI{18.06}{\Go}), carte à \SI{0}{\percent}, fil principal à \SI{100}{\percent}, et pas une ligne sur la sortie d'erreur. Le juge a échantillonné 300 fois le pointeur d'instruction du fil principal (300 sur 300 dans \texttt{nvcuda64.dll}) puis nommé sa pile par les symboles : \texttt{troncons::principal} $\to$ destruction du \texttt{Moteur} $\to$ \texttt{Arc<Interne>::drop\_slow} $\to$ destruction des événements CUDA $\to$ \texttt{nvcuda64.dll}. Le moteur avait quitté sa boucle, très probablement sur une erreur, et sa destruction attendait un travail resté en file sur la carte ; l'erreur, elle, n'a jamais été écrite. Relancée seule, la même commande finit en \SI{287}{\second}.
+
+\paragraph{La sortie corrigée} (\cref{t2e-fig:sortie}). Sur toute erreur, le moteur écrit d'abord l'erreur (sur la sortie d'erreur et dans un \fichier{<journal>.erreur.json}), puis termine son propre processus par \texttt{TerminateProcess} \cite{ms-terminateprocess}, sans détruire le moteur ni le contexte CUDA : le pilote libère tout à la fin du processus. Un battement par couche du préremplissage date tout blocage futur.
+
+\begin{figure}[ht]
+\centering
+\SchemaResSortie
+\caption[La sortie sur erreur, avant et après la ronde]{La sortie sur erreur, avant et après la ronde (constats G1 et G2). Avant : la destruction du moteur attend la carte sans fin, et l'enfant \texttt{nvidia-smi}, qui a hérité des tuyaux du pilote, les garde ouverts. Après : l'erreur est écrite d'abord, rien n'est détruit, et l'enfant meurt avec son parent.}
+\label{t2e-fig:sortie}
+\end{figure}
+
+\paragraph{Une cause probable, trouvée en lisant le code.} Au préremplissage par flux, les lectures d'un paquet prenaient leurs tampons d'arrivée épinglés en tourniquet, $s \bmod (d \cdot k)$ avec $d \cdot k = 12$, et au plus $\min(d\cdot k, 2 \cdot \text{profondeur}) = 8$ lectures en vol, confiées au système par paquets de quatre (\cref{t2e-fig:tampons}).
+
+\begin{figure}[ht]
+\centering
+\SchemaResTampons
+\caption[Le tourniquet des tampons d'arrivée]{Le tourniquet des tampons d'arrivée au préremplissage par flux, et le contre-exemple du \cref{t2e-lem:tampons} : la lecture $s-12$ reste en vol pendant que $s-11, \dots, s-1$ passent et sont récoltées ; la lecture $s$ prendrait son tampon.}
+\label{t2e-fig:tampons}
+\end{figure}
+
+\begin{lemme}[Les tampons d'arrivée du préremplissage par flux]\label{t2e-lem:tampons}
+(i) Avec la règle d'avant la ronde, une lecture pouvait écrire dans un tampon qu'une autre lecture écrivait encore. (ii) Avec la règle corrigée (prendre le tampon du tourniquet s'il ne porte aucune lecture en vol, sinon le suivant qui n'en porte pas), aucune lecture n'écrit dans un tampon $i$ tant que (a) une autre lecture y écrit, (b) la copie vers la carte qui le lisait n'est pas finie, (c) un hachage de la garde le lit encore.
+\end{lemme}
+\begin{proof}
+(i) Contre-exemple. Les achèvements arrivent dans le désordre. Que la lecture $s-12$ reste dans le système pendant que $s-11, \dots, s-1$ passent par les trois autres places et sont récoltées : la liste locale des lectures en vol ne contient plus que $s-12$, de longueur $1 < 8$, et la lecture $s$ est soumise dans le tampon $s \bmod 12 = (s-12) \bmod 12$, que le disque écrit encore. La copie lancée à la récolte de $s-12$ lit alors un mélange : contrôle des voies faux (erreur fatale, suivie de la destruction de G1), ou, si seuls des octets bruts sont touchés, un expert faux sans erreur. Il suffit qu'une lecture prenne environ $11 \times \SI{6.6}{\milli\second} / 3 \approx \SI{24}{\milli\second}$ de retard sur les autres (\SI{12}{\Mo} à \SI{1.8}{\Go\per\second}, trois places) \calc ; le 90\textsuperscript{e} centile d'une lecture à froid relevé par le juge, \SI{172}{\milli\second}, le dépasse.
+(ii) Existence : au moment du choix, au plus $\min(d\cdot k, 2 \cdot \text{profondeur}) - 1 < d \cdot k$ lectures sont en vol, donc au moins un tampon n'en porte aucune. (a) suit de la règle. (b) : la soumission attend l'événement de la copie précédente du tampon, mise en file à sa récolte. (c) : la soumission attend d'abord la fin des hachages de la zone. Le tampon de VRAM correspondant n'est récrit qu'après la fin du décodage qui le lisait.
+\end{proof}
+
+\begin{lstlisting}[language=RustRes, caption={Le choix d'un tampon d'arrivée au préremplissage par flux, après la ronde (\fichier{moteur/crates/trc-ordo/src/lib.rs}, extrait).}, label=t2e-lst:tampon]
+// Le tampon du tourniquet, sauf s'il porte encore une lecture en vol : les
+// lectures s'achèvent dans le désordre ; avant la ronde de corrections, la
+// nouvelle lecture écrasait alors l'ancienne dans le même tampon (cause
+// probable de G1). Il y a toujours un tampon libre : au plus
+// min(d · k, 2 · profondeur) − 1 < d · k lectures sont en vol ici.
+let candidat = prochaine_arrivee % self.n_arrivees;
+let mut i_arr = candidat;
+while en_vol.iter().any(|&(_, b)| b == i_arr) {
+    i_arr = (i_arr + 1) % self.n_arrivees;
+}
+if i_arr != candidat {
+    self.compteurs.flux_conflits_evites += 1;   // le cas du lemme, compté
+}
+prochaine_arrivee = i_arr + 1;
+self.ev_copie[i_arr].attendre()?;               // (b) la copie précédente est finie
+\end{lstlisting}
+
+\paragraph{Rejouée sous la même charge.} Le bloc 4 des seuils déclarés a rejoué la passe figée sous la charge de l'épreuve (la passe numpy f64 du 120b, \SI{61}{\Go} lus, lancée d'abord). Le nouveau binaire finit en \SI{361}{\second}, avec 360 battements, un \texttt{.kld} égal à celui du lot O et \textbf{0 conflit d'arrivée} : le cas du lemme ne s'est pas produit. L'ancien binaire, sous la même charge, \textbf{finit aussi} (\SI{338}{\second}, \texttt{.kld} égal). Le blocage de l'épreuve n'est donc pas reproduit : il dépend d'un ordre d'achèvements ou d'un état de la machine que deux rejeux n'ont pas retrouvé. Ce que l'on sait : la destruction pouvait attendre sans fin (pile nommée) ; le nouveau binaire ne détruit plus rien sur une erreur et l'écrit d'abord ; le tourniquet pouvait écraser une lecture en vol (démontré). Ce que l'on ne sait pas : l'erreur d'origine.
+
+\subsection{G2 : l'orphelin qui tient les tuyaux}\label{t2e-sec:g2}
+
+L'échantillonneur de VRAM du moteur lançait \texttt{nvidia-smi -lms 250} et ne le tuait que dans son arrêt normal ; aucune destruction ne le faisait. Toute erreur laissait l'enfant vivant. Or il héritait des poignées du moteur, donc des tuyaux de sortie du pilote : le pilote, qui attend la fermeture des sorties, attendait aussi longtemps que l'orphelin vivait, c'est-à-dire toujours. À l'épreuve, deux passes finies en quelques secondes n'ont « rendu la main » qu'après 518 et \SI{630}{\second}, quand le juge a tué leurs orphelins ; un orphelin né à 01 h 38 d'une passe du lot O tournait encore à 04 h 40.
+
+\paragraph{La correction, en quatre gestes.} (1) Une destruction de l'échantillonneur qui tue et attend l'enfant ; (2) l'enfant placé dans une tâche Windows « tuer à la fermeture » \cite{ms-jobobject-limit}, qui le tue même si le parent meurt par \texttt{TerminateProcess}, que la destruction ne voit pas ; (3) une entrée standard nulle ; (4) les poignées standard du parent rendues non héritables, parce que \texttt{bInheritHandles} vrai donne à l'enfant toutes les poignées héritables \cite{ms-createprocess}, dont les tuyaux du pilote.
+
+\paragraph{Le témoin.} \fichier{corrections/temoin\_sortie.py} lance trois cas comme le font les pilotes (fichier absent, fichier corrompu, processus tué), sorties en tuyaux, et attend leur fermeture. Seuil déclaré : retour en moins de \SI{30}{\second}, code 1, erreur écrite, aucun \texttt{nvidia-smi} vivant \SI{2}{\second} après. L'ancien binaire \textbf{tombe} sur les trois (retour au délai de \SI{90}{\second}, un orphelin chacun) ; le nouveau \textbf{tient} (\num{1.5}, \num{4.9} et \SI{4.9}{\second}, 0 orphelin). Le témoin lui-même a eu deux défauts avant d'être valable, publiés : la première passe tuait le processus avant la naissance de l'enfant (elle ne prouvait rien) ; la deuxième ne vidait pas les tuyaux, et l'enfant se bloquait sur sa sortie d'erreur pleine (deux fils de lecture l'ont corrigé).
+
+\subsection{M1 : la garde de production}\label{t2e-sec:garde}
+
+\paragraph{Le trou.} En production, le seul contrôle d'un tronçon était le retour des voies rANS à $L$. Il ne garde que les flux \emph{codés} : les flux bruts d'une partie (MEDIANES, BIAIS : environ \SI{43}{\kilo\octet} sur \SI{12}{\Mo}, \SI{0.36}{\percent}) et, en mode A0, la ligne d'enchâssement lue à chaque jeton n'étaient gardés par rien. Sur la copie à médiane faussée, le texte produit était \emph{identique} à celui du fichier sain : une corruption invisible jusque dans la sortie.
+
+\paragraph{La garde} (\cref{t2e-fig:garde}). À chaque lecture achevée, les octets utiles du tronçon sont hachés par un fil de travail et comparés à l'empreinte que le répertoire porte déjà (aucune couture touchée) ; le hachage court en même temps que la copie et le décodage, qui ne font que lire le tampon ; le pas attend tous ses hachages avant de rendre son jeton. Les lignes d'enchâssement sont comparées à une table d'empreintes bâtie à l'ouverture en lisant \texttt{token\_embd} une fois, son empreinte entière vérifiée au passage.
+
+\begin{figure}[ht]
+\centering
+\SchemaResGarde
+\caption[La garde de production]{La garde de production : le hachage court en parallèle de la copie et du décodage, sur quatre fils ; une barrière le rejoint avant que le pas ne rende son jeton.}
+\label{t2e-fig:garde}
+\end{figure}
+
+\begin{proposition}[Aucune sortie ne dépend d'un octet non vérifié]\label{t2e-prop:garde}
+Garde active, le jeton et les logits que rend un pas, ou un préremplissage, ne dépendent que d'octets lus dont l'empreinte de 64 bits égale celle du répertoire (tronçons : octets utiles du niveau 0 ; lignes : table bâtie à l'ouverture), à une collision du préfixe de 64 bits de SHA-256 près \cite{fips180-4}.
+\end{proposition}
+\begin{proof}
+(1) Le décodeur et la copie ne lisent d'une partie que ses octets utiles ; le bourrage n'est lu par aucun noyau. (2) Chaque lecture achevée est confiée à la garde avant toute autre opération sur son tampon. (3) Aucune lecture n'écrit ce tampon avant la fin du hachage (\cref{t2e-lem:tampons}, (c)) : l'empreinte porte sur les octets que la copie a lus. (4) Le pas et le préremplissage attendent tous les hachages avant de lire le jeton ou les logits ; une empreinte différente est une erreur fatale nommée. (5) Une entrée tiède servie sans lecture a été hachée à sa lecture ; une corruption de la RAM après coup n'est pas couverte. (6) Chaque ligne lue est comparée à sa case avant sa copie vers la carte. Un contenu faux passe avec une probabilité $2^{-64}$ par vérification, si SHA-256 se comporte comme une fonction aléatoire.
+\end{proof}
+
+\begin{lstlisting}[language=RustRes, caption={La garde rend un tronçon faux en erreur fatale nommée (\fichier{moteur/crates/trc-ordo/src/garde.rs}, extrait).}, label=t2e-lst:garde]
+fn recevoir(&mut self, f: Fait) -> Result<()> {
+    let t = self.en_cours.remove(&f.ticket).expect("ticket de la garde");
+    if f.empreinte != t.attendu {                 // l'empreinte du répertoire
+        bail!(
+            "garde de production : couche {}, expert {} : empreinte des {} octets utiles lus {:016x} au lieu de {:016x} (répertoire)",
+            t.couche, t.expert, t.octets, f.empreinte, t.attendu
+        );
+    }
+    ...
+\end{lstlisting}
+
+\paragraph{Les témoins, et leurs cassures} (sur le 20b). Copie à médiane faussée : erreur fatale nommée « garde de production : couche 0, expert 30 : empreinte des \num{11836992} octets utiles lus \texttt{17d8974e}… au lieu de \texttt{9aa7c5fb}… » ; sans garde (la cassure), la passe va au bout, avec le texte du fichier sain, comme à l'épreuve. Tronçon cassé après lecture (\texttt{--casser-garde troncon:5}) : erreur nommée ; sans garde, texte changé sans erreur. Ligne cassée (\texttt{ligne:3}) : erreur nommée ; sans garde, texte inchangé (un bit d'une ligne Q8\_0 ne change pas ces 32 jetons : invisible). Fichier sain : même texte au bit avec et sans garde, 920 tronçons vérifiés sur 920 lus, 739 lignes sur 739. Copie du lot E : la garde nomme couche 2, expert 19, avant le contrôle des voies. Le coût est mesuré au \cref{t2res-sec:garde} : $-1{,}6\,\%$ à disque égal, \SIrange{5.2}{5.4}{\milli\second} d'attente par jeton. C2 devient vrai en production.
+
+\subsection{M2 à M5, et les mineurs}\label{t2e-sec:m2-m5}
+
+\begin{description}
+\item[M2, la base.] Balayée en palindrome (\cref{t2res-tab:base}) : \texttt{fit -t 16}, \num{0.884} jeton/s ; C6 recalculé, garde comprise, $\times 2{,}22$ ; \barre{$\times 3{,}85$} barré dans les notes du lot O, sa note de reprise et \fichier{mesures/gpt-oss.md}.
+\item[M3, C8.] Les compteurs du processus, lus sur la poignée après la sortie, sont dans le journal du moteur. Contre le compte du moteur (lecteur, résidents compris, plus les lectures tamponnées de l'ouverture, \SI{13.57}{\Mo}), l'écart vaut \textbf{\SI{19.92}{\Mo}, constant à l'octet près} sur les six passes 120b à KV f16 de la séance, dont le vocabulaire lu par \texttt{llama.dll} (\SI{12.98}{\Mo}). Proposition à l'arbitre : juger C8 par cet instrument, borne égale à la taille du vocabulaire plus \SI{100}{\Mo}, le PDH publié sans être jugé. En chemin, la ronde a trouvé que la première version du compte ajoutait deux fois le chargement des résidents ($+\SI{1.69}{\Go}$) : corrigé.
+\item[M4, C7-écart.] La borne à termes nommés (\cref{t2res-tab:termes}) n'est pas fermée ; proposition : juger l'écart à fenêtre de taille fixe, contre les termes hors fenêtre ($\approx \SI{0.77}{\Mo}$) plus deux bruits plus \SI{0.5}{\Mo}. Le verdict reste « tombe ».
+\item[M5, le cache KV.] Option \texttt{--kv-f32}, hors couture : égal à la vérité au format près, 12 emplacements de moins (\cref{t2res-sec:kv}).
+\item[m1.] Une passe D d'échauffement jetée en tête de séance : la passe gardée lit \SI{1.893}{\Go\per\second}, la jetée \num{1.874}, sans transitoire cette fois (90\textsuperscript{e} centile \SI{32.9}{\milli\second}) ; seuils de C5 \numrange{1.45}{1.52}, et les huit passes du 120b tiennent.
+\item[m2.] Le \texttt{build.rs} des noyaux appelait \texttt{nvcc} par \texttt{cmd /C} avec des guillemets que \texttt{Command::arg} protège par des barres obliques inverses, que \texttt{cmd} ne lit pas ; il appelle maintenant \texttt{nvcc} directement. Avec et sans vcvars, la construction réussit, et les trois images \texttt{noyaux.fatbin} sont égales octet pour octet (SHA-256 \texttt{aeae5bdc}…, \num{295864} octets).
+\item[m3.] Mémoire engagée (\SIrange{6.92}{6.97}{\Go}) et perte de la machine (\SIrange{0.47}{0.63}{\Go}) publiées à côté de C7.
+\item[m4, m6.] Trois phrases proposées pour le § 4 ; l'endroit du verdict, à l'arbitre.
+\item[m5.] « Six fois plus près » requalifié partout : dont la rampe de YaRN.
+\end{description}
+
+\subsection{Ce qui reste à l'arbitre}\label{t2e-sec:arbitre}
+
+La ronde a remis douze points à l'arbitre, chacun marqué « réponse par délégation du 2026-10-16, réversible » (\fichier{moteur/REPRISE-O.md}, points 21 à 32). Les plus lourds : la couture N (cache KV en f32 par défaut, f16 en option : C4 et C12 deviendraient « égaux à la vérité au format près », pour \SI{155.7}{\Mo} de VRAM et 12 emplacements) ; un critère de queue pour C4 (part des positions de KL $> 0{,}1$, KL au 99\textsuperscript{e} centile, jugés aussi au-delà de 512 positions ; chiffres pour le fixer : f16 \SI{0.39}{\percent} et \num{0.075} sur la fenêtre 0, \SI{2.05}{\percent} et \num{0.196} sur les positions 512 à 706 ; f32 : 0) ; la suite gloutonne de la vérité à publier à côté de C12 (non faite : la passe numpy refait tout le préfixe à chaque jeton, environ \SI{20}{\minute} par position sur le 120b, des jours pour 256 jetons) ; C8 et C7 comme ci-dessus ; la garde inscrite au § 4.12 de la spécification ; prévenir les lots que tout enfant lancé sous un pilote à tuyaux doit avoir des poignées non héritables ou vivre dans une tâche tuée à la fermeture ; et un \texttt{nvidia-smi} orphelin du lot O (PID 13652), laissé vivant parce que ni le juge ni la ronde ne l'avaient lancé.
+
+\section{Ce que l'épreuve n'a pas pu vérifier}\label{t2e-sec:non-verifie}
+
+\begin{itemize}
+\item \textbf{C1 sur les \num{4608} experts} par le troisième décodeur : 40 tirés et 13 nommés, plus \num{3394} décodages vérifiés par le témoin du moteur ; le reste repose sur le lot F et ses deux chemins.
+\item \textbf{C2 de bout en bout} par le banc du lot E : non relancé.
+\item \textbf{C4 sur les dix fenêtres du 120b} : ni la référence f64 du lot R ni une base llama.cpp de dix fenêtres n'existent sur le 120b ; le jugement porte sur une fenêtre de 255 positions, plus les 353 positions notées de l'invite.
+\item \textbf{La cause de G1} : l'erreur d'origine n'a jamais été écrite.
+\item Les cassures des lots K, R, O1 et E.
+\item \textbf{La séance de vitesse est une seule séance} : trois passes de troncons, deux de chaque base ; la règle ne se juge qu'à l'intérieur.
+\end{itemize}
+
+\begin{faux}\label{t2e-sec:faux}
+\begin{itemize}
+\item \textbf{La passe numpy du juge et la référence du lot R lisent le même GGUF.} Une erreur de déquantification commune aux deux (ordre des demi-octets, échelle E8M0) passerait. Garde-fous : le décodeur MXFP4 du juge suit la convention de ggml (demi-octets bas pour les éléments 0 à 15), et C3 comme les textes relient tout le reste au bit ; la convention du format n'est jugée que par l'accord avec llama.cpp, pas par OpenAI.
+\item \textbf{Elles suivent la même lecture du modèle} (rampe réelle, puits, fenêtre de 128). Si OpenAI entraînait avec une autre convention, les deux se tromperaient ensemble ; le \texttt{config.json} et l'implémentation de référence d'OpenAI sont les seules sources de cette lecture.
+\item \textbf{C4 sur le 120b repose sur une fenêtre} ; les intervalles sont disjoints, mais une fenêtre n'est pas dix.
+\item \textbf{La perte de mémoire de la machine est globale} : d'autres processus la font bouger. Elle est propre dans la séance \texttt{s1} ; elle était souillée (\SI{10.5}{\Go}, la passe numpy en même temps) dans une autre passe que le juge n'a pas utilisée.
+\item \textbf{L'instrument du juge a eu deux défauts}, trouvés et corrigés avant tout verdict : une poignée de processus passée en entier de 32 bits (un témoin des compteurs qui rendait 0), et un premier calcul de C8 qui comptait deux fois le chargement des résidents (« le moteur compte \SI{1.4}{\Go} de trop »), refait juste et jamais publié.
+\item \textbf{La cause de G1 n'est pas établie} : le défaut des tampons est démontré possible, pas observé (0 conflit en deux rejeux).
+\item \textbf{La garde suppose SHA-256 sans collision utile} sur 64 bits ; elle ne couvre ni la RAM tiède après sa lecture, ni la VRAM.
+\item \textbf{L'heure d'un seuil était fausse} dans le fichier du juge : \barre{02 h 40} 02 h 26, l'heure du commit, avant l'essai du pilote (02 h 26 min 35 s) et la première passe (02 h 27 min 40 s). Les seuils ont bien été déclarés avant toute passe ; seule l'heure écrite était fausse.
+\end{itemize}
+\end{faux}

@@ -1,0 +1,166 @@
+% Graphes du chapitre « Compression sans perte, à la vitesse du calcul ».
+% Données : fondations/journaux/03-entropie/csv/ (régénérées par outils/03-entropie/vers_csv.py) et
+% memoire/figures/donnees/entropie-*.csv (donnees_figures.py pour les mesures, calculs_entropie.py
+% pour les calculs).
+
+% Loi des codes de 4 bits : Q4_K de Qwen3.5-9B et MXFP4 de gpt-oss-20b, contre la loi uniforme.
+\newcommand{\GrapheHistogrammeCodes}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, ybar, bar width=4.2pt, width=\linewidth, height=0.46\linewidth, ymin=0, ymax=0.112,
+  xmin=-0.7, xmax=15.7, xlabel={\EF{4-bit code}{code de 4 bits}}, ylabel={\EF{frequency}{fréquence}},
+  xtick={0,...,15}, major x grid style={draw=none},
+  yticklabel style={/pgf/number format/fixed, /pgf/number format/precision=2},
+  legend style={at={(0.5,0.98)}, anchor=north, legend columns=3}, area legend]
+\addplot[fill=SerieA!60, draw=SerieA] table[x=code, y=q4k_9B] {\CsvEntropie/fig-histogramme-codes.csv};
+\addlegendentry{\EF{Q4\_K, Qwen3.5-9B ($H = 3.865$)}{Q4\_K, Qwen3.5-9B ($H = 3{,}865$)}}
+\addplot[fill=SerieD!65, draw=SerieD] table[x=code, y=mxfp4_gptoss20b] {\CsvEntropie/fig-histogramme-codes.csv};
+\addlegendentry{\EF{MXFP4, gpt-oss-20b ($H = 3.862$)}{MXFP4, gpt-oss-20b ($H = 3{,}862$)}}
+\addlegendimage{line legend, Signe, dashed, line width=0.8pt}\addlegendentry{\EF{uniform}{uniforme} $1/16$}
+\draw[Signe, dashed, line width=0.8pt] (axis cs:-0.7,0.0625) -- (axis cs:15.7,0.0625);
+\end{axis}
+\end{tikzpicture}}
+
+% Entropie des codes d'un min-max à 16 niveaux selon la taille du groupe (calcul) et mesures.
+\newcommand{\GrapheEntropieGroupes}{%
+\begin{tikzpicture}
+\begin{semilogxaxis}[memoire, width=\linewidth, height=0.56\linewidth, log basis x=2,
+  xlabel={\EF{group size $g$ (weights sharing one min and one max)}{taille du groupe $g$ (poids qui partagent un min et un max)}},
+  ylabel={\EF{entropy of the 4-bit codes (bits)}{entropie des codes de 4 bits (bits)}},
+  xmin=6, xmax=5500, ymin=2.5, ymax=4.05, xtick={8,16,32,64,128,256,1024,4096},
+  xticklabels={8,16,32,64,128,256,1024,4096}, legend pos=south west]
+\addplot[SerieA, mark=*, mark size=1.6pt] table[x=g, y=gauss] {\Donnees/entropie-groupes.csv};
+\addlegendentry{\EF{Gaussian source (calc.)}{source gaussienne (calc.)}}
+\addplot[SerieB, mark=square*, mark size=1.5pt] table[x=g, y=laplace] {\Donnees/entropie-groupes.csv};
+\addlegendentry{\EF{Laplacian source (calc.)}{source laplacienne (calc.)}}
+\addplot[only marks, SerieC, mark=diamond*, mark size=2.6pt] table[x=g, y=H] {\Donnees/entropie-groupes-mesures.csv};
+\addlegendentry{\EF{min-max on real weights (meas., study 03)}{min-max sur poids réels (mes., étude 03)}}
+\draw[SerieD, densely dashed, line width=0.7pt] (axis cs:6,3.865) -- (axis cs:5500,3.865)
+  node[pos=0.97, above left, font=\scriptsize, SerieD] {\EF{all Q4\_K codes, 3.865 (meas.)}{tous les codes Q4\_K, 3,865 (mes.)}};
+\end{semilogxaxis}
+\end{tikzpicture}}
+
+% Entropie des 16 codes d'une plage fixe R (en écarts-types), et les seuils de 1, 2, 3 bits.
+\newcommand{\GrapheEntropiePlage}{%
+\begin{tikzpicture}
+\begin{semilogxaxis}[memoire, width=\linewidth, height=0.56\linewidth,
+  xlabel={\EF{quantisation range $R/\sigma$ (range of the grid, in standard deviations of the weights)}{plage de quantification $R/\sigma$ (étendue de la grille, en écarts-types des poids)}},
+  ylabel={\EF{entropy of the codes (bits)}{entropie des codes (bits)}}, xmin=2, xmax=60, ymin=0, ymax=4.05,
+  xtick={2,4,8,16,32,60}, xticklabels={2,4,8,16,32,60}, legend pos=north east, legend columns=1]
+\fill[Signe!10] (axis cs:2,0.6) rectangle (axis cs:60,1.0);
+\node[font=\scriptsize, Signe, anchor=west] at (axis cs:2.1,0.8) {\EF{published for int4: 0.6--1.0 bit}{publié pour int4 : 0,6--1,0 bit}};
+\addplot[SerieA, no markers, line width=1pt] table[x=R, y=gauss] {\Donnees/entropie-plage.csv};
+\addlegendentry{\EF{min-max, 16 levels, Gaussian}{min-max, 16 niveaux, gaussienne}}
+\addplot[SerieB, no markers, line width=1pt] table[x=R, y=laplace] {\Donnees/entropie-plage.csv};
+\addlegendentry{\EF{min-max, 16 levels, Laplacian}{min-max, 16 niveaux, laplacienne}}
+\addplot[SerieA, no markers, line width=1pt, densely dashed] table[x=R, y=gauss_sym] {\Donnees/entropie-plage.csv};
+\addlegendentry{\EF{symmetric, 15 levels, Gaussian}{symétrique, 15 niveaux, gaussienne}}
+\addplot[SerieB, no markers, line width=1pt, densely dashed] table[x=R, y=laplace_sym] {\Donnees/entropie-plage.csv};
+\addlegendentry{\EF{symmetric, 15 levels, Laplacian}{symétrique, 15 niveaux, laplacienne}}
+\draw[black!45, densely dotted] (axis cs:10,0) -- (axis cs:10,2.658) node[pos=0.5, right, font=\scriptsize, black!70, align=left] {$R = 10\sigma$\\\EF{2.47 to 2.66 bits}{2,47 à 2,66 bits}};
+\draw[black!45, densely dotted] (axis cs:33.9,0) -- (axis cs:33.9,1.0) node[pos=0.12, left, font=\scriptsize, black!70] {\EF{1 bit: $33.9\sigma$}{1 bit : $33{,}9\sigma$}};
+\end{semilogxaxis}
+\end{tikzpicture}}
+
+% Entropie des échelles E8M0 de chaque tenseur d'experts, selon le contexte.
+\newcommand{\GrapheEchelles}{%
+\begin{tikzpicture}
+\begin{groupplot}[group style={group size=1 by 2, vertical sep=1.5cm}, memoire, width=\linewidth,
+  height=0.36\linewidth, ymin=0.6, ymax=2.45, ylabel={\EF{bits per scale}{bits par échelle}},
+  every axis plot/.append style={mark size=1.25pt}, legend columns=3, legend style={at={(0.5,1.04)}, anchor=south}]
+\nextgroupplot[xmin=-1, xmax=72, title={\EF{gpt-oss-20b, 72 expert tensors}{gpt-oss-20b, 72 tenseurs d'experts}},
+  title style={font=\small, yshift=1.6em}]
+\addplot[only marks, mark=o, SerieF] table[x=i, y=H0] {\Donnees/entropie-echelles-20b.csv};
+\addlegendentry{\EF{order 0}{ordre 0}}
+\addplot[only marks, mark=triangle*, SerieD] table[x=i, y=gauche] {\Donnees/entropie-echelles-20b.csv};
+\addlegendentry{\EF{given the left block}{sachant le bloc de gauche}}
+\addplot[only marks, mark=*, SerieA] table[x=i, y=mediane] {\Donnees/entropie-echelles-20b.csv};
+\addlegendentry{\EF{given the row median}{sachant la médiane de ligne}}
+\nextgroupplot[xmin=-1, xmax=36, xlabel={\EF{tensor index (layer $\times$ \{down, gate, up\})}{indice du tenseur (couche $\times$ \{down, gate, up\})}},
+  title={\EF{gpt-oss-120b, first 36 expert tensors (layers 0 to 11), median cost included}{gpt-oss-120b, 36 premiers tenseurs d'experts (couches 0 à 11), coût de la médiane compris}},
+  title style={font=\small}]
+\addplot[only marks, mark=o, SerieF] table[x=i, y=H0] {\Donnees/entropie-echelles-120b.csv};
+\addplot[only marks, mark=triangle*, SerieD] table[x=i, y=gauche] {\Donnees/entropie-echelles-120b.csv};
+\addplot[only marks, mark=*, SerieA] table[x=i, y=mediane] {\Donnees/entropie-echelles-120b.csv};
+\end{groupplot}
+\end{tikzpicture}}
+
+% Taux sans perte réel de chaque tenseur d'experts, une table contre trois classes d'échelle.
+\newcommand{\GrapheTauxTenseurs}{%
+\begin{tikzpicture}
+\begin{groupplot}[group style={group size=2 by 1, horizontal sep=1.2cm, y descriptions at=edge left},
+  memoire, width=0.5\linewidth, height=0.48\linewidth, ymin=1.08, ymax=1.122,
+  xlabel={\EF{layer}{couche}}, ylabel={\EF{lossless rate $r$}{taux sans perte $r$}},
+  yticklabel style={/pgf/number format/fixed, /pgf/number format/precision=2}, every axis plot/.append style={mark size=1.3pt},
+  legend columns=3, legend style={at={(1.08,1.13)}, anchor=south, font=\scriptsize}]
+\nextgroupplot[xmin=-1, xmax=24, title={gpt-oss-20b}, title style={font=\small, yshift=1.5em}]
+\addplot[only marks, mark=o, SerieA] table[x=couche, y=taux1] {\Donnees/entropie-taux-20b-down.csv}; \addlegendentry{down, 1 table}
+\addplot[only marks, mark=o, SerieB] table[x=couche, y=taux1] {\Donnees/entropie-taux-20b-gate.csv}; \addlegendentry{gate, 1 table}
+\addplot[only marks, mark=o, SerieC] table[x=couche, y=taux1] {\Donnees/entropie-taux-20b-up.csv}; \addlegendentry{up, 1 table}
+\addplot[only marks, mark=*, SerieA] table[x=couche, y=taux3] {\Donnees/entropie-taux-20b-down.csv}; \addlegendentry{down, 3 classes}
+\addplot[only marks, mark=*, SerieB] table[x=couche, y=taux3] {\Donnees/entropie-taux-20b-gate.csv}; \addlegendentry{gate, 3 classes}
+\addplot[only marks, mark=*, SerieC] table[x=couche, y=taux3] {\Donnees/entropie-taux-20b-up.csv}; \addlegendentry{up, 3 classes}
+\nextgroupplot[xmin=-1, xmax=36, title={gpt-oss-120b}, title style={font=\small, yshift=1.5em}]
+\addplot[only marks, mark=o, SerieA] table[x=couche, y=taux1] {\Donnees/entropie-taux-120b-down.csv};
+\addplot[only marks, mark=o, SerieB] table[x=couche, y=taux1] {\Donnees/entropie-taux-120b-gate.csv};
+\addplot[only marks, mark=o, SerieC] table[x=couche, y=taux1] {\Donnees/entropie-taux-120b-up.csv};
+\addplot[only marks, mark=*, SerieA] table[x=couche, y=taux3] {\Donnees/entropie-taux-120b-down.csv};
+\addplot[only marks, mark=*, SerieB] table[x=couche, y=taux3] {\Donnees/entropie-taux-120b-gate.csv};
+\addplot[only marks, mark=*, SerieC] table[x=couche, y=taux3] {\Donnees/entropie-taux-120b-up.csv};
+\end{groupplot}
+\end{tikzpicture}}
+
+% Débit écrit des décodeurs rANS et des recopies de référence, médiane et étendue des séries.
+\newcommand{\GrapheDebitsDecodeur}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, ybar, bar width=5.2pt, width=\linewidth, height=0.55\linewidth, ymin=0, ymax=130,
+  symbolic x coords={v1,v2,v3,v4,recopie,recopie4}, xtick=data, enlarge x limits=0.1,
+  xticklabels={v1, v2, v3, v4, \EF{copy}{recopie}, \EF{copy vec4}{recopie vec4}},
+  ylabel={\EF{GB/s written (median, bars: min--max)}{Go/s écrits (médiane, barres : min--max)}},
+  major x grid style={draw=none}, legend style={at={(0.02,0.98)}, anchor=north west}, area legend]
+\addplot[fill=SerieF!45, draw=SerieF, erreurs] table[x=variante, y=go_s, y error plus=plus, y error minus=moins] {\Donnees/entropie-debits-batterie.csv};
+\addlegendentry{\EF{Vulkan, battery (43 W), Q4\_K}{Vulkan, batterie (43 W), Q4\_K}}
+\addplot[fill=SerieA!60, draw=SerieA, erreurs] table[x=variante, y=go_s, y error plus=plus, y error minus=moins] {\Donnees/entropie-debits-secteur.csv};
+\addlegendentry{\EF{Vulkan, mains, Q4\_K (B1 + B2)}{Vulkan, secteur, Q4\_K (B1 + B2)}}
+\addplot[fill=SerieD!60, draw=SerieD, erreurs] table[x=variante, y=go_s, y error plus=plus, y error minus=moins] {\Donnees/entropie-debits-mxfp4.csv};
+\addlegendentry{\EF{Vulkan, mains, MXFP4 of gpt-oss-20b}{Vulkan, secteur, MXFP4 de gpt-oss-20b}}
+\addplot[fill=SerieC!60, draw=SerieC, erreurs] table[x=variante, y=go_s, y error plus=plus, y error minus=moins] {\Donnees/entropie-debits-cuda.csv};
+\addlegendentry{\EF{CUDA, mains, Q4\_K (A1 + A2)}{CUDA, secteur, Q4\_K (A1 + A2)}}
+\addlegendimage{line legend, Disque, dashed, line width=0.7pt}
+\addlegendentry{\EF{codes the disk can deliver: 2.49\,GB/s}{codes que le disque peut livrer : 2,49\,Go/s}}
+\draw[Disque, dashed, line width=0.7pt] ({rel axis cs:0,0} |- {axis cs:v1,2.49}) -- ({rel axis cs:1,0} |- {axis cs:v1,2.49});
+\end{axis}
+\end{tikzpicture}}
+
+% Le produit matrice-vecteur MXFP4 (gpt-oss-20b) : brut, fondu, décodage seul, deux passes.
+\newcommand{\GrapheGemvEntropie}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, xbar, bar width=7pt, width=0.86\linewidth, height=0.5\linewidth,
+  xmin=0, xmax=300, ymin=-0.6, ymax=3.6, ytick={0,1,2,3}, y dir=reverse,
+  yticklabels from table={\Donnees/entropie-gemv-secteur.csv}{\EF{chemin_en}{chemin_fr}},
+  xlabel={\EF{equivalent MXFP4 weights (GB/s), median of 10, bars: min--max}{poids MXFP4 équivalents (Go/s), médiane de 10, barres : min--max}},
+  major y grid style={draw=none}, legend style={at={(0.8,0.06)}, anchor=south east}, area legend]
+\addplot[fill=SerieF!45, draw=SerieF, error bars/.cd, x dir=both, x explicit, error bar style={line width=0.6pt}]
+  table[x=go_s, y=i, x error plus=plus, x error minus=moins] {\Donnees/entropie-gemv-batterie.csv};
+\addlegendentry{\EF{battery (43 W)}{batterie (43 W)}}
+\addplot[fill=SerieA!60, draw=SerieA, error bars/.cd, x dir=both, x explicit, error bar style={line width=0.6pt}]
+  table[x=go_s, y=i, x error plus=plus, x error minus=moins] {\Donnees/entropie-gemv-secteur.csv};
+\addlegendentry{\EF{mains}{secteur}}
+\draw[Vram, dashed] (axis cs:251,-0.6) -- (axis cs:251,3.6) node[pos=0.5, right, font=\scriptsize, align=left] {\EF{VRAM\\read\\251}{lecture\\VRAM\\251}};
+\end{axis}
+\end{tikzpicture}}
+
+% Au-delà du sans-perte : bits par poids d'une ECSQ à erreur égale à KQ4, et la borne gaussienne.
+\newcommand{\GrapheRdProxy}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, xbar, bar width=7pt, width=0.8\linewidth, height=0.42\linewidth,
+  xmin=3.2, xmax=4.75, ymin=-0.6, ymax=2.6, ytick={0,1,2}, y dir=reverse,
+  yticklabels={ssm\_alpha (Q8\_0), ssm\_beta (Q8\_0), ffn\_down (Q6\_K)},
+  xlabel={\EF{bits per weight at the squared error of KQ4}{bits par poids à l'erreur quadratique de KQ4}},
+  major y grid style={draw=none}, legend style={at={(0.5,-0.3)}, anchor=north}, legend columns=2, area legend]
+\addplot[fill=SerieA!60, draw=SerieA] table[x=ECSQ_bits_par_poids_meme_erreur, y expr=\coordindex] {\CsvEntropie/rd-proxy.csv};
+\addlegendentry{\EF{ECSQ + entropy coding (meas.)}{ECSQ + codage entropique (mes.)}}
+\addplot[fill=SerieC!50, draw=SerieC] table[x=borne_gauss_bits, y expr=\coordindex] {\CsvEntropie/rd-proxy.csv};
+\addlegendentry{\EF{Gaussian bound per block (calc.)}{borne gaussienne par bloc (calc.)}}
+\draw[SerieB, dashed, line width=0.8pt] (axis cs:4.5,-0.6) -- (axis cs:4.5,2.6) node[pos=0.5, right, font=\scriptsize, SerieB, align=left] {KQ4\\\num{4.5}};
+\end{axis}
+\end{tikzpicture}}

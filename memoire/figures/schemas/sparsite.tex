@@ -1,0 +1,30 @@
+% Schémas du chapitre « Sparsité et décodage spéculatif ».
+
+\tikzset{jet/.style={draw=#1, fill=#1!15, rounded corners=1.5pt, minimum width=0.9cm,
+  minimum height=0.55cm, inner sep=1pt, font=\sffamily\scriptsize}, jet/.default=Accent}
+
+% Une passe de vérification : chaîne contre arbre.
+\newcommand{\SchemaSpeculation}{%
+\begin{tikzpicture}[font=\sffamily\small]
+  % Chaîne.
+  \node[font=\sffamily\small\bfseries, anchor=east] at (-0.3,0) {\EF{chain}{chaîne}};
+  \node[jet=Encre] (p) at (0.6,0) {\EF{prefix}{préfixe}};
+  \foreach \i/\etat in {1/Mant, 2/Mant, 3/Mant, 4/Signe, 5/Code}{
+    \node[jet=\etat] (c\i) at (0.6+1.25*\i,0) {$x_{\i}$};
+  }
+  \draw[-{Latex}, black!50] (p) -- (c1); \foreach \i [evaluate=\i as \j using int(\i+1)] in {1,...,4} \draw[-{Latex}, black!50] (c\i) -- (c\j);
+  \node[font=\sffamily\scriptsize, anchor=west, text width=5.2cm] at (7.3,0) {\EF{3 accepted, $x_4$ refused and replaced by the target's token: 4 tokens for one read of the weights}{3 acceptés, $x_4$ refusé et remplacé par le jeton de la cible : 4 jetons pour une lecture des poids}};
+  % Arbre.
+  \node[font=\sffamily\small\bfseries, anchor=east] at (-0.3,-2.0) {\EF{tree}{arbre}};
+  \node[jet=Encre] (q) at (0.6,-2.0) {\EF{prefix}{préfixe}};
+  \node[jet=Mant] (a1) at (1.85,-1.35) {$a$}; \node[jet=Code] (b1) at (1.85,-2.65) {$a'$};
+  \node[jet=Signe] (a2) at (3.1,-0.9) {$b$}; \node[jet=Mant] (b2) at (3.1,-1.8) {$b'$};
+  \node[jet=Mant] (a3) at (4.35,-1.8) {$c$}; \node[jet=Code] (b3) at (4.35,-2.65) {$c'$};
+  \node[jet=Mant] (a4) at (5.6,-1.8) {$d$}; \node[jet=Code] (b4) at (5.6,-0.9) {$d'$};
+  \draw[-{Latex}, black!50] (q) -- (a1); \draw[-{Latex}, black!50] (q) -- (b1);
+  \draw[-{Latex}, black!50] (a1) -- (a2); \draw[-{Latex}, black!50] (a1) -- (b2);
+  \draw[-{Latex}, black!50] (b2) -- (a3); \draw[-{Latex}, black!50] (b2) -- (b3);
+  \draw[-{Latex}, black!50] (a3) -- (a4); \draw[-{Latex}, black!50] (b2) -- (b4);
+  \node[font=\sffamily\scriptsize, anchor=west, text width=5.2cm] at (7.3,-1.8) {\EF{all branches verified in one pass (tree attention mask); the longest accepted path is kept: $a, b', c, d$}{toutes les branches vérifiées en une passe (masque d'attention en arbre) ; on garde le plus long chemin accepté : $a, b', c, d$}};
+  \node[font=\sffamily\scriptsize, anchor=north west, text width=13cm] at (-1.4,-3.2) {\colorbox{Mant!15}{\EF{accepted}{accepté}} \colorbox{Signe!15}{\EF{refused}{refusé}} \colorbox{black!10}{\EF{not reached}{non atteint}}};
+\end{tikzpicture}}

@@ -1,0 +1,69 @@
+{
+ "outil": "temoin_garde.py",
+ "date": "2026-10-16T06:39:26",
+ "exe": "~/dev/cibles/troncons-O/release/troncons.exe",
+ "exe_sha256": "0f4d2d37a7c3086287d35f4bea4cba4ef8e90d54fb940c0228baa936cd50ec07",
+ "cas": {
+  "G-=a": {
+   "commande": "generer --modele ~/dev/modeles/trc/gpt-oss-20b.trc --vocab ~/dev/modeles/trc/gpt-oss-20b.vocab.gguf --invite ~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt -n 32 --flux --repos 0 --sans-vram --journal <journal>",
+   "code": 0,
+   "erreur": null,
+   "erreur_journal": null,
+   "temoin": [],
+   "texte_sha256": "48f70a4561e63ec6ec6c25b7f2dfd3180429d1a1f1184191a74cea2469a73aaa",
+   "ouverture_s": 2.7498286,
+   "garde": true,
+   "garde_troncons": 920,
+   "lectures_troncons": 920,
+   "garde_lignes": 739,
+   "lectures_enchassement": 739,
+   "garde_octets": 11051566960,
+   "garde_attente_s": 0.09919589999999998,
+   "garde_octets_ouverture": 615333888,
+   "octets_lus_processus": {
+    "lectures": 1790,
+    "octets_ecrits": 2847,
+    "octets_lus": 12995470928,
+    "octets_lus_depuis_le_depart": 13010358654
+   },
+   "octets_comptes_moteur": {
+    "chargement_residents": 1302351872,
+    "lecteur": 12977172480,
+    "ouverture_tamponnee": 13224527,
+    "total": 14292748879
+   }
+  },
+  "G-=b": {
+   "commande": "generer --modele ~/dev/modeles/trc/gpt-oss-20b.trc --vocab ~/dev/modeles/trc/gpt-oss-20b.vocab.gguf --invite ~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt -n 32 --flux --repos 0 --sans-vram --journal <journal> --sans-garde",
+   "code": 0,
+   "erreur": null,
+   "erreur_journal": null,
+   "temoin": [],
+   "texte_sha256": "48f70a4561e63ec6ec6c25b7f2dfd3180429d1a1f1184191a74cea2469a73aaa",
+   "ouverture_s": 1.6451088999999999,
+   "garde": false,
+   "garde_troncons": 0,
+   "lectures_troncons": 920,
+   "garde_lignes": 0,
+   "lectures_enchassement": 739,
+   "garde_octets": 0,
+   "garde_attente_s": 0.0,
+   "garde_octets_ouverture": 0,
+   "octets_lus_processus": {
+    "lectures": 1752,
+    "octets_ecrits": 2846,
+    "octets_lus": 12380137040,
+    "octets_lus_depuis_le_depart": 12395029651
+   },
+   "octets_comptes_moteur": {
+    "chargement_residents": 1302351872,
+    "lecteur": 12361838592,
+    "ouverture_tamponnee": 13224527,
+    "total": 13677414991
+   }
+  }
+ },
+ "verdicts": {
+  "G-=": "tient"
+ }
+}

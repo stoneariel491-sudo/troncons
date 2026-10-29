@@ -1,0 +1,126 @@
+% Sources du lot E (chemin des octets : trc-cuda, trc-es, banc-chemin, essais E0).
+% Toutes consultées le 2026-10-15, à la source primaire. Les chiffres de la machine viennent des
+% journaux commités sous mesures/moteur/E/journaux/ ; ces entrées ne portent que la documentation.
+
+@manual{nvidia2026driverapi,
+  author       = {{NVIDIA}},
+  title        = {{CUDA} Driver {API} Reference Manual},
+  version      = {13.4},
+  url          = {https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html},
+  urldate      = {2026-10-15},
+  note         = {Gestion de la mémoire : cuMemHostAlloc (« Allocates page-locked host memory »),
+                  cuMemHostGetDevicePointer, copies asynchrones ; avertissement sur la mémoire épinglée
+                  en excès (« may degrade system performance »), sous cuMemAllocHost. Le moteur est
+                  construit contre les en-têtes de CUDA 13.1.2 et tourne sur le pilote 591.91 (13.1).}
+}
+
+@manual{nvidia2026primaryctx,
+  author       = {{NVIDIA}},
+  title        = {{CUDA} Driver {API} Reference Manual, Primary Context Management},
+  version      = {13.4},
+  url          = {https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__PRIMARY__CTX.html},
+  urldate      = {2026-10-15},
+  note         = {cuDevicePrimaryCtxSetFlags : CU_CTX_SCHED_SPIN, YIELD, BLOCKING_SYNC ; AUTO attend
+                  activement tant que le nombre de contextes actifs ne dépasse pas celui des processeurs
+                  logiques (le cas de la machine : 1 contexte, 16 fils). Mesuré par l'essai E0(c).}
+}
+
+@manual{nvidia2026bestpractices,
+  author       = {{NVIDIA}},
+  title        = {{CUDA} {C++} Best Practices Guide},
+  version      = {13.4},
+  url          = {https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html},
+  urldate      = {2026-10-15},
+  note         = {Recouvrement copie et calcul : asyncEngineCount ; un seul moteur de copie permet une
+                  copie asynchrone à la fois, en même temps que les noyaux ; deux moteurs permettent les
+                  deux sens à la fois. La carte de la machine rend 1 sous WDDM (relevé par trc-cuda).}
+}
+
+@manual{nvidia2026asynchrone,
+  author       = {{NVIDIA}},
+  title        = {{CUDA} Programming Guide, 2.5 Asynchronous Execution},
+  url          = {https://docs.nvidia.com/cuda/cuda-programming-guide/02-basics/asynchronous-execution.html},
+  urldate      = {2026-10-15},
+  note         = {Flux non bloquants envers le flux par défaut ; soumettre le travail indépendant avant le
+                  dépendant, retarder toute synchronisation.}
+}
+
+@online{microsoft2025filebuffering,
+  author       = {{Microsoft}},
+  title        = {File Buffering},
+  url          = {https://learn.microsoft.com/en-us/windows/win32/fileio/file-buffering},
+  date         = {2025-05-31},
+  urldate      = {2026-10-15},
+  note         = {FILE_FLAG_NO_BUFFERING : taille et décalage multiples du secteur du volume, adresse du
+                  tampon alignée sur le secteur physique ; VirtualAlloc aligne sur la page (4\,096 sur
+                  x64). trc-es exige 4\,096 pour les trois.}
+}
+
+@online{microsoft2025iocp,
+  author       = {{Microsoft}},
+  title        = {{I/O} Completion Ports},
+  url          = {https://learn.microsoft.com/en-us/windows/win32/fileio/i-o-completion-ports},
+  date         = {2025-07-18},
+  urldate      = {2026-10-15},
+  note         = {Paquets de complétion en file FIFO ; valeur de concurrence ; le bloc d'état n'est mis à
+                  jour qu'au retrait du paquet, sauf échec synchrone (d'où, dans trc-es, l'OVERLAPPED
+                  gardé jusqu'à la récolte, et l'annulation suivie de l'attente de chaque paquet).}
+}
+
+@online{pronovost2020hags,
+  author       = {Pronovost, Steve},
+  title        = {Hardware Accelerated {GPU} Scheduling},
+  organization = {Microsoft, DirectX Developer Blog},
+  url          = {https://devblogs.microsoft.com/directx/hardware-accelerated-gpu-scheduling/},
+  date         = {2020-06-30},
+  urldate      = {2026-10-15},
+  note         = {L'ordonnancement de la carte passe d'un fil du processeur à un processeur dédié de la
+                  carte ; les applications peuvent soumettre des lots plus petits plus souvent. Cadre de
+                  la variante « boîte sans vidage » de l'essai E0(c) (le pilote retient-il un lancement
+                  sans appel qui le pousse ?).}
+}
+
+@online{wellons2018hash,
+  author       = {Wellons, Christopher},
+  title        = {Prospecting for Hash Functions},
+  url          = {https://nullprogram.com/blog/2018/07/31/},
+  date         = {2018-07-31},
+  urldate      = {2026-10-15},
+  note         = {Constantes de la fonction de mélange 32 bits « lowbias32 » (domaine public), utilisées
+                  par les noyaux d'essai pour tirer des indices d'experts que l'hôte sait recalculer.}
+}
+
+@online{microsoft2025pdhraw,
+  author       = {{Microsoft}},
+  title        = {{PdhGetRawCounterValue} function (pdh.h)},
+  url          = {https://learn.microsoft.com/en-us/windows/win32/api/pdh/nf-pdh-pdhgetrawcountervalue},
+  date         = {2025-07-01},
+  urldate      = {2026-10-15},
+  note         = {Rend la valeur brute d'un compteur (structure PDH\_RAW\_COUNTER). Utilisé par
+                  banc-chemin (disque.rs) pour les octets lus par toute la machine pendant une passe.}
+}
+
+@online{microsoft2025countervalues,
+  author       = {{Microsoft}},
+  title        = {Calculating Counter Values},
+  url          = {https://learn.microsoft.com/en-us/windows/win32/perfctrs/calculating-counter-values},
+  date         = {2025-07-14},
+  urldate      = {2026-10-15},
+  note         = {Pour PERF\_COUNTER\_BULK\_COUNT, valeur affichée (N1 - N0) / ((D1 - D0) / F) : la donnée
+                  brute N est un compte cumulé (ici d'octets lus), d'où les octets d'un intervalle par
+                  simple différence de deux relevés, sans intégrer un débit échantillonné.}
+}
+
+@article{little1961,
+  author       = {Little, John D. C.},
+  title        = {A Proof for the Queuing Formula: {$L = \lambda W$}},
+  journaltitle = {Operations Research},
+  volume       = {9},
+  number       = {3},
+  pages        = {383--387},
+  date         = {1961},
+  doi          = {10.1287/opre.9.3.383},
+  urldate      = {2026-10-15},
+  note         = {Métadonnées relues par l'API de Crossref (l'éditeur refuse la lecture automatique).
+                  Second chemin du débit du lecteur : X = q b / R (dérivation D3 du lot E).}
+}

@@ -1,0 +1,57 @@
+% Sources de l'épreuve indépendante de J1 (mesures/epreuve-J1.md).
+% Adresses connues du juge ; non reconsultées en ligne le 2026-10-16 (aucun accès réseau pendant
+% l'épreuve) : la date de consultation porte la mention « adresse connue, non reconsultée ».
+
+@misc{openai_gptoss_reference,
+  author       = {{OpenAI}},
+  title        = {gpt-oss : implémentation de référence en PyTorch (gpt\_oss/torch/model.py)},
+  howpublished = {\url{https://github.com/openai/gpt-oss}},
+  note         = {Licence Apache-2.0. Forme du modèle suivie par gptoss\_numpy.py (RoPE YaRN sans
+                  troncature, puits d'attention, fenêtre de 128, SwiGLU bornée, routeur top-4 puis
+                  softmax). Adresse connue, non reconsultée le 2026-10-16.}
+}
+
+@misc{ggml_gguf_spec,
+  author       = {{ggml-org}},
+  title        = {GGUF : spécification du format de fichier (docs/gguf.md)},
+  howpublished = {\url{https://github.com/ggml-org/ggml/blob/master/docs/gguf.md}},
+  note         = {Licence MIT. Lecteur GGUF v3 de decodeur\_s4.py. Adresse connue, non reconsultée le
+                  2026-10-16.}
+}
+
+@misc{llamacpp_perplexity_kld,
+  author       = {{ggml-org}},
+  title        = {llama.cpp b11515, tools/perplexity/perplexity.cpp : fichier de logits de
+                  --kl-divergence-base},
+  howpublished = {\url{https://github.com/ggml-org/llama.cpp}},
+  note         = {Licence MIT. Format du .kld, relevé par le juge sur les fichiers eux-mêmes (en-tête,
+                  tailles) et recoupé avec la description de trc-juge. Adresse connue, non reconsultée
+                  le 2026-10-16.}
+}
+
+@misc{ms_getprocessiocounters,
+  author       = {{Microsoft}},
+  title        = {GetProcessIoCounters, GetProcessMemoryInfo, GlobalMemoryStatusEx (API Win32)},
+  howpublished = {\url{https://learn.microsoft.com/windows/win32/api/winbase/nf-winbase-getprocessiocounters}},
+  note         = {Instruments du juge pour C7 et C8 ; témoin : temoin\_compteurs\_es.py. Adresse connue,
+                  non reconsultée le 2026-10-16.}
+}
+
+@misc{ms_dbghelp_symfromaddr,
+  author       = {{Microsoft}},
+  title        = {DbgHelp : SymInitialize, SymLoadModuleEx, SymFromAddr},
+  howpublished = {\url{https://learn.microsoft.com/windows/win32/api/dbghelp/nf-dbghelp-symfromaddr}},
+  note         = {Pile du blocage G1 (pile\_fil.py). Adresse connue, non reconsultée le 2026-10-16.}
+}
+
+@article{wilson1927,
+  author  = {Wilson, Edwin B.},
+  title   = {Probable Inference, the Law of Succession, and Statistical Inference},
+  journal = {Journal of the American Statistical Association},
+  volume  = {22},
+  number  = {158},
+  pages   = {209--212},
+  year    = {1927},
+  doi     = {10.1080/01621459.1927.10502953},
+  note    = {Intervalles des premiers choix de C4 (verdict\_c4.py).}
+}

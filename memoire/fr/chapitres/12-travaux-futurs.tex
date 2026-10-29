@@ -1,0 +1,87 @@
+\chapter{Travaux futurs}\label{ch:futurs}
+
+\begin{origine}
+\textbf{Au départ}, les fragilités du \cref{ch:discussion} et les jalons du \cref{sec:decision}.
+\textbf{Ce chapitre établit} l'ordre du travail qui vient, chaque pas avec la mesure qui le juge ; les questions de recherche ouvertes, chacune chiffrée par l'équation du jeton ; le seul geste qui revienne à Stone ; et les téléchargements qui pourraient servir, aucun n'étant nécessaire au premier programme.
+\textbf{Il reste} à le faire.
+\end{origine}
+
+\section{Les mesures qui décident, d'abord}\label{sec:mesures-decident}
+
+\begin{enumerate}
+\item \textbf{La courbe $h(c)$ et la réutilisation $\rho$ de gpt-oss-120b}, sur ses propres traces de routage. Elles remplacent l'\cref{hyp:beta} dans tous les plafonds ; la mesure du 20b (\cref{fig:localite-mesuree}) dit déjà que la forme supposée est fausse. Témoin : la réplique du cache de llama.cpp rejouée sur les traces, qui doit redonner les nombres de son journal.
+\item \textbf{La base llama.cpp de gpt-oss-120b en séries ABBA}, sur secteur, selon le protocole du \cref{sec:protocole-jugement} : c'est la première mesure qui peut tuer A (le rapport $\times 2{,}5$ à $\times 17$ de l'étude 07 repose sur une base estimée).
+\item \textbf{Le banc Q0} : la qualité de B sans moteur, par fichiers MXFP4 statiques (base aimantée sur des valeurs E2M1 existantes) jugés par llama.cpp, et la frontière des requantifications uniformes. C'est la mesure qui décide de J2.
+\item \textbf{L'écart entre deux moteurs justes sur gpt-oss}, qui recale le budget de qualité $\kappa$ du \cref{def:probleme}.
+\end{enumerate}
+
+\section{Le jalon J1 : construire A}\label{sec:construire-j1}
+
+L'arbitre découpe le travail en cinq lots aux fichiers disjoints, chacun fini par un témoin, sa cassure et un seuil déclaré (\fichier{decisions/ARCHITECTURE.md}, § 6) :
+\begin{description}
+\item[F, format et codeur] : réécriture du GGUF d'origine en fichier \texttt{.trc} v1.0 ; témoin : chaque tronçon décodé égale l'original, octet pour octet.
+\item[E, chemin des octets] : lecteur IOCP à la taille d'un expert vers la mémoire épinglée, DMA ; témoin : le débit de bout en bout ne dépasse aucun étage, et les octets arrivent exacts.
+\item[K, noyaux] : décodeur rANS à table par voie, produit MXFP4, passage avant de gpt-oss ; témoin : les noyaux WGSL déjà mesurés, sur les mêmes octets (second chemin).
+\item[R, référence et juge] : une référence processeur en double précision, le juge de qualité, le banc Q0.
+\item[O, cache, ordonnanceur, moteur] : cache d'experts en VRAM, file des défauts, modes A0 et A ; témoin : logits identiques au bit entre le chemin codé et le chemin brut.
+\end{description}
+Le jalon se juge sur gpt-oss-120b : jetons/s, RAM et VRAM de pointe, octets lus selon le compteur du système, et rendement physique, c'est-à-dire le débit mesuré rapporté au plafond de l'\cref{eq:jeton} recalculé avec le succès compté par le moteur. Puis J1+ ajoute le préchargement d'une couche d'avance et un cache SLRU, et se juge contre la meilleure base llama.cpp mesurée.
+
+\section{Les questions de recherche}\label{sec:questions-recherche}
+
+\begin{table}[ht]
+\centering\small
+\caption[Les questions de recherche ouvertes]{Les questions de recherche ouvertes, et ce que chacune vaut d'après l'équation du jeton \calc~(\fichier{fondations/07-ce-qui-manque.md}, § 3.2, et \cref{sec:correction-b1}).}
+\label{tab:recherche}
+\begin{tabular}{@{}p{0.06\linewidth}p{0.36\linewidth}p{0.5\linewidth}@{}}
+\toprule
+& Question & Ce qu'elle vaut, et ce qui manque \\
+\midrule
+R1 & Le raffinement exact d'un format 4 bits natif, lié à l'étage (B) & en débit : B3, $\times 1{,}74$ au prix de 48,5\,\% d'usages servis par la base ; en latence : B1, plancher $+23\,\%$. Manque : la qualité (Q0) \\
+R2 & L'allocation conjointe des bits et de l'étage & avec les débits de la machine, une matrice résidente mérite $\tfrac12 \log_2(209/2{,}58) = 3{,}2$ bits de plus qu'une matrice lue du disque ; aucun outil ne l'applique \\
+R3 & Une politique de défaut sous budget de qualité & attendre, reporter, servir la base, re-router, défaut par défaut ; le gain vit entre le plancher et le plafond (A, LRU : 3,93 $\to$ 6,24, $\times 1{,}59$) \\
+R4 & La spéculation sous réutilisation réelle & condition $\alpha > 1 - \rho$ (\cref{prop:spec-rho}) ; $\rho = 0{,}577$ sur gpt-oss-20b ; à mesurer sur le 120b, et pour $k > 1$ \\
+R5 & Un code à 2 bits de deuxième génération décodable sans CUDA & décodeur de treillis écrit et mesuré à 124\,Go/s, codeur absent ; $B_e$ divisé par 1,9 (4,25 $\to$ 2,25 bits) ; qualité inconnue sur un modèle entraîné en 4 bits \\
+R6 & Les arbres de vérification pour les hybrides à règle delta & 48\,Mio d'état par nœud gardé, 12\,Gio pour 256 nœuds ; bloque C sur les modèles Qwen \\
+R7 & Un code à décodage en temps constant pour le régime résident & au mieux $+10\,\%$ de capacité de la VRAM, $+2\,\%$ de plafond ; basse priorité \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Le geste qui revient à Stone}\label{sec:geste-stone}
+
+Le plus gros levier de la machine n'est pas un logiciel (\cref{sec:bilan}). Un volume \texttt{D:} non chiffré, créé par un script déjà écrit et que Stone lancerait lui-même en administrateur (\fichier{outils/creer-disque-modeles.ps1}), porterait le plafond de A de 6,24 à \textbf{14,1 jetons/s} dans le scénario LRU calé si le disque y atteignait les 6,0\,Go/s de son annonce \calc~(\fichier{fondations/journaux/07-synthese/csv/architectures-gptoss120b.csv}, ligne \texttt{A\_sans\_perte\_disque\_non\_chiffre\_6}). C'est une borne haute : Intel RST VMD reste sur le chemin, et sa part dans les 53\,\% perdus n'est pas séparée. Au-delà, le lien reprend la main (58\,ms contre 67 pour le disque) : garder le lien en Gen 4 et la capacité de la VRAM redeviennent des leviers.
+
+\section{Les téléchargements possibles}\label{sec:telechargements-futurs}
+
+Aucun n'est nécessaire pour construire et juger A et B sur gpt-oss-120b, déjà sur la machine. Tout téléchargement de plus de 500\,Mo demande l'accord de Stone, avec le nom, la source, la taille et la licence (\cref{tab:telechargements-futurs}).
+
+\begin{table}[ht]
+\centering\small
+\caption[Les téléchargements qui pourraient servir]{Les téléchargements qui pourraient servir, triés par nécessité \litt~(tailles lues par l'API Hugging Face ou NuGet, \fichier{fondations/07-ce-qui-manque.md}, § 5).}
+\label{tab:telechargements-futurs}
+\begin{tabular}{@{}rp{0.34\linewidth}rp{0.15\linewidth}p{0.27\linewidth}@{}}
+\toprule
+Rang & Nom & Taille & Licence & Pour \\
+\midrule
+1 & DirectStorage 1.4 (préversion) & 3,99\,Mo & Microsoft & comparer le chemin disque $\to$ carte \\
+2 & Qwen3.6-35B-A3B UD-Q4\_K\_M & 22,13\,Go & Apache-2.0 & second MoE fin, trace et $\rho$ \\
+3 & OLMoE-1B-7B Q4\_K\_M & $\approx 4{,}2$\,Go & Apache-2.0 & trace de routage rapide \\
+4 & Llama-3.3-70B IQ3\_XXS + Llama-3.2-1B Q4\_K\_M & 28,28\,Go & Llama 3.3 / 3.2 & architecture C \\
+5 & Qwen3.8-Flash-Next UD-Q2\_K\_XL & 78,87\,Go & qwen-community-1.0 & second modèle de B \\
+6 & Qwen3.5-9B-MTP Q4\_K\_M & 5,87\,Go & Apache-2.0 & accord du MTP natif \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Le mémoire lui-même}\label{sec:memoire-suite}
+
+Deux chapitres s'ajouteront à la troisième partie, avant la discussion : \textbf{l'implémentation} (les modules de troncons, le format \texttt{.trc} au bit près, les noyaux et leurs témoins) et \textbf{les résultats} (chaque série du jalon J1 en figure, avec barres d'erreur, témoin et seuil déclaré). \barre{L'étude de l'entropie, que ce mémoire cite sans lui consacrer de chapitre parce qu'elle s'achevait chez un autre agent, recevra le sien} (elle l'a reçu : \cref{ch:entropie}), et la mesure de gpt-oss, une fois rendue, remplacera les figures provisoires du \cref{sec:premieres-mesures}.
+
+\begin{faux}
+\begin{itemize}
+\item L'ordre proposé suppose que la base mesurée de llama.cpp ne dépasse pas le plafond de A ; si elle le dépassait, A serait à repenser avant d'être construit.
+\item Les gains de la \cref{tab:recherche} sont des plafonds calculés sous l'\cref{hyp:beta} ; ils bougeront avec la courbe mesurée.
+\item Le gain du volume non chiffré est une borne haute fondée sur une annonce de fabricant, pas sur une mesure.
+\end{itemize}
+\end{faux}

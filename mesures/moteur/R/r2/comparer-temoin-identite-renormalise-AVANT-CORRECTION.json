@@ -1,0 +1,84 @@
+{
+  "a_contre_verite": {
+    "dp_rms": 0.0016794187318196288,
+    "kl_incertitude": 0.00004749357321564851,
+    "kl_max": 0.021162938560050946,
+    "kl_mediane": 0.0002889660522632907,
+    "kl_min": -0.000013663827172900797,
+    "kl_moyenne": 0.0011114719029064945,
+    "kl_p90": 0.002899997974188885,
+    "kl_p99": 0.013599964240004153,
+    "kl_p999": 0.020526916504434285,
+    "ln_rapport_ppl": 0.0011143952710241933,
+    "ln_rapport_ppl_incertitude": 0.00004757462153458503,
+    "meme_premier": 1.0,
+    "meme_premier_incertitude": 0.0,
+    "meme_premier_wilson95": [
+      0.9984958115518776,
+      1.0
+    ],
+    "n": 2550,
+    "ppl_p": 455.0050009757978,
+    "ppl_q": 455.5123390322388
+  },
+  "apparie": {
+    "kl_difference_b_moins_a": 0.0,
+    "kl_ecart_type": 0.0,
+    "premier_difference_b_moins_a": 0.0,
+    "premier_ecart_type": 0.0
+  },
+  "b_contre_verite": {
+    "dp_rms": 0.0016794187318196288,
+    "kl_incertitude": 0.00004749357321564851,
+    "kl_max": 0.021162938560050946,
+    "kl_mediane": 0.0002889660522632907,
+    "kl_min": -0.000013663827172900797,
+    "kl_moyenne": 0.0011114719029064945,
+    "kl_p90": 0.002899997974188885,
+    "kl_p99": 0.013599964240004153,
+    "kl_p999": 0.020526916504434285,
+    "ln_rapport_ppl": 0.0011143952710241933,
+    "ln_rapport_ppl_incertitude": 0.00004757462153458503,
+    "meme_premier": 1.0,
+    "meme_premier_incertitude": 0.0,
+    "meme_premier_wilson95": [
+      0.9984958115518776,
+      1.0
+    ],
+    "n": 2550,
+    "ppl_p": 455.0050009757978,
+    "ppl_q": 455.5123390322388
+  },
+  "commande": [
+    "~\\dev\\cibles\\troncons-R\\release\\juge.exe",
+    "comparer",
+    "--verite",
+    "~/dev/essais/troncons/lot-R/r0/processeur.kld",
+    "--a",
+    "~/dev/essais/troncons/lot-R/r0/processeur.kld",
+    "--b",
+    "~/dev/essais/troncons/lot-R/r0/processeur.kld",
+    "--fils",
+    "4",
+    "--json",
+    "mesures/moteur/R/r2/comparer-temoin-identite.json"
+  ],
+  "duree_s": 21.7712206,
+  "fenetres": 10,
+  "fin_unix": 1792092611,
+  "kl_inverse": {
+    "a": 0.0011114719029064945,
+    "b": 0.0011114719029064945,
+    "difference": 0.0,
+    "ecart_type": 0.0
+  },
+  "outil": "juge comparer",
+  "positions": 2550,
+  "regle": "littéral : KL_B ≤ KL_A et premier_B ≥ premier_A ; statistique : d̄ ≤ 2σ(d̄) et ē ≥ −2σ(ē) (différences appariées, mêmes positions, même vérité)",
+  "verdicts": {
+    "litteral_kl": true,
+    "litteral_premier": true,
+    "statistique_kl": true,
+    "statistique_premier": true
+  }
+}

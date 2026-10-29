@@ -1,0 +1,51 @@
+{
+ "seance": "s1",
+ "phases": [
+  "c1-120b"
+ ],
+ "debut": "2026-10-17 09:39:00",
+ "passes": [
+  {
+   "nom": "s1-c1-120b-B-v12",
+   "commande": [
+    "~\\dev\\cibles\\troncons-codon\\release\\troncons.exe",
+    "evaluer",
+    "--flux",
+    "--modele",
+    "~\\dev\\modeles\\trc\\gpt-oss-120b-v12.trc",
+    "--base",
+    "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+    "--fenetres",
+    "10",
+    "--positions",
+    "512",
+    "--sortie",
+    "~\\dev\\essais\\troncons\\codon\\s1-c1-120b-B-v12.kld",
+    "--empreintes",
+    "~\\dev\\active\\troncons\\mesures\\genome\\construction\\codon\\journaux\\s1-c1-120b-B-v12-empreintes.csv",
+    "--journal",
+    "~\\dev\\active\\troncons\\mesures\\genome\\construction\\codon\\journaux\\s1-c1-120b-B-v12.json"
+   ],
+   "code": 0,
+   "secondes": 386.1678161621094,
+   "alimentation_avant": "2",
+   "llama_avant": [],
+   "vram_avant_mio": 1134,
+   "alimentation_apres": "2"
+  }
+ ],
+ "c1_120b": {
+  "B_contre_commite_v10": {
+   "a": "mesures\\moteur\\O\\journaux\\o3\\o3-120b-2026-10-15-s1-code-empreintes.csv",
+   "b": "mesures\\genome\\construction\\codon\\journaux\\s1-c1-120b-B-v12-empreintes.csv",
+   "lignes_a": 5120,
+   "lignes_b": 5120,
+   "differentes": 0,
+   "premiere": null
+  },
+  "verdict": {
+   "A_C1_120b": true
+  }
+ },
+ "fin": "2026-10-17 09:45:34"
+}

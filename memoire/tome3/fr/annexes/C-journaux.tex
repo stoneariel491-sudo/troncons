@@ -1,0 +1,62 @@
+% Tome~III, annexe C : les journaux (version française). Rédacteur D, 2026-10-29.
+% Modèle : l'annexe des journaux du Tome I (memoire/annexes/journaux.tex). La table des dossiers est engendrée par
+% memoire/outils/tome3_annexes.py depuis le commit 4b071d0 (memoire/tome3/annexes/journaux-tome3.tex) ; les séances et
+% les passes coupées viennent des livrables, des jugements et des notes de reprise cités dans leurs lignes.
+
+\chapter{Journaux}\label{t3ann:journaux}
+
+\begin{origine}
+\textbf{Au départ}, la règle des deux premiers tomes : ce qui produit un chiffre publié est commité, outils et journaux.
+\textbf{Cette annexe établit} où sont les journaux du Tome~III, dossier par dossier ; les séances qui portent un chiffre de vitesse, avec leurs conditions ; et les passes coupées, jetées ou publiées comme non concluantes, avec leur raison, parce qu'aucune ne disparaît en silence.
+\textbf{Il reste} les fichiers lourds hors du dépôt (références f64, \texttt{.kld}), régénérables par les outils commités.
+\end{origine}
+
+\section{Les dossiers de journaux}\label{t3ann:sec:dossiers}
+
+\Cref{t3ann:tab:journaux} donne chaque dossier de journaux, de CSV et de notes commité pour ce tome, son nombre de fichiers et son volume (les outils sont à l'annexe~\ref{t3ann:outils}). Elle est engendrée par \fichier{memoire/outils/tome3_annexes.py} depuis le commit : le volume d'un dossier est la somme des tailles des objets git de ses fichiers (\texttt{git ls-tree -l}), indépendante des fins de ligne de la copie (corrigé le 2026-10-29, annexe~\ref{t3ann:outils}). Les dossiers des pistes (\fichier{mesures/pistes/}) et du mimétisme appartiennent à leurs flux ; ceux du juge du placement disque (\fichier{mesures/disque/placement/juge/}) sont là pour la réserve R1. Ceux du second tirage de P3, en travail ailleurs, n'y sont pas (R6).
+
+\input{\Racine/tome3/annexes/journaux-tome3}
+
+\paragraph{Ce qui n'est pas dans le dépôt.} Les fichiers lourds : les références f64 et les \texttt{.kld} des passes de KL (environ \SI{13}{\Go} pour le seul juge de la construction, sous \fichier{~/dev/essais/troncons/}), les fichiers \texttt{.sym} des 768 experts et les compagnons rapides. Chacun se régénère par un outil commité, et son empreinte est dans un journal commité quand un chiffre en dépend (par exemple les \texttt{.kld} de sortie de J-C1, \cref{t3jug:sec:jc1}).
+
+\section{Les séances qui portent un chiffre de vitesse}\label{t3ann:sec:seances}
+
+Un chiffre de vitesse ne vaut que par sa séance : la machine, l'alimentation, la charge des autres flux, le verrou de la carte. \Cref{t3ann:tab:seances} donne celles du tome.
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[Les séances de vitesse du Tome~III]{Les séances qui portent un chiffre de vitesse du Tome~III, leurs conditions et ce qu'elles décident \mes.}
+\label{t3ann:tab:seances}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.17\linewidth}>{\raggedright\arraybackslash}p{0.20\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.22\linewidth}@{}}
+\toprule
+Séance & Quand & Conditions & Ce qu'elle décide \\
+\midrule
+lot B, s1 (20b) & 17 oct., départ à 11 h 45 & A B B A A B B A ; sous la charge de la passe KL B0, du calcul du débit et de l'écriture du compagnon du 120b ($\sigma_A = \SI{17.8}{\percent}$) & publiée, non concluante \\
+lot B, s2 (20b) & 22 oct., 1 h 11 -- 1 h 25 & A B B A A B B A ; deux relevés vides au départ, aucune passe sous charge, secteur, verrou ($\sigma_A = \SI{2.3}{\percent}$) & $\times 1{,}24$ annoncé, barré comme gain du mode (G2) \\
+lot B, 120b-V & 22 oct., 2 h 34 -- 3 h 38 & mêmes règles ($\sigma_A = \SI{6.6}{\percent}$) & $\times 2{,}00$ annoncé, barré comme gain du mode (G1) \\
+juge, séance à trois fichiers (120b puis 20b) & 22 oct., moteur de 6 h 17 à 7 h 11 & A B R R B A A B R R B A, étage disque d'abord ; aucune des 36 passes sous charge ; secteur à chaque passe ; verrou tenu & $r(R/B) = \num{1.284}$ et \num{0.942} ; J1 redonné (\num{1.442}) \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{mesures/genome/construction/synonyme/vitesse/pilote-s1.json}, \fichier{pilote-s2.json}, \fichier{pilote-s2-120b.json} ; \fichier{mesures/genome/construction/juge/vitesse/seance-\{120b,20b\}.\{json,log\}}. La séance du lot A est au chapitre du codon ; celles du placement disque, au chapitre « L'étage disque » prévu pour le Tome~II.}
+\end{table}
+
+\section{Les passes coupées, jetées, ou non concluantes}\label{t3ann:sec:coupees}
+
+Aucune passe ne disparaît en silence : celles qui n'ont rien décidé sont publiées comme telles, avec leur raison.
+\begin{itemize}
+\item \textbf{La séance s1 du lot B} : publiée, non concluante, parce qu'elle a tourné sous la charge d'autres passes ; refaite machine calme (s2), et c'est ce qui a fait écrire la recette « une séance de vitesse ne part que sur une machine calme relevée » (\cref{t3sno:sec:seances}).
+\item \textbf{La première passe B de la séance s2} (\num{5.46} jetons/s, juste après l'écriture du compagnon) : gardée dans la médiane, comme la règle déclarée le voulait ; le juge montre qu'avec le bruit des passes B elle aurait empêché l'annonce (constat M4).
+\item \textbf{La passe f64 substituée $\lambda = 0$ du juge} : la boucle bash qui la lançait a été arrêtée, mais le programme natif a fini seul ; sa sortie redirigée était complète et a été gardée sous le nom \fichier{sub-l0.json}. La passe f64 substituée $\lambda = 1$ n'a pas été lancée (le temps, et le flux du placement qui attendait le calme), et c'est dit à chaque verdict qui en dépend (\cref{t3jug:sec:klnombres}).
+\item \textbf{Les copies cassées} (le biais retourné de J-C1, les cassures des figures) sont effacées après usage ; leurs journaux restent.
+\item \textbf{Le second tirage de P3}, en travail dans une autre session, a des tentatives coupées par des causes extérieures (secteur, mémoire de la machine, disque), sans aucune mesure utilisable et sans aucun seuil changé ; ses journaux sont commités par sa session, et le tome n'en tire aucun chiffre (réserve R6).
+\end{itemize}
+
+\section*{Ce qui pourrait être faux}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{Le volume d'un dossier} est celui des fichiers commités, en fins de ligne LF (une copie en CRLF est plus grosse) ; il ne dit rien des fichiers lourds régénérables hors du dépôt.
+\item \textbf{Le rangement par dossier} suit la profondeur des chemins (comme au Tome~II) ; un dossier qui mêle deux étapes y apparaît comme une seule ligne.
+\item \textbf{« Aucune passe sous charge »} est ce que dit le relevé déclaré (plus de \SI{5}{\percent} d'un cœur ou plus de \SI{8}{\Mo} lus en \SI{3}{\second}) ; une charge plus faible, ou entre deux relevés, lui échappe.
+\end{itemize}
+\end{faux}

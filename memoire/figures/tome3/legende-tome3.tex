@@ -1,0 +1,109 @@
+% =====================================================================================================
+% La convention unique de légende du Tome III (G9 du juge de design, JUGEMENT-figures-design.md § 3,
+% décision du 2026-10-27, réponse par délégation, réversible ; raison : la phrase de tête est l'idée de la
+% figure, et la donnée a sa ligne), et les règles d'ensemble du dessin (§ 2.3 et § 2.4, mineurs D24 à D30)
+% traduites en styles communs, préfixés « t3 ». Charge palette-tome3.tex s'il ne l'est pas encore.
+% Mode d'emploi, avec un exemple avant et après : memoire/tome3/CONVENTIONS-figures.md.
+%
+% Pour une figure <Nom> (par exemple CodonRoue), le lot écrit, une fois :
+%   \Titre{<Nom>}{titre anglais}{titre français}                      -> \Titre<Nom>   (table des figures)
+%   \Legende{<Nom>}{\mes}{tête anglaise}{tête française}{texte anglais}{texte français}
+%                                                                     -> \Legende<Nom> (la légende)
+%   \Source{<Nom>}{fichiers, et \EF{...}{...} s'il y a des mots}      -> \Source<Nom>  (ligne « Données »)
+% et le chapitre (ou le pilote) écrit :
+%   \begin{figure}\centering\Graphe<Nom>\LegendeFigure{<Nom>}\label{fig:...}\end{figure}
+% ce qui donne \caption[\Titre<Nom>]{\Legende<Nom>\sourcefig{\Source<Nom>}}.
+% Le deuxième argument de \Legende est la provenance : \mes, \calc, \litt, \schema, ou plusieurs
+% (« \mes\,\calc »). Elle suit la phrase de tête, en gras ; elle n'est jamais tapée à la main.
+%
+% Gardé par \ifdefined\LegendeTomeTrois.
+% =====================================================================================================
+
+\ifdefined\LegendeTomeTrois\else
+\newcommand{\LegendeTomeTrois}{2026-10-27}
+\ifdefined\PaletteTomeTrois\else\input{\Racine/figures/tome3/palette-tome3}\fi
+
+% --- Une version grasse des mathématiques (troisième passe, DN1) -----------------------------------------
+% Libertinus Math n'a pas de graisse grasse : sans version « bold », \boldmath retombe sur le maigre (avertissement
+% « Font shape TU/LibertinusMath/b/n undefined »), et les nombres en mode mathématique d'une tête de légende
+% restent maigres. On déclare donc une version grasse par épaississement (FakeBold de fontspec, « embolden » de
+% luaotfload). Ce fichier doit être chargé dans le préambule (comme le font les pilotes) : \setmathfont n'est
+% permis que là. Rien ne change hors de \boldmath.
+\setmathfont[version=bold, FakeBold=2.2]{Libertinus Math}
+
+% --- La provenance d'un schéma (inventaire § 1, état S : « étiqueté schéma dans sa légende ») ------------
+\providecommand{\schema}{\etiq{black!55}{\EF{schem.}{schéma}}}
+
+% --- Les trois définisseurs et l'appel --------------------------------------------------------------------
+\newcommand{\Titre}[3]{\expandafter\newcommand\csname Titre#1\endcsname{\EF{#2}{#3}}}
+% La tête est grasse jusque dans ses nombres et ses symboles (troisième passe, DN1 du juge de design) : \boldmath
+% pour les mathématiques, detect-weight pour les nombres de siunitx (qui, sinon, se remettent en maigre).
+\newcommand{\Legende}[6]{\expandafter\newcommand\csname Legende#1\endcsname
+  {{\bfseries\boldmath\sisetup{detect-weight=true}\EF{#3}{#4}}\nobreakspace#2\nobreakspace\EF{#5}{#6}}}
+\newcommand{\Source}[2]{\expandafter\newcommand\csname Source#1\endcsname{#2}}
+% L'appel : refuse une figure à qui manque une des trois pièces, au lieu de la laisser passer en silence.
+\newcommand{\LegendeFigure}[1]{%
+  \ifcsname Titre#1\endcsname\else\PackageError{legende-tome3}{figure #1 : \string\Titre{#1} manque}{}\fi
+  \ifcsname Legende#1\endcsname\else\PackageError{legende-tome3}{figure #1 : \string\Legende{#1} manque}{}\fi
+  \ifcsname Source#1\endcsname\else\PackageError{legende-tome3}{figure #1 : \string\Source{#1} manque}{}\fi
+  \caption[\csname Titre#1\endcsname]{\csname Legende#1\endcsname\sourcefig{\csname Source#1\endcsname}}}
+
+% --- La typographie anglaise (§ 2.4, D30) ---------------------------------------------------------------
+% Un pourcentage : « 5.6% » en anglais, « 5,6 % » en français. Le nombre passe par \num (séparateur de la
+% langue, décimales non groupées).
+\newcommand{\Pourcent}[1]{\EF{\num[group-digits=integer]{#1}\%}{\num[group-digits=integer]{#1}\,\%}}
+% Une ponctuation haute dans un texte commun aux deux langues (hors de \EF) : sans espace en anglais,
+% avec l'espace fine en français. Dans une branche de \EF, on écrit la ponctuation de la langue.
+\newcommand{\Dp}{\EF{:}{\,:}}
+\newcommand{\Pv}{\EF{;}{\,;}}
+
+% --- Les règles d'ensemble, en styles (§ 2.3) -----------------------------------------------------------
+\tikzset{
+  % Aucun mot coupé dans un nœud (D29).
+  t3 sans cesure/.style={execute at begin node={\hyphenpenalty=10000\exhyphenpenalty=10000\relax}},
+  % Titre de panneau (D24) : gras sans empattement, « (a) » puis une phrase en minuscules.
+  % Troisième passe : ses nombres et ses symboles aussi en gras (comme DN1 pour les têtes de légende).
+  t3 titre panneau/.style={t3 sans cesure, font=\sffamily\small\bfseries\boldmath\sisetup{detect-weight=true},
+    text=Encre, inner sep=0pt, anchor=base west},
+  % Titre d'encart (D24) : maigre, un cran plus petit.
+  t3 titre encart/.style={t3 sans cesure, font=\sffamily\footnotesize, text=Encre, inner sep=0pt,
+    anchor=base west},
+  % Toute étiquette posée dans un graphe a un halo blanc (D28) : un trait qui la traverse la ferait lire
+  % comme une phrase barrée. Corps plancher : \scriptsize (D25).
+  t3 etiquette/.style={t3 sans cesure, font=\sffamily\scriptsize, text=Encre, fill=white,
+    fill opacity=0.85, text opacity=1, inner sep=1pt},
+  % Une note de plusieurs lignes : même halo, alignée à gauche.
+  t3 note/.style={t3 etiquette, text=black!75, align=left},
+  % Un nombre posé contre une marque ou un pic, dans la couleur de sa série : t3 nombre=<couleur>.
+  t3 nombre/.style={t3 etiquette, text=#1},
+  t3 nombre/.default=Encre,
+  % Un trait de rappel, de l'étiquette à ce qu'elle nomme.
+  t3 rappel/.style={draw=black!45, line width=0.4pt},
+}
+\pgfplotsset{
+  % Le graphe du Tome III : le style « memoire » du préambule, plus les règles d'ensemble.
+  %   - graduations dans le cadre, en bas et à gauche seulement (D27) ;
+  %   - titre de l'axe au style des panneaux, posé en haut à gauche (D24) ;
+  %   - icônes de légende épaisses : un trait de 0,35 pt s'y lit noir (G5).
+  t3 graphe/.style={memoire, tick align=inside, tick pos=left,
+    title style={t3 titre panneau, font=\sffamily\small\bfseries\boldmath\sisetup{detect-weight=true},
+      anchor=south west, at={(0,1)},
+      yshift=1pt, xshift=-2pt},
+    legend style={font=\scriptsize, cells={anchor=west}},
+    legend image post style={line width=1.2pt}},
+  % Un encart : titre maigre, graduations et étiquettes en \scriptsize, sans grille.
+  t3 encart/.style={t3 graphe, grid=none,
+    title style={t3 titre encart, anchor=south west, at={(0,1)}, xshift=-2pt},
+    tick label style={font=\scriptsize}, label style={font=\scriptsize},
+    legend style={font=\scriptsize}},
+  % Décimales des graduations à précision fixe (D26) : t3 decimales x=2 donne « 0,10 », « 0,15 ».
+  t3 decimales x/.style={xticklabel style={/pgf/number format/.cd, fixed, fixed zerofill, precision=#1}},
+  t3 decimales y/.style={yticklabel style={/pgf/number format/.cd, fixed, fixed zerofill, precision=#1}},
+  % Barres : l'icône de légende est un seul rectangle plein et fin (D4), pas la double pastille de ybar.
+  % À poser APRÈS ybar ou xbar dans les options de l'axe (ybar remplace l'icône).
+  t3 barres/.style={legend image post style={line width=0.4pt},
+    legend image code/.code={\draw[##1, line width=0.4pt, sharp corners] (0cm,-0.08cm) rectangle (0.32cm,0.14cm);}},
+  % Points seuls : l'icône garde l'épaisseur de la marque.
+  t3 points/.style={legend image post style={line width=0.4pt}},
+}
+\fi

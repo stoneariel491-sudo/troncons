@@ -1,0 +1,27 @@
+'vswhere.exe' n’est pas reconnu en tant que commande interne
+ou externe, un programme exécutable ou un fichier de commandes.
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\bin\Hostx64\x64\cl.exe
+   Compiling windows-link v0.2.1
+   Compiling trc-noyaux v0.1.0 (~\dev\active\troncons\moteur\crates\trc-noyaux)
+   Compiling windows-sys v0.61.2
+error: failed to run custom build command for `trc-noyaux v0.1.0 (~\dev\active\troncons\moteur\crates\trc-noyaux)`
+
+Caused by:
+  process didn't exit successfully: `~\dev\cibles\troncons-O-vcvars\release\build\trc-noyaux-65323c6fff5a1761\build-script-build` (exit code: 101)
+  --- stdout
+  cargo:rerun-if-changed=~\dev\active\troncons\moteur\crates\trc-noyaux\noyaux\noyaux.cu
+  cargo:rerun-if-changed=~\dev\active\troncons\moteur\crates\trc-noyaux\noyaux\commun.cuh
+  cargo:rerun-if-changed=~\dev\active\troncons\moteur\crates\trc-noyaux\noyaux\decodeur.cuh
+  cargo:rerun-if-changed=~\dev\active\troncons\moteur\crates\trc-noyaux\noyaux\gemv.cuh
+  cargo:rerun-if-changed=~\dev\active\troncons\moteur\crates\trc-noyaux\noyaux\passe.cuh
+  cargo:rerun-if-env-changed=CUDA_PATH
+  cargo:rerun-if-env-changed=TRC_VCVARS
+
+  --- stderr
+  '\"\"~\dev\outils\cuda-13.1.2\bin\nvcc.exe\" -O3 -std=c++17 -gencode arch=compute_89,code=[sm_89,compute_89] --fatbin -o \"~\dev\cibles\troncons-O-vcvars\release\build\trc-noyaux-52406a193e2188e9\out\noyaux.fatbin\" \"~\dev\active\troncons\moteur\crates\trc-noyaux\noyaux\noyaux.cu\"\"' n’est pas reconnu en tant que commande interne
+  ou externe, un programme exécutable ou un fichier de commandes.
+
+  thread 'main' (26744) panicked at crates\trc-noyaux\build.rs:75:18:
+  nvcc a échoué (exit code: 1) sur ~\dev\active\troncons\moteur\crates\trc-noyaux\noyaux\noyaux.cu
+  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+warning: build failed, waiting for other jobs to finish...

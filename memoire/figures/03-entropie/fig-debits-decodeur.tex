@@ -1,0 +1,32 @@
+% Débits du décodeur rANS (v1 à v4) et de la recopie de référence, sur batterie et sur
+% secteur, RTX 4060 Laptop, Vulkan. Données : fondations/journaux/03-entropie/csv/
+% fig-debits-decodeur.csv, régénéré par outils/03-entropie/vers_csv.py depuis
+% rans-4B-calme.json (batterie) et rans-4B-B{1,2}-secteur.json (secteur, moyenne de B1 et B2).
+% Compilation seule : lualatex fig-debits-decodeur.tex (depuis ce dossier).
+\documentclass[tikz,border=4pt]{standalone}
+\usepackage{fontspec}
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
+\pgfplotsset{compat=1.18}
+\providecommand{\donnees}{../../../fondations/journaux/03-entropie/csv}
+\begin{document}
+\pgfplotstableread[col sep=comma]{\donnees/fig-debits-decodeur.csv}\table
+\begin{tikzpicture}
+\begin{axis}[
+  ybar, bar width=9pt, width=12cm, height=6.5cm,
+  ylabel={Go/s écrits (médiane)}, ymin=0,
+  symbolic x coords={v1,v2,v3,v4,recopie,recopie vec4}, xtick=data,
+  x tick label style={font=\small},
+  legend style={at={(0.02,0.98)}, anchor=north west, font=\small}, area legend,
+  nodes near coords, nodes near coords style={font=\tiny, /pgf/number format/fixed, /pgf/number format/precision=0},
+  ymajorgrids, grid style={gray!25},
+  clip=false,
+]
+\addplot[fill=gray!45] table[x=variante, y=batterie] {\table};
+\addplot[fill=blue!55] table[x=variante, y=secteur] {\table};
+\draw[red!60, dashed] ({rel axis cs:0,0} |- {axis cs:v1,2.49}) -- ({rel axis cs:1,0} |- {axis cs:v1,2.49})
+  node[right, font=\small, red!70!black] {disque : 2,49};
+\legend{batterie (43 W), secteur}
+\end{axis}
+\end{tikzpicture}
+\end{document}

@@ -1,0 +1,564 @@
+% Tome~III, chapitre 7 : la synthèse de la ronde (version française). Rédacteur C, 2026-10-29.
+% Plan, dérivations à poser et réserves : memoire/tome3/PLAN-redaction.md § 07.
+% Chaque nombre vient d'un fichier commité, lu au moment d'écrire :
+%   genome/05-synthese.md (avec ses barres) ; genome/construction-synthese-pour-le-memoire.md ;
+%   mesures/genome/construction/synthese/k10/ (frontiere.csv, erreur-contre-kl.csv, apparie-eclaireur.json,
+%   colonne-par-tenseur.csv ; passe --k10 de outils/genome/synthese/frontiere.py, réserve R4) ;
+%   mesures/genome/etat-de-l-art/journaux/kl-frontiere-juge.json, kl-synonyme-d1-juge.json ;
+%   mesures/genome/genome/kl/comparer10-base-contre-recette.json ;
+%   memoire/figures/tome3/donnees/synthese-nombres.csv et latents-chiffres.tex (nombres des légendes jugées).
+% Les légendes des figures sont jugées (JUGEMENT-figures*-ronde.md, -latents.md, JUGEMENT-figures3.md) : le
+% texte les commente, il ne les récrit pas. Réserves tenues : R3 (32 experts, aucun trait vers les points à
+% 768), R4 (S* par K10), G1 du juge ronde (les partitions par κ sont « égales » par la règle, pas « gagne »).
+
+\chapter{La synthèse de la ronde : une frontière commune, deux parts de la KL}\label{t3syn:ch}
+
+\begin{origine}
+\textbf{Au départ}, quatre équipes et quatre livrables, chacun jugé à sa propre mesure : l'éclaireur (\cref{t3ecl:ch}) avait sa frontière à \num{2.6441} bits par poids et sa mutation synonyme, l'équipe du génome (\cref{t3gen:ch}) sa recette $S^{*}$, la duplication (\cref{t3dup:ch}) sa parenté d'experts, l'équipe du codage prédictif et de l'élagage (\cref{t3pre:ch}) ses partitions, son hebbien et son codon synonyme du zéro. Le format \texttt{.trc} v1.0 du Tome~II était exact au bit, à \num{3.8434} bits par poids d'expert (A\_flux) ; le moteur rendait au bit les logits du codage brut. Trois passes de KL existaient, sous trois protocoles différents.
+\textbf{Ce chapitre établit} une frontière commune des quatre équipes sur un seul juge, la divergence de Kullback-Leibler sur le texte, en rapport à la base du même protocole et en différence appariée ; la raison de chaque échec, rattachée à l'une de trois propriétés mesurées des poids ; une décomposition de la KL en une part lisse, quadratique et posée ici en entier, et une queue de bascules du routeur ; le cadre tropical qui fait des régions du routeur des polyèdres ; et le cahier des deux lots de construction, avec ses trois énoncés (proposition A1, lemmes A2 et B2) démontrés.
+\textbf{Il reste} la construction elle-même (lot A au \cref{t3cod:ch}, lot B au \cref{t3sno:ch}, leur juge au \cref{t3jug:ch}), la garde tropicale (\cref{t3tro:ch}) et les spectres (\cref{t3spe:ch}), que ce chapitre désigne sans les mesurer.
+Sources : \fichier{genome/05-synthese.md}, \fichier{genome/construction-synthese-pour-le-memoire.md}, les fichiers de \fichier{mesures/genome/construction/synthese/k10/} écrits par \fichier{outils/genome/synthese/frontiere.py}~\texttt{-{}-k10}, les journaux du juge de l'éclaireur (\fichier{mesures/genome/etat-de-l-art/journaux/kl-*-juge.json}) et de la passe K10 (\fichier{mesures/genome/genome/kl/comparer10-base-contre-recette.json}).
+\end{origine}
+
+\begin{enbref}
+Quatre équipes ont essayé de comprimer les poids de gpt-oss en y cherchant une structure : une graine, des motifs, une parenté, une prédiction. Placées sur un seul axe de qualité, la KL du modèle entier sur un texte réel, presque toutes tombent, et elles tombent pour l'une de trois raisons mesurées : une fois connue l'échelle de son bloc, un poids est du bruit ; quelques colonnes géantes portent ce qui reste de structure ; et l'erreur de sortie d'un expert ne dit pas ce que coûtera cette erreur au texte. Les trois mécanismes qui gagnent ont un air de famille : ce sont des \emph{synonymes}. L'image vient du code génétique, où plusieurs codons donnent le même acide aminé ; elle est une analogie, pas une preuve. Ici, le signe d'un zéro est un codon que le calcul ne lit pas, et on le fond ; la classe de la colonne d'entrée est une information que le décodeur a déjà ; et la mutation synonyme change des codes là où les entrées de l'expert ne regardent pas. Pourquoi l'erreur d'expert trompe : la KL a deux parts. Une part lisse, petite et quadratique, que l'erreur suit ; et une queue, faite des positions où une petite erreur fait basculer le choix des experts d'une couche suivante, et qui porte l'essentiel de la moyenne. Le routeur découpe l'espace des états en polyèdres ; la queue vit sur leurs faces. Le chapitre finit par le cahier de construction : deux lots, leurs critères déclarés avant, et les trois preuves sur lesquelles ils reposent.
+\end{enbref}
+
+% =============================================================================================================
+\section{Un seul juge, et pourquoi des rapports}\label{t3syn:sec:juge}
+
+\paragraph{Le juge.} Chaque équipe de la ronde avait commencé par sa propre mesure : l'erreur relative sur les poids, puis l'erreur de sortie d'un expert sur des entrées réelles. Chacune a désigné des gagnants que la mesure suivante a fait tomber (\cref{t3syn:sec:proprietes}). Le juge qui reste est celui du lot R du Tome~II : la divergence de Kullback-Leibler \parencite{kullback1951} de la loi du jeton suivant donnée par le modèle modifié, contre la référence f64, position par position, sur les fenêtres de wiki.test.
+
+\begin{definition}[La KL d'une position, sa moyenne]\label{t3syn:def:kl}
+À une position $t$, soient $p_t$ la loi du jeton suivant rendue par la référence f64 et $q_t$ celle du modèle à juger. La KL de la position est $\mathrm{KL}_t = \sum_i p_{t,i} \log (p_{t,i}/q_{t,i})$ (en nats ; l'instrument \texttt{juge kl} ne somme que les $i$ tels que $\log p_{t,i} > -16$). La KL d'une passe est la moyenne $\overline{\mathrm{KL}} = \frac{1}{n}\sum_t \mathrm{KL}_t$ sur les $n$ positions notées.
+\end{definition}
+
+\paragraph{Trois protocoles.} Les trois passes de la ronde ne remplacent pas les mêmes experts ni ne notent les mêmes positions (\cref{t3syn:tab:protocoles}). Une KL absolue de P3, qui remplace quatre fois plus d'experts, ne se compare pas à une KL de P1 : la base va de 0,0206 à 0,0636 selon le protocole.
+
+\begin{table}[ht]
+\centering\small
+\caption[Les protocoles de KL de la ronde]{Les protocoles de KL de la ronde \mes. La KL de la base est celle de la frontière de l'éclaireur substituée aux mêmes experts ; $\pm$ un écart-type naïf, celui de l'instrument.}
+\label{t3syn:tab:protocoles}
+\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}p{0.17\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.2\linewidth}l@{}}
+\toprule
+Prot. & Équipe & Experts remplacés & Positions notées & KL de la base \\
+\midrule
+P0 & (sans perte) & --- & logits identiques au bit & 0 exactement \\
+P1 & éclaireur & 32 sur 768 (couches 0, 8, 16, 23 ; experts 0, 4, \dots, 28) & \num{2550} (10 fenêtres) & $0{,}0360 \pm 0{,}0029$ \\
+P2 & genome & 8 sur 768 (couches 0, 8, 16, 23 ; experts 0, 16) & 765 (3 fenêtres) & $0{,}0226 \pm 0{,}0031$ \\
+P2-10 & genome (K10) & les mêmes 8 & \num{2550} (10 fenêtres) & $0{,}0206 \pm 0{,}0021$ \\
+P3 & prédictif-élagage & 128 sur 768 (les 12 tenseurs entiers) & \num{1275} (fenêtres 5 à 9) & $0{,}0636 \pm 0{,}0050$ \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{mesures/genome/construction/synthese/k10/frontiere.csv} (colonnes \texttt{kl\_base\_protocole}, \texttt{kl\_incertitude}) ; \fichier{genome/05-synthese.md} § 1.1.}
+\end{table}
+
+Ce qui se compare d'un protocole à l'autre est le \emph{rapport} à la base du même protocole ; ce qui se compare à l'intérieur d'un protocole, mieux encore, est la \emph{différence appariée}.
+
+\begin{definition}[Différence appariée, règle du lot R]\label{t3syn:def:regle}
+Pour deux modèles $A$ (la base) et $B$ jugés aux mêmes positions contre la même vérité, soit $d_t = \mathrm{KL}^B_t - \mathrm{KL}^A_t$ et $\bar d$ sa moyenne. Avec $\sigma(\bar d)$ l'incertitude de $\bar d$, $B$ est \emph{meilleur} si $\bar d + 2\sigma(\bar d) < 0$, \emph{égal} si $|\bar d| \le 2\sigma(\bar d)$, \emph{pire} sinon.
+\end{definition}
+
+\paragraph{Deux incertitudes pour $\bar d$.} L'estimateur naïf traite les $n$ positions comme indépendantes : $\sigma_{\text{naïf}} = s_d/\sqrt n$, avec $s_d$ l'écart-type empirique des $d_t$. Or les positions d'une même fenêtre partagent leur passé, donc leurs bascules de routage (\cref{t3syn:sec:deux-parts}) : leurs $d_t$ sont corrélés. Le second estimateur, que \fichier{frontiere.py} calcule, prend la fenêtre pour unité. Avec $W$ fenêtres de même taille et $\bar d_w$ la moyenne de la fenêtre $w$,
+\begin{equation}\label{t3syn:eq:blocs}
+\bar d = \frac1W \sum_{w=1}^{W} \bar d_w, \qquad
+\sigma_{\text{fen}}(\bar d) = \frac{1}{\sqrt W}\,\sqrt{\frac{1}{W-1}\sum_{w=1}^{W} (\bar d_w - \bar d)^2}.
+\end{equation}
+La première égalité tient parce que les fenêtres ont toutes 255 positions notées. Si les positions d'une fenêtre étaient indépendantes, les deux estimateurs auraient la même espérance ; quand elles sont corrélées positivement, $\sigma_{\text{fen}}$ est plus grand, et c'est lui qu'il faut. Sa limite : $W = 10$ blocs, soit 9 degrés de liberté (\cref{t3syn:sec:faux}).
+
+\paragraph{La différence appariée de l'éclaireur, calculée ici.} L'éclaireur avait comparé deux moyennes sans les apparier (\cref{t3ecl:ch}). Ses CSV par position sont commités ; \fichier{frontiere.py} les apparie \calc~sur \mes.
+\begin{itemize}
+\item \emph{Témoin}, déclaré avant l'exécution : la KL moyenne recalculée depuis chaque CSV égale celle de \texttt{juge kl} à $10^{-12}$ près. Elle vaut \num{0.036013763948} des deux côtés pour la base et \num{0.026168395170} pour la mutation synonyme ; le témoin tient. Cassure : la première ligne retirée donne \num{0.036021222} au lieu de \num{0.036013764}, et le témoin tombe (\fichier{frontiere-casse.log}).
+\item \emph{Différence} (synonyme moins base) : $\bar d = -0{,}009845$ ; $\sigma_{\text{naïf}} = 0{,}00190$ (5,2\,$\sigma$) ; $\sigma_{\text{fen}} = 0{,}00334$ (2,9\,$\sigma$). Meilleure significativement par les deux estimateurs.
+\item \num{2060} positions sur \num{2550} (80,8\,\%) ont moins de KL avec la mutation synonyme ; le premier choix identique gagne $+3{,}73 \pm 0{,}59$ points.
+\end{itemize}
+Le rapport des deux écarts-types, $0{,}00334/0{,}00190 = 1{,}76$ \calc, mesure la corrélation à l'intérieur d'une fenêtre : il vaut 1 pour des positions indépendantes. Il dit pourquoi, dans toute la suite, l'incertitude par fenêtres est celle qui juge.
+
+\paragraph{Les débits n'ont pas tous le même estimateur.} Codec réel décodé (P0, P3, la frontière de P2), entropie des symboles sans échelles $H_0$ (P1), comptabilité complète du brin (le génome) : la colonne \texttt{estimateur\_bits} de la source le dit pour chaque point. À l'intérieur d'un protocole, base et mécanisme ont le même. Pour la frontière, le codec réel rend \num{2.6441} bits ; $H_0$ et les échelles donnent \num{2.679}, parce qu'ils ignorent le contexte $\kappa$ que le codec exploite ; $H_0$ seul donne \num{2.6415}, parce qu'il ignore les échelles (\num{0.0375} bit). Les deux omissions se compensent presque \calc~(\fichier{genome/05-synthese.md} § 1.1).
+
+% =============================================================================================================
+\section{La frontière commune}\label{t3syn:sec:frontiere}
+
+\Cref{t3syn:tab:frontiere} donne les points jugés à la KL ; la \cref{fig:t3-synth-frontiere} les place. Le fichier \fichier{k10/frontiere.csv} en compte 25 : 12 jugés à la KL sous P1, P2-10 et P3 ; les 2 de la passe P2 à 3 fenêtres, que K10 remplace ; 7 jugés seulement à une métrique intermédiaire (erreur de poids ou de sortie d'expert) ; et les 4 points sans perte, dont la KL est nulle par construction.
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[La frontière commune, points jugés à la KL]{La frontière commune : les points jugés à la KL, chacun contre la base de son protocole \mes~\calc. Bits par poids : l'estimateur du protocole ; rapport $=\overline{\mathrm{KL}}/\overline{\mathrm{KL}}_{\text{base}}$ ; appariée : $\bar d \pm \sigma$ (\cref{t3syn:def:regle}) ; verdict : la règle, appliquée par le script.}
+\label{t3syn:tab:frontiere}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X l l l l >{\raggedright\arraybackslash}p{0.17\linewidth} l >{\raggedright\arraybackslash}p{0.14\linewidth}@{}}
+\toprule
+Mécanisme & Prot. & Bits & KL & Rapport & Appariée & Même 1\textsuperscript{er} & Verdict \\
+\midrule
+base frontière & P1 & 2,6381 & 0,0360 & 1 & --- & 87,1\,\% & référence \\
+\textbf{mutation synonyme} $\lambda = 0$ & P1 & 2,6488 & \textbf{0,0262} & \textbf{0,727} & $\mathbf{-0{,}0098 \pm 0{,}0033}$ & 90,9\,\% & \textbf{meilleure} \\
+base frontière & P2 & 2,6441 & 0,0226 & 1 & --- & 91,4\,\% & référence \\
+$S^{*}$, 3 fenêtres & P2 & 2,64 & 0,0301 & \barre{1,335} & $+0{,}0076 \pm 0{,}0047$ & 90,3\,\% & égal ; remplacé par P2-10 \\
+base frontière & P2-10 & 2,6441 & 0,0206 & 1 & --- & 91,9\,\% & référence \\
+$S^{*}$, 10 fenêtres & P2-10 & 2,64 & 0,0209 & 1,018 & $+0{,}0004 \pm 0{,}0019$ & 91,9\,\% & égal \\
+base frontière & P3 & 2,6444 & 0,0636 & 1 & --- & 81,6\,\% & référence \\
+partitions par $\kappa$, tenseur par tenseur & P3 & 2,4079 & 0,0702 & 1,103 & $+0{,}0066 \pm 0{,}0053$ & 79,5\,\% & égal \\
+partitions par $\kappa$, erreur moyenne égale & P3 & 2,3743 & 0,0804 & 1,263 & $+0{,}0167 \pm 0{,}0049$ & 78,4\,\% & pire \\
+hebbien $(\delta, \ell, c)$ & P3 & 1,9619 & 0,0909 & 1,429 & $+0{,}0273 \pm 0{,}0039$ & 73,4\,\% & pire \\
+hebbien par $e$ & P3 & 2,1815 & 0,1947 & 3,059 & $+0{,}1310 \pm 0{,}0072$ & 60,8\,\% & pire \\
+hebbien $(e, \ell, c)$ & P3 & 1,7556 & 0,1917 & 3,012 & $+0{,}1281 \pm 0{,}0067$ & 59,4\,\% & pire \\
+élagage par activité $(e, q)$ & P3 & 1,6942 & 0,2714 & 4,265 & --- & 57,1\,\% & tombe (rapport) \\
+partitions par $e$ & P3 & 2,0178 & 0,3089 & 4,854 & --- & 58,5\,\% & tombe (rapport) \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{mesures/genome/construction/synthese/k10/frontiere.csv} ; P1 : \fichier{mesures/genome/etat-de-l-art/journaux/kl-*-juge.json} ; P2-10 : \fichier{mesures/genome/genome/kl/comparer10-base-contre-recette.json} ; P3 : \fichier{mesures/genome/predictif-elagage/resume-12.csv} et \fichier{kl/comparer-*.json}.}
+\end{table}
+
+\begin{figure}[tbp]
+\centering
+\GrapheSynthFrontiere
+\LegendeFigure{SynthFrontiere}
+\label{fig:t3-synth-frontiere}
+\end{figure}
+
+\paragraph{Ce que la figure montre.} Un seul mécanisme de la ronde passe significativement sous sa base : la mutation synonyme $\lambda = 0$, de l'éclaireur, à $\times 0{,}727$ de la KL de sa base pour $0{,}011$ bit de plus. Tout le reste est égal ou au-dessus. Les flèches en tirets de la figure partent de la \emph{promesse} de chaque perdant (le rapport 1 qu'annonçait sa métrique intermédiaire) et vont à la KL qu'il a rendue : elles mesurent la distance entre ce que promettait l'erreur de poids ou d'expert et ce que le texte a rendu. Pour l'hebbien par $e$, réglé pour avoir exactement l'erreur d'expert de la base, la flèche va de 1 à 3,06.
+
+\paragraph{Deux corrections, dites.} La première concerne les partitions par $\kappa$ tenseur par tenseur. La colonne \texttt{verdict} de la source les dit « gagnantes : 0,911 × les bits, KL égale par la règle » ; la règle de la \cref{t3syn:def:regle} les dit \emph{égales} en KL ($+0{,}0066 \pm 0{,}0053$, 1,2\,$\sigma$), à $0{,}911$ fois les bits de la base. La figure suit la règle, appliquée par son script ; le premier juge des figures l'avait relevé comme grave (G1, \fichier{memoire/tome3/JUGEMENT-figures-ronde.md}), et le second l'a dit levé. « Égale en KL pour 9\,\% de bits de moins » est une vraie avancée de débit à qualité égale ; ce n'est pas un gain de qualité. La seconde concerne la variante de la mutation synonyme qui porte la KL. La consigne de la synthèse attribuait la KL 0,0262 à la variante $\lambda = 1$ : \barre{$\lambda = 1$ : KL 0,0262 contre 0,0360}. Le journal (\fichier{kl-synonyme-d1-juge.json} : « d1 » pour $\delta^{*} = 1$, $\lambda = 0$) dit que la KL a été mesurée sur $\lambda = 0$, à \num{2.649} bits ($+0{,}011$ sur la frontière) ; $\lambda = 1$ (\num{2.5634} bits contre \num{2.6415} pour la frontière sur les mêmes experts) n'avait été jugée qu'à l'erreur de sortie d'expert, 8 cases sur 8. À la fin de la ronde, \emph{aucune variante n'était donc mesurée à la fois sous la frontière en bits et sous elle en KL} ; c'est la mesure B0 du cahier (\cref{t3syn:sec:lot-b}).
+
+\paragraph{Ce que la figure ne montre pas.} Elle garde le protocole à 32 experts sur 768 : la KL de $\lambda = 1$ mesurée plus tard sur les 768 experts (\cref{t3sno:ch}) est un autre protocole, et aucun trait ne relie la \cref{fig:t3-synth-frontiere} aux points à 768 experts du \cref{t3sno:ch} (réserve R3). $S^{*}$ y est placé par la passe K10 à 10 fenêtres, pas par la passe à 3 fenêtres (réserve R4) ; il se cache sous les bases, et l'encart les sépare. L'axe sans perte (KL nulle) n'est plus dans cette figure : il est tracé tenseur par tenseur au \cref{t3cod:ch} (\cref{fig:t3-codon-colonne}). Ses trois points, moyennes sur les 12 tenseurs de référence, sont \num{3.8434} bits (frontière sans perte), \num{3.7064} (codon synonyme du zéro) et \num{3.6844} (avec le contexte de colonne) ; la duplication D1, à \num{3.8442}, tombe \mes~(\fichier{k10/frontiere.csv}).
+
+\paragraph{Les points sans KL.} Jugés à erreur de poids ou de sortie d'expert égale à la base, ils ne se placent que sur l'axe des bits : la graine et ses coefficients (\num{3.06} bits), les motifs partagés (\num{2.90}), la duplication D2b (\num{2.6429}), le brin tourné au critère W (\num{2.3248}), $S^{*}$ à erreur de sortie d'expert égale (\num{2.3595}), et la mutation synonyme $\lambda = 1$ (\num{2.5634}). Le brin et $S^{*}$ sont pleins dans la figure : ils gagnaient à leur métrique ; la KL les a fait tomber ou les a rendus égaux. C'est l'objet de la section suivante.
+
+% =============================================================================================================
+\section{Trois propriétés mesurées des poids}\label{t3syn:sec:proprietes}
+
+Tout ce qui tombe dans la ronde tombe pour l'une de trois propriétés, chacune mesurée par au moins deux équipes et par deux chemins.
+
+\subsection{Une fois l'échelle du bloc connue, les poids sont du bruit}\label{t3syn:sec:bruit}
+
+\begin{table}[ht]
+\centering\small
+\caption[Propriété (a) : le bruit sachant l'échelle]{Propriété (a) : une fois l'échelle du bloc connue, il ne reste presque rien à prédire \mes.}
+\label{t3syn:tab:bruit}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.34\linewidth}>{\raggedright\arraybackslash}p{0.22\linewidth}@{}}
+\toprule
+Mesure & Valeur & Chapitre \\
+\midrule
+information apportée par le code voisin, sachant l'échelle & 0,005 bit (gauche 0,0076, dessus 0,0091) & \cref{t3pre:ch} \\
+information apportée par l'expert voisin, même place & 0,0043 bit & \cref{t3pre:ch} \\
+cosinus des rangées de deux experts appariés (algorithme hongrois) & 0,04 (gate), 0,03 (up), 0,07 à 0,11 (down) ; hasard 0,04 & \cref{t3dup:ch} \\
+erreur du brin sur les rangées tournées, contre une gaussienne vraie & 0,0739 contre 0,0731 (1,5\,\% près) ; kurtosis 3,0 & \cref{t3gen:ch} \\
+la graine contre le lemme de la loi Bêta & au-dessus de la prédiction de 0,6 à 2 points & \cref{t3gen:ch} \\
+signe des zéros & 0,9999999967 bit d'entropie, sans effet sur la valeur & \cref{t3ecl:ch}, \cref{t3cod:ch} \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{genome/05-synthese.md} § 2.1 (a), qui renvoie aux livrables de chaque équipe.}
+\end{table}
+
+La graine, les motifs partagés, la duplication et la recette à complément exact cherchaient tous une dépendance entre morceaux du tenseur. La \cref{t3syn:tab:bruit} dit qu'il n'y en a pas à l'échelle du bloc : sachant l'échelle, un code ne dit presque rien de son voisin ni de l'expert voisin, et une rangée tournée suit une gaussienne à 1,5\,\% près. Une seule « structure » de ce type est exploitable, et c'est l'inverse d'une structure : le signe d'un zéro, que le calcul ne lit pas, est une pièce juste. Le fondre retire exactement un bit par zéro de signe minoritaire (\cref{t3cod:ch}, \cref{t3cod:sec:gain}).
+
+\subsection{Quelques colonnes géantes portent la structure}\label{t3syn:sec:colonnes}
+
+\begin{table}[ht]
+\centering\small
+\caption[Propriété (b) : les colonnes géantes]{Propriété (b) : la structure qui reste est concentrée dans quelques colonnes et quelques directions \mes.}
+\label{t3syn:tab:colonnes}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.40\linewidth}l@{}}
+\toprule
+Mesure & Valeur & Chapitre \\
+\midrule
+énergie des blocs d'exposant 129 et 130 & 74,2\,\% de l'énergie pour 5,8\,\% des poids & \cref{t3ecl:ch} \\
+énergie des 5\,\% premières directions singulières & 23 à 68\,\% (17 à 19\,\% pour la matrice permutée) ; kurtosis des rangées jusqu'à 348 & \cref{t3gen:ch} \\
+colonne la plus massive (blk.8 down, expert 16, colonne 1011) & $\times 144$ l'énergie moyenne d'une colonne ; reçoit $\times 334$ l'erreur moyenne du brin & \cref{t3gen:ch} \\
+part de l'erreur poolée de la frontière tenue par un seul tenseur & 91,5\,\% (blk.23 down) & \cref{t3pre:ch} \\
+gain du contexte de colonne, par tenseur & $-0{,}1416$ et $-0{,}1231$ bit (couche 0, gate et up) ; sous 0,01 ailleurs & \cref{t3cod:ch} \\
+part du gain d'un parent que rend un parent de hasard & 46\,\% en moyenne, 88 à 94\,\% à la couche 0 & \cref{t3dup:ch} \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{genome/05-synthese.md} § 2.1 (b) ; gain de colonne : \fichier{mesures/genome/construction/synthese/k10/colonne-par-tenseur.csv}, colonnes \texttt{zero\_octet\_kappa} moins \texttt{zero\_demi\_octet\_kappa\_colonne}.}
+\end{table}
+
+Les deux dernières lignes disent la même chose par deux chemins indépendants. Ce que les experts d'une couche partagent n'est pas une parenté d'expert à expert : c'est \emph{une statistique par colonne d'entrée}, commune aux 32 experts parce qu'elle vient de leur entrée commune, l'état caché et ses canaux aberrants à la couche 0. La duplication la voyait comme une « parenté de hasard » (un parent tiré au hasard rend 88 à 94\,\% du gain d'un vrai parent à la couche 0) ; le codage prédictif l'a prise comme contexte, et c'est le seul contexte qui a passé son seuil.
+
+Une précision sur le chiffre de la colonne. Le fichier donne, pour blk.0 gate, \num{3.607307} bits avec le zéro fondu et le contexte octet $\kappa$, \num{3.611090} avec l'alphabet demi-octet et $\kappa$, et \num{3.465690} avec la colonne. Contre le flux réel du format (l'octet), le gain de la colonne vaut $3{,}607307 - 3{,}465690 = 0{,}1416$ bit \calc~; contre le flux demi-octet, $0{,}1454$. La synthèse écrivait « $-0{,}142$, $-0{,}128$ » en mêlant les deux références pour gate et up ; le \cref{t3cod:ch} et ce chapitre gardent la première, \num{0.1416} et \num{0.1231}, qui est celle de la décision du lot A.
+
+\begin{figure}[tbp]
+\centering
+\GrapheSynthColonnes
+\LegendeFigure{SynthColonnes}
+\label{fig:t3-synth-colonnes}
+\end{figure}
+
+\paragraph{La colonne géante, vue par trois reconstructions.} La \cref{fig:t3-synth-colonnes} prend une matrice, la couche 8, down, expert 16 du 20b, et ses \num{2880} colonnes dans l'ordre naturel. La colonne 1011 porte $\times 143{,}9$ l'énergie moyenne. Le brin pondéré, qui tourne chaque rangée par une transformée de Hadamard de 64 avant de la lire par codons, lui envoie $\times 334$ son erreur moyenne : la rotation répartit la valeur géante en 64 grandes valeurs par rangée, la table de codons les écrête, et ces erreurs d'écrêtage, de même signe dans toutes les rangées, reviennent sur la colonne par la rotation inverse. La base frontière, qui garde exacts les plus grands codes de chaque bloc, n'y met que $\times 14{,}0$ son erreur moyenne ; $S^{*}$, qui met à part les trois plus grands poids de chaque rangée, la ramène à $\times 1{,}05$. Une seconde pointe, la colonne 960, premier canal du morceau de rotation de la géante (960 à 1023), d'énergie ordinaire ($\times 0{,}83$), reçoit $\times 310$ l'erreur moyenne du brin ; sa cause n'est pas mesurée, et le dessin de la figure s'arrête si un script la déplaçait (le juge de la troisième passe l'a éprouvé : \fichier{memoire/tome3/JUGEMENT-figures3.md} § 4.4) \mes~(\fichier{synthese-nombres.csv}).
+
+C'est la propriété (b) dans sa forme la plus nette : une erreur de poids moyenne petite peut cacher une erreur énorme sur une colonne que les entrées excitent beaucoup. Tout mécanisme qui écrête les colonnes massives, ou les noie dans une moyenne, perd à la sortie de l'expert.
+
+\subsection{L'erreur de sortie d'un expert ne prédit pas la KL}\label{t3syn:sec:erreur-kl}
+
+\begin{table}[ht]
+\centering\small
+\caption[Propriété (c) : erreur d'expert contre KL]{Propriété (c) : le rapport d'erreur de sortie d'expert à la base, contre le rapport de KL \mes~\calc.}
+\label{t3syn:tab:erreur-kl}
+\begin{tabular}{@{}lllll@{}}
+\toprule
+Mécanisme & Prot. & Erreur d'expert & KL & Verdict à la KL \\
+\midrule
+mutation synonyme $\lambda = 0$ & P1 & 0,267 & 0,727 & meilleure \\
+$S^{*}$ & P2 ; P2-10 & 0,747 & \barre{1,335} ; 1,018 & égal \\
+partitions par $\kappa$, erreur moyenne égale & P3 & 0,984 & 1,263 & pire \\
+hebbien par $e$ & P3 & 1,023 & 3,059 & pire \\
+hebbien $(e, \ell, c)$ & P3 & 1,656 & 3,012 & pire \\
+partitions par $e$ & P3 & 3,951 & 4,854 & tombe \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/genome/construction/synthese/k10/erreur-contre-kl.csv} ; $S^{*}$ à 3 fenêtres barré, remplacé par K10 (réserve R4).}
+\end{table}
+
+\begin{figure}[tbp]
+\centering
+\GrapheSynthErreurKL
+\LegendeFigure{SynthErreurKL}
+\label{fig:t3-synth-erreur-kl}
+\end{figure}
+
+Trois points ont un rapport d'erreur d'expert dans $[0{,}75 ; 1{,}02]$ et des rapports de KL qui vont de 1,02 à 3,06 (\cref{fig:t3-synth-erreur-kl}). $S^{*}$ retire 25\,\% de l'erreur d'expert et rien de la KL ; le seul gagnant en KL divise l'erreur d'expert par près de quatre pour un gain de KL de 27\,\%. La relation n'est ni monotone ni proportionnelle. La figure montre aussi la correction de $S^{*}$ : son rapport à 3 fenêtres, \barre{1,335, « 33\,\% de KL de plus »}, est porté creux et barré, avec une flèche vers le rapport de la passe K10, 1,018, « la même KL que la base sur 10 fenêtres ($+0{,}0004 \pm 0{,}0019$) ». Ce qui a changé : trois fois plus de positions ; l'écart des trois premières fenêtres était dans le bruit (\cref{t3syn:sec:sstar}).
+
+Pourquoi l'erreur d'expert trompe, c'est la section suivante. Le chiffre qu'il faut retenir d'ici : à erreur d'expert égale, la KL peut tripler.
+
+% =============================================================================================================
+\section{Deux parts de la KL}\label{t3syn:sec:deux-parts}
+
+\subsection{Ce que disent les quantiles, et le moteur}
+
+\begin{table}[ht]
+\centering\small
+\caption[Les quantiles de la KL par position]{Les quantiles de la KL par position \mes. La médiane dit la part lisse ; le 99,9\textsuperscript{e} centile et le maximum disent la queue.}
+\label{t3syn:tab:quantiles}
+\begin{tabular}{@{}lllllll@{}}
+\toprule
+& base P1 & synonyme P1 & base P2 & $S^{*}$ P2 & base P2-10 & $S^{*}$ P2-10 \\
+\midrule
+moyenne & 0,0360 & 0,0262 & 0,0226 & 0,0301 & 0,0206 & 0,0209 \\
+médiane & 0,0088 & 0,0038 ($\div 2{,}3$) & 0,00172 & \barre{0,00188} & 0,00184 & 0,00152 ($\div 1{,}21$) \\
+99\textsuperscript{e} centile & 0,495 & 0,410 & 0,437 & \barre{0,550} & 0,411 & 0,338 \\
+99,9\textsuperscript{e} centile & 1,59 & 1,70 & 0,899 & \barre{1,43} & 1,37 & 1,59 \\
+maximum & 4,17 & 3,94 & 1,20 & \barre{2,79} & 3,01 & 3,22 \\
+\bottomrule
+\end{tabular}
+\sourcefig{P1 : \fichier{mesures/genome/etat-de-l-art/journaux/kl-frontiere-juge.json}, \fichier{kl-synonyme-d1-juge.json} ; P2 : \fichier{genome/05-synthese.md} § 2.2 (\fichier{comparer-base-contre-recette.json}) ; P2-10 : \fichier{mesures/genome/genome/kl/comparer10-base-contre-recette.json}. Les colonnes de $S^{*}$ à 3 fenêtres sont barrées par la synthèse elle-même : la passe K10 les remplace.}
+\end{table}
+
+Le synonyme réduit la médiane d'un facteur 2,3 sans toucher la queue : le 99,9\textsuperscript{e} centile passe même de 1,59 à 1,70. La moyenne ne baisse que d'un facteur 1,38 \calc~($0{,}0360/0{,}0262$). La même lecture vaut pour $S^{*}$ sur 10 fenêtres : la médiane baisse ($\div 1{,}21$), le 99\textsuperscript{e} centile aussi ($0{,}411 \to 0{,}338$), mais l'extrême de la queue monte ($1{,}37 \to 1{,}59$ au 99,9\textsuperscript{e} centile, $3{,}01 \to 3{,}22$ au maximum), et la moyenne ne bouge pas. Sur 3 fenêtres, \barre{$S^{*}$ garde la médiane ($\times 1{,}09$) et épaissit la queue (\mbox{99\textsuperscript{e}} 0,437 → 0,550, maximum 1,20 → 2,79)} : la queue l'emportait par hasard d'échantillon.
+
+\paragraph{Ce que le moteur dit, entre deux calculs exacts.} Le lot R du Tome~II a comparé deux moteurs exacts l'un à l'autre (lu dans \fichier{genome/05-synthese.md} § 2.2, qui cite le lot R, §§ 2.9 et 2.10) \mes : \num{5087} bascules de routage sur \num{122640} paires (couche, position), soit 4,15\,\% ; les 45\,\% de positions qui basculent elles-mêmes portent 96,5\,\% de la KL ; la marge du routeur, quatrième logit moins cinquième, a pour médiane 0,083 sur toutes les paires et 0,0095 sur celles qui basculent. Et la preuve par l'intervention, déclarée avant sa passe : imposer à l'un des deux calculs les experts choisis par l'autre retire 88\,\% de la KL ($0{,}0145 \to 0{,}00168$ ; médiane $9{,}8\cdot10^{-4} \to 2{,}2\cdot10^{-4}$ ; premier choix $92{,}5 \to 97{,}2\,\%$).
+
+\subsection{La part lisse : la KL au second ordre}
+
+Une perturbation $\delta h$ de l'état caché, venue des experts approchés, change les logits de sortie $z$ d'une quantité $\delta z$. Si aucun routeur ne bascule, $\delta z$ est une fonction lisse de $\delta h$, et la KL qui en résulte est petite et quadratique. C'est un calcul classique de la théorie de l'information \parencite{cover2006} ; on le pose ici en entier, parce que tout le chapitre repose sur sa forme.
+
+\begin{proposition}[La KL au second ordre en les logits]\label{t3syn:prop:kl2}
+Soient $z \in \mathbb{R}^V$ des logits, $p = \operatorname{softmax}(z)$, $\delta \in \mathbb{R}^V$ une perturbation et $q = \operatorname{softmax}(z + \delta)$. Alors
+\begin{equation}\label{t3syn:eq:kl2}
+\mathrm{KL}(p \,\|\, q) = \tfrac12\, \delta^{\top} F \delta + R, \qquad F = \operatorname{diag}(p) - p\,p^{\top}, \qquad |R| \le \frac{(\max_i \delta_i - \min_i \delta_i)^3}{24}.
+\end{equation}
+La forme quadratique vaut $\delta^{\top} F \delta = \operatorname{Var}_{I \sim p}(\delta_I)$ : la variance de la perturbation sous la loi du modèle. $F$ est l'information de Fisher de la loi catégorielle paramétrée par ses logits.
+\end{proposition}
+
+\begin{proof}
+\emph{Pas 1 : la KL comme écart d'une fonction convexe.} Notons $A(z) = \log \sum_j e^{z_j}$ (le log-partition). Alors $\log p_i = z_i - A(z)$ et $\log q_i = z_i + \delta_i - A(z + \delta)$, d'où
+\[
+\mathrm{KL}(p\|q) = \sum_i p_i (\log p_i - \log q_i) = \sum_i p_i \bigl(A(z+\delta) - A(z) - \delta_i\bigr) = A(z + \delta) - A(z) - p^{\top}\delta,
+\]
+puisque $\sum_i p_i = 1$.
+
+\emph{Pas 2 : les dérivées de $A$.} $\partial A/\partial z_i = e^{z_i}/\sum_j e^{z_j} = p_i$, donc $\nabla A(z) = p$. Puis $\partial p_i/\partial z_j = p_i(\mathbb{1}[i=j] - p_j)$, donc $\nabla^2 A(z) = \operatorname{diag}(p) - p p^{\top} = F$. Plus généralement, le long d'une droite $z + \theta\delta$, les dérivées successives de $\theta \mapsto A(z + \theta\delta)$ sont les cumulants de la variable $X = \delta_I$, $I \sim p_\theta = \operatorname{softmax}(z + \theta\delta)$ : la première est $\mathbb{E}_{p_\theta}X$, la deuxième $\operatorname{Var}_{p_\theta}X$, la troisième $\mathbb{E}_{p_\theta}(X - \mathbb{E}X)^3$.
+
+\emph{Pas 3 : Taylor avec reste de Lagrange.} Il existe $\theta \in (0, 1)$ tel que
+\[
+A(z+\delta) = A(z) + p^{\top}\delta + \tfrac12 \delta^{\top}F\delta + \tfrac16\, \mathbb{E}_{p_\theta}(X - \mathbb{E}_{p_\theta}X)^3.
+\]
+Reporté dans le pas 1, le terme d'ordre 1 s'annule exactement : $p^{\top}\delta$, l'espérance de $\delta_I$ sous $p$, se retranche de lui-même. Il reste $\mathrm{KL} = \frac12\delta^{\top}F\delta + R$ avec $R = \frac16\mathbb{E}_{p_\theta}(X - \mathbb{E}X)^3$.
+
+\emph{Pas 4 : la borne du reste.} $X$ prend ses valeurs dans $[a, b]$, $a = \min_i\delta_i$, $b = \max_i\delta_i$. Alors $|X - \mathbb{E}X| \le b - a$, donc $|\mathbb{E}(X-\mathbb{E}X)^3| \le (b-a)\operatorname{Var}X$, et la variance d'une variable bornée dans $[a,b]$ vaut au plus $(b-a)^2/4$. D'où $|R| \le \frac16 (b-a)^3/4 = (b-a)^3/24$.
+
+\emph{Pas 5 : la variance.} $\delta^{\top}F\delta = \sum_i p_i\delta_i^2 - (\sum_i p_i\delta_i)^2 = \operatorname{Var}_p(\delta_I)$. Elle est invariante si l'on ajoute une constante à tous les $\delta_i$, comme le softmax lui-même.
+\end{proof}
+
+\begin{remarque}[Ce que la proposition dit de la part lisse]\label{t3syn:rem:lisse}
+Si les logits de sortie dépendent linéairement de l'état final par la tête $W_o$, $\delta z = W_o \delta h_L$, la part lisse vaut $\frac12 \delta h_L^{\top} W_o^{\top} F W_o \delta h_L$ : quadratique en la perturbation, et pondérée par la loi du modèle. Une erreur d'expert deux fois plus petite donne, tant que rien ne bascule, une part lisse quatre fois plus petite, et seule compte la composante de l'erreur que $W_o^{\top}FW_o$ voit. C'est la raison pour laquelle la mutation synonyme, qui pondère son erreur par les entrées réelles de chaque expert ($H = \mathbb{E}[g^2 x x^{\top}]$, \cref{t3sno:ch}), réduit la médiane : elle range l'erreur dans les directions que les entrées n'excitent pas.
+\end{remarque}
+
+\subsection{La part de bascule}
+
+La proposition ne vaut que si l'ensemble des experts choisis ne change pas. Or le routeur d'une couche $\ell$ garde les $k = 4$ experts de plus grands logits. Si $\delta h$ pousse l'écart entre le quatrième et le cinquième au-delà de sa marge $m_\ell = z_{(4)} - z_{(5)}$, l'ensemble change, et la sortie de la couche saute d'une quantité qui ne dépend plus de $\|\delta h\|$, mais de la différence entre deux experts. Or deux experts d'une même couche ne se ressemblent pas : servir un expert par son meilleur paralogue laisse 33 à 84\,\% de l'énergie de sa sortie en erreur selon la couche (\cref{t3dup:ch}).
+
+\begin{hypothese}[La forme de la part de bascule]\label{t3syn:hyp:bascule}
+En notant $\delta s_\ell$ la perturbation de l'écart des deux scores en jeu à la couche $\ell$,
+\[
+\mathbb{E}[\mathrm{KL}] \;\approx\; \mathbb{E}\bigl[\tfrac12\,\delta z^{\top}F\,\delta z\bigr] \;+\; \sum_{\ell} \Prob\bigl(m_\ell < |\delta s_\ell|\bigr)\; \mathbb{E}\bigl[\mathrm{KL} \mid \text{bascule à } \ell\bigr].
+\]
+Le second terme ne dépend de $\|\delta h\|$ que par une probabilité ; sa valeur conditionnelle dépend de la différence de deux experts, pas de la taille de l'erreur.
+\end{hypothese}
+
+C'est une hypothèse de travail, pas une proposition : elle donne la forme, pas les termes. Elle s'appuie sur trois faits mesurés : l'intervention du lot R (imposer le routage retire 88\,\% de la KL entre deux moteurs exacts), la répartition de la KL (96,5\,\% sur les positions qui basculent), et les quantiles de la ronde (\cref{t3syn:tab:quantiles}). Elle n'a pas été mesurée \emph{pour les mécanismes de la ronde} par le routage imposé : la mesure qui la jugerait, la passe KL de $S^{*}$ et de la base avec les experts imposés depuis la référence, n'est pas faite (\cref{t3syn:sec:faux}). Elle explique ce que la propriété (c) constate : l'erreur d'expert pilote le premier terme, et presque rien du second, qui porte la moyenne.
+
+\begin{figure}[tbp]
+\centering
+\GrapheSynthDeuxParts
+\LegendeFigure{SynthDeuxParts}
+\label{fig:t3-synth-deux-parts}
+\end{figure}
+
+\paragraph{Deux parts, position par position.} La \cref{fig:t3-synth-deux-parts} met chacune des \num{2550} positions du protocole P1 en un point : la KL de la base en abscisse, celle de la mutation synonyme en ordonnée, mêmes positions et même vérité. La masse passe sous la diagonale : la médiane est divisée par 2,3, et \num{2060} positions sont gagnées. La queue garde sa forme : les 25 plus grandes positions de chacune (le « 1\,\% ») portent 31\,\% de la KL moyenne de la base et 38\,\% de celle du synonyme, si bien que la moyenne ne baisse que de $\times 1{,}38$. Elle ne garde pas ses positions : 10 seulement des 25 sont communes aux deux queues. C'est ce que prédit l'\cref{t3syn:hyp:bascule} : une bascule dépend d'une marge petite et d'une perturbation de signe donné ; quand les poids changent, les perturbations changent, et les positions qui basculent changent avec elles. La queue de la base se répartit sur 9 des 10 fenêtres, au plus 7 dans une seule : les bascules se groupent par fenêtre, par leur passé commun, ce qui justifie l'incertitude par fenêtres de l'\cref{t3syn:eq:blocs} \mes~(\fichier{synthese-nombres.csv}). La figure ne refait pas l'intervention ; ces journaux n'ont pas de colonne de routage, et elle ne dit pas quelles positions ont basculé.
+
+\subsection{Le routeur comme géométrie tropicale}\label{t3syn:sec:tropical}
+
+L'\cref{t3syn:hyp:bascule} donne aux bascules le premier rôle ; il faut alors savoir où elles ont lieu. Le routeur d'une couche calcule $z(h) = W_r h + b_r$ (32 logits pour le 20b, 128 pour le 120b) et garde les $k = 4$ plus grands ; $h$ est l'état normé qui entre dans les experts.
+
+\begin{proposition}[Les régions du routeur sont des polyèdres]\label{t3syn:prop:polyedres}
+Pour tout ensemble $S$ de $k$ experts, la région $\mathcal{R}_S = \{h : z_i(h) \ge z_j(h)\ \forall i \in S, j \notin S\}$ est un polyèdre convexe. La fonction $\Phi(h) = \sum_{i \in S(h)} z_i(h)$, somme des $k$ plus grands logits, est convexe et linéaire par morceaux ; c'est un polynôme tropical du semi-anneau $(\max, +)$, et les faces de ses morceaux sont portées par les hyperplans $z_i = z_j$.
+\end{proposition}
+
+\begin{proof}
+Chaque condition $z_i(h) - z_j(h) \ge 0$ s'écrit $(w_i - w_j)^{\top} h + (b_i - b_j) \ge 0$ : un demi-espace fermé. $\mathcal{R}_S$ en est l'intersection finie, donc un polyèdre convexe. Pour $\Phi$ : la somme des $k$ plus grands nombres d'une liste est le maximum, sur les sous-ensembles $T$ de taille $k$, de $\sum_{i \in T} z_i$ ; donc $\Phi(h) = \max_{|T| = k} \bigl(\sum_{i \in T} w_i\bigr)^{\top} h + \sum_{i \in T} b_i$, un maximum fini de fonctions affines, convexe et linéaire par morceaux. Dans le semi-anneau où l'addition est $\max$ et la multiplication $+$, c'est un polynôme tropical en les coordonnées de $h$, de monômes indexés par $T$. Deux morceaux $T, T'$ se raccordent là où $\sum_T z = \sum_{T'} z$ ; pour deux voisins qui ne diffèrent que par un échange $i \leftrightarrow j$, c'est l'hyperplan $z_i = z_j$.
+\end{proof}
+
+Le lien entre réseaux linéaires par morceaux et géométrie tropicale est celui de \textcite{zhang2018tropical} : les réseaux ReLU sont des applications rationnelles tropicales, et leurs frontières de décision des hypersurfaces tropicales \litt. Le routeur top-$k$ n'est pas un ReLU ; il s'y range par la même algèbre $(\max, +)$.
+
+\begin{proposition}[La marge et la distance]\label{t3syn:prop:marge}
+Soit $h \in \mathcal{R}_S$, et soient $(4)$ et $(5)$ les indices des quatrième et cinquième logits, de marge $m(h) = z_{(4)}(h) - z_{(5)}(h) \ge 0$. La distance euclidienne de $h$ à l'hyperplan $z_{(4)} = z_{(5)}$ vaut $m(h)/\|w_{(4)} - w_{(5)}\|$. La distance de $h$ au bord de sa région vaut
+\[
+d(h, \partial\mathcal{R}_S) = \min_{i \in S,\, j \notin S} \frac{z_i(h) - z_j(h)}{\|w_i - w_j\|} \;\le\; \frac{m(h)}{\|w_{(4)} - w_{(5)}\|}.
+\]
+\end{proposition}
+
+\begin{proof}
+La distance d'un point $h$ à l'hyperplan $\{u : a^{\top}u + c = 0\}$ vaut $|a^{\top}h + c|/\|a\|$ ; avec $a = w_{(4)} - w_{(5)}$, $c = b_{(4)} - b_{(5)}$, le numérateur est $m(h)$. Le bord de $\mathcal{R}_S$ est contenu dans la réunion des hyperplans $z_i = z_j$, $i \in S$, $j \notin S$, et pour atteindre la frontière d'un polyèdre convexe depuis un point intérieur, il faut franchir l'un de ses demi-espaces : la distance au bord est le minimum des distances à ces hyperplans (chaque minimum est atteint dans la direction normale, qui ne sort d'aucun autre demi-espace avant, sans quoi celui-ci serait plus proche). La paire $((4), (5))$ figure dans ce minimum, d'où l'inégalité.
+\end{proof}
+
+\begin{remarque}
+La synthèse écrit que la distance euclidienne « à la frontière la plus proche » vaut $m/\|w_{(4)} - w_{(5)}\|$ (\fichier{genome/05-synthese.md} § 3.1). La \cref{t3syn:prop:marge} la précise : c'est exactement la distance à l'hyperplan de la paire en jeu, et une borne supérieure de la distance au bord de la région, atteinte quand $(4), (5)$ est aussi la paire la plus proche en distance euclidienne. La marge en unités de logit, celle que mesurent les journaux, est la grandeur qui décide de la bascule ; c'est elle que le \cref{t3tro:ch} utilise.
+\end{remarque}
+
+\begin{figure}[tbp]
+\centering
+\GrapheLatentsEtats
+\LegendeFigure{LatentsEtats}
+\label{fig:t3-lat-etats}
+\end{figure}
+
+\paragraph{Les régions, vues dans l'espace latent.} La \cref{fig:t3-lat-etats} projette les \num{6132} états de calibration de la couche 23 du 20b (\num{2880} dimensions) et les colore par leur expert premier. Les états se regroupent par expert premier : dans l'espace d'origine, 48,1\,\% des 10 plus proches voisins d'un état ont le même expert premier, contre 12,2\,\% au hasard. Les états de petite marge, au sens de $z_{(1)} - z_{(2)}$ (les 614 du dixième centile, sous 0,0155), se tiennent plus souvent aux bords des groupes : 0,70 de leurs voisins ont un autre expert premier, contre 0,47 au-delà de la médiane dans le plan de la t-SNE, et 0,67 contre 0,43 dans l'espace d'origine. C'est l'image, dans les états réels, de la \cref{t3syn:prop:polyedres} : les états fragiles sont près des faces.
+
+Deux précisions, que la légende jugée donne et qu'il ne faut pas perdre. D'abord, la projection n'est fidèle qu'à ce qu'elle dit : l'ACP garde 21,0\,\% de la variance, avec une confiance $T(10) = 0{,}792$ ; la t-SNE, écrite de zéro et déterministe, monte à $T = 0{,}947$, gardée par un seuil déclaré avant la passe, mais ses distances entre groupes et ses aires ne se lisent pas. Ensuite, la marge qui marque les bords est celle du \emph{premier} expert ; la marge de l'ensemble des quatre experts servis, $z_{(4)} - z_{(5)}$, celle de la \cref{t3syn:prop:marge}, ne les marque pas (0,51 sous le dixième centile comme au-delà de la médiane) : la couleur de la figure est l'expert premier, et une face entre deux ensembles de quatre ne sépare pas forcément deux couleurs. La figure illustre la géométrie ; elle ne mesure pas la garde. Le \cref{t3tro:ch} reprend ce cadre sur les journaux de routage et le juge.
+
+% =============================================================================================================
+\section{Mécanisme par mécanisme}\label{t3syn:sec:mecanismes}
+
+\Cref{t3syn:tab:mecanismes} rattache chaque verdict à la propriété qui l'a décidé.
+
+\begin{table}[p]
+\centering\footnotesize
+\caption[Chaque mécanisme et la propriété qui l'a décidé]{Chaque mécanisme de la ronde, son verdict, et la propriété mesurée qui l'a décidé (a : bruit sachant l'échelle ; b : colonnes géantes ; c : erreur d'expert $\ne$ KL) \mes~\calc.}
+\label{t3syn:tab:mecanismes}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.2\linewidth}>{\raggedright\arraybackslash}p{0.15\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.26\linewidth}@{}}
+\toprule
+Mécanisme & Verdict & Propriété & Le chiffre qui le dit \\
+\midrule
+codon synonyme du zéro & gagne, sans perte & (a), à l'envers : il retire du bruit pur au lieu d'en chercher la structure & 0,1370 bit sur les 12 tenseurs ; logits identiques au bit \\
+contexte de colonne & gagne, sans perte (couche 0) & (b) : la seule structure de premier ordre qui reste sachant l'échelle est par colonne d'entrée & $-0{,}1416$ / $-0{,}1231$ bit à la couche 0 ; seuil 0,015 \\
+mutation synonyme & meilleure en KL ; débit à confirmer ($\lambda = 1$) & (c), dans le bon sens : pondérée par $H = \mathbb{E}[g^2 xx^{\top}]$, elle réduit la part lisse & appariée $-0{,}0098 \pm 0{,}0033$ ; médiane $\div 2{,}3$ ; erreur de poids plus haute ($\lambda = 0$ : 4,7 contre 4,4\,\%) \\
+partitions par $\kappa$, par tenseur & égale en KL, $0{,}911 \times$ les bits & relative à la ligne, elle ne déplace pas de bits d'une échelle à l'autre & appariée $+0{,}0066 \pm 0{,}0053$ (1,2\,$\sigma$) \\
+graine + coefficients & tombe & (a) : un livre de codes aléatoire de dimension 8 à 16 sur des directions uniformes & 3,06 bits à l'erreur de la base \\
+motifs partagés & tombe & (a) : quantificateur vectoriel de petite dimension & 2,90 bits \\
+recette + complément exact & tombe & (a) : l'entropie des codes est déjà atteinte & 4,05 à 4,37 bits contre 3,84 \\
+duplication (parent) & tombe & (a) entre experts ; la part qui ressemble à une parenté est (b) & 0,0034 bit dont 0,0016 au hasard ; D2b 2,6429 \\
+brin lu par codons, critère W & gagne en poids, tombe en sortie d'expert & (b) : la table écrête les colonnes massives & colonne 1011 : énergie $\times 144$, erreur $\times 334$ ; sortie 7,63 contre 6,77\,\% \\
+$S^{*}$ & gagne en sortie d'expert, \barre{tombe} égal en KL & (c) : la part lisse baisse, l'extrême de la queue monte & erreur d'expert $\times 0{,}747$ ; appariée $+0{,}0004 \pm 0{,}0019$ \\
+hebbien par $e$ & tombe à erreur d'expert égale & (b) et (c) : l'erreur va sur les blocs de petite échelle, que la norme RMS des couches suivantes ramène à l'échelle & erreur d'expert $\times 1{,}02$ ; KL $\times 3{,}06$ \\
+partitions par $e$, élagage par activité & tombent & (b) mal utilisée : la métrique par matrice vide les lignes de petite échelle & KL $\times 4{,}3$ à $\times 4{,}9$ \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{genome/05-synthese.md} § 2.3 ; chiffres dans \fichier{k10/frontiere.csv}, \fichier{k10/erreur-contre-kl.csv}, \fichier{k10/colonne-par-tenseur.csv}.}
+\end{table}
+
+\subsection{Pourquoi $S^{*}$ ne gagne pas}\label{t3syn:sec:sstar}
+
+$S^{*}$ est le cas le plus instructif, parce qu'il gagne tout sauf la KL : l'erreur de poids, l'erreur de sortie (8 experts sur 8), et même l'erreur orthogonale au gain par le second chemin de l'équipe (\cref{t3gen:ch}). \barre{Sa KL appariée est $+0{,}0076 \pm 0{,}0047$ (1,6\,$\sigma$) : égale par la règle, défavorable en estimation, et sa queue est plus épaisse.} Sur 3 fenêtres (765 positions), sa KL appariée était $+0{,}0076 \pm 0{,}0047$ ; sur 10 fenêtres (\num{2550} positions, passe K10 déclarée avant), elle est de $+0{,}00036 \pm 0{,}00186$ : égale à la base, premier choix égal (91,92 contre 91,88\,\%) \mes~(\fichier{comparer10-base-contre-recette.json}). Vingt-cinq pour cent d'erreur d'expert en moins, zéro pour cent de KL en moins : c'est la propriété (c) dans sa forme la plus nette.
+
+Pourquoi l'extrême de la queue monte est une hypothèse, que la synthèse donne et qu'aucune passe ne départage. La rotation de Hadamard répartit l'erreur de chaque rangée sur 64 colonnes ; la sortie $Wx = (WR^{\top})(Rx)$ voit cette erreur à travers $Rx$, où une activation massive est elle-même répartie sur les 64 positions de son morceau. La pondération de $S^{*}$ est diagonale ($h = \operatorname{diag}(R\Sigma R^{\top})$) : elle ne voit pas la corrélation, dans le domaine tourné, entre les 64 positions qui portent le même canal massif. La base, elle, rend presque exacts les plus grands codes de chaque bloc, et laisse presque intacte la contribution des canaux massifs, ce qui protège les marges du routeur des couches suivantes, qui lisent le même état. La mutation synonyme, qui pondère par le $H$ complet, n'a pas ce défaut, et c'est elle qui gagne. La prédiction qui départagerait, la KL de $S^{*}$ combiné à la rétroaction par le $H$ complet, n'est ni mesurée ni dans les lots.
+
+\subsection{La leçon, en une phrase par niveau}
+
+\begin{itemize}
+\item Dans le domaine des poids, il n'y a rien à générer : le gain se prend sur ce que le calcul \emph{ne lit pas} (le signe d'un zéro) ou sur ce que le codeur \emph{sait déjà} (l'échelle, la colonne).
+\item Dans le domaine des sorties, la moyenne de l'erreur ne suffit pas : ce qui compte est l'endroit où elle tombe. Le synonyme la place là où les entrées ne regardent pas, l'hebbien là où l'énergie est faible ; les deux ont une erreur d'expert basse, seul le premier gagne en KL.
+\item Dans le domaine du texte, ce qui coûte est la \emph{bascule} : une erreur ne vaut que par sa probabilité de faire franchir une face du routeur à une couche suivante.
+\end{itemize}
+
+% =============================================================================================================
+\section{Le contexte d'un symbole de colonne}\label{t3syn:sec:codes-col}
+
+La propriété (b) a donné un gagnant sans perte : la classe d'énergie de la colonne d'entrée comme contexte du codeur. Le cahier l'a spécifiée au bit près, sous une sorte de flux CODES\_COL ; le lot A l'a finalement laissée hors du format, pour un gain trop petit au regard de son prix (\cref{t3cod:sec:colonne}). La spécification reste la référence si un modèle à canaux aberrants plus nombreux la faisait payer ; elle contient une dérivation qu'il faut poser, parce qu'un décodeur parallèle doit retrouver la colonne de chaque symbole sans rien recalculer.
+
+\paragraph{La disposition de \texttt{block\_mxfp4}.} Un bloc MXFP4 compte 17 octets : l'exposant $e$ (E8M0), puis 16 octets \texttt{qs} qui portent 32 codes de 4 bits. L'octet $t$ ($0 \le t < 16$) porte le poids $t$ du bloc dans son demi-octet faible et le poids $16 + t$ dans son demi-octet fort \parencite{gguf2026,ocpmx2023}. Une matrice $R \times C$ a $B = C/32$ blocs par ligne ; les blocs se suivent dans l'ordre $\beta$ (ligne par ligne).
+
+\paragraph{La chaîne.} Le flux CODES\_COL code les $R \cdot B \cdot 32$ demi-octets canoniques dans l'ordre $\beta$ ; le symbole $n$ est le demi-octet $n$, le faible de l'octet $\lfloor n/2 \rfloor$ si $n$ est pair, le fort sinon. Le décodeur rANS entrelacé (\cref{t3cod:ch} ; Tome~II, chapitre du format) produit, sur la voie $l$ du macro-pas $m$, le mot $w = 32m + l$ de 32 bits, et son sous-pas $k \in \{0, \dots, 7\}$ produit un demi-octet. On pose, pas à pas :
+\begin{align}
+n &= 8w + k && \text{(un mot porte 8 demi-octets)} \label{t3syn:eq:n}\\
+\beta &= \lfloor n/32 \rfloor = \lfloor w/4 \rfloor && \text{(32 demi-octets par bloc ; } 8(w \bmod 4) + k < 32\text{)} \label{t3syn:eq:beta}\\
+u &= n \bmod 32 = 8\,(w \bmod 4) + k && \text{(rang du demi-octet dans son bloc)} \label{t3syn:eq:u}\\
+t &= \lfloor u/2 \rfloor, \quad \text{fort} \iff u \text{ impair} && \text{(l'octet, puis le demi-octet)} \nonumber\\
+i(u) &= \lfloor u/2 \rfloor + 16\,(u \bmod 2) && \text{(la position du poids dans son bloc)} \label{t3syn:eq:i}\\
+\mathrm{col}(n) &= (\beta \bmod B)\cdot 32 + i(u) && \text{(la colonne du poids dans sa ligne)} \label{t3syn:eq:col}\\
+\mathrm{ctx}(n) &= 4\,\kappa(\beta) + q(\mathrm{col}(n)) \in [0, 12) && \text{(le contexte)} \label{t3syn:eq:ctx}
+\end{align}
+La deuxième égalité de \eqref{t3syn:eq:beta} se vérifie : $n = 32\lfloor w/4\rfloor + 8(w \bmod 4) + k$ et $0 \le 8(w \bmod 4) + k \le 8 \cdot 3 + 7 = 31$. Conséquence : \emph{les 8 demi-octets d'un mot sont dans le même bloc}, donc ils partagent la même classe d'échelle $\kappa(\beta)$ ($\delta < 128$, $= 128$, $> 128$, celle de la v1.0) ; un seul $\kappa$ par mot, comme en CODES\_CTX, et le décodeur garde sa lecture d'avance de $\kappa$. Seule $q(\mathrm{col})$ change d'un sous-pas à l'autre, par la carte des colonnes. Exemple : $w = 6$, $k = 3$ donnent $n = 51$, $\beta = 1$, $u = 19$, l'octet $t = 9$ en son demi-octet fort, $i = 9 + 16 = 25$, et la colonne $25$ du deuxième bloc de la ligne, soit $32 + 25 = 57$ si $B > 1$ \calc.
+
+\paragraph{La carte des colonnes.} La classe $q(c) \in \{0, 1, 2, 3\}$ de la colonne $c$ occupe les bits $2(c \bmod 4)$ et $2(c \bmod 4) + 1$ de l'octet $\lfloor c/4 \rfloor$ : $C/4$ octets, 720 pour $C = 2880$, un multiple de 8 puisque $C$ est un multiple de 32. Le codeur la calcule pour le tenseur entier, tous experts confondus :
+\[
+E(c) = \sum_{\text{experts, lignes, blocs } b \text{ de la colonne } c} 4^{\,\delta_b - 128}\, K[\mathrm{code} \mathbin{\&} 7]^2, \qquad K = (0, 1, 2, 3, 4, 6, 8, 12),
+\]
+puis $q(c) = \#\{i : t_i < E(c)\}$, avec $t_1, t_2, t_3$ les quantiles 0,25, 0,5 et 0,75 des $C$ valeurs triées. Le facteur $4^{\delta - 128}$ est le carré de l'échelle $2^{\delta - 128}$ : $E(c)$ est l'énergie de la colonne en unités des valeurs doublées. Le décodeur lit la carte ; il ne la recalcule pas. C'est exactement la carte qui a donné \num{3.6844} bits \mes.
+
+\paragraph{La règle du choix par matrice.} CODES\_COL coûte au décodeur environ deux fois et demie un flux CODES\_CTX (\cref{t3syn:sec:lot-a}). D'où une règle normative pour le codeur : CODES\_COL seulement si le gain estimé, tables comprises, atteint 0,015 bit par poids, le seuil qu'avait déclaré le codage prédictif pour un flux de plus (0,40\,\% de 3,84 bits). Sur les 12 tenseurs de référence, deux matrices passent (gate et up de la couche 0), pour \num{3.6843} bits en moyenne, contre \num{3.6825} en prenant les six matrices qui gagnent quelque chose : la règle prend 92\,\% du gain de la colonne ($0{,}0221$ bit sur $0{,}0239$) pour un décodeur plus cher sur deux matrices au lieu de six \calc~(\fichier{k10/apparie-eclaireur.json}, champ \texttt{colonne}).
+
+% =============================================================================================================
+\section{Le cahier de construction}\label{t3syn:sec:cahier}
+
+La consigne de Stone pour cette étape, le 17 octobre 2026 : « vu qu'on a les conclusions je propose d'avancer avec ce qu'on a on a déja pris beaucoup de temps ». On construit avec les gagnants mesurés, en deux lots dans cet ordre : \textbf{A} est sans perte et touche le fichier exact ; \textbf{B} ajoute un second fichier, avec perte, et ne touche pas au premier. Chaque pas a son témoin, sa cassure et son seuil, déclarés dans le cahier avant toute construction.
+
+\subsection{Lot A : ce qu'il porte, et la preuve qu'il ne change aucun bit}\label{t3syn:sec:lot-a}
+
+Le lot A porte trois choses : le codon synonyme du zéro dans tous les flux de codes (le codeur réécrit tout demi-octet 8 en 0 avant le codage entropique) ; le contexte de colonne, seulement là où il rend au moins 0,015 bit ; l'empreinte de l'expert canonique, sans laquelle le témoin du moteur ne peut plus comparer un expert décodé à son origine.
+
+\begin{table}[ht]
+\centering\small
+\caption[Ce que le lot A devait rendre]{Ce que le lot A devait rendre, prédit par le cahier \calc~sur \mes. Le \cref{t3cod:ch} le mesure.}
+\label{t3syn:tab:lot-a}
+\begin{tabular}{@{}lll@{}}
+\toprule
+& gpt-oss-20b & gpt-oss-120b \\
+\midrule
+poids d'experts & \num{19110297600} & \num{114661785600} \\
+sans perte v1.0 (A\_flux, tous tenseurs) & 3,8509 bits & 3,8549 bits \\
+zéro fondu (A\_flux, tous tenseurs) \mes & 3,7230 bits ($-0{,}1280$) & 3,7292 bits ($-0{,}1257$) \\
+octets d'experts en moins (zéro seul) & 305,6 Mo & 1\,801,2 Mo \\
+fichier \texttt{.trc} v1.0, relevé & \num{11157405696} o & \num{57730662400} o \\
+fichier v1.2 attendu (zéro seul) & $\approx$ 10,85 Go & $\approx$ 55,93 Go \\
+toit du débit à disque limitant & $+3{,}4\,\%$ & $+3{,}4\,\%$ \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{genome/05-synthese.md} § 4.1, d'après \fichier{mesures/genome/predictif-elagage/taux-reel-toutes-gptoss\{20b,120b\}.json}.}
+\end{table}
+
+\paragraph{Le toit, posé.} À disque limitant, le temps d'un jeton est proportionnel aux octets lus, et le gain de vitesse au mieux l'inverse du rapport des octets \calc :
+\[
+\frac{1}{1 - 0{,}1257/3{,}8549} - 1 = \frac{1}{0{,}96739} - 1 = 3{,}37\,\%.
+\]
+L'alignement de chaque tronçon sur \num{4096} octets coûte au plus $\num{4608} \times \num{4096} = 18{,}9$ Mo sur le 120b, soit $18{,}9\cdot10^6 \times 8 / \num{114661785600} = 0{,}0013$ bit par poids \calc. Le \cref{t3cod:ch} montre que ce toit ne bornait que l'effet des octets, et que la vitesse a suivi une autre variable.
+
+\begin{proposition}[A1 : la GEMV du moteur rend les mêmes bits]\label{t3syn:prop:a1}
+Le noyau \texttt{produit\_bloc} (\fichier{moteur/crates/trc-noyaux/noyaux/gemv.cuh}, au commit \texttt{000cef9}) part de $s = +0$ et accumule $s \leftarrow \mathrm{fmaf}(v, x, s)$ dans un ordre fixe, avec $v = \texttt{valeur\_e2m1x2}(c)$, la grandeur doublée du code $c$ : un entier de $\{0, 1, 2, 3, 4, 6, 8, 12\}$, de signe donné par le bit 3, si bien que $v = -0$ pour le code 8 et $+0$ pour le code 0. Si les entrées $x$ sont finies, remplacer le code 8 par le code 0 ne change aucun bit de $s$ à aucun pas.
+\end{proposition}
+
+\begin{proof}
+On suit les deux calculs en parallèle, l'original et le canonique, et l'on montre par récurrence sur les pas que $s$ y est égal au bit et ne vaut jamais $-0$.
+
+\emph{(0) Une grille.} Tout binaire32 fini est un multiple entier de $2^{-149}$ (le plus petit sous-normal). $v$ est un entier ; donc le produit exact $v \cdot x$ est un multiple de $2^{-149}$, et la somme exacte $v\cdot x + s$ aussi. Une telle somme, si elle n'est pas nulle, vaut au moins $2^{-149}$ en valeur absolue ; son arrondi au plus près n'est donc pas nul (sous le seuil des normaux, tous les multiples de $2^{-149}$ sont représentables ; au-dessus, l'arrondi au plus près ne rend jamais zéro).
+
+\emph{(1) L'accumulateur ne vaut jamais $-0$.} Au départ, $s = +0$. À un pas, $\mathrm{fmaf}$ calcule $v \cdot x + s$ exactement et l'arrondit une fois, $s' = \mathrm{RN}(v\cdot x + s)$. Si la somme exacte est nulle, IEEE~754 rend $+0$ en arrondi au plus près, sauf si les deux termes valent tous deux $-0$ \parencite{ieee754} ; or $s \ne -0$ par hypothèse de récurrence, donc $s' = +0$. Si la somme exacte n'est pas nulle, $s' \ne 0$ par (0). Dans les deux cas, $s' \ne -0$.
+
+\emph{(2) Un pas sur un code nul est le même dans les deux calculs.} Pour $v = \pm 0$ et $x$ fini, $v \cdot x = \pm 0$ exactement. Si $s \ne 0$, $s' = \mathrm{RN}(\pm 0 + s) = s$. Si $s = 0$, alors $s = +0$ par (1), et $s' = +0$ quel que soit le signe de $v\cdot x$, puisque $(-0) + (+0) = +0$ et $(+0) + (+0) = +0$. Dans les deux calculs, $s' = s$.
+
+\emph{(3) Les autres pas ont les mêmes opérandes.} Un code non nul est le même dans les deux calculs ; $x$ et $s$ sont égaux au bit par récurrence ; $\mathrm{fmaf}$ est une fonction de ses opérandes. Donc $s'$ est égal au bit.
+
+Par récurrence sur les pas, $s$ est égal au bit dans les deux calculs à chaque pas.
+\end{proof}
+
+La réduction papillon entre voies (\texttt{somme\_warp\_f32}) additionne ensuite des sommes partielles égales au bit, dans le même ordre ; l'échelle du bloc et le biais sont appliqués après. Conséquence : la sortie de chaque GEMV d'expert, donc chaque logit, est identique au bit. L'argument (0) précise celui de la synthèse (« $|v| \ge 1$ pour un code non nul, donc $|v\cdot x| \ge |x|$ ne s'arrondit pas à zéro ») : ce qui empêche une somme non nulle de s'arrondir à zéro est que tout reste sur la grille $2^{-149}\mathbb{Z}$, et cela tient parce que les grandeurs sont \emph{doublées}, donc entières, et que l'échelle n'entre pas dans l'accumulation. La proposition de l'éclaireur (\cref{t3ecl:ch}) laissait le signe d'une somme partielle nulle ; le départ à $+0$ du noyau réel le règle. Le \cref{t3cod:ch} la mesure sur la carte et sur les logits.
+
+\paragraph{La table des valeurs E2M1, un invariant.} Elle est lue en un seul endroit des noyaux, la fonction \texttt{valeur\_\allowbreak e2m1x2} ; la référence f64 lit le GGUF et n'est pas touchée. Tout nouveau lecteur de codes (un noyau de préremplissage par lots, une GEMM) doit lire le code 8 comme zéro : c'est l'invariant que le lot A a écrit dans l'architecture (§ 5.6).
+
+\paragraph{Le décodeur et la LUT compacte.} Si le contexte de colonne entrait dans le format, il faudrait un décodeur à douze contextes par symbole. La LUT normative d'une table occupe $M = \num{4096}$ mots de 32 bits, 16 Kio ; CODES\_CTX en monte trois par bloc de fils, 48 Kio, la limite de la mémoire partagée statique d'un bloc. Douze contextes demanderaient $12 \times 16 = 192$ Kio, au-delà même des 99 Kio de mémoire partagée dynamique d'un bloc sur sm\_89 (guide de programmation CUDA, lu, non relevé sur la carte) \litt. En géométrie 2, le symbole tient sur 4 bits ; pour chaque contexte $c$ on range $\mathrm{sym}[c]$, \num{4096} symboles deux par octet (2 Kio), et $f[c][16]$, $\mathrm{cum}[c][16]$ en u16 (64 o). Un pas de décodage devient
+\begin{align*}
+\text{fente} &\leftarrow x \mathbin{\&} 4095,\\
+s &\leftarrow \bigl(\mathrm{sym}[c][\text{fente} \gg 1] \gg 4\,(\text{fente} \mathbin{\&} 1)\bigr) \mathbin{\&} 15,\\
+y &\leftarrow f[c][s]\,(x \gg 12) + \text{fente} - \mathrm{cum}[c][s],
+\end{align*}
+puis le renouvellement habituel ($x \leftarrow (y \ll 16) \mid \text{mots}[p]$ si $y < L$, sinon $x \leftarrow y$). Pour 12 contextes : $12 \times (2048 + 64) = 25\,344$ octets, plus la carte (720 o), soit $\approx$ 25,5 Kio, sous la limite statique \calc.
+
+\begin{lemme}[A2 : la LUT compacte rend la même suite]\label{t3syn:lem:a2}
+Pour toute fente $i \in [0, 4096)$, la LUT normative donne $(s, f[s], i - c[s])$ avec $s$ l'unique symbole tel que $c[s] \le i < c[s] + f[s]$ ; la LUT compacte range le même $s$ en $\mathrm{sym}[c][i]$ et lit $f[s]$ et $c[s]$ dans les tables du même contexte. Les deux pas calculent donc le même $y$ et le même renouvellement, et la suite des états, des mots lus et des symboles est la même.
+\end{lemme}
+
+\begin{proof}
+Les deux LUT sont construites depuis les mêmes fréquences $f$ et cumuls $c$ du contexte ; la normative stocke en $i$ le triplet $(s, f[s], i - c[s])$, la compacte stocke $s$ en $i$ et laisse $f[s]$ et $c[s]$ dans deux petites tables. À état $x$ égal, les deux lisent la même fente $i = x \bmod 4096$, en tirent le même $s$, et calculent $y = f[s]\lfloor x/4096\rfloor + (i - c[s])$ par les mêmes valeurs. Le renouvellement ne dépend que de $y$ et du pointeur. Par récurrence sur les pas, états, pointeurs et symboles coïncident. La LUT est une représentation de la table : ce qui est normatif, c'est la suite des symboles décodés.
+\end{proof}
+
+\paragraph{Le coût, posé.} Un pas compact fait deux lectures de plus en mémoire partagée et une soustraction de plus qu'un pas de géométrie 1 ; la géométrie 2 fait 8 pas par mot au lieu de 4. Une matrice CODES\_COL coûte donc environ $2{,}5$ fois une matrice CODES\_CTX \calc. Le moteur décode un expert en 0,92 ms (54,2 ms par jeton pour 59 défauts sur le 120b, lot O). Si gate et up d'une seule couche passent en CODES\_COL, un expert de cette couche coûte $0{,}92 \times (1 + 2 \times 2{,}5)/3 \approx 1{,}8$ ms ; à $59/36 \approx 1{,}6$ défaut par jeton dans cette couche, c'est $\approx +1{,}5$ ms sur 457 ms par jeton, 0,3\,\% \calc, et le décodage se recouvre déjà avec les lectures.
+
+\paragraph{Les critères du lot A, déclarés avant.} Ils sont au \cref{t3cod:ch} avec leurs mesures ; on retient ici leur forme. A-T1 à A-T4 : refus nommés du format, codec et décodeur octet pour octet, empreintes à 100\,\%. A-C1 : 0 logit différent entre v1.2 et v1.0 sur 10 fenêtres, 20b et 120b (la \cref{t3syn:prop:a1}) ; la cassure fait différer. A-C2 : gain sur les octets de tronçons d'au moins 0,12 bit par poids d'expert sur chacun des deux modèles (prédit 0,1280 et 0,1257 ; 0,12 laisse 0,0013 bit d'alignement et une marge). A-C3 : pas de régression de vitesse en série ABBA, $r \ge 1 - 2\sigma_{\text{bruit}}$, et un gain n'est annoncé que s'il dépasse $2\sigma_{\text{bruit}}$. A-C4 : le débit de décodage de CODES\_COL au moins 10 fois celui du disque. Si A-C4 tombait, la colonne se retirerait et le zéro seul rendrait déjà 86\,\% du gain du lot sur les 12 tenseurs mesurés ($0{,}1370$ sur $0{,}1591$ bit) \calc.
+
+\subsection{Lot B : le génome synonyme, et la mesure qui manquait d'abord}\label{t3syn:sec:lot-b}
+
+Le lot B porte le génome synonyme comme second fichier, \texttt{<nom>.rapide.trc}, lu à la place du fichier exact quand le moteur sert un expert en \emph{mode rapide}. Il n'est pas emboîté dans le fichier exact : le complément exact derrière la base synonyme coûterait 1,689 bit au lieu de 1,219 (\cref{t3ecl:ch}). C'est le « mode rapide et mode exact » de l'idée de Stone. Le format du compagnon et le codeur sont au \cref{t3sno:ch} ; on garde ici ce qui décide de sa construction.
+
+\paragraph{La mesure qui manquait.} La variante qui bat la frontière en bits ($\lambda = 1$, 2,563 bits $H_0$) n'avait pas de KL ; celle qui avait une KL meilleure ($\lambda = 0$) n'était pas sous la frontière en bits (\cref{t3syn:sec:frontiere}). Le lot B commence donc par \textbf{B0} : la passe KL de l'éclaireur, protocole P1, sur la variante à construire, comparée en appariée à la base frontière. Le critère, déclaré avant : $\lambda = 1$ est retenue seule si elle est meilleure significativement ; égale, elle domine encore la frontière (0,078 bit de moins à KL égale), et les deux variantes sont construites comme deux points du mode rapide, que \textbf{B2} départage sur le modèle entier ; pire, $\lambda = 0$ est retenue. Le \cref{t3sno:ch} et le juge du \cref{t3jug:ch} disent ce que B0 et B2 ont décidé.
+
+\paragraph{Ce qu'il rendrait.} Avec $\lambda = 1$, 2,56 à 2,60 bits par poids lus, le compagnon pèserait $\approx$ 6,14 à 6,24 Go (20b) et $\approx$ 36,9 à 37,4 Go (120b), soit un rapport $f \approx 0{,}69$ à $0{,}71$ des octets d'un tronçon rapide à un tronçon exact v1.2, et un toit de vitesse de $\times 1{,}41$ à $\times 1{,}46$ à disque limitant. Il tient en RAM sur le 20b (6,2 + 1,9 Go de résidents sous 16 Go), pas sur le 120b \calc~sur \mes~(\fichier{genome/05-synthese.md} § 4.7).
+
+\paragraph{Les deux usages.} \emph{Les défauts de cache} : une politique « tout défaut en rapide » converge vers le mode rapide pur ; la forme qui garde un sens est à deux niveaux, un expert froid servi en rapide et relu en exact une fois promu. Sur le 120b, le relevé du moteur est de 59 défauts pour 144 appels par jeton, donc une part d'appels servis en rapide $\varphi \le 59/144 = 41\,\%$ au plus fort de la politique \calc. \emph{Le brouillon spéculatif} \parencite{leviathan2023} : la vérification de $k+1$ positions par le modèle exact rend le texte exact au bit ; le brouillon ne fait que proposer. Le cahier en a tiré un lemme, qui dit où il paie.
+
+\begin{lemme}[B2 : le brouillon doit être résident]\label{t3syn:lem:b2}
+En régime limité par le disque, soient $b_e$ les octets d'experts exacts lus par jeton servi simplement, $b_d$ les octets que le brouillon lit sur le disque par jeton proposé, $\alpha$ le taux d'acceptation, et $U(2) = 2 - \rho$ le rapport des octets exacts lus par une passe de vérification de deux positions à ceux d'une seule ($\rho \in [0, 1]$ : la part des défauts de la seconde position déjà payée par la première). Avec un jeton proposé ($k = 1$), le décodage spéculatif lit moins d'octets par jeton rendu que le décodage simple si et seulement si
+\begin{equation}\label{t3syn:eq:b2}
+\alpha > 1 - \rho + b_d/b_e.
+\end{equation}
+\end{lemme}
+
+\begin{proof}
+Un cycle lit $b_d$ octets pour le brouillon et $(2 - \rho)\,b_e$ pour la vérification ; il rend en moyenne $1 + \alpha$ jetons (le jeton de la vérification, plus le jeton proposé s'il est accepté, avec probabilité $\alpha$). Le décodage simple lit $b_e$ par jeton. Le cycle gagne si et seulement si $b_d + (2 - \rho)\,b_e < (1 + \alpha)\,b_e$ ; en divisant par $b_e > 0$, $b_d/b_e + 2 - \rho < 1 + \alpha$, soit $\alpha > 1 - \rho + b_d/b_e$.
+\end{proof}
+
+\begin{corollaire}[Ce que la condition coûte]\label{t3syn:cor:b2}
+\begin{enumerate}[label=(\roman*)]
+\item Comme $\alpha \le 1$, il faut $\rho > b_d/b_e$ : un brouillon lu du disque doit être payé par la réutilisation des experts entre positions voisines.
+\item Brouillon lu au défaut depuis \texttt{<nom>.rapide.trc} : $b_d/b_e \approx f \approx 0{,}7$ (mêmes défauts, tronçons 0,7 fois plus petits) ; il faut $\rho > 0{,}7 + (1 - \alpha)$, soit $\rho > 0{,}8$ pour $\alpha = 0{,}9$. Avec un routage indépendant, l'union des experts de deux jetons du 120b pèse $2 - t/E = 2 - 4/128 = 1{,}969$ fois celle d'un seul, donc $\rho \approx 0{,}03$, loin de la condition. Le $\rho$ réel, au cache du moteur, n'est pas mesuré.
+\item Brouillon résident en RAM ($b_d = 0$) : la condition devient $\alpha > 1 - \rho$, celle de l'idée de Stone. Sur le 120b, le fichier rapide ($\approx$ 37 Go) ne tient pas dans 16 Go ; le seul brouillon résident serait un autre modèle, le 20b en mode rapide (même vocabulaire), dont l'accord avec le 120b n'est pas mesuré.
+\item Le lemme compte des octets, pas le temps. Le moteur ne tire du disque que 1,55 Go/s utiles sur 1,848 parce qu'il a moins de quatre lectures en vol par couche ; vérifier deux positions double la file. Ce gain-là est borné par $1{,}848/1{,}55 = \times 1{,}19$ et ne dépend pas du brouillon \calc~sur \mes.
+\end{enumerate}
+\end{corollaire}
+
+\begin{proof}
+(i) Si $\rho \le b_d/b_e$, le membre droit de \eqref{t3syn:eq:b2} vaut au moins 1, et $\alpha \le 1$ ne peut le dépasser. (ii) On remplace $b_d/b_e$ par $0{,}7$ dans \eqref{t3syn:eq:b2} : $\rho > 1 - \alpha + 0{,}7$. Avec $k = 4$ experts sur $E = 128$ tirés indépendamment pour chaque jeton, un expert de la seconde position est déjà chargé avec probabilité $k/E$ ; l'union compte en moyenne $k + k(1 - k/E)$ experts, soit $2 - k/E$ fois $k$, et $\rho = k/E = 0{,}03$. (iii) $b_d = 0$ dans \eqref{t3syn:eq:b2}. (iv) Le rapport des débits est un rapport mesuré, indépendant de $\alpha$.
+\end{proof}
+
+Le \cref{t3syn:lem:b2} se lit en une phrase : sur une machine où le disque limite, un brouillon qui lit le disque ne paie presque jamais. La figure qu'elle mérite, le plan $(\rho, \alpha)$ avec la droite \eqref{t3syn:eq:b2} pour trois valeurs de $b_d/b_e$ (III-7.5 de l'inventaire), n'est pas tracée ; la condition la dit. Le pas B5 du cahier, le brouillon, \emph{ne se construit pas} avant la mesure de $\rho$ sur les traces de routage et de $\alpha$ par l'accord glouton rapide contre exact.
+
+\paragraph{Les pas du lot B, déclarés avant.} B0 (la KL de $\lambda = 1$, appariée) ; B1 (le format du compagnon, symboles décodés égaux aux symboles écrits) ; B1c (le codeur sur la carte, égal au codeur Python sur 8 matrices tirées) ; B2 (la KL du modèle 20b entier en mode rapide, meilleure que la frontière entière, et au niveau de la meilleure requantification de llama.cpp à bits égaux ou inférieurs) ; B3 (la politique à deux niveaux, rejouée sur les traces avant d'être construite) ; B4 (le 120b) ; B5 (le brouillon, sous la condition du \cref{t3syn:lem:b2}). Le repère de B2 (ii) est une réponse par délégation du 2026-10-17, réversible : la meilleure requantification que llama.cpp produit du même fichier, parce que c'est l'outil de référence que Stone utiliserait sans troncons, gratuit et déjà sur la machine.
+
+\subsection{Les pistes que les mesures désignent déjà}
+
+Aucune des pistes suivantes n'est dans les lots ; chacune porte ce qui est mesuré et la mesure qui la jugerait.
+
+\paragraph{La garde tropicale.} La seule piste que les mesures désignent : les bascules dominent la KL entre deux calculs proches, et la marge prédit la bascule (médiane 0,083 sur toutes les paires, 0,0095 sur celles qui basculent). La construction qu'elle suggère : en mode rapide, après les experts rapides de la couche $\ell$, regarder la marge du routeur de la couche $\ell + 1$, et refaire la couche $\ell$ en exact pour les positions sous un seuil $\tau$. Le coût est la part des cellules sous $\tau$, le gain la part des bascules évitées ; les deux se lisent sur les journaux de routage du lot R, sans passe neuve du modèle. Le seuil de décision, déclaré dans le cahier avant toute lecture : la garde vaut d'être construite si elle attrape au moins 80\,\% des bascules pour au plus 10\,\% des cellules. Le \cref{t3tro:ch} la juge.
+
+\paragraph{L'expert pont.} Servir un expert manquant par son meilleur paralogue laisse 79, 84, 66 et 33\,\% de l'énergie de sa sortie en erreur (couches 0, 8, 16, 23), et \barre{substituer n'est jamais meilleur que retirer l'expert} ; corrigé au \cref{t3dup:ch} : retirer l'expert vaut mieux que le substituer aux couches 0 et 8 ; aux couches 16 et 23, le meilleur paralogue fait un peu mieux que le retrait pour la majorité des experts, d'au plus un demi-point d'erreur de couche en moyenne (\fichier{genome/duplication.md} §\,0, point 6, et \fichier{genome/05-synthese.md} §\,3.2 barrent la même phrase). La barre d'un pont n'est donc pas l'expert absent, c'est le retrait. Rien n'en est mesuré au-delà.
+
+\paragraph{La fractale.} Les données de la ronde ne donnaient la part d'énergie qu'à sept rangs par tenseur : trop peu pour une pente. La littérature des spectres à queue lourde \parencite{martin2018implicit} donne l'hypothèse à mesurer \litt ; le \cref{t3spe:ch} la mesure. La compression par systèmes de fonctions itérées a le pronostic de la graine, pour la même raison (propriété (a)). Une courbe de Hilbert pour ranger les experts sur le disque ne compte presque pas à la granularité d'un tronçon de 12 Mo \calc~sur \mes.
+
+% =============================================================================================================
+\section{Ce qui pourrait être faux}\label{t3syn:sec:faux}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{Trois protocoles, un seul axe.} Les rapports de KL rapprochent des passes qui n'ont ni les mêmes experts remplacés, ni les mêmes fenêtres, ni le même nombre de positions (765 à \num{2550}). Un rapport n'est pas invariant au nombre d'experts remplacés : la KL croît avec lui, et pas linéairement, à cause des bascules. La \cref{fig:t3-synth-frontiere} les montre côte à côte ; elle ne les fond pas en une courbe, et elle garde 32 experts sur 768 pour P1 (réserve R3).
+\item \textbf{Les débits n'ont pas tous le même estimateur} (codec réel, $H_0$ sans échelles, comptabilité du brin). Entre protocoles, un écart de 0,04 bit peut venir de l'estimateur seul.
+\item \textbf{L'incertitude par fenêtres} repose sur 10 blocs, 9 degrés de liberté. Le verdict de la mutation synonyme (2,9\,$\sigma$) tient par les deux estimateurs ; une autre découpe pourrait l'élargir.
+\item \textbf{La lecture « part lisse et queue de bascules »} est une hypothèse de travail (\cref{t3syn:hyp:bascule}). Elle s'appuie sur des mesures directes entre deux moteurs exacts et sur les quantiles de la ronde ; elle n'a pas été mesurée pour les mécanismes de la ronde par le routage imposé. La \cref{t3syn:prop:kl2}, elle, est un calcul exact ; ce qui est hypothèse, c'est la séparation de la KL observée en ses deux termes.
+\item \textbf{$S^{*}$ égal en KL} repose sur la passe K10, déclarée avant par l'équipe du génome, mais que la synthèse a d'abord recopiée à la main d'un fichier non encore commité ; \fichier{frontiere.py}~\texttt{-{}-k10} la tire maintenant du journal commité, et ses chiffres sont ceux de ce chapitre. L'explication de sa queue (pondération diagonale dans le domaine tourné) est une hypothèse qu'aucune passe ne départage.
+\item \textbf{La \cref{t3syn:prop:marge}} précise une phrase de la synthèse ; la marge des journaux est en unités de logit, et la distance euclidienne n'en est une image fidèle que si les normes $\|w_i - w_j\|$ varient peu d'une paire à l'autre, ce qui n'est pas mesuré ici.
+\item \textbf{La \cref{fig:t3-lat-etats}} est une projection : 21,0\,\% de la variance pour l'ACP ; la t-SNE garde les voisinages ($T = 0{,}947$), pas les distances. Elle colore par l'expert premier, et la marge des quatre experts servis n'y marque pas les bords : elle illustre la géométrie du routeur, elle ne prouve pas que les bascules d'un ensemble de quatre s'y voient.
+\item \textbf{Le contexte de colonne} n'est mesuré que sur 12 tenseurs du 20b (4 couches) ; sur le 120b et les autres couches, son gain peut être plus grand ou nul. Le chiffre de gate de la couche 0 dépend de la référence (0,1416 contre le flux octet, 0,1454 contre le flux demi-octet) ; la synthèse les mêlait.
+\item \textbf{La \cref{t3syn:prop:a1}} couvre le noyau tel qu'il est au commit \texttt{000cef9} ; elle repose sur des grandeurs doublées entières et sur une échelle appliquée hors de l'accumulation (la grille de l'argument (0)). Un noyau qui multiplierait l'échelle dans l'accumulation, ou une GEMM sur des poids déquantifiés partant d'un $-0$, sortirait de la démonstration ; l'invariant de l'architecture le dit.
+\item \textbf{La limite de mémoire partagée} (99 Kio sur option, 48 Kio en statique) est lue dans la documentation de NVIDIA, pas relevée sur la carte ; la LUT compacte tient sous 48 Kio, ce qui rend la spécification indépendante de ce chiffre.
+\item \textbf{Le \cref{t3syn:lem:b2}} suppose $\alpha$ indépendant de la position et $\rho$ constant ; il compte des octets, pas le temps ; ses chiffres de $\rho$ sont ceux d'un routage indépendant, pas mesurés au cache.
+\item \textbf{Toutes les mesures de la ronde sont sur wiki.test}, calibration et évaluation sur des fenêtres disjointes du même corpus ; sur du code ou du dialogue, le gain de la mutation synonyme peut baisser.
+\item \textbf{Les chiffres du lot R} cités ici (bascules, 88\,\%) sont lus dans la synthèse, qui les cite ; ce chapitre ne les a pas refaits depuis les journaux du Tome~II.
+\end{itemize}
+\end{faux}

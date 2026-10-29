@@ -1,0 +1,404 @@
+% Tome~II, chapitre « Résultats du jalon J1 » (rédacteur « résultats »).
+% Chiffres : memoire/figures/tome2/donnees/res-chiffres.json (recalculés par
+% memoire/outils/tome2_resultats.py depuis les CSV et journaux commités des lots, de l'épreuve et
+% de la ronde) ; chaque tableau nomme son fichier source.
+\ifdefined\GrapheResVitesse\else\input{\Racine/figures/tome2/resultats-figures}\fi
+
+\chapter{Résultats du jalon J1}\label{ch:t2-resultats}
+
+\begin{origine}
+\textbf{Au départ}, un programme construit par cinq lots, chacun prouvé seul par son témoin, et douze critères déclarés le 15 octobre 2026 avant la première ligne de code (\fichier{decisions/ARCHITECTURE.md}, § 7). Le Tome~I avait prédit ce que ce programme pourrait faire ; il ne l'avait jamais vu tourner.
+\textbf{Ce chapitre établit} ce que troncons fait vraiment sur la machine de Stone, avec gpt-oss-120b : des logits identiques au bit entre le fichier codé et le fichier brut sur \num{5120} pas ; \SI{384}{\Mo} de mémoire de pointe pour un modèle de \SI{63.4}{\Go}, la même à \SI{3.7}{\Mo} près que pour un modèle cinq fois plus petit ; \num{2.18} jetons par seconde en génération, \num{2.22} fois la meilleure base llama.cpp mesurée une fois la garde d'intégrité comprise ; et, avec un cache KV en f32, des sorties égales aux mathématiques exactes du modèle au format près. Chaque chiffre qu'une mesure plus récente a démenti est barré à sa place, avec ce qui l'a remplacé.
+\textbf{Il reste} les décisions de l'arbitre que la ronde de corrections lui a remises (cache KV par défaut, critères C4, C7 et C8), et ce que l'épreuve n'a pas pu refaire (\cref{ch:t2-epreuve}).
+Sources : \fichier{moteur/O-pour-le-memoire.md} (parties II et III), \fichier{moteur/REPRISE-O.md}, \fichier{mesures/epreuve-J1.md}, \fichier{mesures/gpt-oss.md}, et les CSV et journaux de \fichier{mesures/moteur/O/} et \fichier{mesures/moteur/epreuve-J1/}.
+\end{origine}
+
+\section{Ce qui se mesure, et comment}\label{t2res-sec:protocole}
+
+\paragraph{Le modèle et la tâche.} gpt-oss-120b d'OpenAI dans son format d'origine MXFP4 : un fichier GGUF de \num{63387346208} octets, 36 couches, 128 experts par couche dont 4 servent chaque jeton, un expert de \SI{13.25}{\Mo} ; 4 608 experts en tout, \SI{61.07}{\Go}, et \SI{1.69}{\Go} de poids lus à chaque jeton (attention, routeurs, tête de sortie) \mes~(\fichier{mesures/gpt-oss.md}, § 1). Son jumeau de développement, gpt-oss-20b (\num{12109566624} octets, 24 couches, 32 experts), est déjà plus gros que la carte. La tâche de vitesse est fixe depuis le Tome~I : l'invite wikitext de 708 jetons (SHA-256 \texttt{eadbe87e}…), puis 256 jetons gloutons, en mode A0 (aucun cache d'experts en RAM : tout défaut est lu du disque).
+
+\paragraph{Les séances.} Six séances ont produit les chiffres de ce chapitre ; toutes sur secteur, relevé avant et après chaque passe (\texttt{Win32\_Battery}, état 2), carte libre et verrou de la carte pris (\cref{t2res-tab:seances}).
+
+\begin{table}[ht]
+\centering\small
+\caption[Les séances de mesure du jalon J1]{Les séances de mesure du jalon J1, de l'épreuve et de la ronde de corrections.}
+\label{t2res-tab:seances}
+\begin{tabularx}{\linewidth}{@{}p{0.2\linewidth}p{0.17\linewidth}X@{}}
+\toprule
+Séance & Date & Contenu et fichier \\
+\midrule
+O4 \texttt{s1} (lot O) & 15 oct., 22 h 40--23 h 03 & A120 D Y20 Y20 D A120 : C5, C7, C8, C10 ; \fichier{mesures/moteur/O/csv/o4-2026-10-15-s1-passes.csv} \\
+O3 120b (lot O) & 15--16 oct., 23 h 03--00 h 53 & C3, C11, compte du cache sur les 10 fenêtres \\
+J1+ \texttt{s2}, \texttt{s3} (lot O) & 16 oct., 00 h 54--02 h 08 & préremplissage par flux, préchargement, lectures de 12\,Mio ; \fichier{csv/o-jetons-s.csv} \\
+épreuve \texttt{s1} & 16 oct., à partir de 02 h 27 & 12 passes en palindrome : troncons, base à 6 et 10 fils, 20b, cache tiède ; \fichier{mesures/moteur/epreuve-J1/csv/s1-2026-10-16-passes.csv} \\
+ronde, vitesse & 16 oct., 06 h 41--07 h 19 & garde, sans garde, KV f32, en ABBA ; \fichier{mesures/moteur/O/corrections/csv/vitesse-2026-10-16-passes.csv} \\
+ronde, base & 16 oct., 08 h 13--10 h 06 & llama.cpp balayé : 5 configurations en palindrome ; \fichier{corrections/csv/base-2026-10-16-passes.csv} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{La règle de décision.} Elle est celle du Tome~I, déclarée avant toute mesure (étude 06, § 7.5) et reprise telle quelle par l'architecture (§ 7.2).
+
+\begin{definition}[Bruit, différence réelle]\label{t2res-def:reel}
+Soit une configuration mesurée par deux passes $X_1, X_2$ d'un même palindrome. Son \emph{bruit} est $\beta = |X_1 - X_2| / \bar X$ ; quand une configuration a plusieurs paires, son bruit est le plus grand bruit d'une paire. Une configuration $B$ diffère \emph{réellement} d'une configuration $A$ si
+\[
+\Bigl|\frac{\bar X_B}{\bar X_A} - 1\Bigr| \;>\; 2\,\max(\beta_A, \beta_B) + 3\,\%.
+\]
+\end{definition}
+
+Le bruit d'un programme contre lui-même sert d'étalon : une différence plus petite que deux fois l'écart d'un programme à lui-même n'est pas une différence. La marge de 3\,\% protège contre une série trop courte pour voir son propre bruit. L'épreuve l'écrivait « deux fois le bruit et 3\,\% » ; les verdicts de la ronde l'appliquent sous la forme additive ci-dessus, plus sévère. Aucun verdict de ce chapitre ne change d'une lecture à l'autre \calc~(\fichier{memoire/outils/tome2\_resultats.py}).
+
+\paragraph{Un second chemin pour chaque chiffre.} Les nombres de ce chapitre ne sont pas recopiés des rapports : un outil commité (\fichier{memoire/outils/tome2\_resultats.py}) relit les passes elles-mêmes, recalcule moyennes, bruits, rapports, intervalles et planchers, les compare aux verdicts publiés par les lots et s'arrête en erreur au premier écart. Il en a trouvé un, qui n'était pas une faute des lots mais une ambiguïté de lecture (le coût de la garde, \cref{t2res-sec:garde}).
+
+\section{Les critères, d'un coup d'œil}\label{t2res-sec:criteres}
+
+\Cref{t2res-tab:criteres} suit chaque critère de J1 à travers les trois juges successifs : le lot qui l'a mesuré, l'épreuve indépendante qui l'a refait, et la ronde de corrections qui a répondu à l'épreuve.
+
+\begin{table}[p]
+\centering\small
+\caption[Le jalon J1, critère par critère]{Le jalon J1, critère par critère (gpt-oss-120b sauf mention). Les seuils sont ceux de l'architecture, § 7.1, déclarés le 15 octobre avant toute construction.}
+\label{t2res-tab:criteres}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.11\linewidth}>{\raggedright\arraybackslash}p{0.17\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.12\linewidth}@{}}
+\toprule
+Critère & Seuil & Lot (15 oct.) & Épreuve et ronde (16 oct.) & Verdict \\
+\midrule
+C1 format & 0 faux sur 4 608 & 0 faux (lot F, deux chemins) & 40 tronçons tirés + 13 nommés, 0 faux, par un 3\textsuperscript{e} décodeur & \textbf{tient} \\
+C2 transport & 0 écart ; 100\,\% des corruptions vues & 0 sur 4 608 (lot E) & 3 394 décodages égaux à l'empreinte ; en production, flux bruts non gardés (M1), puis garde construite & \textbf{tient} (garde) \\
+C3 exact & 0 bit sur \num{5120} pas & 0 (20b et 120b) & 0, autre construction, flux = boucle octet pour octet & \textbf{tient} \\
+C4 juste & KL et premier choix $\ge$ llama.cpp & 20b : \num{0.00368} contre \num{0.0226} & 120b : \num{0.00308} contre \num{0.0607} ; KV f32 : au plancher du format & \textbf{tient} \\
+C5 vitesse & $\ge 0{,}8 \times$ plancher en série & \num{2.186} et \num{2.182} $\ge$ \num{1.505} & \numrange{1.70}{2.18} $\ge$ \numrange{1.43}{1.52}, garde comprise & \textbf{tient} \\
+C6 (J1+) & $> 2\beta + 3\,\%$ sur la meilleure base & \barre{$\times 3{,}85$} & \barre{$\times 2{,}79$} ; $\times 2{,}22$ contre \mbox{\texttt{fit -t 16}} & \textbf{tient} \\
+C7 plafond & $\le \SI{1.9}{\Go}$ & \SI{384.2}{\Mo} & \SI{384.4}{\Mo} ; \SI{386.8}{\Mo} garde comprise & \textbf{tient} \\
+C7 écart & $\le 2\beta + \SI{0.5}{\Mo}$ & \SI{3.70}{\Mo} & \SI{2.94}{\Mo} ; borne à termes nommés \SI{2.05}{\Mo} & \textbf{tombe} \\
+C8 octets & PDH $\le$ repos $\times$ durée + \SI{100}{\Mo} & tombe sur 1 passe sur 4 & PDH tombe ; compteurs du processus : \SI{19.92}{\Mo} constants & instrument à changer \\
+C9 rendement (J1+) & publié, pas jugé & non calculé & \num{0.84} (J1) ; \numrange{0.64}{0.82} (ronde), calculé par la reprise du jugement & publié \\
+C10 VRAM & $\le \SI{7279}{\Mio}$ & \numrange{6520}{6537} & \num{6574} ; \num{6811} (ronde) & \textbf{tient} \\
+C11 sans perte & PPL égales & \num{422.20558522791305} & la même, codé et brut & \textbf{tient} \\
+C12 texte & 256 jetons égaux & \texttt{e4c6dbac}… sur 17 passes & le même ; mais 1\textsuperscript{er} jeton $\ne$ vérité f64 (KV f16) & \textbf{tient} \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{moteur/O-pour-le-memoire.md} § 8 et § 14, \fichier{mesures/epreuve-J1.md} § 3.1, \fichier{mesures/moteur/O/corrections/journaux/verdicts-*-2026-10-16.json}.}
+\end{table}
+
+\begin{enbref}
+\barre{Dix critères tiennent sur douze} : c'étaient dix lignes sur douze, C7 y comptant deux fois et C9 manquant. Des douze critères déclarés, onze sont jugés et neuf tiennent entiers ; C9, le rendement physique, est publié sans être jugé (0,84 pour J1, \cref{t2res-sec:c9}). C7 tient sur son plafond, avec une marge de cinq, mais son terme de tolérance (\SI{0.5}{\Mo}) était mal posé : la mémoire du moteur gagne \SIrange{2.9}{3.7}{\Mo} quand le modèle grossit de \SI{51}{\Go}, et la borne qui nomme chaque terme n'en explique que \SI{2.05}{\Mo}. C8 mesurait la machine plutôt que le moteur ; l'instrument du processus montre que le moteur compte ses octets à \SI{20}{\Mo} près. Les deux critères attendent une décision de l'arbitre. Aucune des deux chutes ne touche la thèse : la mémoire ne suit pas la taille du modèle.
+\end{enbref}
+
+\section{Exactitude : codé égale brut, au bit, sur 5 120 pas}\label{t2res-sec:exactitude}
+
+\paragraph{Ce que l'on compare.} Le lot F écrit deux fichiers du même modèle : le \texttt{.trc} \emph{codé}, dont chaque expert est compressé sans perte par le rANS à table par voie, et le \texttt{.trc} \emph{brut}, aux mêmes octets d'experts recopiés tels quels. Le moteur lit l'un en décodant sur la carte, l'autre en copiant. Si le codage est vraiment sans perte et si le moteur est déterministe, les deux doivent rendre les mêmes logits, au bit près ; la moindre différence serait une faute.
+
+\begin{proposition}[C3 par construction ; le cache n'entre pas dans le calcul]\label{t2res-prop:c3}
+Si les fichiers codé et brut donnent, pour chaque expert, un emplacement de VRAM égal octet pour octet, le moteur rend les mêmes logits au bit sur toute suite de jetons, quels que soient le nombre d'emplacements, la politique du cache et l'ordre d'arrivée des lectures.
+\end{proposition}
+\begin{proof}
+Les produits d'un expert lisent son emplacement et l'activation $h_2$. Au moment de la lecture, l'emplacement porte les octets décodés de cet expert : l'ordre des trois flux de la carte l'assure (lemme~4 du lot O, \fichier{moteur/O-pour-le-memoire.md} § 6.1), et ces octets sont égaux dans les deux fichiers par hypothèse (C1 pour le codé, une copie pour le brut, C2 pour le transport). Le cache choisit seulement \emph{où} se trouve un expert, jamais \emph{quels octets} il porte ; la somme pondérée des $k$ experts se fait dans l'ordre $i = 0, \dots, k-1$ du routeur, pas dans celui des emplacements. Les autres entrées (poids résidents, cache KV) ne dépendent pas du fichier d'experts. Chaque noyau étant une fonction déterministe des octets qu'il lit (aucune addition atomique flottante, réductions à arbre fixe), les logits sont égaux.
+\end{proof}
+
+\paragraph{Comment comparer \num{5120} distributions sans les garder.} Une distribution de sortie compte \num{201088} logits f32 : les garder pour les 10 fenêtres de 512 positions demanderait $\num{5120} \times \num{201088} \times 4 = \SI{4.12}{\Go}$ \calc. Le moteur garde à la place l'empreinte de 64 bits (préfixe de SHA-256) des logits de chaque pas, soit \num{40960} octets ; deux pas égaux au bit ont la même empreinte, deux pas différents en ont une autre sauf collision, de probabilité $2^{-64}$ par paire. Un second chemin, indépendant de l'empreinte, compare les fichiers \texttt{.kld} écrits par les deux passes octet pour octet.
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[C3 et C11 : codé contre brut]{C3 et C11 : le fichier codé contre le fichier brut, sur les 10 fenêtres de 512 jetons (\num{5120} pas) \mes.}
+\label{t2res-tab:c3}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.25\linewidth}l>{\raggedright\arraybackslash}Xll@{}}
+\toprule
+& Pas différents & \texttt{.kld} & PPL des positions notées & Emplacements \\
+\midrule
+20b, lot O & 0 / \num{5120} & égaux octet pour octet & \num{461.978277060145} (les deux) & 362 et 361 \\
+120b, lot O (boucle de pas) & 0 / \num{5120} & SHA-256 \texttt{5b212fe9}… (les deux) & \num{422.20558522791305} (les deux) & 326 et 325 \\
+120b, épreuve (flux, autre construction) & 0 / \num{5120} & \texttt{5b212fe9}…, $=$ lot O & \num{422.20558522791305} & --- \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{mesures/moteur/O/journaux/o3/}, \fichier{mesures/moteur/epreuve-J1/journaux/c3-120b-10fenetres.json}.}
+\end{table}
+
+Trois faits rendent cette égalité plus forte qu'un simple « 0 écart ». (i) Les passes codée et brute n'avaient pas le même nombre d'emplacements (362 et 361 sur le 20b, 326 et 325 sur le 120b, parce que les tampons d'arrivée du brut sont plus grands) : elles n'ont donc pas servi les mêmes défauts dans le même ordre, et la partie « quel que soit le cache » de la \cref{t2res-prop:c3} est observée, pas seulement déduite. (ii) L'épreuve a refait les deux passes depuis un clone propre, avec sa propre construction, par le préremplissage par flux (une couche à la fois pour toutes les positions) au lieu de la boucle de pas (un jeton à la fois pour toutes les couches) : ses \texttt{.kld} égalent ceux du lot O octet pour octet. Deux constructions, deux ordres de calcul, deux jours, un seul résultat au bit. (iii) Le texte glouton de 256 jetons (C12) a la même empreinte, \texttt{e4c6dbacb63a}…, sur les 17 passes du lot O (codé, brut, flux, lectures de 12\,Mio, préchargement), sur les quatre passes de l'épreuve et sur les six passes à KV f16 de la ronde, garde comprise ou non.
+
+\section{Mémoire : 384 Mo pour 63 Go}\label{t2res-sec:memoire}
+
+\paragraph{Le chiffre et sa pente.} En mode A0, l'ensemble de travail de pointe du processus (mémoire épinglée comprise, lu par le système sur la poignée après la sortie) vaut \SI{384.19}{\Mo} pour gpt-oss-120b et \SI{380.50}{\Mo} pour gpt-oss-20b \mes~(\fichier{o4-2026-10-15-s1-passes.csv}). llama.cpp, dans sa meilleure configuration publiée, tient \SI{10.93}{\Go} et \SI{9.42}{\Go} \mes~(\fichier{mesures/base-gpt-oss/*/resume.csv}). Sur le 120b, la base de C6, \texttt{fit -t 16}, balayée par la ronde, tient davantage : \num{11355} et \num{11483}\,Mo, \SI{11.42}{\Go} en moyenne \mes~(\fichier{base-2026-10-16-passes.csv}, colonne \texttt{pointe\_et\_mo}). Les pentes ci-dessous gardent la base publiée, mesurée sur les deux modèles ; elle est la plus favorable à llama.cpp. La \cref{t2res-fig:memoire} trace les deux droites.
+
+\begin{figure}[ht]
+\centering
+\GrapheResMemoire
+\caption[Mémoire de pointe contre taille du modèle]{Mémoire de pointe contre taille du fichier du modèle (échelle logarithmique). troncons gagne \SI{3.7}{\Mo} quand le modèle gagne \SI{51.3}{\Go} ; llama.cpp en gagne \SI{1.5}{\Go} et approche la RAM de la machine. Le plafond déclaré de J1 (C7) est en tirets.}
+\label{t2res-fig:memoire}
+\sourcefig{\fichier{memoire/figures/tome2/donnees/res-memoire.csv}, tiré de \fichier{o4-2026-10-15-s1-passes.csv} et \fichier{mesures/base-gpt-oss/\{20b,120b\}/resume.csv}.}
+\end{figure}
+
+Posons les pentes \calc :
+\begin{align*}
+\frac{\Delta M_{\text{troncons}}}{\Delta P} &= \frac{\num{384192512} - \num{380502016}}{\num{63387346208} - \num{12109566624}} = \frac{\num{3690496}}{\num{51277779584}} \approx \num{7.2e-5},\\[2pt]
+\frac{\Delta M_{\text{llama}}}{\Delta P} &= \frac{(\num{10.9328} - \num{9.4185}) \times 10^{9}}{\num{51277779584}} \approx \num{0.0295}.
+\end{align*}
+Un octet de plus dans le modèle coûte à troncons \num{7.2e-5} octet de mémoire, à llama.cpp \num{0.03}, quatre cents fois plus. Le modèle du 120b est \num{165} fois plus gros que la fenêtre de troncons, et llama.cpp tient \num{28.5} fois plus de mémoire pour le servir (\num{29.7} fois dans la configuration de C6). C'est, mesurée, la lecture de « sans RAM ni rien » que le Tome~I avait retenue : \emph{la mémoire occupée ne dépend plus de la taille du modèle}.
+
+\paragraph{De quoi est faite la fenêtre.} La proposition A.1 du partisan de A écrivait la mémoire de l'hôte du moteur
+\[
+M = M_{\text{fixe}} + d \cdot k \cdot \ell_{\max} + M_{\text{tiède}} + M_{\text{répertoire}},
+\]
+où $d \cdot k = 12$ tampons d'arrivée épinglés de la taille $\ell_{\max}$ du plus grand tronçon, $M_{\text{tiède}} = 0$ en mode A0, et seul le répertoire croît avec le modèle. Le diagnostic du lot O, qui relève l'ensemble de travail après chaque étape de l'ouverture, a montré que la proposition oubliait des termes (\cref{t2res-tab:termes}).
+
+\begin{table}[ht]
+\centering\small
+\caption[Les termes de la fenêtre qui croissent avec le modèle]{Les termes de la mémoire du moteur qui croissent avec le modèle : comptes du 120b moins ceux du 20b, et coûts unitaires mesurés \calc~sur \mes.}
+\label{t2res-tab:termes}
+\begin{tabular}{@{}p{0.42\linewidth}lr@{}}
+\toprule
+Terme & $\Delta$ compte $\times$ coût unitaire & $\Delta$ octets \\
+\midrule
+fenêtre : $d \cdot k$ tampons à la taille du plus grand tronçon & $12 \times (\num{12251136} - \num{12144640})$ & \num{1277952} \\
+événements horodatés (4 par défaut possible, 2 par couche) & $216 \times {}$\SIrange{657}{660}{\octet} & $\approx \num{142000}$ \\
+allocations de carte (résidents, caches KV) & $180 \times {\le}\,\SI{290}{\octet}$ & $\le \num{52000}$ \\
+répertoire tenu deux fois (fichier, tailles du cache) & $2 \times \num{3840} \times \SI{56}{\octet}$ & \num{430080} \\
+table des résidents, tables rANS & $156 \times 88$ ; $144 \times {\approx}\,560$ & $\approx \num{94000}$ \\
+trace de routage (256 pas) & \SI{96}{\octet} par pas & $\le \num{49000}$ \\
+\midrule
+somme des termes nommés & & $\approx \SI{2.05}{\Mo}$ \\
+mesuré (épreuve ; lot O) & & \SI{2.94}{\Mo} ; \SIrange{3.30}{3.70}{\Mo} \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{moteur/O-pour-le-memoire.md} § 13.6, \fichier{mesures/moteur/O/corrections/journaux/m4-couts-unitaires.jsonl}.}
+\end{table}
+
+Le premier terme disparaît si la fenêtre a une taille fixe : avec des lectures de \num{12582912} octets pour les deux modèles, l'écart 120b $-$ 20b tombe de \SI{3.30}{\Mo} à \SI{0.99}{\Mo} \mes. Les autres sont proportionnels au nombre d'experts $L \cdot E$ et restent sous \SI{1}{\Mo} jusqu'à environ \num{10000} experts \calc. Il reste \SI{0.9}{\Mo} que ces termes n'expliquent pas (granularité des pages des petites allocations, tas) : la borne à termes nommés n'est pas fermée, et même avec elle, $2{,}05 + 2 \times 0{,}14 + 0{,}5 = \SI{2.83}{\Mo}$ laisse la mesure de l'épreuve tomber de \SI{0.11}{\Mo}. Le verdict de C7-écart reste donc « tombe » ; ce qui était faux, c'est le terme de tolérance que l'architecture avait posé, pas la propriété qu'il voulait juger.
+
+\paragraph{Ce que la machine perd, et la mémoire engagée.} Deux mesures neuves de l'épreuve complètent C7 (\cref{t2e-fig:seance} au chapitre suivant). La mémoire physique disponible de \emph{toute} la machine baisse de \SIrange{0.46}{0.73}{\Go} pendant une passe de troncons, contre \SIrange{6.3}{11.6}{\Go} pendant une passe de llama.cpp \mes. En revanche, la mémoire privée \emph{engagée} de troncons vaut \SI{6.93}{\Go} : c'est l'ordre de ses allocations de VRAM et de sa mémoire épinglée, réservées contre la limite d'engagement de Windows (RAM plus fichier d'échange) sans occuper de RAM physique. Elle n'est pas jugée ; elle est publiée (constat m3).
+
+\paragraph{La fenêtre est visible.} Donner \SI{1}{\Go} de cache tiède au moteur fait monter sa pointe de \SI{994.2}{\Mo} \mes : l'instrument voit bien la fenêtre, et C7 ne mesure pas un plancher qu'il ne saurait pas quitter.
+
+\paragraph{VRAM (C10).} La pointe relevée par \texttt{nvidia-smi} toutes les \SI{250}{\milli\second} vaut \numrange{6520}{6537}\,Mio au lot O, \num{6574} à l'épreuve, \num{6811} dans la séance de la ronde (même occupation par le moteur, \num{6317303600} octets ; la différence est ailleurs sur la carte), toujours sous le seuil de \num{7279}\,Mio ($8\,188 - 909$, la VRAM moins ce que l'affichage et les applications de Stone occupent au repos).
+
+\section{Vitesse}\label{t2res-sec:vitesse}
+
+\subsection{Le plancher en série (C5)}\label{t2res-sec:c5}
+
+\paragraph{La formule.} Un jeton servi \emph{sans aucun recouvrement} paierait l'un après l'autre chaque étage de son chemin. Son temps est alors la somme
+\[
+t_{\text{série}} = t_{\text{disque}} + t_{\text{PCIe}} + t_{\text{déc}} + t_{\text{GEMV}} + T_0,
+\]
+avec $t_{\text{disque}}$ les octets de tronçons lus par jeton (compteur du moteur) divisés par le débit d'une passe disque seule de la même séance, $t_{\text{PCIe}}$ et $t_{\text{déc}}$ les temps de carte des copies et des décodages par jeton (événements CUDA du moteur), $t_{\text{GEMV}} = (A + R)/\SI{235}{\Go\per\second}$ avec $A$ les poids résidents lus et $R = k \cdot L$ emplacements d'experts, et $T_0 = \SI{3.5}{\milli\second}$ le coût fixe du Tome~I. C5 exige au moins $0{,}8 / t_{\text{série}}$ jetons par seconde ; $0{,}8 = 1 - 2 \times 10\,\%$, le bruit d'une lecture de 4\,Mio en profondeur 4 mesuré au Tome~I.
+
+\paragraph{Le calcul, pas à pas} (séance O4, passe 1, \mes~pour chaque terme) :
+\begin{align*}
+t_{\text{disque}} &= \frac{\SI{0.7073}{\Go}}{\SI{1.848}{\Go\per\second}} = \SI{382.7}{\milli\second}, &
+t_{\text{PCIe}} &= 59 \text{ défauts} \times \SI{1.28}{\milli\second} = \SI{75.8}{\milli\second}, \\
+t_{\text{déc}} &= 59 \times \SI{0.92}{\milli\second} = \SI{54.2}{\milli\second}, &
+t_{\text{GEMV}} &= \frac{\SI{1.686}{\Go} + 144 \times \SI{13.25}{\Mo}}{\SI{235}{\Go\per\second}} = \SI{15.3}{\milli\second},
+\end{align*}
+d'où $t_{\text{série}} = 382{,}7 + 75{,}8 + 54{,}2 + 15{,}3 + 3{,}5 = \SI{531.5}{\milli\second}$, un plancher de \num{1.881} jeton/s et un seuil de \num{1.505}. Le moteur mesure \SI{457}{\milli\second} par jeton, \textbf{\num{2.186} jetons/s} : il passe \emph{sous} la somme, parce que les copies et les décodages d'une couche recouvrent les lectures des défauts suivants de la même couche. La \cref{t2res-fig:plancher} refait ce calcul pour chaque passe de la ronde.
+
+\begin{figure}[ht]
+\centering
+\GrapheResPlancher
+\caption[Le plancher en série, étage par étage]{Le plancher en série, étage par étage (barres empilées), contre le temps mesuré par jeton (losanges), gpt-oss-120b en mode A0 \calc~sur \mes. Le disque prend \SIrange{68}{72}{\percent} de la somme. Le losange passe sous la barre dès que la file du disque recouvre la carte ; la passe 02 de la ronde, au-dessus, est la plus lente de la séance (\num{1.70} jeton/s), garde comprise.}
+\label{t2res-fig:plancher}
+\sourcefig{\fichier{memoire/figures/tome2/donnees/res-plancher.csv}, tiré de \fichier{o4-2026-10-15-s1-passes.csv} et \fichier{vitesse-2026-10-16-passes.csv} ; chaque plancher recalculé égale celui du journal à $10^{-6}$ près.}
+\end{figure}
+
+\paragraph{Le rendement physique (C9).}\label{t2res-sec:c9} L'architecture (§\,7.2) déclarait un critère publié et non jugé : le débit mesuré divisé par le plafond calculé au $h$ mesuré. Ni le lot O ni l'épreuve ne l'avaient calculé ; la reprise du jugement le fait ici, sur les termes du plancher \calc~sur \mes. Le plafond est l'équation du jeton du Tome~I sans spéculation ni latence restante ($\mathcal E = 1$, $t_{\text{lat}} = 0$), tous les étages recouverts :
+\[
+t_{\text{plafond}} = \max\big(t_{\text{disque}},\ t_{\text{PCIe}},\ t_{\text{déc}} + t_{\text{GEMV}}\big) + T_0 .
+\]
+Passe 1 de J1 : $\max(382{,}7 ;\ 75{,}8 ;\ 54{,}2 + 15{,}3) + 3{,}5 = \SI{386.2}{\milli\second}$, un plafond de \num{2.589} jetons/s ; mesuré \SI{457.4}{\milli\second}, d'où un rendement de $386{,}2 / 457{,}4 = \mathbf{0{,}84}$ (passe 6 : 0,84). Sur les six passes à KV f16 de la ronde, de \num{0.64} (passe 02, la plus lente) à \num{0.82} (passe 03). Le moteur tient donc 84\,\% du débit qu'il aurait si le lien et la carte se cachaient entièrement derrière le disque ; les 16\,\% qui manquent sont le terme $t_{\text{lat}}$ de l'équation, la latence que la file courte du disque laisse voir, celle que le préchargement visait (\cref{t2res-sec:j1plus}). Refait par \fichier{memoire/outils/tome2\_reprise.py} depuis \fichier{res-plancher.csv}.
+
+\paragraph{Ce qui limite J1, et ce que le Tome~I avait prédit.} Le disque lit en moyenne \num{1.6} tronçon par couche (59 défauts sur 36 couches) : la file a rarement ses quatre requêtes en vol, et le moteur ne tire du disque que \SI{1.55}{\Go\per\second} utiles quand une passe disque seule à profondeur 4 en tire \num{1.85} \mes. Le chronogramme d'une couche le montre : quatre lectures soumises à \numlist{1.28;1.96;2.68;3.18}\,ms finissent à \numlist{6.86;9.81;16.14;21.17}\,ms, servies l'une après l'autre (\fichier{mesures/moteur/O/csv/chronogramme-120b.csv}). Le Tome~I avait calé un scénario de localité « LRU » sur un seul point publié ; il y prédisait, pour un cache de \SI{4.8}{\Go} en VRAM, un succès $h_v = 0{,}590$ et, en mode A0, un repère de vitesse de \num{2.15} jetons/s (les 326 emplacements de J1 font \SI{4.3}{\Go}). Le moteur compte $h = 0{,}591$ sur ses 326 emplacements et mesure \num{2.18} \mes. La concordance est à prendre pour ce qu'elle est : un scénario calé sur un point, que la mesure de localité du 20b avait déjà contredit dans sa forme, tombe juste au point de fonctionnement de J1.
+
+\subsection{La base, et l'histoire de ses chiffres}\label{t2res-sec:base}
+
+C6 compare troncons à la \emph{meilleure} configuration mesurée de llama.cpp sur le même modèle, la même invite et les mêmes 256 jetons. Le chiffre de la base a changé deux fois ; les deux premiers rapports sont barrés là où ils étaient écrits, et rassemblés ici.
+
+\begin{enumerate}
+\item \textbf{15 octobre} (\fichier{mesures/gpt-oss.md}, § 3.2) : trois configurations, toutes à 6 fils ; la meilleure, \texttt{fit}, fait \num{0.568} jeton/s. Contre le J1 du lot O : \barre{$\times 3{,}85$}.
+\item \textbf{16 octobre, épreuve} : le juge ajoute une configuration de son choix, \texttt{fit -t 10}, par un argument déclaré d'avance (sous \texttt{mmap}, chaque fil en faute de page est une lecture en vol) : \num{0.702} contre \num{0.627} à 6 fils dans la même séance, écart réel. Contre troncons : \barre{$\times 2{,}79$ à $2{,}89$}.
+\item \textbf{16 octobre, ronde} : la base est balayée (\cref{t2res-tab:base}). La meilleure est \texttt{fit -t 16}, \textbf{\num{0.884} jeton/s}, \num{54}\,\% au-dessus de la base publiée.
+\end{enumerate}
+
+\begin{table}[ht]
+\centering\small
+\caption[La base llama.cpp balayée]{La base llama.cpp b11515 balayée par la ronde (gpt-oss-120b, 256 jetons gloutons ; palindrome t6 t10 t12 t16 m m t16 t12 t10 t6 après une passe d'échauffement jetée) \mes. « m » : \texttt{-ngl 99 --n-cpu-moe 34 --fit off -t 10}.}
+\label{t2res-tab:base}
+\begin{tabular}{@{}lllrrl@{}}
+\toprule
+Configuration & Passes (j/s) & Moyenne & Bruit $\beta$ & Écart de \texttt{t16} & Réel ? (seuil) \\
+\midrule
+\texttt{fit -t 6} (publiée) & \num{0.575} ; \num{0.573} & \num{0.574} & \SI{0.4}{\percent} & $+54{,}0\,\%$ & oui (\SI{10.4}{\percent}) \\
+\texttt{fit -t 10} (épreuve) & \num{0.675} ; \num{0.654} & \num{0.665} & \SI{3.2}{\percent} & $+33{,}0\,\%$ & oui (\SI{10.4}{\percent}) \\
+m (\texttt{--n-cpu-moe 34}) & \num{0.642} ; \num{0.638} & \num{0.640} & \SI{0.6}{\percent} & $+38{,}2\,\%$ & oui (\SI{10.4}{\percent}) \\
+\texttt{fit -t 12} & \num{0.913} ; \num{0.760} & \num{0.836} & \SI{18.3}{\percent} & $+5{,}7\,\%$ & non (\SI{39.6}{\percent}) \\
+\textbf{\mbox{\texttt{fit -t 16}}} & \num{0.900} ; \num{0.867} & \textbf{\num{0.884}} & \SI{3.7}{\percent} & --- & --- \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/moteur/O/corrections/csv/base-2026-10-16-passes.csv}, \fichier{journaux/verdicts-base-2026-10-16.json} ; recalculé par \fichier{tome2\_resultats.py}.}
+\end{table}
+
+\paragraph{Pourquoi le nombre de fils change tout.} llama.cpp projette le fichier en mémoire (\texttt{mmap}) ; un expert absent du cache de pages est lu par fautes de page, et un fil en faute attend sa page avant de continuer. Avec $n$ fils de calcul, il y a donc au plus $n$ lectures en vol. La loi de Little \cite{little1961} relie le débit $X$ d'un système à son nombre moyen de requêtes en vol $N$ et à leur temps de séjour $R$ : $X = N/R$. Tant que le disque n'est pas saturé, $R$ varie peu et le débit croît avec $N$ ; le Tome~I a mesuré cette croissance du débit du disque avec la profondeur de file. De 6 à 16 fils, la base gagne \num{54}\,\% ; de 12 à 16, rien de discernable : le plateau commence. Cette lecture est une hypothèse cohérente avec la mesure, pas une mesure de la profondeur de file elle-même.
+
+\subsection{C6 refait : la garde comprise}\label{t2res-sec:c6}
+
+La ronde a ajouté au moteur une garde d'intégrité (\cref{t2e-sec:garde}) active par défaut. Le chiffre honnête de C6 est donc celui du moteur gardé contre la meilleure base \calc~sur \mes :
+\[
+\frac{\bar X_{\text{garde}}}{\bar X_{\texttt{t16}}} = \frac{(1{,}703 + 1{,}900 + 2{,}126 + 2{,}131)/4}{(0{,}900 + 0{,}867)/2} = \frac{1{,}965}{0{,}884} = \mathbf{2{,}22}.
+\]
+Le bruit de troncons, par la \cref{t2res-def:reel}, est le plus grand bruit d'une paire : \SI{10.97}{\percent} (passes 02 et 05) ; le seuil vaut $2 \times 10{,}97 + 3 = \SI{24.9}{\percent}$ et l'écart, $+122\,\%$, le dépasse de loin. Une lecture plus sévère du bruit, l'étendue des quatre passes gardées (\SI{21.8}{\percent}), porte le seuil à \SI{46.6}{\percent} : C6 tient encore. Sans la garde, le rapport serait $2{,}054 / 0{,}884 = 2{,}32$. La \cref{t2res-fig:vitesse} rassemble toutes les séries.
+
+\begin{figure}[ht]
+\centering
+\GrapheResVitesse
+\caption[Génération : troncons contre llama.cpp]{Génération sur gpt-oss-120b (moyenne, et étendue des passes en barre d'erreur) : troncons en mode A0 dans quatre séances, llama.cpp dans sa base publiée et dans les cinq configurations du balayage de la ronde \mes. Le tiret est la meilleure base mesurée (\texttt{fit -t 16}). La base publiée était la plus lente des configurations balayées.}
+\label{t2res-fig:vitesse}
+\sourcefig{\fichier{memoire/figures/tome2/donnees/res-vitesse-120b.csv}, tiré de \fichier{o4-2026-10-15-s1-passes.csv}, \fichier{s1-2026-10-16-passes.csv}, \fichier{vitesse-2026-10-16-passes.csv}, \fichier{base-2026-10-16-passes.csv} et \fichier{mesures/base-gpt-oss/120b/resume.csv}.}
+\end{figure}
+
+\begin{remarque}[Deux séances, pas une]
+Les passes de troncons et celles de la base balayée viennent de deux séances distinctes de la même matinée (la vitesse entre 06 h 41 et 07 h 19, la base de 08 h 13 à 10 h 06), et le disque de cette machine varie d'une séance à l'autre (de \SIrange{1.51}{1.95}{\Go\per\second} dans la seule séance vitesse ; \SI{20}{\percent} plus lent en séance 2 qu'en séance 1 au lot O, cause non mesurée). Le rapport $\times 2{,}22$ porte donc un bruit entre séances que la règle ne voit pas. Deux garde-fous le bornent : l'épreuve, elle, a mesuré troncons et llama.cpp dans la même séance, et trouvait $\times 2{,}89$ contre \texttt{fit -t 10} (\num{2.03} contre \num{0.702}) ; et l'écart (122\,\%) dépasse de beaucoup toute variation de disque observée. Une série unique, troncons et \texttt{fit -t 16} en palindrome, reste à faire ; elle est dans les travaux futurs.
+\end{remarque}
+
+\subsection{Le préremplissage par flux}\label{t2res-sec:flux}
+
+\paragraph{Le coût, posé.} Dans la boucle de pas, une invite de $P$ positions lit, couche par couche, les experts manquants de chaque position :
+\[
+B_{\text{boucle}} = \sum_{p=1}^{P}\sum_{\ell=1}^{L} (1 - h_{p,\ell}) \, k \, t,
+\]
+avec $t \approx \SI{12.03}{\Mo}$ par tronçon. Par flux, chaque couche lit une fois chaque expert demandé par au moins une position : $B_{\text{flux}} = \sum_\ell |U_\ell \setminus V_\ell| \, t$, où $U_\ell$ est l'ensemble des experts choisis et $V_\ell$ ceux déjà en VRAM. Sous un routage uniforme, $\E|U_\ell| = E\,(1 - (1 - k/E)^P)$ ; pour $E = 128$, $k = 4$, $P = 708$ : $(1 - 1/32)^{708} = e^{708 \ln 0{,}96875} = e^{-22{,}5}$, et $U_\ell$ est tout l'ensemble. D'où $B_{\text{flux}} \le 36 \times 128 \times \SI{12.03}{\Mo} = \SI{55.4}{\Go}$, contre $B_{\text{boucle}} \approx 708 \times 144 \times 0{,}55 \times \SI{12.03}{\Mo} \approx \SI{675}{\Go}$ \calc, un rapport d'environ 12.
+
+\paragraph{Mesuré.} \SI{26}{\second} au lieu de \SI{7}{\minute}\,\SI{36}{\second} pour les 708 jetons, soit $\times 17{,}5$, rapport des débits moyens des passes \texttt{s2-11} à \texttt{s2-14} (\num{27.15} contre \num{1.554} jetons/s ; par passe, \numrange{26.9}{27.4} contre \numrange{1.46}{1.65}) \mes. La note du lot O écrivait \barre{7\,min\,50\,s}, une durée qui ne vient pas de ces passes : en plus des octets, la boucle paie une synchronisation par couche et par position, que le flux fait une fois par couche. llama.cpp préremplit à \numrange{3.1}{4.0} jetons/s : troncons le fait sept fois plus vite. L'exactitude tient par la même \cref{t2res-prop:c3} et par le témoin F (\num{5120} empreintes égales à la boucle sur le 20b ; \texttt{.kld} égaux sur le 120b à l'épreuve).
+
+\subsection{Le coût de la garde d'intégrité}\label{t2res-sec:garde}
+
+\paragraph{Prédit.} La garde hache chaque tronçon lu (\SI{0.71}{\Go} par jeton) sur quatre fils, à \SIrange{1.07}{1.10}{\Go\per\second} par fil \mes, en parallèle de la copie et du décodage ; le pas attend tous ses hachages avant de rendre son jeton. Le travail, $0{,}71 / 1{,}07 \approx \SI{0.65}{\second}$ de cœur par pas, se répartit sur quatre fils (\SI{0.17}{\second} de mur) sous un pas de \SI{0.46}{\second} ; au chemin critique ne reste que le hachage du dernier tronçon, au plus
+\[
+\SI{12.25}{\Mo} / \SI{1.07}{\Go\per\second} \approx \SI{11.4}{\milli\second},
+\]
+soit \SI{2.5}{\percent} d'un pas de \SI{457}{\milli\second} \calc. La prédiction déclarée de la ronde écrivait 2,4\,\%, avec 1,1\,Go/s et 460\,ms (\fichier{mesures/moteur/O/corrections/seuils-declares.md}) ; au débit le plus lent mesuré, 1,07\,Go/s, c'est 2,5\,\%.
+
+\paragraph{Mesuré.} L'attente de la garde vaut \SIrange{5.2}{5.4}{\milli\second} par jeton sur les quatre passes gardées \mes. La série ABBA déclarée (passes 02 et 05 gardées, 03 et 04 sans garde) donne un écart de $-12{,}3\,\%$ pour un seuil de \SI{26.8}{\percent} : \emph{non réel} ; le disque variait de \SIrange{1.51}{1.95}{\Go\per\second} d'une passe à l'autre, et c'est lui que l'écart mesure. À débit de disque égal (passes 05 et 04, \num{1.708} et \SI{1.715}{\Go\per\second}), l'écart vaut $-1{,}6\,\%$ (publié $-1{,}7\,\%$ sur les valeurs arrondies \num{1.900} et \num{1.932}). L'outil de second chemin avait d'abord trouvé $-4{,}3\,\%$ en comptant les quatre passes gardées : les passes 07 et 08 sont gardées aussi, mais appartiennent à la série du KV en f32 ; ce n'est pas une faute du lot, c'est le chiffre d'une autre série. L'ouverture coûte \SI{0.95}{\second} de plus (la table des empreintes des lignes d'enchâssement : \SI{0.615}{\Go} lus et hachés), et la mémoire \SI{1.9}{\Mo}, la même pour les deux modèles.
+
+\subsection{Ce que J1+ a gardé, tué, laissé ouvert}\label{t2res-sec:j1plus}
+
+\begin{description}
+\item[Gardé : le flux] ($\times 17{,}5$ au préremplissage, \cref{t2res-sec:flux}).
+\item[Tué : le préchargement par le routeur de la couche suivante.] Après l'attention de $\ell$, le moteur applique au résidu la norme et le routeur de $\ell+1$ et lit d'avance les tronçons prédits. Une prédiction juste retire une lecture du chemin critique ; une fausse ajoute une lecture sur un disque qui limite déjà. Avec $p$ la part des prédictions servies et $f$ la part du temps d'un jeton que le recouvrement peut cacher, le gain vaut environ $f - \frac{1-p}{p}\,s_{\text{disque}}$ ; ici $p = 0{,}692$, les octets lus montent de \num{34}\,\% (953 contre 710\,Mo par jeton) et $f \approx 80/460 = 0{,}17$ : la perte domine. Mesuré : $-11\,\%$ (bruit \SI{1}{\percent}) \mes. Le mécanisme reviendrait avec $p > 0{,}9$ environ, ou un disque qui ne limite pas.
+\item[Ouvert : les lectures de 12\,Mio.] Lire chaque tronçon en une requête de \num{12582912} octets fait passer la lecture dans le régime rapide du disque mesuré par le lot E : $+30\,\%$ en médiane (\num{2.18} $\to$ \num{2.84} jetons/s), chaque passe B au-dessus de chaque passe A, mais un bruit de \SI{16.2}{\percent} entre les deux passes B (\cref{t2res-def:reel} ; \barre{21\,\%}, l'écart rapporté à la moyenne de A) : le seuil vaut $2 \times 16{,}2 + 3 = \SI{35.4}{\percent}$ contre $+\SI{30.4}{\percent}$, la règle n'est pas franchie en quatre passes. Ni établi, ni réfuté.
+\item[Une passe, à confirmer : le cache tiède.] \SI{1}{\Go} de cache tiède divise par \num{2.2} le préremplissage par flux (\num{27.1} $\to$ \num{12.5} jetons/s) sans rien rendre à la génération (\num{1.90}) \mes. Personne ne l'avait mesuré ; une passe ne fait pas une série.
+\end{description}
+
+\section{Fidélité : à quelle distance des mathématiques exactes du modèle}\label{t2res-sec:fidelite}
+
+\subsection{L'instrument}
+
+\paragraph{La divergence.} Pour une position, soit $p$ la distribution du prochain jeton selon la vérité (la passe avant du modèle en double précision, sur les mêmes poids) et $q$ celle d'un moteur. On mesure
+\[
+\mathrm{KL}(p \,\|\, q) = \sum_{i=1}^{V} p_i \,(\log p_i - \log q_i) \;\ge 0,
+\]
+la divergence de Kullback et Leibler \cite{kullback1951}, en nats, sur un vocabulaire de $V = \num{201088}$ jetons, et la part des positions où le premier choix du moteur est celui de la vérité, avec son intervalle de Wilson à 95\,\% \cite{wilson1927}. Pour une petite perturbation $\Delta z$ des logits, $\mathrm{KL} \approx \tfrac12 \mathrm{Var}_p(\Delta z)$ : la divergence est du second ordre dans l'erreur.
+
+\paragraph{Pourquoi contre la vérité, et pas contre llama.cpp.} Deux moteurs justes divergent : sur Qwen3.5-4B, de \num{0.0055} (Tome~I) ; un moteur ne peut pas être juge d'un autre. L'architecture a donc posé C4 contre les mathématiques exactes : troncons doit en être au moins aussi près que llama.cpp, mesurés tous deux par le même instrument.
+
+\paragraph{Le format du fichier, et ce qu'il coûte.} Tous les moteurs écrivent leurs logits au format \texttt{.kld} de llama.cpp : par position, $\log q$ quantifié sur 16 bits entre un plancher et le maximum, avec un pas d'environ $\num{2.44e-4}$ nat. Deux conséquences, démontrées au \cref{t2e-sec:numpy} : un calcul identique à la vérité s'en écarte au plus d'un demi-pas par jeton au-dessus du plancher ; et les jetons sous le plancher reçoivent une masse en trop, si bien que la KL d'un calcul exact est \emph{négative}, de l'ordre de $-\num{4.8e-4}$. Ce biais est commun à tous les fichiers et fixe le zéro de l'instrument.
+
+\subsection{C4 sur les deux modèles}
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[C4 contre la vérité f64]{C4 : troncons et llama.cpp contre la vérité en double précision \mes. La fenêtre 0 compte 255 positions notées. $\bar d$ : moyenne appariée de $\mathrm{KL}_{\text{troncons}} - \mathrm{KL}_{\text{llama}}$ par position, $\pm$ une erreur-type.}
+\label{t2res-tab:c4}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.2\linewidth}>{\raggedright\arraybackslash}p{0.15\linewidth}r>{\raggedright\arraybackslash}Xl@{}}
+\toprule
+Modèle, vérité & Moteur & KL moyenne & Même premier choix [Wilson 95\,\%] & $\bar d$ \\
+\midrule
+20b, réf. lot R, 10 fenêtres & troncons & \num{0.00368} & \SI{97.18}{\percent} [96,46 ; 97,75] & \\
+& llama.cpp carte & \num{0.0226} & \SI{89.61}{\percent} [88,36 ; 90,73] & \\
+20b, numpy f64, fenêtre 0 & troncons & \num{0.00174} & 246/255 = \SI{96.5}{\percent} [93,4 ; 98,1] & $-\num{0.0243} \pm \num{0.0053}$ \\
+& llama.cpp carte & \num{0.0261} & 222/255 = \SI{87.1}{\percent} [82,4 ; 90,6] & \\
+\textbf{120b, numpy f64, fenêtre 0} & \textbf{troncons} & \textbf{\num{0.00308}} & 244/255 = \SI{95.7}{\percent} [92,4 ; 97,6] & $-\num{0.0576} \pm \num{0.0120}$ \\
+& llama.cpp carte & \num{0.0607} & 205/255 = \SI{80.4}{\percent} [75,1 ; 84,8] & \\
+120b, numpy f64, fenêtre 0 & troncons, \textbf{KV f32} & $-\num{0.00048}$ & 255/255 = \SI{100}{\percent} & \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{mesures/moteur/O/journaux/o3/c4-20b-comparer.*}, \fichier{mesures/moteur/epreuve-J1/csv/c4-numpy-\{20b,120b\}-f0.csv}, \fichier{mesures/moteur/O/corrections/journaux/verdicts-kv-2026-10-16.json} ; Wilson et $\bar d$ recalculés par \fichier{tome2\_resultats.py}.}
+\end{table}
+
+\paragraph{Le test apparié.} Comparer deux moyennes de KL position par position retire la variance commune des positions difficiles : $d_i = \mathrm{KL}_{t,i} - \mathrm{KL}_{l,i}$, $\bar d \pm s_d/\sqrt n$. Sur le 120b, $\bar d = -\num{0.0576}$ pour une erreur-type de \num{0.0120} : près de cinq erreurs-types sous zéro, et les intervalles de Wilson des premiers choix sont disjoints. C4 tient sur le 120b pour la première fois.
+
+\paragraph{« Six fois plus près », requalifié.} Le lot O avait écrit que troncons était « six fois plus près » de la vérité que llama.cpp (\num{0.0037} contre \num{0.0226} sur le 20b). C'est vrai, mais l'épreuve et le lot R en ont trouvé la raison principale : llama.cpp arrondit les bornes de la rampe de YaRN \cite{peng2023yarn}, là où l'implémentation de référence d'OpenAI \cite{openai2025gptossref} ne les arrondit pas (\texttt{"truncate": false}). Sur la fenêtre 0 du 20b, la rampe seule explique \num{0.0143} des \num{0.0261} de llama.cpp (\SI{55}{\percent}) ; sur les 10 fenêtres, \num{0.0145} des \num{0.0226} (lot R). L'écart vient donc surtout d'un choix de modélisation, celui d'OpenAI, validé par un calcul indépendant ; la précision des noyaux n'en est pas la cause principale.
+
+\subsection{Le cache KV en f16 portait tout l'écart}\label{t2res-sec:kv}
+
+\paragraph{Ce que l'épreuve a vu.} Au-delà des moyennes, le premier jeton du texte de C12 (position 707 de l'invite) diffère : la vérité choisit le jeton 1008 (« ... », $\log p = -1{,}46$), troncons le jeton 313 (« am », dont la vérité ne donne que $\log p = -10{,}03$), après une cascade de bascules de routage sur 20 couches sur 36, à partir de la couche 12. La vérité recalculée avec le seul cache KV arrondi en f16, et rien d'autre, choisit 313 elle aussi, avec la même cascade \mes~(\fichier{premier-jeton-kvf16-120b.json}). La \cref{t2res-fig:routage} montre l'accord de routage par couche : sur le 120b, il décroche avec la profondeur, jusqu'à \num{0.81} au-delà de la position 512 ; sur le 20b, il ne descend pas sous \num{0.96}.
+
+\begin{figure}[ht]
+\centering
+\GrapheResRoutage
+\caption[Accord de routage avec la vérité, par couche]{Part des choix top-4 du routeur identiques entre troncons (KV f16) et la vérité f64, par couche, sur l'invite de C12 \mes. Le 120b décroche avec la profondeur, et davantage après la position 512 ; le 20b non. Avec un cache KV en f32, l'accord vaut 1 sur les 36 couches et les 708 positions.}
+\label{t2res-fig:routage}
+\sourcefig{\fichier{memoire/figures/tome2/donnees/res-routage.csv}, tiré de \fichier{mesures/moteur/epreuve-J1/csv/routage-par-couche-invite.csv}.}
+\end{figure}
+
+\paragraph{Pourquoi l'arrondi f16 suffit, posé.} Le f16 a 11 bits de mantisse : l'arrondi au plus proche donne $\tilde k = k(1 + \delta)$ avec $|\delta| \le u_{16} = 2^{-11} \approx \num{4.9e-4}$ (format binary16 de la norme IEEE~754). Pour un score d'attention $s = c \sum_{j=1}^{64} q_j k_j$ ($c = 1/8$),
+\[
+|\tilde s - s| \;\le\; c\, u_{16} \sum_j |q_j k_j| \;+\; \gamma_{64}\, c \sum_j |q_j \tilde k_j|,
+\qquad \gamma_{64} = \frac{64\, u_{32}}{1 - 64\, u_{32}} \approx \num{3.8e-6},
+\]
+au premier ordre, le second terme étant le produit scalaire en f32 ($u_{32} = 2^{-24}$, \cite{higham2002}). La sortie de l'attention hérite d'une erreur relative du même ordre, par les poids du softmax et par $\tilde v$. Avec un cache en f32, il ne reste que l'erreur des noyaux, $u_{32}/u_{16} = 2^{-13} \approx 1/8\,192$ fois plus petite ; \barre{la KL étant du second ordre, elle serait divisée par environ $8\,192^2 \approx \num{6.7e7}$ : de $\num{3.08e-3}$ vers $\num{5e-11}$, bien sous le pas du format. C'est un ordre de grandeur qui suppose l'erreur linéaire ; les bascules de routage ne le sont pas, mais elles disparaissent avec elle.} Cette estimation du lot O est barrée par le \cref{thm:t2r-amplification} : le terme sans bascule est divisé par $8\,192^2 \approx \num{6.7e7}$, mais celui des bascules, linéaire, ne l'est que par \num{8192} ; la KL en f32 est donc au plus de l'ordre de $\num{3.08e-3}/\num{8192} \approx \num{3.8e-7}$\,nat \calc{} (\cref{sec:t2r-f32-theorie}), bien sous le pas du format ($\approx \num{2.4e-4}$\,nat). La mesure ci-dessous reste le seul juge. Un routeur qui choisit 4 experts sur 128 transforme une petite erreur continue en une erreur discrète quand deux scores sont proches : c'est pourquoi le 120b, avec 128 experts, bascule plus que le 20b, avec 32.
+
+\paragraph{Mesuré.} La ronde a ajouté au moteur une option \texttt{--kv-f32} (noyaux ajoutés, aucun noyau existant touché ; témoin : égal au bit au chemin f16 sur des valeurs représentables en f16, et différent sur des valeurs qui ne le sont pas). \Cref{t2res-tab:kv} et \cref{t2res-fig:kl} donnent le résultat.
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[Cache KV en f16 contre f32]{Cache KV en f16 contre f32, contre la vérité f64 \mes. « Pas » : pas de quantification du format \texttt{.kld}.}
+\label{t2res-tab:kv}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}Xrrrrl@{}}
+\toprule
+& KL moyenne & 1\textsuperscript{er} choix & KL $> 0{,}1$ & KL p99 & Écart max. des $\log p$ \\
+\midrule
+120b, fenêtre 0, f16 & \num{0.00308} & \SI{95.7}{\percent} & \SI{0.39}{\percent} & \num{0.0747} & \SI{3.07}{nat} \\
+\textbf{120b, fenêtre 0, f32} & $-\num{0.00048}$ & \SI{100}{\percent} & 0 & \num{2.3e-6} & \num{0.69} pas \\
+20b, fenêtre 0, f16 & \num{0.00174} & \SI{96.5}{\percent} & \SI{0.39}{\percent} & \num{0.0529} & \SI{2.32}{nat} \\
+\textbf{20b, fenêtre 0, f32} & $-\num{0.00048}$ & \SI{100}{\percent} & 0 & $\approx 0$ & \num{2.04} pas \\
+120b, invite, positions 512--706, f16 & \num{0.00963} & --- & \SI{2.05}{\percent} & \num{0.196} & --- \\
+\textbf{120b, invite, positions 512--706, f32} & $-\num{0.00054}$ & --- & 0 & \num{3.6e-6} & --- \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{moteur/O-pour-le-memoire.md} § 13.3 ; \fichier{mesures/moteur/O/corrections/journaux/verdicts-kv-2026-10-16.json}, \fichier{m5-ecart-logp-*.json} ; moyennes recalculées depuis \fichier{kv-f16-f32-par-position.csv}.}
+\end{table}
+
+\begin{figure}[ht]
+\centering
+\GrapheResKL
+\caption[KL par position contre la vérité f64]{KL par position contre la vérité f64, échelle logarithmique \mes. (a) Fenêtre 0 du 120b : llama.cpp (rouge), troncons en KV f16 (bleu), troncons en KV f32 (vert). (b) Invite de C12 au-delà de la fenêtre 0 : la KL du f16 monte après la position 512 ; le f32 reste au plancher. Une KL inférieure à $10^{-4}$, dont toutes les KL négatives (biais du format), est dessinée sur la ligne pointillée : c'est le cas de 165 positions sur 255 pour le f16 en (a), de 255 sur 255 pour le f32, de 353 sur 353 en (b).}
+\label{t2res-fig:kl}
+\sourcefig{\fichier{memoire/figures/tome2/donnees/res-kl-120b-f0.csv} et \fichier{res-kl-invite.csv}, tirés de \fichier{c4-numpy-120b-f0.csv} et \fichier{kv-f16-f32-par-position.csv}.}
+\end{figure}
+
+Sur l'invite de 708 jetons en KV f32, les premiers choix égalent ceux de la vérité à 708 positions sur 708 (687 en f16), le routage est égal sur les $36 \times 708$ couples (couche, position), et \textbf{le premier jeton de C12 est 1008, celui de la vérité}. L'arrondi f16 du cache KV portait donc \emph{tout} l'écart mesurable entre troncons et les mathématiques exactes du modèle ; l'épreuve l'avait borné par en dessous (\SIrange{70}{77}{\percent} des bascules de routage).
+
+\paragraph{Le prix.} Le cache KV de gpt-oss-120b au contexte de \num{4096} compte 18 couches pleines et 18 couches à fenêtre glissante de 128 positions :
+\[
+18 \times (4\,096 + 128) \times 2 \times 512 \times \SI{2}{\octet} = \SI{155.7}{\Mo} \text{ en f16},
+\]
+le double en f32 : $+\SI{155.7}{\Mo}$ de VRAM, soit $155{,}7 / 13{,}25 = 11{,}8$ emplacements d'experts \calc ; mesuré : 326 $\to$ 314 emplacements. Rejouée par le simulateur du cache sur la trace de l'invite, cette perte fait passer $h$ de \num{0.459} à \num{0.442} et les défauts de \num{77.9} à \num{80.4} par jeton : $+3{,}2\,\%$ d'octets lus, l'ordre du coût en vitesse quand le disque limite \calc~sur une trace mesurée. La génération mesurée en f32 (\num{1.50} contre \num{2.13} jetons/s) \emph{n'est pas} ce coût : le texte change (\texttt{72304d85}…, qui commence par « ... » comme la vérité, puis simule des appels d'outil comme la sortie gloutonne de llama.cpp), et la boucle du texte f16 relevait son succès de cache à \num{0.590} contre \num{0.435}. Comparer deux vitesses sur deux textes différents mesure les textes. Le défaut reste f16 tant que l'arbitre n'a pas tranché la couture N ; la ronde propose le f32.
+
+\section{Ce que les résultats disent ensemble}\label{t2res-sec:ensemble}
+
+\begin{enumerate}
+\item \textbf{Exact} : le chemin codé égale le chemin brut au bit, sur \num{5120} pas et d'une construction à l'autre ; le codage sans perte du Tome~I ne coûte rien à la sortie.
+\item \textbf{Borné} : \SI{384}{\Mo} pour \SI{63.4}{\Go}, $+\SI{3.7}{\Mo}$ quand le modèle prend \SI{51}{\Go} ; llama.cpp tient \num{28.5} fois plus de mémoire (\num{29.7} fois dans la configuration de C6).
+\item \textbf{Plus rapide que la base} : \num{2.22} fois la meilleure base mesurée, garde comprise ; sept fois au préremplissage.
+\item \textbf{Juste} : plus près de la vérité que llama.cpp sur les deux modèles ; et, cache KV en f32, égal à la vérité au format près.
+\item \textbf{Limité par le disque} : \SIrange{68}{72}{\percent} du plancher en série ; le prochain gain est dans la file du disque (lectures plus longues, ou plus de lectures en vol) et dans le disque lui-même (\cref{ch:t2-discussion}).
+\end{enumerate}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{C6 croise deux séances} : troncons et la base balayée n'ont pas tourné dans le même palindrome ; le rapport porte un bruit entre séances que la règle ne mesure pas. La même séance, à l'épreuve, donnait $\times 2{,}89$ contre une base plus faible.
+\item \textbf{La base peut être meilleure encore} : ni plus de 16 fils, ni \texttt{--mlock}, ni d'autres valeurs de \texttt{--n-cpu-moe} n'ont été balayés. Le $\times 2{,}22$ est un rapport à la meilleure base \emph{mesurée}.
+\item \textbf{C4 sur le 120b repose sur une fenêtre} de 255 positions et sur l'invite ; une fenêtre n'est pas dix. La vérité numpy et la référence du lot R lisent le même GGUF et la même lecture du modèle : une erreur de convention commune passerait (\cref{t2e-sec:faux}).
+\item \textbf{« KV f32 = vérité »} est mesuré sur une fenêtre de 512 jetons et une invite de 708 (120b), une fenêtre du 20b ; pas sur les dix fenêtres.
+\item \textbf{Le coût de la garde} repose sur une paire à disque égal ($-1{,}6\,\%$) ; la série déclarée dit $-12{,}3\,\%$ sous un seuil de \SI{26.8}{\percent} (bruit \SI{11.9}{\percent}), non réel dans un sens comme dans l'autre.
+\item \textbf{La concordance avec le Tome~I} ($h = 0{,}591$ contre \num{0.590} prédit) peut être une coïncidence d'un scénario calé sur un point.
+\item \textbf{Le texte de C12 et la conversation harmony} sont gloutons : ils montrent que le moteur produit un texte cohérent, pas sa qualité ; le juge, c'est C4.
+\end{itemize}
+\end{faux}

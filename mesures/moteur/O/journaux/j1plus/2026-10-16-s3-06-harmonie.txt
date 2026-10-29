@@ -1,0 +1,57 @@
+<|channel|>analysis<|message|>Need to explain MoE inference with offloading.<|end|><|start|>assistant<|channel|>final<|message|>### 1. Le principe du **Mixture‑of‑Experts (MoE)**  
+
+Un modèle de type *Mixture‑of‑Experts* (MoE) ne possède pas un seul réseau dense de 120 Mrd de paramètres.  
+Il est composé de :
+
+| Élément | Rôle |
+|---------|------|
+| **Groupe d’experts** (souvent 64, 128 ou 256) | Chaque expert est un petit réseau (par ex. 1 M‑2 M de paramètres). |
+| **Router (ou gate)** | Pour chaque token d’entrée, il calcule un score et ne sélectionne que **k** experts (généralement k = 2) parmi le groupe complet. |
+| **Fusion** | Les sorties des k experts choisis sont combinées (pondérées) pour former la représentation finale du token. |
+
+Ainsi, **seuls quelques experts** (et le router) sont réellement sollicités pour chaque token.  
+Le nombre total de paramètres reste de 120 Mrd, mais **l’utilisation effective** à chaque pas d’inférence est de l’ordre de :
+
+\[
+\text{Paramètres actifs} \approx k \times \text{(taille d’un expert)} \ll 120\text{ Mrd}
+\]
+
+### 2. Pourquoi cela tient dans 16 Go de RAM + 8 Go de VRAM ?  
+
+| Ressource | Ce qui y est stocké | Approx. taille |
+|-----------|---------------------|----------------|
+| **VRAM (GPU)** | - Le *router* (quelques dizaines de Mo) <br> - Les **experts actifs** pour le batch en cours (k × taille d’un expert) <br> - Les activations temporaires (tensors intermédiaires) | 2 – 4 Go (selon k et la taille de l’expert) |
+| **RAM (CPU)** | - Le **catalogue complet** des poids de tous les experts (120 Mrd �� 480 Go en FP16) <br> - Un cache de pré‑chargement (ex. 2 – 3 experts) <br> - Le *scheduler* qui décide quels experts charger | Le catalogue reste sur le disque ; seules les parties nécessaires sont lues en RAM puis transférées vers la VRAM. |
+| **Disque SSD** | - Fichier unique contenant les poids de tous les experts (format *sharded* ou *checkpoint*). | 400 – 500 Go (FP16) |
+
+En pratique, le modèle ne charge jamais les 120 Mrd de paramètres en même temps.  
+Il ne lit du disque que les **experts qui seront réellement utilisés** pour le batch actuel, puis les copie dans la VRAM.  
+Le reste reste sur le disque ou en RAM sous forme de *métadonnées* (indices, offsets).
+
+### 3. Le pipeline d’inférence « on‑the‑fly »
+
+1. **Pré‑traitement du batch**  
+   - Le texte est découpé en tokens.  
+   - Le router calcule, pour chaque token, les scores de tous les experts (c’est un petit réseau, donc il tient facilement en VRAM).
+
+2. **Sélection des experts**  
+   - On regroupe les tokens qui ont besoin du même expert.  
+   - On construit une liste `E_needed = {e��, e₂, …, e_m}` où `m ≤ batch_size × k`.
+
+3. **Chargement dynamique**  
+   - Si un expert `e_i` n’est pas déjà présent en VRAM, le *loader* le lit depuis le SSD (généralement en format **FP16** ou **INT8** compressé) et le copie dans la VRAM.  
+   - Un petit **cache LRU** garde les experts les plus récemment utilisés afin d’éviter des allers‑retours inutiles.
+
+4. **Passage avant (forward) des experts**  
+   - Chaque expert actif traite les tokens qui lui sont assignés, produit ses sorties, puis les renvoie au *router* qui les combine.  
+   - Les activations intermédiaires sont libérées dès que le calcul de l’expert est terminé (ou stockées en RAM si la VRAM est saturée).
+
+5. **Post‑traitement**  
+   - Le texte généré (ou les logits) est renvoyé à l’application.  
+   - Le cycle recommence pour le token suivant ou le prochain batch.
+
+### 4. Optimisations qui rendent le tout possible sur un portable
+
+| Technique | Impact |
+|-----------|--------|
+| **Quantisation (FP16 / INT8 / 4‑bit)** | Réduit

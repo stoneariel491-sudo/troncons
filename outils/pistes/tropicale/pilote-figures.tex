@@ -1,0 +1,21 @@
+% Pilote d essai des figures de la garde tropicale : lualatex pilote-figures.tex (français) ;
+% lualatex -jobname=pilote-en "\def\ANGLAIS{1}\input{pilote-figures.tex}" (anglais). Compilé sans erreur le 2026-10-22.
+\documentclass[11pt, a4paper, twoside, openright, parskip=false, headings=big,
+               chapterprefix=true, numbers=noenddot, bibliography=totoc, listof=totoc]{scrbook}
+\newif\ifanglais
+\ifdefined\ANGLAIS\anglaistrue\else\anglaisfalse\fi
+\newcommand{\Racine}{~/dev/active/troncons/memoire}
+\newcommand{\Depot}{~/dev/active/troncons}
+\input{~/dev/active/troncons/memoire/commun/preambule}
+\input{~/dev/active/troncons/genome/pistes/tropicale/figures-tropicale}
+\begin{document}
+\mainmatter
+\chapter{Essai}
+\GrapheTropicaleCourbe\par
+\GrapheTropicaleCouches\par
+\GrapheTropicaleSurvie\par
+\GrapheTropicaleLoiBascule\par
+\GrapheTropicaleExtrapolation\par
+\GrapheTropicaleKappa\par
+\FigureTropicaleCoupe\par
+\end{document}

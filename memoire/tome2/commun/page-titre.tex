@@ -1,0 +1,74 @@
+% Page de titre du Tome II, commune aux deux langues (\EF). Même gabarit que celle du Tome I
+% (memoire/commun/page-titre.tex) : un bandeau, le titre, puis un schéma tracé en TikZ.
+% Le schéma suit un tronçon, du fichier .trc sur le disque au calcul sur la carte, par les membres
+% du programme qui le portent ; les quatre nombres du bas sont ceux du jalon J1 sur gpt-oss-120b :
+%   63,4 Go : taille du GGUF d'origine, 63 387 346 208 octets (mesures/gpt-oss.md § 1) ;
+%   384 Mo : mémoire de pointe du processus (memoire/figures/tome2/donnees/res-memoire.csv) ;
+%   1,965 jeton/s garde comprise, × 2,22 contre llama.cpp fit -t 16 à 0,884 (res-chiffres.json,
+%   vitesse.ronde_garde_moyenne et vitesse.base.L16.moyenne ; chapitre « Résultats du jalon J1 ») ;
+%   0 écart sur 5 120 pas : logits du fichier codé et du fichier brut (même chapitre, C3).
+\begin{titlepage}
+\thispagestyle{empty}
+\begin{tikzpicture}[remember picture, overlay]
+  \fill[Accent] (current page.north west) rectangle ([yshift=-9.5cm]current page.north east);
+  \node[anchor=north west, text=white, font=\sffamily\bfseries\fontsize{40}{44}\selectfont]
+    at ([xshift=2.6cm, yshift=-2.4cm]current page.north west) {troncons};
+  \node[anchor=north west, text=white, text width=15.5cm, align=left,
+        font=\sffamily\LARGE\linespread{1.15}\selectfont]
+    at ([xshift=2.6cm, yshift=-4.3cm]current page.north west)
+    {\EF{Volume~II: the system}{Tome~II : le système}};
+  \node[anchor=north west, text=white!88!Accent, text width=15.5cm, align=left,
+        font=\sffamily\large\linespread{1.15}\selectfont]
+    at ([xshift=2.6cm, yshift=-5.6cm]current page.north west)
+    {\EF{Architecture, \texttt{.trc} format, kernels, cache and engine; the exact reference and the judge; milestone~J1 and its independent trial}%
+        {Architecture, format \texttt{.trc}, noyaux, cache et moteur ; la référence exacte et le juge ; le jalon~J1 et son épreuve indépendante}};
+  \node[anchor=north west, text=white!80!Accent, font=\sffamily\normalsize]
+    at ([xshift=2.6cm, yshift=-7.9cm]current page.north west)
+    {\EF{Research thesis --- the program, built and measured}%
+        {Mémoire de recherche --- le programme, construit et mesuré}};
+  % Le chemin d'un tronçon, et le membre du programme qui porte chaque pas.
+  \begin{scope}[shift={([xshift=2.6cm, yshift=-12.6cm]current page.north west)},
+                every node/.style={font=\sffamily\small}]
+    \foreach \fx/\fnom/\fcol/\fmembre [count=\fidx] in {
+        0/\EF{Disk}{Disque}/Disque/{\texttt{.trc}, \texttt{trc-es}},
+        3.4/\EF{Pinned RAM}{RAM épinglée}/Ram/{\texttt{trc-cuda}},
+        6.8/PCIe/Pcie/{DMA, \texttt{trc-ordo}},
+        10.2/VRAM/Vram/{\EF{rANS decoder}{décodeur rANS}},
+        13.6/\EF{Compute}{Calcul}/Calcul/{GEMV MXFP4}}{
+      \node[draw=\fcol, fill=\fcol!12, rounded corners=2pt, minimum width=2.5cm,
+            minimum height=1.05cm, line width=0.9pt, align=center] (t\fidx) at (\fx,0)
+            {\textbf{\fnom}\\[-1pt]{\scriptsize\color{black!70}\fmembre}};
+    }
+    \foreach \fa/\fb in {1/2, 2/3, 3/4, 4/5}{
+      \draw[-{Latex[length=2.2mm]}, line width=1.2pt, black!65] (t\fa.east) -- (t\fb.west);
+    }
+    \draw[decorate, decoration={brace, amplitude=5pt, mirror}, black!55, line width=0.6pt]
+      ([yshift=-3pt]t1.south west) -- ([yshift=-3pt]t3.south east)
+      node[midway, below=6pt, font=\sffamily\scriptsize, black!65]
+      {\EF{one chunk per expert, read at the moment of need}{un tronçon par expert, lu à l'instant du besoin}};
+    \draw[decorate, decoration={brace, amplitude=5pt, mirror}, black!55, line width=0.6pt]
+      ([yshift=-3pt]t4.south west) -- ([yshift=-3pt]t5.south east)
+      node[midway, below=6pt, font=\sffamily\scriptsize, black!65]
+      {\EF{decoded once, exact to the bit}{décodé une fois, exact au bit}};
+  \end{scope}
+  % Les quatre nombres du jalon J1 (gpt-oss-120b).
+  \begin{scope}[shift={([xshift=2.6cm, yshift=-16.2cm]current page.north west)}]
+    \foreach \fx/\fval/\ftxt [count=\fidx] in {
+        0/\EF{63.4\,GB}{63,4\,Go}/{\EF{model served (gpt-oss-120b), four times the RAM}{modèle servi (gpt-oss-120b), quatre fois la RAM}},
+        4.15/\EF{384\,MB}{384\,Mo}/{\EF{peak memory of the process; llama.cpp: 10.9\,GB}{mémoire de pointe du processus ; llama.cpp : 10,9\,Go}},
+        8.3/$\times\,$\EF{2.22}{2,22}/{\EF{1.965 tokens/s, integrity guard included, against the best llama.cpp baseline}{1,965 jeton/s, garde d'intégrité comprise, contre la meilleure base llama.cpp}},
+        12.45/\EF{0 / 5\,120}{0 / 5\,120}/{\EF{steps whose logits differ between coded and raw file}{pas dont les logits diffèrent entre fichier codé et brut}}}{
+      \node[anchor=north west, text width=3.7cm, align=left] at (\fx,0)
+        {{\sffamily\bfseries\fontsize{19}{22}\selectfont\color{Accent}\fval}\\[3pt]
+         {\sffamily\scriptsize\color{black!70}\ftxt}};
+    }
+  \end{scope}
+  \node[anchor=south west, font=\sffamily, text width=15cm, align=left]
+    at ([xshift=2.6cm, yshift=3.2cm]current page.south west)
+    {{\Large\bfseries Stone}\\[4pt]
+     {\large \EF{Toronto, 16 October 2026}{Toronto, le 16 octobre 2026}}\\[10pt]
+     {\small\color{black!65}\EF{Follows Volume~I, \emph{the measured foundations}. Every figure is regenerated from the measurement data committed in the \texttt{troncons} repository; every number cites the file it comes from.}%
+         {Fait suite au Tome~I, \emph{les fondations mesurées}. Chaque figure se régénère depuis les données de mesure commitées dans le dépôt \texttt{troncons} ; chaque nombre cite le fichier dont il vient.}}};
+  \fill[Accent] ([yshift=1.4cm]current page.south west) rectangle ([yshift=1.55cm]current page.south east);
+\end{tikzpicture}
+\end{titlepage}

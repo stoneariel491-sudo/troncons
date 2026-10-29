@@ -1,0 +1,13 @@
+# Passe avant de référence de gpt-oss en f64 sur le processeur (ARCHITECTURE.md § 5.9 ; lot R).
+# Chemin indépendant : lit le GGUF d'origine, jamais le .trc.
+[package]
+name = "trc-reference"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+rayon.workspace = true
+half.workspace = true
+anyhow.workspace = true

@@ -1,0 +1,543 @@
+\chapter{The path of the bytes}\label{ch:t2-chemin}
+\ifdefined\GrapheChmSync\else\input{\Racine/figures/tome2/chemin-figures}\fi
+
+\begin{origine}
+\textbf{At the start}, the architecture decision held the byte path to be feasible under CUDA on the strength of three measurements made by other means: a DMA at 12.2\,GB/s from a Vulkan host buffer, pinned memory 21\,\% faster and a copy--compute overlap measured through llama.cpp's CUDA runtime called from Python, and a disk at 2.58\,GB/s in 4\,MiB blocks. Three things had been measured nowhere: pinning several gigabytes under WDDM on a shared 16\,GB machine; reading the disk without buffering \emph{directly} into the memory that the DMA reads; and what it costs, at every layer, for the host to read the router.
+\textbf{This chapter establishes} two libraries of our own, with no CUDA library linked (\texttt{trc-cuda}, the driver API loaded at run time; \texttt{trc-es}, unbuffered reading through a completion port); the three trials that answer the three questions, each with its witness, its break and its declared threshold; a fact about the machine nobody had noted (the card has a single copy engine under WDDM); the end-to-end bench that carries the \num{768} experts of gpt-oss-20b and the \num{4608} of gpt-oss-120b bit for bit; and a discovery: \textbf{on this machine, the throughput of an unbuffered read depends on its length alone}, in two regimes, and every chunk length falls in the slow one. Reading a fixed fast length (12\,MiB) yields $\times 1.335$.
+\textbf{What remains} is the arbiter's decision on the read length, the mechanism of the two regimes, pinning 11\,GB on a quiet machine, and the length map of the 120b file.
+Sources: \fichier{moteur/E-pour-le-memoire.md}, \fichier{moteur/REPRISE-E.md}, \fichier{mesures/moteur/E/journaux/}, \fichier{mesures/moteur/E/csv/}; for the engine, \fichier{moteur/O-pour-le-memoire.md} and \fichier{mesures/moteur/O/csv/}.
+\end{origine}
+
+\section{What the path must do}\label{sec:t2c-tache}
+
+A cache miss, in the engine, is a gpt-oss expert missing from VRAM at the moment the layer's router asks for it. Its \emph{chunk} (the coded part of its three matrices and their biases, \num{12013664} bytes on average for the 20b) must then be brought from the \texttt{.trc} file to a slot on the card, decoded, before the layer's matrix--vector products read it. In between lie four stages crossed in order: the disk, host memory, the PCIe link, and the VRAM with its compute units (\cref{fig:t2c-pile}).
+
+\begin{figure}[ht]
+\centering
+\resizebox{\linewidth}{!}{\SchemaChmPile}
+\caption[The stack of the byte path]{The stack of the byte path, as built. On the left, reading (\texttt{trc-es}, then the Windows layers an unbuffered read goes through: the file system, the BitLocker filter that decrypts every byte on the CPU, the VMD controller driver); on the right, the card (\texttt{trc-cuda}, the driver, the single copy engine). In the middle, the pinned window: the same physical page is written by the NVMe's DMA and read by the card's, with no copy by the CPU.}
+\label{fig:t2c-pile}
+\sourcefig{\fichier{mesures/moteur/E/journaux/e1-2026-10-15-seance3/resume.json}, \fichier{e2-2026-10-15-seance1/resume.json}, \fichier{e2-2026-10-15-v12/resume.json}, \fichier{2026-10-15-seance3/resume.json}; GEMV: \fichier{mesures/moteur/K/csv/k2-debit-passes.csv}.}
+\end{figure}
+
+The budget is read from the token equation of Volume~I: in the calibrated LRU scenario, the disk time of a 120b token is 157\,ms (07 § 3.3). Every stage must therefore either hide behind the disk or cost little compared with it. Three questions had no measured answer, and lot E begins with them:
+\begin{enumerate}
+\item \textbf{E0\,(a)}: can several gigabytes of host memory be pinned under WDDM, on a 16\,GB machine shared by five lots?
+\item \textbf{E0\,(b)}: can an unbuffered read (\texttt{FILE\_FLAG\_NO\_BUFFERING}) write directly into pinned memory, and the DMA then read it at full speed, bytes equal?
+\item \textbf{E0\,(c)}: what does it cost the token for the host to read the router's four indices once per layer, 36 times per token on the 120b?
+\end{enumerate}
+
+\section{\texttt{trc-cuda}: the driver API, with no library linked}\label{sec:t2c-cuda}
+
+\paragraph{The choice.} The engine ships no CUDA runtime DLL: the installed driver (591.91, CUDA 13.1) is enough. \texttt{trc-cuda} loads \texttt{nvcuda.dll} at run time, through \texttt{LoadLibraryExW} restricted to the \texttt{System32} folder (no DLL dropped in the current folder can pass itself off as the driver), then reads each entry point by its exact exported name. The names are those that CUDA 13.1's \texttt{cuda.h} selects through its \texttt{\#define}s: \texttt{cuMemAlloc} is exported as \texttt{cuMemAlloc\_v2}, \texttt{cuMemcpyHtoDAsync} as \texttt{cuMemcpyHtoDAsync\_v2}~\cite{nvidia2026driverapi}. A missing symbol makes loading fail \emph{with its name}: a driver that is too old says so, instead of crashing three calls later (\cref{lst:t2c-charger}).
+
+\lstinputlisting[style=tdeux, language=Rust, float=ht, caption={[Loading the driver table]Loading the table of entry points (\fichier{moteur/crates/trc-cuda/src/api.rs}, lines 60 to 76, commit \texttt{014bd11}). The \texttt{table!} macro generates one field per entry point, typed after \texttt{cuda.h}; \texttt{symbole} returns an error that names the missing symbol. Comments are in French in the source.}, label={lst:t2c-charger}]{\ListingsTdeux/trc-cuda-charger.rs}
+
+\paragraph{The primary context.} \texttt{cuCtxCreate} became \texttt{cuCtxCreate\_v4} in CUDA 13; the primary context has kept its interface~\cite{nvidia2026primaryctx}. \texttt{trc-cuda} therefore retains the primary context, and every object it creates (stream, event, device memory, pinned memory, module) holds a counted reference to an internal object that releases the context only after the last of them. The context is made current when needed, thread by thread, and a \emph{generation} tells a context released and retaken from a context that stayed current. The witness \texttt{duree\_de\_vie\_du\_contexte} exercises this order.
+
+\paragraph{A fact about the machine.} The attribute \texttt{CU\_DEVICE\_\allowbreak ATTRIBUTE\_\allowbreak ASYNC\_\allowbreak ENGINE\_\allowbreak COUNT} is \textbf{1} on the RTX 4060 Laptop under WDDM \mes: the card has a single copy engine for both directions~\cite{nvidia2026bestpractices}. The first ordering witness of \texttt{trc-cuda} showed it unwittingly: it looked for a race between a host-to-device copy and a device-to-host copy placed on two streams without an event, and never saw it in 20 trials. Both copies went through the same queue. Redone with a kernel that reads the VRAM during the copy, it sees the race at the first trial: \num{66393069} bytes out of \num{67108864} read before they arrived \mes. \Cref{sec:t2c-dma} draws the consequences.
+
+\section{\texttt{trc-es}: reading without buffering, through a completion port}\label{sec:t2c-es}
+
+An unbuffered read bypasses the Windows cache: the controller writes straight into the caller's buffer. It requires an offset, a length and an address that are multiples of the sector~\cite{microsoft2025filebuffering}; the \texttt{.trc} format aligns everything on \num{4096} bytes for that reason. With \texttt{FILE\_FLAG\_OVERLAPPED}, each read is handed to the system without waiting, and its completion arrives as a packet in an \emph{I/O completion port} (IOCP), which a thread harvests~\cite{microsoft2025iocp}.
+
+\subsection{The structures, bit for bit}
+
+\begin{table}[ht]
+\centering\small
+\caption[A \texttt{trc-es} read in memory]{A \texttt{trc-es} read in memory. \texttt{Vol} is \texttt{\#[repr(C)]}, heap-allocated, at a stable address until harvested: the address of the \texttt{OVERLAPPED} returned by the port is that of the \texttt{Vol}, and serves as the key into the table of entrusted reads.}
+\label{tab:t2c-vol}
+\begin{tabularx}{\linewidth}{@{}llp{3.2cm}X@{}}
+\toprule
+structure & bytes & field & content \\
+\midrule
+\texttt{Vol} & 0--7 & \texttt{Internal} (u64) & NTSTATUS of the read, written by the system \\
+ & 8--15 & \texttt{InternalHigh} (u64) & bytes transferred \\
+ & 16--19 & \texttt{Offset} (u32) & offset, low 32 bits \\
+ & 20--23 & \texttt{OffsetHigh} (u32) & offset, high 32 bits \\
+ & 24--31 & \texttt{hEvent} & null (the port replaces the event) \\
+ & 32--39 & \texttt{jeton} (u64) & identifier returned to the caller \\
+ & 40-- & \texttt{depart} & instant of hand-over to the system \\
+\midrule
+\texttt{Requete} & & token, offset, length, destination & u64, u64, u32, pointer; the last three multiples of \num{4096} \\
+\texttt{Achevement} & & token, bytes, error, duration & u64, u32, Windows code or none, u32 in µs (from hand-over to harvest) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The reader keeps at most $q$ reads entrusted to the system (its \emph{depth}); beyond that, requests wait in an internal queue, and each harvest entrusts new ones. \Cref{fig:t2c-automate} gives the automaton of a request, errors included.
+
+\begin{figure}[ht]
+\centering
+\SchemaChmAutomate
+\caption[The automaton of a \texttt{trc-es} request]{The automaton of a \texttt{trc-es} request. A synchronous failure of \texttt{ReadFile} (a code other than \texttt{ERROR\_IO\_PENDING}) will never produce a packet: the error is returned at once. An immediate success still produces a packet (\texttt{FILE\_SKIP\_\allowbreak COMPLETION\_\allowbreak PORT\_\allowbreak ON\_\allowbreak SUCCESS} is not set), so everything entrusted ends up in the port. When the reader is dropped, the \texttt{OVERLAPPED} is freed only after its packet.}
+\label{fig:t2c-automate}
+\end{figure}
+
+\subsection{Mutual exclusion, proved}
+
+The danger of a completion port is the race between the thread that entrusts a read and the one that harvests it: if the packet arrives before the launcher has recorded the read in its table, the harvest looks up a missing key.
+
+\begin{lemme}[Every key returned by the port is in the table]\label{lem:t2c-exclusion}
+In \texttt{trc-es}, every \texttt{OVERLAPPED} address returned by \texttt{GetQueued\allowbreak Completion\allowbreak StatusEx} is in the table of entrusted reads when the harvest looks it up.
+\end{lemme}
+
+\begin{proof}
+The call to \texttt{ReadFile} and the insertion of the key into the table happen under the same lock (\texttt{lancer} is called with the lock held, by \texttt{soumettre} or by \texttt{recolter}). The harvest waits on the port \emph{outside} the lock, then takes the lock before any lookup. Take a packet that arrives before its key is inserted: at that moment the launcher holds the lock (it is between \texttt{ReadFile} and the insertion); the harvest, once woken, therefore waits for that lock, which the launcher releases only after the insertion. In every case the lookup follows the insertion. A key is removed only by the harvest of its own packet, and an \texttt{OVERLAPPED} produces only one packet.
+\end{proof}
+
+The same reasoning underpins dropping the reader: an \texttt{OVERLAPPED} belongs to the system from \texttt{ReadFile} until its packet is dequeued~\cite{microsoft2025iocp}. The destructor therefore cancels everything (\texttt{CancelIoEx}), then waits for each packet before freeing anything; if no packet comes within 10\,s, it prefers to \emph{leak} the \texttt{OVERLAPPED}s rather than free memory the system might still write.
+
+\lstinputlisting[style=tdeux, language=Rust, caption={[Submit, launch, harvest]\texttt{soumettre}, \texttt{lancer} and \texttt{recolter} (\fichier{moteur/crates/trc-es/src/lib.rs}, lines 170 to 263, commit \texttt{014bd11}). The lock covers \texttt{ReadFile} and the insertion; the wait on the port happens outside the lock (\cref{lem:t2c-exclusion}).}, label={lst:t2c-lecteur}]{\ListingsTdeux/trc-es-lecteur.rs}
+
+\paragraph{Witnesses.} Ten tests hold: host $\to$ device $\to$ host round trip on four non-round sizes, ordering between two streams through an event, a hand-written PTX kernel loaded through the API, twelve 1\,MiB reads compared page by page, a partial last page, rejection of unaligned requests, dropping in flight, submission and harvest on two threads. Then the \emph{witness of the witnesses}: each witness is forced false through an environment variable (\texttt{TRC\_E\_CASSER}), and we check that it fails \emph{on its own message}; 7 breaks out of 7 fail, the restored suite holds \mes~(\fichier{mesures/moteur/E/journaux/e1-temoins/}).
+
+\section{Pinning: trial E0\,(a)}\label{sec:t2c-epingler}
+
+\texttt{cuMemHostAlloc} locks pages in physical memory and makes them visible to the card. An 11\,GB pin on a 16\,GB machine would have made the other four lots page; the protocol therefore declares a margin: a size is attempted only if available RAM exceeds the size plus 1.5\,GB (answer by delegation of 2026-10-15, reversible).
+
+\begin{table}[ht]
+\centering\small
+\caption[E0\,(a): pinning 0.25 to 4\,GB]{E0\,(a), session of 2026-10-15 at 16:46, on mains power, card free \mes. The DMA is a 64\,MiB copy made right after allocation, without warm-up.}
+\label{tab:t2c-epingler}
+\begin{tabular}{@{}rrrrrl@{}}
+\toprule
+size & allocation & release & RAM before & DMA after & verdict \\
+\midrule
+0.25\,GB & 96\,ms & 46\,ms & 8.57\,GB & 10.36\,GB/s & success, 0 differences \\
+1\,GB & 343\,ms & 133\,ms & 8.51\,GB & 10.93\,GB/s & success, 0 differences \\
+4\,GB & \num{1331}\,ms & 594\,ms & 8.47\,GB & 11.00\,GB/s & success, 0 differences \\
+11\,GB & — & — & 8.29\,GB & — & not attempted ($8.29 < 11 + 1.5$) \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/moteur/E/csv/2026-10-15-seance3-a.csv}.}
+\end{table}
+
+Allocation costs about $\num{1331}/4 = 333$\,ms per gigabyte \calc: an opening cost, not a path cost. The architecture's abandonment criterion K3 (no sizeable pinned memory) does not trigger. A size ``not attempted'' is not a size refused by the driver: the 11\,GB question awaits a quiet machine.
+
+\begin{proposition}[The pinned window of mode A0]\label{prop:t2c-fenetre-a0}
+In mode A0 (no warm cache in RAM), the engine pins $d \cdot k$ arrival buffers the size of the largest chunk, plus a mailbox and an embedding row. For the 20b, with $d = 3$ layers ahead and $k = 4$:
+\[
+3 \times 4 \times \num{12144640} + \num{4096} + \num{8192} = \num{145747968}\ \text{bytes} \approx 0.146\ \text{GB}.
+\]
+\end{proposition}
+
+\begin{proof}
+This is the definition of the window (architecture § 5.8): $3 \times 4 \times \num{12144640} = \num{145735680}$ bytes of arrival buffers (\num{12144640} is the largest chunk of the 20b), the mailbox \num{4096}, the embedding row \num{8192} (a \num{3060}\,B row read within an aligned read) \calc.
+\end{proof}
+
+The pinned window of mode A0 is thus 27 times smaller than the largest successful pin \calc: measurement (a) leaves mode A (warm cache) all the room it might ask for, up to 4\,GB.
+
+\section{The link: trial E0\,(b) and the single copy engine}\label{sec:t2c-dma}
+
+\paragraph{Correctness.} 32 pieces of 12\,MiB read unbuffered into pinned memory, copied to VRAM and brought back: 0 differences against an independent read of the same range (\texttt{std::fs}, through the Windows cache), 0 differences on the way back; the break (one byte corrupted in pinned memory after the read) gives exactly 1 difference \mes. The unbuffered read does write into, and only into, the page that the DMA reads.
+
+\paragraph{Throughput.} Declared threshold: 11.0\,GB/s, the 12.2 of study 01 minus 10\,\% noise. The ABBA series of 16 copies of 12\,MiB (the size of a chunk) and 16 copies of 64\,MiB (the size of study 01's measurement) gives \cref{fig:t2c-dma}.
+
+\begin{figure}[ht]
+\centering
+\GrapheChmDma
+\caption[E0\,(b): DMA from pinned memory]{E0\,(b): every host $\to$ device copy of the ABBA series \mes. Median at 12\,MiB: \textbf{12.495\,GB/s} (12.33 to 12.67, mirror noise 1.4\,\%); at 64\,MiB: 12.517 (noise 1.6\,\%). The two sizes do not differ (rule of 06 § 7.5). Second path: the host clock gives 12.45 and 12.51, never above the card's events (0 out of 32). The link tops out at 15.754\,GB/s (PCIe 4.0 $\times$8); the DMA gets 79\,\% of it.}
+\label{fig:t2c-dma}
+\sourcefig{\fichier{mesures/moteur/E/csv/2026-10-15-seance3-b-dma.csv}, reordered by \fichier{memoire/outils/tome2\_chemin\_noyaux.py} (\fichier{t2c-dma.csv}).}
+\end{figure}
+
+\begin{proposition}[The link does not limit a chunk]\label{prop:t2c-pcie}
+Let $B_d$ be the disk throughput and $B_c$ the DMA throughput, both measured at the chunk size $b$. If $\rho = B_d / B_c < 1$, the copy of a chunk fits entirely in the shadow of the read of the next chunk, and the copy engine stays idle a fraction $1 - \rho$ of the time.
+\end{proposition}
+
+\begin{proof}
+A chunk occupies the disk for $b/B_d$ seconds and the copy engine for $b/B_c$. In steady state the disk delivers a chunk every $b/B_d$ seconds; the copy engine handles it in $b/B_c = \rho \cdot b/B_d < b/B_d$, hence before the next one arrives, and idles the rest of the time.
+\end{proof}
+
+With the session's measurements, $\rho = 2.44 / 12.50 = 0.195$ \calc: copying a 12\,MiB chunk takes $\num{12582912} / 12.50\cdot10^9 = 1.01$\,ms, against 5.2\,ms of disk; the copy engine idles 80\,\% of the time. The link is not what will set the speed.
+
+\begin{proposition}[The single copy engine]\label{prop:t2c-moteur-unique}
+With a single copy engine, copies in both directions form a single first-in, first-out queue. A device $\to$ host copy submitted behind $k$ chunks in flight waits at worst $k\,b / B_c$.
+\end{proposition}
+
+\begin{proof}
+The engine runs one copy at a time, in submission order (this is what the ordering witness saw: no race between two copies in opposite directions on two streams, in 20 trials). A copy submitted behind $k$ copies of $b$ bytes starts only after them, that is at most $k\,b/B_c$ later.
+\end{proof}
+
+For $k = 4$ chunks of 12\,MiB at 11\,GB/s, the wait reaches $4 \times \num{12582912} / 11\cdot10^9 \approx 4.6$\,ms \calc. Three consequences for the engine (\cref{fig:t2c-moteur-copie}): (i) the witness mode, which brings every decoded expert back to the host, slows the chunk path and is not timed; (ii) the logits of a step ($\num{201088} \times 4$\,B $\approx 0.8$\,MB, $\approx 73$\,µs of copy) wait behind the chunks in flight; (iii) the router's mailbox, written by a kernel directly into mapped host memory, \emph{escapes} the queue: it carries the decision of every layer.
+
+\begin{figure}[ht]
+\centering
+\SchemaChmMoteurCopie
+\caption[The single copy engine]{The single copy engine. Every copy, in either direction, goes through one FIFO queue; a store by a kernel into mapped host memory (the router's mailbox) crosses the bus without going through that queue.}
+\label{fig:t2c-moteur-copie}
+\end{figure}
+
+\section{Reading the router once per layer: trial E0\,(c)}\label{sec:t2c-routeur}
+
+In a mixture of experts, the host knows which chunks to read only once the layer's router has been computed on the card. At every layer, then, the host must observe the end of the router, read its four indices, decide (hit or miss), and launch what follows. This is one host synchronization per layer: 36 per token on the 120b.
+
+\subsection{The mailbox, bit for bit}
+
+The router writes its decision into a \emph{mailbox}: pinned and mapped host memory (\texttt{cuMemHostAlloc} with \texttt{DEVICEMAP}), into which the kernel writes over the bus and from which the host reads without a copy. One 64-byte slot per layer, 36 slots (\num{2304} bytes, within a \num{4096}-byte page), \cref{fig:t2c-boite}.
+
+\begin{figure}[ht]
+\centering
+\resizebox{\linewidth}{!}{\SchemaChmBoite}
+\caption[The mailbox slot of a layer]{The 64-byte slot of a layer, and the order of operations. The kernel writes the indices and the weights, issues a system fence, then writes the sequence number $s = 64t + \ell + 1$ ($t$ the token, a global counter; $\ell$ the layer). The host reads $s$ with a volatile load; if it holds the expected value, it reads the indices. Lot O's engine takes this protocol over unchanged (\texttt{routeur\_topk}, \cref{ch:t2-noyaux}).}
+\label{fig:t2c-boite}
+\end{figure}
+
+The number never repeats for a given token (the token is a global counter): a slot read before it is written always carries a wrong number.
+
+\begin{proposition}[A host that reads the right number reads the right indices]\label{prop:t2c-visibilite}
+If the kernel writes words 1 to 8, executes \texttt{\_\_threadfence\_system()}, then writes word 0, and if the host (x86-64) reads word 0 with a volatile load and then words 1 to 8, a host that reads the expected $s$ reads the indices and weights written with that $s$.
+\end{proposition}
+
+\begin{proof}
+\texttt{\_\_threadfence\_system()} compiles to PTX \texttt{membar.sys}: every write of the thread made before it becomes visible to every observer, the host included, before any write made after it~\cite{nvidia2026cppext}. So when word 0 reads $s$ for the host, words 1 to 8, written earlier, already hold their values for it. On x86-64 (TSO ordering), two loads are not reordered with each other: the load of the indices, which follows the load of the number in program order, happens after it. The volatile load prevents the compiler from moving or removing it.
+\end{proof}
+
+The witness checks it (0 wrong indices, 0 missing sequences in every synchronous variant), and the break shows it necessary: reading the mailbox without waiting yields \num{3141} wrong indices over the session \mes.
+
+\lstinputlisting[style=tdeux, language=CUDA, float=ht, caption={[The simulated router of trial E0\,(c)]The simulated router (\fichier{moteur/bins/banc-chemin/noyaux/essais.cu}, lines 45 to 64, commit \texttt{94ac4c4}). \texttt{occuper} waits in time (register \texttt{\%globaltimer}), not in cycles: the duration does not depend on the chip's current clock. The expected indices come from a 32-bit mix that the host recomputes~\cite{wellons2018hash}.}, label={lst:t2c-routeur}]{\ListingsTdeux/essais-routeur.cu}
+
+\subsection{The threshold, and the first model}
+
+\paragraph{The threshold (D1).} We allow reading the router to cost at most 10\,\% of a token's disk time: $0.1 \times 157 = 15.7$\,ms per token, that is $15.7 / 36 = 436$\,µs per synchronization \calc. Beyond that, the cost stops being negligible and becomes a stage of the token equation (abandonment criterion K4).
+
+\begin{proposition}[Model D2: the cost of a synchronization]\label{prop:t2c-d2}
+For one layer, let $t_r$ be the router's duration on the card and $t_e$ that of the experts. Without the host waiting, launches are queued ahead and $T_{\mathrm{async}} = L(t_r + t_e) + \varepsilon$. With one read of the router per layer,
+\[
+T_{\mathrm{sync}} = L\,(t_r + d_{\mathrm{sig}} + d_{\mathrm{host}} + d_{\mathrm{launch}} + t_e) + \varepsilon',
+\]
+where $d_{\mathrm{sig}}$ is the delay between the end of the kernel and the moment the host observes it, $d_{\mathrm{host}}$ the host's work (reading four indices, preparing arguments), $d_{\mathrm{launch}}$ the delay between \texttt{cuLaunchKernel} and the start of the kernel. The cost per token $T_{\mathrm{sync}} - T_{\mathrm{async}} = L\,s$, $s = d_{\mathrm{sig}} + d_{\mathrm{host}} + d_{\mathrm{launch}}$, depends neither on $t_r$ nor on $t_e$.
+\end{proposition}
+
+\begin{proof}
+Without waiting, the card chains the $2L$ kernels already queued: its time is the sum of their durations, plus the first launch. With waiting, the experts of layer $\ell$ can start only after the host has seen the end of the router ($d_{\mathrm{sig}}$), has worked ($d_{\mathrm{host}}$) and has launched ($d_{\mathrm{launch}}$); these three delays add up in series at every layer, and nothing else changes as long as the card overlaps nothing.
+\end{proof}
+
+The model carries its own witness: measured at two loads (0/0 and 50/250\,µs), the cost must be the same. \Cref{fig:t2c-sync-modele} draws it to scale.
+
+\begin{figure}[ht]
+\centering
+\SchemaChmSync
+\caption[Model D2, to scale]{Model D2 for three layers, at the scale of the loaded trial (router 50\,µs, experts 250\,µs). Asynchronously, the card chains; synchronously, every layer shows the gap $s$ between the end of the router and the start of the experts, during which the host sees the event, reads the mailbox and launches.}
+\label{fig:t2c-sync-modele}
+\end{figure}
+
+\subsection{What the measurement changed in the model}
+
+Five variants are measured: \texttt{evenement} (the host waits for an event recorded after the router, then reads the mailbox), \texttt{sondage} (it polls the event), \texttt{boite} (it polls the mailbox itself), \texttt{boite\_\allowbreak sans\_\allowbreak vidage} (likewise, without pushing the launch through \texttt{cuStreamQuery}), \texttt{bloquant} (event with blocking wait: the thread sleeps and the system wakes it).
+
+\begin{figure}[ht]
+\centering
+\GrapheChmSync
+\caption[E0\,(c): cost of a synchronization, empty and loaded]{E0\,(c), session of 2026-10-15 at 16:46 \mes: cost of one synchronization, $(T_{\mathrm{sync}} - T_{\mathrm{async}})/36$, per variant. Error bars: noise of the mirror passes. The threshold (436\,µs) is off the chart. The retained variant, \texttt{evenement}, costs 18.5\,µs under load, i.e.\ 0.666\,ms per token, \textbf{23 times under the threshold}.}
+\label{fig:t2c-sync}
+\sourcefig{\fichier{mesures/moteur/E/journaux/2026-10-15-seance3/resume.json} (\texttt{modele\_D2}), reordered in \fichier{t2c-sync.csv}.}
+\end{figure}
+
+The threshold holds by a wide margin (\cref{fig:t2c-sync}): under load, \texttt{evenement} costs 0.666\,ms per token, \texttt{sondage} 0.692, \texttt{boite} 0.750, \texttt{bloquant} 3.12; with a context in blocking-wait mode, \texttt{evenement} costs 0.630 \mes. The cost is even at the trial's noise level: the synchronous pass lasts 11.779\,ms against 11.114 asynchronously, and the session summary classes the gap of \texttt{evenement} as ``not distinct from noise''.
+
+\textbf{But the model's witness fails.} The cost under load is 3.6 to 4.8 times the empty cost for four variants (5.1 against 18.5\,µs for \texttt{evenement}), and 8.7 times for \texttt{boite\_\allowbreak sans\_\allowbreak vidage} \mes. \barre{ratios 3.6 to 4.8 depending on the variant} Lot E's note wrote ``3.6 to 4.8 depending on the variant'': true of the four retained variants, not of the fifth (8.7, read in \texttt{modele\_D2}).
+
+\begin{proposition}[Model D2 bis: the launch rate]\label{prop:t2c-d2bis}
+Let $\lambda$ be the minimum interval between two launches as seen by the card. The asynchronous baseline is $T_{\mathrm{async}} = \max\bigl(L(t_r + t_e),\, 2L\lambda\bigr) + \varepsilon$. Empty ($t_r + t_e \ll 2\lambda$), the card already waits for launches, and synchronizing adds only the part of $d_{\mathrm{sig}} + d_{\mathrm{host}}$ that does not hide behind $\lambda$. Loaded ($t_r + t_e \gg 2\lambda$), the card is saturated asynchronously, and synchronizing exposes the whole chain: $s \approx d_{\mathrm{sig}} + d_{\mathrm{host}} + d_{\mathrm{launch}}$, with $d_{\mathrm{launch}} \ge \lambda$.
+\end{proposition}
+
+\begin{proof}
+A launch cannot reach the card more often than once per $\lambda$: $2L$ kernels last at least $2L\lambda$, hence the maximum. Empty, the term $2L\lambda$ dominates both passes, and only the part of the host's delays that exceeds $\lambda$ lengthens the synchronous pass. Loaded, the first term dominates the asynchronous pass, and every layer of the synchronous pass waits for the complete chain, the launch itself included.
+\end{proof}
+
+\paragraph{The calculation.} Empty, the asynchronous pass of 72 launches lasts 0.831\,ms, hence $\lambda \approx 831/72 = 11.5$\,µs \mes, well above $t_r + t_e \approx 0$. Loaded, $L(t_r + t_e) = 36 \times 300 = 10.8$\,ms and the asynchronous pass lasts 11.114\,ms ($\varepsilon \approx 0.31$\,ms): the card is saturated. Estimate: $s_{\mathrm{loaded}} \approx s_{\mathrm{empty}} + \lambda = 5.1 + 11.5 = 16.6$\,µs, against 18.5 measured (10\,\% apart; $d_{\mathrm{launch}}$ is not measured alone here, it is a hypothesis) \calc. \textbf{The case that matters is the second}: a real expert reads 13\,MB in hundreds of microseconds. This is why the threshold is judged under load. Lesson, kept in the recipes: measuring a synchronization empty only gives a cost four times too low.
+
+\section{The disk alone: step E1}\label{sec:t2c-disque}
+
+\subsection{The threshold, and what a clean pass is}
+
+Threshold declared before any pass: the median of the A passes (12\,MiB, depth 4) must reach $0.8 \times 2.58 = 2.064$\,GB/s, where 2.58\,GB/s is study 01's throughput for random 4\,MiB reads and $0.8 = 1 - 2 \times 10\,\%$ noise. But the machine is shared: another program reading the disk during the pass takes part of its bandwidth. We must know how many bytes the others read during each pass.
+
+\begin{lemme}[Foreign bytes from two raw readings]\label{lem:t2c-pdh}
+The PDH counter \texttt{Disk Read Bytes/\allowbreak sec} of the \texttt{PhysicalDisk(\_Total)} object has type \texttt{PERF\_COUNTER\_BULK\_COUNT}; its raw datum $N$ is the cumulative number of bytes read by the whole machine. The bytes read during a pass are exactly $N_1 - N_0$, and the foreign bytes are $E = (N_1 - N_0) - b\,n$, where $b\,n$ are the bytes delivered by our reader.
+\end{lemme}
+
+\begin{proof}
+For this counter type, the displayed value is $(N_1 - N_0) / ((D_1 - D_0)/F)$, with $D$ the raw timestamp and $F$ its frequency~\cite{microsoft2025countervalues}: $N$ is therefore a cumulative byte count, and its difference between two readings counts the bytes of the interval exactly, without integrating a sampled rate~\cite{microsoft2025pdhraw}. Our unbuffered reads go to the disk; they are counted in $N_1 - N_0$; the rest belongs to the others.
+\end{proof}
+
+The lemma gives a free witness: $N_1 - N_0 \ge b\,n$ at every pass (a counter blind to the disk, or a read served by a cache, would make it fail); it holds at every pass of every session \mes. This path is independent of lot R's, which integrates the formatted rate.
+
+\lstinputlisting[style=tdeux, language=Rust, float=ht, caption={[The raw cumulative disk counter]The raw cumulative counter (\fichier{moteur/bins/banc-chemin/src/disque.rs}, lines 46 to 63, commit \texttt{1cca7f3}). The counter is added by its English name (\texttt{PdhAddEnglishCounterW}): this Windows is in French.}, label={lst:t2c-cumul}]{\ListingsTdeux/disque-cumul.rs}
+
+\begin{definition}[Clean pass]\label{def:t2c-propre}
+Rule 1: a pass is clean if $E/T \le 0.1 \times 2.58 = 0.26$\,GB/s, the foreign load staying within the noise already allowed. Rule 2, added after session 1 and before session 2: in addition, other programs occupy at most 40\,\% of the CPU during the pass (source: 01 § 2.3, large blocks reproducible within a few percent under 35 to 40\,\% occupancy). A verdict is given only on at least two clean A passes; otherwise the series is ``not judged'', never ``failed''.
+\end{definition}
+
+This is not a correction of the throughput (nothing is subtracted): it is a sort.
+
+\subsection{One session under load, one session quiet}
+
+\begin{figure}[ht]
+\centering
+\GrapheChmEun
+\caption[E1: the reader on the disk alone, two sessions]{E1, every pass of the reader (128 reads of 12\,MiB at drawn offsets) \mes. Filled: clean pass; hollow: dirty (rule 1). Left, session 1 (15:39): median of the clean A passes \textbf{1.506\,GB/s}, under the threshold; the CPU was 69--84\,\% busy with other lots (f64 judge, tracer, antivirus), and BitLocker decrypts every byte on that same CPU. Right, session 3 (20:40, rule 2): median \textbf{2.439\,GB/s}, four clean A passes out of four: \textbf{E1 holds}.}
+\label{fig:t2c-e1}
+\sourcefig{\fichier{mesures/moteur/E/csv/e1-2026-10-15-seance1-lecteur-passes.csv}, \fichier{e1-2026-10-15-seance3-lecteur-passes.csv} (\fichier{t2c-e1-s1.csv}, \fichier{t2c-e1-s3.csv}).}
+\end{figure}
+
+Session 1 fails under the declared rule, and its verdict stays published as is (\cref{fig:t2c-e1}): it says that \emph{under this load} the reader does not sustain 2.06\,GB/s. What rule 1 did not look at was the CPU. Session 3, quiet, holds: 2.453 / 2.335 / 2.666 / 2.426\,GB/s at QD\,4, 2.328 / 2.285 / 2.224 / 2.383 at QD\,1 \mes. The mirror noise of the A passes is 13.4\,\%, that of the B passes 2.7\,\%; QD\,4 and QD\,1 cannot be told apart (5.6\,\% $< 2 \times 13.4\,\%$).
+
+\subsection{Little's law, a second path for the throughput}
+
+\begin{theoreme}[Little, 1961]\label{thm:t2c-little}
+In a stable system, the mean number of customers present $\bar N$, their arrival rate $\lambda$ and their mean sojourn time $\bar R$ satisfy $\bar N = \lambda \bar R$~\cite{little1961}.
+\end{theoreme}
+
+\begin{corollaire}[The throughput of a fixed-depth reader]\label{cor:t2c-little}
+A reader that permanently keeps $q$ reads of $b$ bytes in flight, each of mean duration $\bar R$ (from hand-over to the system to harvest), reads $X = q\,b / \bar R$ bytes per second.
+\end{corollaire}
+
+\begin{proof}
+The customers are the reads in flight: $\bar N = q$. Their rate is $\lambda = X/b$ reads per second. \Cref{thm:t2c-little} gives $q = (X/b)\,\bar R$.
+\end{proof}
+
+The log publishes the \emph{median} latency of a read, not its mean; a long-tailed latency has a mean above its median, and $q\,b/R_{\mathrm{median}}$ then overestimates the throughput. \Cref{fig:t2c-little} sets the two paths against each other.
+
+\begin{figure}[ht]
+\centering
+\GrapheChmLittle
+\caption[Little's law against the wall clock]{Second path for the disk throughput: $q\,b/R_{\mathrm{median}}$ against wall-clock throughput, every pass \mes. On a quiet machine, Little overestimates by 8 to 23\,\% (ratio 1.08 to 1.23 in session 3): the median latency is not the mean, the tail is long (p90 of 27.8\,ms for a median of 18.7). Under load (session 1), the scatter rises up to 1.56.}
+\label{fig:t2c-little}
+\sourcefig{\fichier{e1-*-lecteur-passes.csv} and \fichier{2026-10-15-seance3-b-disque.csv} (columns \texttt{go\_s}, \texttt{go\_s\_little}), in \fichier{t2c-little.csv}.}
+\end{figure}
+
+\paragraph{What Little says besides: the disk serves one 12\,MiB read at a time.} In session 3, the median latency is 18.7\,ms at QD\,4 (A passes: \num{18717}, \num{19864}, \num{17563}, \num{18678}\,µs) and 4.62\,ms at QD\,1 (B passes: \num{4664}, \num{4631}, \num{4608}, \num{4567}\,µs) \mes; the ratio is $18.7 / 4.62 = 4.05$ \calc. Four reads in flight thus each wait about four times as long as a single one: if the disk serves a rate $\mu$ whatever $q$, then $\bar R(q) \approx q\,b/\mu$ and the corollary gives $X = \mu$, independent of $q$. This is what we observe (QD\,4 and QD\,1 indistinguishable). [hyp.] A 12\,MiB read on its own occupies all of the NVMe's internal parallelism (its channels); adding reads in flight only lengthens the queue. The engine's timeline (\cref{sec:t2c-moteur}) will show the same on the real path. Conversely, at QD\,1 Little overestimates by 16 to 23\,\%: between two reads, the disk idles during the harvest and the next hand-over.
+
+\section{End to end: step E2}\label{sec:t2c-e2}
+
+E2 runs the whole path, without a model: every chunk of the file read unbuffered in one request of \texttt{longueur0} (its level-0 part, § 4.7 of the format) into the pinned window, copied on the copy stream into an arrival buffer in VRAM, awaited through an event, decoded by lot K's two kernels on the decode stream into a slot with SoA layout (\cref{ch:t2-noyaux}). Depth 4 (gpt-oss's $k$); order: a permutation of the 768 experts drawn from a published seed, new at every pass.
+
+\subsection{The threshold, set before the measurement}
+
+\begin{proposition}[The E2 threshold in experts served]\label{prop:t2c-seuil-e2}
+If the disk delivers $B_d$ bytes of chunks per second and a chunk of $b$ bytes yields an expert of $o$ original bytes, the throughput of experts served, counted at original size, is $X_{\mathrm{served}} = B_d \cdot o / \bar b = B_d \cdot r$, with $r = o / \bar b$ the mean compression ratio.
+\end{proposition}
+
+\begin{proof}
+In one second the disk delivers $B_d / \bar b$ chunks, each decoded into an expert of $o$ bytes.
+\end{proof}
+
+The specification takes $B_d = 2.58$\,GB/s, $r(F1) = \num{13253760} / \num{11990368} = 1.105367$ (§ 4.14) and the rule $0.8 = 1 - 2 \times 10\,\%$: threshold $0.8 \times 2.58 \times 1.105367 = \mathbf{2.28148}$\,GB/s of experts served \calc. The real file has $\bar b = \num{12013664}$\,B, i.e.\ $r = 1.103224$; the same threshold then asks for $2.28148 / 1.103224 = 2.068$\,GB/s of chunks, 0.2\,\% above E1's threshold (2.064): the two steps judge almost the same disk, one alone, the other at the end of the path.
+
+\begin{theoreme}[Throughput of a chain of stages and number of slots]\label{thm:t2c-chaine}
+Consider a chain of three stages that every chunk crosses in order: the disk (throughput $B_d$ with $q$ reads in flight), the copy engine (one copy at a time, $t_c = b/B_c$), the decode stream (one expert at a time, $t_k$). In steady state:
+\begin{enumerate}
+\item $X \le \min(B_d,\ B_c,\ b/t_k)$ bytes of chunks per second;
+\item for the disk, if it is the slowest stage, to work with $q$ reads in flight, $S \ge q + \lceil N_{\mathrm{out}} \rceil$ slots are needed, where $N_{\mathrm{out}} = (X/b)\,(t_c + t_k + \delta)$ and $\delta$ is the host's delay between the end of a decode and putting the slot back in service.
+\end{enumerate}
+\end{theoreme}
+
+\begin{proof}
+(1) A stage that serves every object cannot output faster than its capacity; the chain outputs at the pace of the slowest. (2) A slot is held from the submission of its read to the end of its decode plus $\delta$. Outside the disk, it stays $t_c + t_k + \delta$ (plus any wait); by \cref{thm:t2c-little} applied to that part of the system, the mean number of slots busy outside the disk is $N_{\mathrm{out}} = (X/b)(t_c + t_k + \delta)$. The disk keeps $q$ reads in flight only if a free slot awaits every completion: on average $S - N_{\mathrm{out}} \ge q$ is required.
+\end{proof}
+
+\paragraph{The calculation.} With $X/b \approx 2.44\cdot10^{9} / 1.2\cdot10^{7} \approx 203$ chunks per second, $t_c \approx 0.96$\,ms, $t_k \approx 0.35$ to $0.40$\,ms, and $\delta$ from 0.1 to 0.5\,ms (event polling, 100\,µs sleep), $N_{\mathrm{out}} \approx 203 \times 1.8\cdot10^{-3} \approx 0.37$ \calc. So $S \ge q + 1 = 5$ slots are needed on average; we take $q + 2 = 6$ for fluctuations, so that a slow read (the p90) does not starve the others of room. Pinned window: $6 \times \num{12144640} = 72.9$\,MB; VRAM: $6 \times (\num{12144640} + \num{13254144}) = 152.4$\,MB (\cref{fig:t2c-fenetre}).
+
+\begin{figure}[ht]
+\centering
+\SchemaChmFenetre
+\caption[The E2 window and the life of a slot]{The E2 window and the life of a slot. Durations are the medians measured in E2 (read of \texttt{longueur0} / of 12\,MiB; copy; decode) \mes. In the witness pass, the slot is freed only after its return to the host and its two fingerprints.}
+\label{fig:t2c-fenetre}
+\sourcefig{\fichier{mesures/moteur/E/csv/e2-2026-10-15-seance1-passes.csv}, \fichier{e2-2026-10-15-v12-passes.csv}.}
+\end{figure}
+
+Point (1) of \cref{thm:t2c-chaine} gives a witness no correct measurement can violate: \textbf{the median of the A passes must not exceed the session's smallest stage by more than 10\,\%}. Beyond that, either a stage is mismeasured, or the A pass does not do what it claims (a read served by a cache, a clock stopped too early, an expert counted without decoding). Its natural break is the B pass itself: same sequence of reads, same window, same reader, without copy or decode.
+
+\subsection{Exact transport, and what each check sees}
+
+\paragraph{C2.} In the witness pass, every slot comes back to the host; the expert is put back into its original layout and its fingerprint compared with the directory; the fingerprint of the useful bytes that arrived in the pinned window is compared with that of the part; the card's control counters (lanes off $L$, format, pointers) must be zero. \textbf{768 experts out of 768}, at each of the evening's 8 witness passes; and on the 120b, \textbf{\num{4608} out of \num{4608}}, at both witness passes \mes.
+
+\begin{proposition}[What each check can see of a corruption (D14)]\label{prop:t2c-controles}
+Let one bit be flipped in the useful bytes of a part. (i) The 64-bit fingerprint of the arrived bytes differs from the directory's, barring a collision of the 64-bit prefix of SHA-256, of probability $2^{-64}$ per expert if SHA-256 behaves as a random function. (ii) The fingerprint of the original expert redone from the slot sees only corruptions \emph{that change the output}: a bit of the raw streams (medians, biases) changes exactly one scale byte per affected block, or one bias; a bit of an rANS word or state changes the sequence of states, hence almost always the symbols; but a field the decoder does not read to produce the output (layer and expert of the part header) changes nothing. (iii) The card's counters, the only check of production mode, see format faults and lanes that do not end on $L$, but neither the raw streams nor the identity of the part.
+\end{proposition}
+
+\begin{proof}
+(i) is the assumption on SHA-256. (ii): medians and biases are copied or added without entropy transform (a median enters $e = (\text{med} + \delta - 128) \bmod 256$ of every block of its row); a wrong state or word makes the recurrence $x \leftarrow f\,(x \gg 12) + b$ diverge; the header's identity is read by no kernel. (iii): the kernels count only what they check (magic, kinds, stream headers, return to $L$, final pointer).
+\end{proof}
+
+The declared break places one bit in each family, one expert per bit, in an 11.16\,GB copy of the file (seed 20261015). \Cref{tab:t2c-cassure} is its detection table.
+
+\begin{table}[ht]
+\centering\small
+\caption[E2: the detection table of the break]{E2: the detection table, check by check \mes. ●: the check sees the corruption. Part: fingerprint of the useful bytes arrived in the window; original: fingerprint of the expert redone from the decoded slot; counters: the card's control counters. \textbf{12 detected out of 12, none extra} (an expert is ``detected'' if a check of the witness fails). Production mode sees 9: not the medians, not the biases, not the identity of the part, as \cref{prop:t2c-controles} predicted.}
+\label{tab:t2c-cassure}
+\begin{tabular}{@{}lrrcccc@{}}
+\toprule
+ & & & \multicolumn{3}{c}{witness pass} & \\
+\cmidrule(lr){4-6}
+region of the bit & layer & expert & part & original & counters & production \\
+\midrule
+MEDIANES & 23 & 4 & ● & ● & & \\
+BIAIS & 21 & 24 & ● & ● & & \\
+DELTA, tile starts & 16 & 20 & ● & ● & ● & ● \\
+DELTA, states & 14 & 28 & ● & ● & ● & ● \\
+DELTA, words & 18 & 30 & ● & ● & ● & ● \\
+CODES\_CTX, starts & 4 & 25 & ● & ● & ● & ● \\
+CODES\_CTX, states & 11 & 20 & ● & ● & ● & ● \\
+CODES\_CTX, words & 2 & 19 & ● & ● & ● & ● \\
+CODES\_CTX, header ($P$) & 12 & 8 & ● & ● & ● & ● \\
+stream table (kind) & 16 & 18 & ● & ● & ● & ● \\
+part header, magic & 19 & 24 & ● & ● & ● & ● \\
+part header, identity & 19 & 22 & ● & & & \\
+\midrule
+total & & & 12 & 11 & 9 & 9 \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/moteur/E/csv/e2-2026-10-15-seance1-cassure.csv}, \fichier{journaux/e2-2026-10-15-seance1/resume.json}.}
+\end{table}
+
+The last row is a real hole in the production mode of the time: a directory pointing to another expert's chunk would be decoded without error. The integrity guard added by the round of corrections after the independent trial closes it: it compares the fingerprint of the useful bytes of every chunk read with the directory's, and the part header (identity included) is among those bytes \calc~(\fichier{moteur/O-pour-le-memoire.md}, proposition 8).
+
+\paragraph{The witness pass is not timed (D15).} Every \num{13254144}\,B slot comes back through the single copy engine (\cref{prop:t2c-moteur-unique}), and the host hashes about 25\,MB per expert with SHA-256 on one thread, at 1.5 to 2\,GB/s: 12 to 17\,ms per expert, three times the disk time of a chunk \calc. Its throughput is published for the record, never judged; the threshold is judged on the production passes, where nothing comes back but the counters, at the end of the pass (\num{12288}\,B).
+
+\subsection{Throughput: the verdict fails, and the witness says why}
+
+\begin{figure}[ht]
+\centering
+\GrapheChmEdeux
+\caption[E2: experts served per pass]{E2, experts served per pass (GB/s, counted at original size) \mes. Left, the 21:13 session as specified (N: reads of \texttt{longueur0}) and the 21:29 variant (V: 12\,MiB reads); A: production; B: disk alone, same reads, counted the same way. Right, the N V V N series of 21:30, A passes: V / N $= \times 1.335$ (medians of the eight A passes of each letter: 2.851 and 2.135\,GB/s), i.e.\ $+33.5\,\%$ for a mirror noise of at most 1.5\,\%.}
+\label{fig:t2c-e2}
+\sourcefig{\fichier{mesures/moteur/E/csv/e2-2026-10-15-seance1-passes.csv}, \fichier{e2-2026-10-15-v12-passes.csv}, \fichier{e2-nvvn-2026-10-15-nvvn.csv} (\fichier{t2c-e2-n.csv}, \fichier{t2c-e2-v.csv}, \fichier{t2c-nvvn.csv}).}
+\end{figure}
+
+As specified, E2 \textbf{fails}: A passes at 2.120 / 2.092 / 2.186 / 2.215\,GB/s served, median \textbf{2.153 < 2.2815}, 5.6\,\% under the threshold; 2.135 in the N V V N series \mes. All eight passes were clean (others' CPU 6 to 12\,\%, foreign bytes $\le 0.001$\,GB/s). That is the verdict.
+
+But the chain's witness holds, and it locates the defect (\cref{fig:t2c-etages}): the median of the A passes is 1.951\,GB/s of chunks, the disk alone (B) 1.921, the DMA 12.66, decoding 34.27 (0.350\,ms per expert); $A/\min = 1.016 \le 1.10$ \mes. A and B do not differ (1.6\,\% for a noise of 1.6\,\%). \textbf{The path costs the disk nothing; it is the disk itself that reads this file at 1.92\,GB/s}, against 2.44 for the GGUF 34 minutes earlier. The DMA has a 6.5-fold margin, decoding 18-fold.
+
+\begin{figure}[ht]
+\centering
+\GrapheChmEtages
+\caption[E2: the stages]{E2: end to end and its three stages measured in the same session, in GB/s of chunks read (log scale) \mes. The disk is the bottleneck by an order of magnitude; A sticks to the disk alone, under the bound of \cref{thm:t2c-chaine}.}
+\label{fig:t2c-etages}
+\sourcefig{\fichier{e2-2026-10-15-seance1-etages.csv}, \fichier{e2-2026-10-15-v12-etages.csv} and the passes (\fichier{t2c-etages.csv}).}
+\end{figure}
+
+\Cref{fig:t2c-chrono} shows the path at work: every chunk is a line, from its submission to the disk to the end of its decode. The copy (about \SI{1.0}{\milli\second}) and the decode (0.35\,ms) fit in the shadow of the four reads in flight, and the slope of the staircase is the disk's alone.
+
+\begin{figure}[ht]
+\centering
+\GrapheChmChrono
+\caption[E2: timeline of the first 40 chunks]{Timeline of the first 40 chunks of an A pass (second round), same drawn order in both sessions \mes. Reading a chunk (submitted $\to$ read) takes 23.5\,ms at the median with \texttt{longueur0}, 18.6\,ms with 12\,MiB; the 40 chunks finish at 261\,ms against 182, the 768 at \num{4657}\,ms against \num{3584}. The copy and the decode are the small segments at the end of each read.}
+\label{fig:t2c-chrono}
+\sourcefig{\fichier{mesures/moteur/E/journaux/e2-2026-10-15-seance1/chrono-1/chrono-A-t1-r0.csv}, \fichier{e2-2026-10-15-v12/chrono-v12582912-1/chrono-A-t1-r0.csv}.}
+\end{figure}
+
+\paragraph{Little on the path.} With \texttt{longueur0}, $q\,\bar b/R = 4 \times \num{12013664} / 23.7\cdot10^{-3} = 2.03$\,GB/s predicted against 1.95 measured (ratio 1.04); with 12\,MiB, $4 \times \num{12582912} / 18.6\cdot10^{-3} = 2.71$ against 2.69 (1.01) \calc. On the real path, latency is tighter than in the reader (p90 of 24 to 32\,ms) and Little lands almost exactly.
+
+\section{The discovery: two regimes depending on length alone}\label{sec:t2c-regimes}
+
+The disk read the GGUF at 2.44\,GB/s, and the same disk read the \texttt{.trc} at 1.92 at the end of the path. Why? Each hypothesis was declared before the measurement that decides it, with its rule (two files or two settings differ if the gap between medians exceeds twice the largest mirror noise and 3\,\%).
+
+\begin{table}[ht]
+\centering\small
+\caption[The hypotheses, killed or kept by the numbers]{The hypotheses on E2's slowness, in the order they were declared, on 2026-10-15 between 21:16 and 21:22 \mes. G: the GGUF; T: the \texttt{.trc}; L: E1's reader; C: E2's path.}
+\label{tab:t2c-hypotheses}
+\begin{tabularx}{\linewidth}{@{}p{3.6cm}Xp{2.2cm}@{}}
+\toprule
+hypothesis & measurement & verdict \\
+\midrule
+H1, the file (fragments) & reader G T T G: G 2.571 and 2.591; \textbf{T 3.039 and 3.023}\,GB/s; G has \num{2737} fragments, T has 33 & fails, backwards \\
+H2, disk slowed after the 11\,GB copy & G stays at 2.6 $\ge 2.064$, 1 min 30 s after E2 & fails \\
+H2 bis, still slowed at 21:14 & L C C L: L 3.04 to 3.09; C, disk alone, 1.93 to 2.04, adjacent and clean & fails \\
+H3, the way E2 reads & same window: C stays 36\,\% under L & holds \\
+H3a, the length of the reads & S M M S, same offsets: \textbf{S (\num{12582912}\,B) 3.00 to 3.09}\,GB/s, latency 16.3\,ms; \textbf{M (\num{12013568}\,B) 2.06 to 2.11}, latency 23.4\,ms & \textbf{holds}: $-32\,\%$ \\
+``an alignment grain'' & 12\,MiB $- g$: fast for $g \le 128$\,KiB and $g = 1$\,MiB; slow for $g = 256$\,KiB, 512\,KiB, 2\,MiB & fails: no grain \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{mesures/moteur/E/journaux/e2-diag-2026-10-15/} (\texttt{lecteur-*}, \texttt{lccl-*}, \texttt{smms-*}, \texttt{grain-*}, \texttt{extents-*.txt}), \fichier{moteur/REPRISE-E.md}.}
+\end{table}
+
+H3a is the only one that holds: \textbf{for fewer bytes, the read is 32\,\% slower}. Offsets being drawn on \num{4096} in both cases, neither the start nor the end needs finer alignment: the length is what matters. The first sweep kills the idea of a grain (an 11\,MiB length fast between two slow ones); the second sweep, declared beforehand in \fichier{balayage\_longueurs.py}, measures 23 lengths from 8 to 13\,MiB in steps of 0.25\,MiB (plus \num{12013568} and \num{12144640}), in two replicas with drawn orders, four passes each (\cref{fig:t2c-longueurs}).
+
+\begin{figure}[ht]
+\centering
+\GrapheChmLongueurs
+\caption[The discovery: throughput against read length]{\textbf{The throughput of an unbuffered read depends on its length alone}, in two regimes \mes. Reads at QD\,4 at drawn offsets on the 20b file; two replicas with drawn orders. Fast (2.87 to 3.36\,GB/s): 8; 8.25; 8.75; 9; 9.75; 10.25; 10.5; 11; 11.25; 12; 12.25; 12.75; 13\,MiB. Slow (1.80 to 2.10\,GB/s, latency $\times 1.5$): 8.5; 9.25; 10; 10.75; 11.457; 11.5; 11.582; 11.75; 12.5\,MiB. Shaded: the chunk lengths of the 20b (11.29 to 11.58\,MiB, dark) and of the 120b (11.22 to 11.68\,MiB, light). The replicas agree on 22 lengths out of 23; 9.5\,MiB stays between the two (2.71 then 2.99, for a threshold of 2.77).}
+\label{fig:t2c-longueurs}
+\sourcefig{\fichier{mesures/moteur/E/csv/e2-balayage-2026-10-15-longueurs.csv}, \fichier{journaux/e2-balayage-2026-10-15/}.}
+\end{figure}
+
+Two facts make the map credible: the two drawn orders draw it the same way (a drift in time would have drawn two different curves), and latency follows throughput (bottom panel: 1.5 times longer in the slow regime). \textbf{Every chunk length falls in a slow band; 12\,MiB is fast} (3.07\,GB/s in both replicas).
+
+\paragraph{What the measurement does not establish: the mechanism.} [hyp.] The splitting of a request into transfers by the controller driver (VMD, \texttt{iaStorVD}) or by the BitLocker filter (\texttt{fvevol}), whose last piece would fall badly for some lengths. Nothing is visible from here without kernel tracing (ETW). It is a measured and unexplained fact, published as such.
+
+\begin{proposition}[Experts served with a fixed read length]\label{prop:t2c-longueur-fixe}
+If every chunk is read in one request of fixed length $\ell \ge b_{\max}$ (the largest chunk), at the throughput $B(\ell)$ of that length, then the throughput of experts served is
+\[
+X_{\mathrm{served}} = B(\ell) \cdot \frac{\bar b}{\ell} \cdot r = B(\ell) \cdot \frac{o}{\ell}.
+\]
+\end{proposition}
+
+\begin{proof}
+The disk delivers $B(\ell)/\ell$ requests per second, each a whole chunk (since $\ell \ge b_{\max}$); the extra bytes belong to the next chunk and are neither copied nor decoded. Each request yields an expert of $o$ bytes.
+\end{proof}
+
+For $\ell = 12$\,MiB, $o/\ell = \num{13253760} / \num{12582912} = 1.0533$; measured in E2-V12, $B(\ell) \approx 2.69$\,GB/s at the chunk offsets, hence $2.83$\,GB/s served predicted, \textbf{2.834 and 2.851 measured} \calc. The extra reading (at most 0.75\,MiB per chunk, 4.7\,\% on average) is paid for, and repaid sevenfold by the change of regime. \barre{prediction: $3.07 \times \num{12013664} / \num{12582912} \times 1.103 \approx 3.2$\,GB/s served} The prediction written before the variant (3.2, with the reader's $B(\ell) = 3.07$) was 12\,\% off: at the chunk offsets, the fast regime gives only 2.7\,GB/s; that gap is not explained either. \barre{reading a chunk with 12\,MiB: $\approx 16$\,ms} Lot E's note drew the read of a chunk with 12\,MiB at about 16\,ms; that is the reader's latency (S M M S), not the path's, where the median is 18.6\,ms (\fichier{e2-2026-10-15-v12-passes.csv}).
+
+\paragraph{The gain, judged by ABBA.} So as not to compare two sessions 14 minutes apart, the N V V N series was declared beforehand: V / N $= \times 1.335$, i.e.\ $+33.5\,\%$: this is the ratio of the medians of the eight A passes of each letter, V 2.851 and N 2.135\,GB/s served \calc~(\fichier{e2-nvvn-2026-10-15-nvvn.csv}); the per-pass medians, N 2.126 and 2.142, V 2.811 and 2.853, give through their means $2.832 / 2.134 = 1.327$, not the published figure. \barre{A 25\,\% gap}: that is $1 - 1/1.335$, N under V, not the gain of V. The mirror noise is at most 1.5\,\%; 16 clean A passes out of 16; C2 holds in all four \mes. On the 120b (one session, not judged): N 2.063, V 2.877, $\times 1.39$; decoding 0.353\,ms per expert, DMA 11.07\,GB/s; the declared prediction (N $\approx 2.1$, V $\approx 2.8$) holds \mes~(\fichier{journaux/e2-120b-2026-10-15/}).
+
+\paragraph{The proposal to the arbiter.} Round every request up to a \emph{fast length calibrated on the machine} (here 12\,MiB covers every chunk of the 20b and the 120b); not one byte of the format changes; cost: a 12\,MiB pinned window per buffer instead of 11.58 (+3.6\,\%) and at most 0.75\,MiB read in excess per chunk, already counted in the $\times 1.335$. Another way, not retained: padding the chunks to a fast length at encoding time (+4.7\,\% of file, and the fast length depends on the machine). Calibration (\fichier{balayage\_longueurs.py}) would become an installation step of the engine. The decision had not been taken at the time this chapter was written.
+
+\section{The path in the engine}\label{sec:t2c-moteur}
+
+Lot O's engine (\texttt{troncons}) takes this path as is: same reader, same pinned memory, same mailbox, same decoder. Its \texttt{--chronogramme} option timestamps every miss (submission, read, copy, decode), the router and the end of each layer.
+
+\begin{figure}[ht]
+\centering
+\GrapheChmCouche
+\caption[The engine: two 120b layers, every miss timestamped]{The engine on gpt-oss-120b, step 8, layers 0 and 1, where all four experts miss \mes. Layer 0: the router ends at 0.61\,ms; the four reads, submitted at 1.28 / 1.96 / 2.68 / 3.18\,ms, finish at 6.86 / 9.81 / 16.14 / 21.17\,ms: \textbf{the disk serves them one after another}, about 5\,ms for 12\,MB each; every copy (1.0\,ms) and every decode (0.85\,ms) follows its read without waiting for the others; the layer ends at 23.73\,ms.}
+\label{fig:t2c-couche}
+\sourcefig{\fichier{mesures/moteur/O/csv/chronogramme-120b.csv} (8 steps, \num{1048} timestamped misses), extracted into \fichier{t2c-couche.csv}.}
+\end{figure}
+
+\Cref{fig:t2c-couche} finds on the real path what Little said of the reader (\cref{sec:t2c-disque}): four reads entrusted together do not finish together, they finish in a queue, 3 to 6\,ms apart. The engine suffers in addition from a short queue: a layer knows its misses only after its router, and has only 1.6 of them on average (59 misses per token over 36 layers, session O4) \mes. The disk alone, with drawn chunks at depth 4, reads 1.848\,GB/s; the engine draws 0.707\,GB in 457\,ms per token, i.e.\ 1.55\,GB/s useful \calc. What limits J1 is the queue depth per layer, which prefetching was meant to fill (killed by the measurement, $-11\,\%$: 31\,\% of the prefetched reads were wrong on a disk that already limits; see the engine chapter).
+
+\paragraph{12\,MiB reads in the engine.} Lot O's L12 series (A: J1 with streamed prefill; B: the same, \texttt{-{}-\allowbreak longueur-\allowbreak lecture} \texttt{12582912}), declared beforehand, gives \cref{fig:t2c-l12}. In generation, B gains +30\,\% at the median (2.179 and 2.182 against 2.613 and 3.073\,tokens/s), every B pass above every A pass; but the two B passes differ by 0.46\,token/s, a noise $\beta = 0.46 / 2.843 = 16.2\,\%$ by the definition of \cref{t2res-def:reel} (\barre{21\,\%} according to lot O, which divided the gap by the mean of A), and the declared rule (gain $> 2 \times$ noise $+ 3\,\%$, here $2 \times 16.2 + 3 = 35.4\,\%$ against $+30.4\,\%$ \calc) \textbf{is not met} in four passes: L12 is neither established nor refuted. The texts of the four passes are equal (logits do not depend on the read length).
+
+\begin{figure}[ht]
+\centering
+\GrapheChmLdouze
+\caption[The engine: 12\,MiB reads (L12)]{The engine on the 120b, A B B A series of 2026-10-16 (session 2) \mes. A: J1 and streamed prefill; B: the same with 12\,MiB reads. Left, generation, the declared criterion: not met. Right, streamed prefill, which was not the declared criterion.}
+\label{fig:t2c-l12}
+\sourcefig{\fichier{mesures/moteur/O/csv/o-jetons-s.csv} (passes \texttt{2026-10-16-s2-15} to \texttt{18}), in \fichier{t2c-l12.csv}.}
+\end{figure}
+
+\textbf{An observation, calculated here from the published passes, not declared beforehand}: with streamed prefill, which reads every requested expert of a layer back to back, A gives 27.44 and 27.39\,tokens/s (0.2\,\% apart), B 34.55 and 34.33 (0.6\,\%): $+25.6\,\%$, far beyond $2 \times 0.6\,\% + 3\,\% = 4.3\,\%$ \calc. Prefill, which keeps the disk full, shows almost all of the fast regime's gain ($\times 1.26$, against $\times 1.335$ on E2); generation, with its short queue, shows it drowned in its variance. This is not a verdict (the criterion was not this one); it is what a longer series will have to confirm.
+
+\paragraph{The guard on the path.} Since the round of corrections, every completed read is hashed (64-bit fingerprint of its useful bytes) by four threads in parallel with the copy and the decode, and the token is returned only after all reads of the step have been checked. The fingerprint's throughput is measured at 1.07 to 1.10\,GB/s per thread; on the critical path remains only the hashing of the last read, at most $12.25\,\text{MB} / 1.07\,\text{GB/s} \approx 11.4$\,ms minus the card work that follows it; measured: 5.2 to 5.4\,ms of waiting per token, $-1.6\,\%$ at equal disk throughput \mes~(\fichier{mesures/moteur/O/corrections/csv/vitesse-2026-10-16-passes.csv}; lot O's note, § 13.2, wrote \barre{5.2 to 5.3\,ms} and \barre{$-1.7\,\%$}, \cref{t2res-sec:garde}). With 12\,MiB reads, the guard hashes only the useful bytes: the extra bytes cost it nothing. The combination of L12 and the guard has not been measured.
+
+\section{What this chapter struck out}\label{sec:t2c-barres}
+
+\begin{itemize}
+\item \barre{What remains: E2, the end-to-end bench, which awaits lot K's decoder and lot F's format.} E2 is done (2026-10-15, 21:13 to 21:35).
+\item \barre{Model D2: cost independent of the load.} The model's witness fails; D2 bis (\cref{prop:t2c-d2bis}) replaces it.
+\item \barre{ratios 3.6 to 4.8 depending on the variant}: 3.6 to 4.8 for four variants, 8.7 for \texttt{boite\_\allowbreak sans\_\allowbreak vidage}.
+\item \barre{E2-V12: $\approx 3.2$\,GB/s served predicted}: 2.834 measured; the fast regime at the chunk offsets gives only 2.7\,GB/s.
+\item \barre{reading a chunk with 12\,MiB: $\approx 16$\,ms}: 18.6\,ms at the median on the path (16.3\,ms is the reader's latency).
+\end{itemize}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{The length map is that of one machine, one file, one evening}: 23 lengths, two replicas, the 20b file. The regime of a length may depend on the controller driver, the BitLocker version, the NVMe firmware, how full the disk is; the map does not transfer, it is recalibrated. 9.5\,MiB stayed between the two regimes; a length that is fast here may be slow on the 120b file (not measured).
+\item \textbf{The E2 threshold rests on 2.58\,GB/s measured in 4\,MiB blocks}, a length the sweep did not cover. If 4\,MiB is in a fast regime, the threshold compares a fast regime with a read in a slow one: E2's ``fails'' verdict says that first. The same goes for C5's floor and Volume~I's ceilings.
+\item \textbf{E2-V12 reads bytes of the next chunk}: no effect on correctness (C2 holds in the 12\,MiB witness passes), but an engine reading two neighbouring chunks would read the boundary twice.
+\item \textbf{The witness pass checks the expert brought back}, not the slot read by the GEMV at compute time: a write by another kernel between the decode and the GEMV would not show here (the engine excludes it by pinning in the cache, lot O's lemma 4).
+\item \textbf{The E0\,(c) trials simulate the layer}, they do not compute it: a card busy with a real GEMV might delay the next launch more than a single thread's busy wait does. The two loads bracket it, without proving it for all.
+\item \textbf{The machine is shared}: the pilot refuses to measure while a \texttt{llama-*} or the tracer runs and logs the card's state before and after every pass, but a program that is neither escapes the test; foreign bytes and others' CPU bound it.
+\item \textbf{E0\,(a) attempts only what available RAM allows}: 11\,GB ``not attempted'' is not a refusal by the driver.
+\item \textbf{The \texttt{boite\_\allowbreak sans\_\allowbreak vidage} variant} rests on undocumented behaviour (WDDM hardware scheduling, active here~\cite{pronovost2020hags}, submits the launch without a call that pushes it); it is published, never retained.
+\item \textbf{The reading ``the disk serves one 12\,MiB read at a time''} is an interpretation of Little and of the timeline, not a measurement of the controller.
+\item \textbf{The L12 observation at prefill} was not declared beforehand; it rests on two pairs of passes.
+\item \textbf{\texttt{Lecteur::soumettre} and \texttt{copier\_vers\_hote} are safe functions} that entrust an asynchronous write to the system or the driver: the ordering contract is documented, not checked by the type. \texttt{Contexte::memoire} returns (0, 0) on a driver error.
+\end{itemize}
+\end{faux}
+
+\paragraph{Where we start, where we go.} The path is built and exact, end to end, on both models; none of its stages other than the disk costs the token anything (DMA $\times 6.5$, decoding $\times 18$, synchronization $\times 23$ under their thresholds). What remains lies entirely on the disk side: the decision on the read length, its mechanism, the map of the 120b, and a deeper queue per layer, which only a better predictor than the one tried could fill.

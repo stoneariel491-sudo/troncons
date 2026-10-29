@@ -1,0 +1,152 @@
+{
+ "outil": "quant-vitesse.py",
+ "date": "2026-10-15 08:36:10",
+ "n_gen": 128,
+ "repetitions": 5,
+ "options_llama_bench": [
+  "-lm",
+  "none",
+  "--prio",
+  "2"
+ ],
+ "reference": "Qwen3.5-4B-Q4_K_M.gguf",
+ "mesures": [
+  {
+   "fichier": "qwen35-4B-IQ4_XS.gguf",
+   "bpp_tenseurs": 4.7617,
+   "octets_lus_par_jeton": 2503317504,
+   "serie_abba": [
+    {
+     "role": "A",
+     "jetons_s": 68.874322,
+     "ecart_type": 1.150644
+    },
+    {
+     "role": "B",
+     "jetons_s": 73.918409,
+     "ecart_type": 0.72056
+    },
+    {
+     "role": "B",
+     "jetons_s": 73.872679,
+     "ecart_type": 1.481426
+    },
+    {
+     "role": "A",
+     "jetons_s": 68.924275,
+     "ecart_type": 1.501623
+    }
+   ],
+   "jetons_s": 73.9,
+   "go_s_effectifs": 185.0,
+   "part_du_plafond_256": 0.723,
+   "reference_jetons_s": 68.9,
+   "bruit_reference_relatif": 0.001
+  },
+  {
+   "fichier": "qwen35-4B-IQ3_XXS.gguf",
+   "bpp_tenseurs": 3.6018,
+   "octets_lus_par_jeton": 1893525504,
+   "serie_abba": [
+    {
+     "role": "A",
+     "jetons_s": 69.678903,
+     "ecart_type": 0.333272
+    },
+    {
+     "role": "B",
+     "jetons_s": 87.738744,
+     "ecart_type": 0.535893
+    },
+    {
+     "role": "B",
+     "jetons_s": 86.417529,
+     "ecart_type": 0.963552
+    },
+    {
+     "role": "A",
+     "jetons_s": 69.765277,
+     "ecart_type": 0.240374
+    }
+   ],
+   "jetons_s": 87.08,
+   "go_s_effectifs": 164.9,
+   "part_du_plafond_256": 0.644,
+   "reference_jetons_s": 69.72,
+   "bruit_reference_relatif": 0.001
+  },
+  {
+   "fichier": "qwen35-4B-IQ2_M.gguf",
+   "bpp_tenseurs": 3.2918,
+   "octets_lus_par_jeton": 1730586624,
+   "serie_abba": [
+    {
+     "role": "A",
+     "jetons_s": 69.90543,
+     "ecart_type": 0.28639
+    },
+    {
+     "role": "B",
+     "jetons_s": 87.823783,
+     "ecart_type": 0.531336
+    },
+    {
+     "role": "B",
+     "jetons_s": 87.513903,
+     "ecart_type": 0.393416
+    },
+    {
+     "role": "A",
+     "jetons_s": 69.831606,
+     "ecart_type": 0.168577
+    }
+   ],
+   "jetons_s": 87.67,
+   "go_s_effectifs": 151.7,
+   "part_du_plafond_256": 0.593,
+   "reference_jetons_s": 69.87,
+   "bruit_reference_relatif": 0.001
+  },
+  {
+   "fichier": "qwen35-4B-IQ2_XXS.gguf",
+   "bpp_tenseurs": 2.9054,
+   "octets_lus_par_jeton": 1527425024,
+   "serie_abba": [
+    {
+     "role": "A",
+     "jetons_s": 69.377552,
+     "ecart_type": 1.029687
+    },
+    {
+     "role": "B",
+     "jetons_s": 92.895859,
+     "ecart_type": 0.39367
+    },
+    {
+     "role": "B",
+     "jetons_s": 92.673832,
+     "ecart_type": 1.393443
+    },
+    {
+     "role": "A",
+     "jetons_s": 68.3532,
+     "ecart_type": 2.083961
+    }
+   ],
+   "jetons_s": 92.78,
+   "go_s_effectifs": 141.7,
+   "part_du_plafond_256": 0.554,
+   "reference_jetons_s": 68.87,
+   "bruit_reference_relatif": 0.015
+  }
+ ],
+ "reference_bilan": {
+  "bpp_tenseurs": 5.1928,
+  "octets_lus_par_jeton": 2729969664,
+  "jetons_s_moyen": 69.34,
+  "jetons_s_min": 68.35,
+  "jetons_s_max": 69.91,
+  "go_s_effectifs": 189.3,
+  "part_du_plafond_256": 0.739
+ }
+}

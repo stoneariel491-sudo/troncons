@@ -1,0 +1,387 @@
+% Figures du chapitre « Le chemin des octets » (Tome II). Graphes pgfplots qui lisent les CSV
+% commités des lots E et O (directement, ou réordonnés par memoire/outils/tome2_chemin_noyaux.py
+% sous memoire/figures/tome2/donnees/), et schémas TikZ. Styles préfixés « chm ».
+\ifdefined\TdeuxChmNoyCommun\else\input{\Racine/figures/tome2/chemin-noyaux-commun}\fi
+
+\tikzset{
+  chmboite/.style={draw=#1, fill=#1!10, rounded corners=2pt, line width=0.8pt, align=center,
+    minimum width=3.7cm, minimum height=0.72cm, font=\sffamily\small, inner sep=3pt},
+  chmsys/.style={draw=black!45, fill=white, dashed, rounded corners=1pt, align=center,
+    minimum width=3.7cm, minimum height=0.55cm, font=\sffamily\scriptsize, inner sep=2pt},
+  chmfl/.style={-{Latex[length=2.2mm]}, line width=#1, black!70},
+  chmfl/.default=0.9pt,
+  chmctl/.style={-{Latex[length=1.8mm]}, densely dashed, black!50, line width=0.6pt},
+  chmdeb/.style={font=\sffamily\scriptsize, align=center, text=black!80},
+  chmetat/.style={draw=Accent, fill=Accent!8, rounded corners=6pt, line width=0.8pt, align=center,
+    minimum width=2.1cm, minimum height=0.9cm, font=\sffamily\small},
+  chmerr/.style={draw=Signe, fill=Signe!6, rounded corners=2pt, align=center, font=\sffamily\scriptsize,
+    inner sep=3pt},
+  chmmot/.style={draw=black!55, line width=0.4pt, minimum height=0.62cm, inner sep=0pt,
+    font=\sffamily\tiny, align=center},
+  chmseg/.style={line width=2.4pt},
+}
+
+% ------------------------------------------------------------------------------------------------
+% Schéma : la pile du chemin des octets, du disque aux unités de calcul.
+\newcommand{\SchemaChmPile}{%
+\begin{tikzpicture}[x=1cm, y=1cm]
+  % Colonne de gauche : la lecture.
+  \node[chmboite=Accent] (ordo) at (5.3,0.9) {\textbf{troncons}\\[-1pt]{\scriptsize\EF{scheduling thread (trc-ordo)}{fil d'ordonnancement (trc-ordo)}}};
+  \node[chmboite=Disque] (es) at (0,-0.6) {\textbf{trc-es}\\[-1pt]{\scriptsize\EF{unbuffered reader, IOCP}{lecteur sans tampon, IOCP}}};
+  \node[chmsys] (rf) at (0,-1.65) {\texttt{ReadFile}, \texttt{NO\_BUFFERING | OVERLAPPED}};
+  \node[chmsys] (ntfs) at (0,-2.35) {NTFS};
+  \node[chmsys] (fve) at (0,-3.05) {\texttt{fvevol} : BitLocker XTS-AES\\[-1pt]\EF{decrypted on the CPU}{déchiffré sur le processeur}};
+  \node[chmsys] (vmd) at (0,-3.85) {\texttt{iaStorVD} (Intel VMD)};
+  \node[chmboite=Disque] (nvme) at (0,-5.0) {\textbf{NVMe} Samsung MZVMA1T0\\[-1pt]{\scriptsize PCIe 4.0 $\times$4}};
+  % Colonne de droite : la carte.
+  \node[chmboite=Vram] (cuda) at (10.6,-0.6) {\textbf{trc-cuda}\\[-1pt]{\scriptsize\EF{driver API, loaded at run time}{API du pilote, chargée à l'exécution}}};
+  \node[chmsys] (nv) at (10.6,-1.65) {\texttt{nvcuda.dll} (System32), \EF{driver}{pilote} 591.91};
+  \node[chmsys] (wddm) at (10.6,-2.35) {WDDM, \EF{hardware scheduling on}{ordonnancement matériel actif}};
+  \node[chmboite=Pcie] (ce) at (10.6,-3.4) {\textbf{\EF{one copy engine}{un seul moteur de copie}}\\[-1pt]{\scriptsize\texttt{ASYNC\_ENGINE\_COUNT} = 1}};
+  \node[chmboite=Vram] (vram) at (10.6,-5.0) {\textbf{VRAM} 8\,188\,\EF{MiB}{Mio}\\[-1pt]{\scriptsize\EF{arrival buffers, slots}{tampons d'arrivée, emplacements}}};
+  \node[chmboite=Calcul] (sm) at (10.6,-6.45) {\textbf{24 SM}\\[-1pt]{\scriptsize\EF{decoder, GEMV}{décodeur, GEMV}}};
+  % Au milieu : la page épinglée.
+  \node[chmboite=Ram, minimum height=1.25cm] (ram) at (5.3,-5.0) {\textbf{\EF{pinned window}{fenêtre épinglée}}\\[-1pt]{\scriptsize\texttt{cuMemHostAlloc}, \EF{4\,096-aligned}{alignée sur 4\,096}}\\[-1pt]{\scriptsize\EF{the same physical page}{la même page physique}}};
+  % Les piles.
+  \foreach \a/\b in {es/rf, rf/ntfs, ntfs/fve, fve/vmd, vmd/nvme, cuda/nv, nv/wddm, wddm/ce} \draw[black!35] (\a) -- (\b);
+  % Le contrôle.
+  \draw[chmctl] (ordo.west) -| node[chmdeb, above, pos=0.25] {\EF{submit, harvest}{soumettre, récolter}} (es.north);
+  \draw[chmctl] (ordo.east) -| node[chmdeb, above, pos=0.25] {\EF{copy, launch, events}{copier, lancer, événements}} (cuda.north);
+  % Les données.
+  \draw[chmfl=1.1pt] (nvme) -- node[chmdeb, above] {\textbf{2,44}\\1,92\,/\,2,76} node[chmdeb, below] {\EF{NVMe DMA}{DMA du NVMe}} (ram);
+  \draw[chmfl=1.8pt] (ram) -- node[chmdeb, above] {\textbf{12,50}\\/\,15,754} node[chmdeb, below] {PCIe 4.0 $\times$8} (vram);
+  \draw[black!35] (ce) -- (vram);
+  \draw[chmfl=2.6pt] (vram) -- node[chmdeb, left, align=right] {\EF{decoding 34,3 (chunks)}{décodage 34,3 (tronçons)}\\ GEMV 235} (sm);
+  \node[chmdeb, anchor=north west, text width=14.6cm, align=left] at (-1.9,-7.05)
+    {\EF{GB/s, measured here. Disk: 12\,MiB reads at random offsets, QD\,4, quiet machine (E1) / whole chunks read at their own length (E2, disk alone, slow regime) / 12\,MiB reads at the chunk offsets (E2-V12, disk alone). Link: DMA of 12\,MiB from pinned memory (E0\,b) / computed ceiling of PCIe 4.0 $\times$8. Decoding: one expert at a time (E2, stages). GEMV: batch of 12 MXFP4 matrices (K2).}%
+        {Go/s, mesurés ici. Disque : lectures de 12\,Mio à décalages tirés, QD\,4, machine calme (E1) / tronçons entiers lus à leur longueur (E2, disque seul, régime lent) / lectures de 12\,Mio aux décalages des tronçons (E2-V12, disque seul). Lien : DMA de 12\,Mio depuis la mémoire épinglée (E0\,b) / plafond calculé du PCIe 4.0 $\times$8. Décodage : un expert à la fois (E2, étages). GEMV : lot de 12 matrices MXFP4 (K2).}};
+\end{tikzpicture}}
+
+% ------------------------------------------------------------------------------------------------
+% Schéma : l'automate d'une requête de trc-es.
+\newcommand{\SchemaChmAutomate}{%
+\begin{tikzpicture}[x=1cm, y=1cm, font=\sffamily\small]
+  \node[chmetat] (s) at (0,0) {\EF{submitted}{soumise}};
+  \node[chmetat] (f) at (3.4,1.5) {\EF{queued}{en file}};
+  \node[chmetat] (c) at (3.4,-1.5) {\EF{entrusted}{confiée}\\[-2pt]{\scriptsize\EF{(OVERLAPPED owned}{(OVERLAPPED au}}\\[-3pt]{\scriptsize\EF{by the system)}{système)}}};
+  \node[chmetat] (a) at (7.4,-1.5) {\EF{completed}{achevée}\\[-2pt]{\scriptsize\EF{packet in the port}{paquet dans le port}}};
+  \node[chmetat] (r) at (11.3,-1.5) {\EF{harvested}{récoltée}\\[-2pt]{\scriptsize\texttt{Achevement}}};
+  \node[chmerr] (e1) at (0,-3.4) {\EF{synchronous failure}{échec synchrone}\\\EF{error returned at once,}{erreur rendue tout de suite,}\\\EF{no packet will come}{aucun paquet ne viendra}};
+  \node[chmerr] (e2) at (3.4,3.2) {\EF{deferred launch refused}{lancement différé refusé}\\\texttt{Achevement} \EF{with its code}{avec son code}};
+  \node[chmerr] (ab) at (7.4,-3.6) {\EF{reader dropped}{abandon du lecteur}\\\texttt{CancelIoEx}, \EF{then wait for the packet}{puis attente du paquet}};
+  \draw[chmfl] (s) -- node[chmdeb, above left] {$n_{\mathrm{vol}} = q$} (f);
+  \draw[chmfl] (s) -- node[chmdeb, below left] {$n_{\mathrm{vol}} < q$} node[chmdeb, above right, pos=0.6] {\texttt{ReadFile}} (c);
+  \draw[chmfl] (f) -- node[chmdeb, right] {\EF{at a harvest}{à une récolte}} (c);
+  \draw[chmfl] (c) -- node[chmdeb, above] {\EF{disk + DMA}{disque + DMA}} (a);
+  \draw[chmfl] (a) -- node[chmdeb, above] {\texttt{GetQueued…Ex}} (r);
+  \draw[chmfl, Signe] (s) -- (e1);
+  \draw[chmfl, Signe] (f) -- (e2);
+  \draw[chmfl, Signe] (c) |- (ab);
+  \draw[chmfl, Signe] (ab) -| node[chmdeb, right, pos=0.75] {\EF{packet}{paquet} $\Rightarrow$ \EF{freed}{libérée}} (r.south);
+  \draw[chmctl] (r.north) |- node[chmdeb, above, pos=0.75] {\EF{a queued request is entrusted}{une requête de la file est confiée}} (f.east);
+\end{tikzpicture}}
+
+% ------------------------------------------------------------------------------------------------
+% Schéma : la case de 64 octets de la boîte aux lettres, et l'ordre des écritures et des lectures.
+\newcommand{\SchemaChmBoite}{%
+\begin{tikzpicture}[x=1cm, y=1cm]
+  \def\lm{0.86}
+  \foreach \w in {0,...,15}{
+    \pgfmathsetmacro{\x}{\w*\lm}
+    \ifnum\w=0 \def\chmc{Signe}\def\chmt{$s$}\else\ifnum\w<5 \def\chmc{Index}\def\chmt{$i_{\the\numexpr\w-1\relax}$}\else\ifnum\w<9 \def\chmc{Mant}\def\chmt{$g_{\the\numexpr\w-5\relax}$}\else\def\chmc{Code}\def\chmt{0}\fi\fi\fi
+    \node[chmmot, fill=\chmc!25, minimum width=\lm cm] at (\x+\lm/2,0) {\chmt};
+    \node[font=\sffamily\tiny, black!60] at (\x+\lm/2,-0.48) {\the\numexpr4*\w\relax};
+  }
+  \node[font=\sffamily\tiny, black!60, anchor=west] at (16*\lm-0.05,-0.48) {64};
+  \draw[decorate, decoration={brace, amplitude=4pt}] (0,0.38) -- (\lm,0.38) node[midway, above=4pt, font=\sffamily\scriptsize, align=center] {\EF{word 0: sequence}{mot 0 : séquence}\\$s = 64t + \ell + 1$};
+  \draw[decorate, decoration={brace, amplitude=4pt}] (\lm,0.38) -- (5*\lm,0.38) node[midway, above=4pt, font=\sffamily\scriptsize, align=center] {\EF{words 1--4: indices}{mots 1 à 4 : indices}\\u32, 0 \EF{to}{à} 127};
+  \draw[decorate, decoration={brace, amplitude=4pt}] (5*\lm,0.38) -- (9*\lm,0.38) node[midway, above=4pt, font=\sffamily\scriptsize, align=center] {\EF{words 5--8: weights}{mots 5 à 8 : poids}\\\EF{f32 bits, sum 1}{bits de f32, somme 1}};
+  \draw[decorate, decoration={brace, amplitude=4pt}] (9*\lm,0.38) -- (16*\lm,0.38) node[midway, above=4pt, font=\sffamily\scriptsize] {\EF{words 9--15: zero}{mots 9 à 15 : zéros}};
+  % L'ordre.
+  \node[font=\sffamily\small\bfseries, anchor=east] at (-0.1,-1.45) {\EF{GPU}{carte}};
+  \node[font=\sffamily\small\bfseries, anchor=east] at (-0.1,-2.55) {\EF{host}{hôte}};
+  \draw[black!40] (0,-1.45) -- (14.7,-1.45); \draw[black!40] (0,-2.55) -- (14.7,-2.55);
+  \node[chmerr, draw=Index, fill=Index!10] (w1) at (2.0,-1.45) {\EF{write $i_0..i_3$, $g_0..g_3$}{écrire $i_0..i_3$, $g_0..g_3$}};
+  \node[chmerr, draw=black!60, fill=black!5] (fe) at (5.4,-1.45) {\texttt{\_\_threadfence\_system()}\\[-1pt]PTX \texttt{membar.sys}};
+  \node[chmerr] (w0) at (8.6,-1.45) {\EF{write $s$ (last)}{écrire $s$ (en dernier)}};
+  \node[chmerr, draw=black!60, fill=white] (r0) at (8.6,-2.55) {\EF{volatile read of $s$}{lecture volatile de $s$}};
+  \node[chmerr, draw=Index, fill=Index!10] (r1) at (12.4,-2.55) {\EF{if $s$ expected: read}{si $s$ attendu : lire}\\$i_0..i_3$, $g_0..g_3$};
+  \draw[chmfl] (w1) -- (fe); \draw[chmfl] (fe) -- (w0);
+  \draw[chmfl, Pcie, densely dotted] (w0) -- node[chmdeb, right] {PCIe, \EF{mapped memory}{mémoire projetée}} (r0);
+  \draw[chmfl] (r0) -- node[chmdeb, above] {x86 TSO} (r1);
+\end{tikzpicture}}
+
+% ------------------------------------------------------------------------------------------------
+% Schéma : le modèle D2, trois couches à l'échelle (routeur 50 µs, experts 250 µs, s = 18,5 µs).
+\newcommand{\SchemaChmSync}{%
+\begin{tikzpicture}[x=0.0135cm, y=1cm, font=\sffamily\scriptsize]
+  \def\tr{50}\def\te{250}\def\s{18.5}
+  \node[anchor=east, font=\sffamily\small\bfseries] at (-15,0.35) {\EF{asynchronous}{asynchrone}};
+  \node[anchor=east] at (-15,-0.05) {\EF{GPU}{carte}};
+  \foreach \l in {0,1,2}{
+    \pgfmathsetmacro{\x}{\l*(\tr+\te)}
+    \draw[fill=Calcul!30, draw=Calcul!70!black] (\x,-0.25) rectangle ++(\tr,0.4) node[midway] {r};
+    \draw[fill=Vram!30, draw=Vram!70!black] (\x+\tr,-0.25) rectangle ++(\te,0.4) node[midway] {\EF{experts}{experts} $\ell{=}\l$};
+  }
+  \node[anchor=east, font=\sffamily\small\bfseries] at (-15,-1.05) {\EF{synchronous}{synchrone}};
+  \node[anchor=east] at (-15,-1.45) {\EF{GPU}{carte}};
+  \node[anchor=east] at (-15,-2.15) {\EF{host}{hôte}};
+  \foreach \l in {0,1,2}{
+    \pgfmathsetmacro{\x}{\l*(\tr+\s+\te)}
+    \draw[fill=Calcul!30, draw=Calcul!70!black] (\x,-1.65) rectangle ++(\tr,0.4) node[midway] {r};
+    \draw[fill=Signe!70, draw=Signe] (\x+\tr,-1.65) rectangle ++(\s,0.4);
+    \draw[fill=Vram!30, draw=Vram!70!black] (\x+\tr+\s,-1.65) rectangle ++(\te,0.4) node[midway] {\EF{experts}{experts} $\ell{=}\l$};
+    \draw[-{Latex[length=1.4mm]}, Signe] (\x+\tr,-1.68) -- (\x+\tr+6,-2.0);
+    \draw[-{Latex[length=1.4mm]}, Signe] (\x+\tr+12,-2.0) -- (\x+\tr+\s,-1.68);
+    \fill[Signe] (\x+\tr+5,-2.25) rectangle ++(8,0.18);
+  }
+  \draw[decorate, decoration={brace, amplitude=3pt, mirror}] (\tr,-2.35) -- (\tr+\s,-2.35) node[midway, below=4pt, align=left, anchor=north west] {$s = d_{\mathrm{sig}} + d_{\text{h\^ote}} + d_{\mathrm{lanc}} = \SI{18.5}{\micro\second}$ \mes};
+  \draw[black!50] (0,-2.95) -- (900,-2.95);
+  \foreach \t in {0,300,600,900} \draw[black!50] (\t,-2.95) -- ++(0,0.08) node[above, font=\sffamily\tiny] {\t};
+  \node[anchor=west, font=\sffamily\tiny] at (905,-2.95) {µs};
+\end{tikzpicture}}
+
+% ------------------------------------------------------------------------------------------------
+% Schéma : le moteur de copie unique, une seule file FIFO pour les deux sens.
+\newcommand{\SchemaChmMoteurCopie}{%
+\begin{tikzpicture}[x=1cm, y=1cm, font=\sffamily\scriptsize]
+  \foreach \i/\t in {0/{\EF{chunk}{tronçon} $i$}, 1/{$i{+}1$}, 2/{$i{+}2$}, 3/{$i{+}3$}}
+    \draw[fill=Pcie!30, draw=Pcie!70!black] (\i*1.9,0) rectangle ++(1.8,0.6) node[midway] {\t};
+  \draw[fill=Calcul!25, draw=Calcul] (4*1.9,0) rectangle ++(1.6,0.6) node[midway, align=center] {\EF{logits}{logits}\\[-2pt]0,8\,\EF{MB}{Mo}};
+  \node[chmboite=Pcie, minimum width=2.4cm] (moteur) at (11.4,0.3) {\EF{copy engine}{moteur de copie}};
+  \draw[chmfl] (9.25,0.3) -- (moteur);
+  \node[anchor=east, align=right] at (-0.15,0.3) {\EF{FIFO, both}{FIFO, les deux}\\\EF{directions}{sens}};
+  \draw[decorate, decoration={brace, amplitude=4pt, mirror}] (0,-0.1) -- (7.55,-0.1) node[midway, below=5pt] {\EF{wait of the copy back $\le k\,b/B_{\mathrm{PCIe}} = 4 \times 12\,\text{MiB}/11\,\text{GB/s} \approx 4{,}6$\,ms}{attente du retour $\le k\,b/B_{\mathrm{PCIe}} = 4 \times 12\,\text{Mio}/11\,\text{Go/s} \approx 4{,}6$\,ms} \calc};
+  \node[chmboite=Calcul, minimum width=2.4cm] (sm) at (11.4,-1.6) {SM : \texttt{routeur\_topk}};
+  \node[chmboite=Ram, minimum width=2.6cm] (boite) at (4.6,-1.6) {\EF{mailbox (host)}{boîte aux lettres (hôte)}};
+  \draw[chmfl, densely dotted] (sm) -- node[chmdeb, below] {\EF{store through the BAR, outside the queue}{écriture par le bus, hors de la file}} (boite);
+\end{tikzpicture}}
+
+% ------------------------------------------------------------------------------------------------
+% Schéma : la fenêtre d'E2 et la vie d'un emplacement.
+\newcommand{\SchemaChmFenetre}{%
+\begin{tikzpicture}[x=1cm, y=1cm, font=\sffamily\small]
+  \node[chmetat] (l) at (0,0) {\EF{free}{libre}};
+  \node[chmetat, draw=Disque, fill=Disque!10] (d) at (4.4,0) {\EF{reading}{lecture}\\[-2pt]{\scriptsize\EF{IOCP, $q = 4$ in flight}{IOCP, $q = 4$ en vol}}};
+  \node[chmetat, draw=Pcie, fill=Pcie!10] (c) at (8.8,0) {\EF{copy}{copie}\\[-2pt]{\scriptsize\EF{copy stream}{flux de copie}}};
+  \node[chmetat, draw=Vram, fill=Vram!10] (k) at (12.7,0) {\EF{decode}{décodage}\\[-2pt]{\scriptsize\EF{decode stream}{flux de décodage}}};
+  \draw[chmfl] (l) -- node[chmdeb, above] {\EF{request of}{requête de}} node[chmdeb, below] {\texttt{longueur0}\\\EF{or}{ou} 12\,\EF{MiB}{Mio}} (d);
+  \draw[chmfl] (d) -- node[chmdeb, above] {\EF{completion}{achèvement}} node[chmdeb, below] {23,7 / 18,6\,ms} (c);
+  \draw[chmfl] (c) -- node[chmdeb, above] {\EF{event}{événement}} node[chmdeb, below] {$\approx$ 1,1\,ms} (k);
+  \draw[chmfl] (k.south) -- ++(0,-1.25) -| node[chmdeb, below, pos=0.25] {\EF{host sees the ``decoded'' event ($\approx$ 0,35--0,59\,ms of decoding)}{l'hôte voit l'événement « décodé » ($\approx$ 0,35 à 0,59\,ms de décodage)}} (l.south);
+  % Les ressources d'un emplacement.
+  \node[anchor=west, align=left, font=\sffamily\scriptsize, text width=15cm] at (-1.1,-2.75)
+    {\EF{One slot}{Un emplacement} $=$ \EF{pinned slice}{tranche épinglée} \num{12144640}\,\EF{B}{o} $+$ \EF{arrival buffer in VRAM}{tampon d'arrivée en VRAM} \num{12144640}\,\EF{B}{o} $+$ \EF{SoA slot}{emplacement SoA} \num{13254144}\,\EF{B}{o} $+$ \EF{four events}{quatre événements}. \EF{Six slots}{Six emplacements} ($S = q + 2$) : \EF{pinned}{épinglé} $6 \times \num{12144640} = \SI{72.9}{\Mo}$ ; VRAM $6 \times (\num{12144640} + \num{13254144}) = \SI{152.4}{\Mo}$ \calc. \EF{Control counters: $768 \times 16$\,B in VRAM, read back once at the end of the pass.}{Compteurs de contrôle : $768 \times 16$\,o en VRAM, relus une fois en fin de passe.}};
+\end{tikzpicture}}
+
+% ================================================================================================
+% Graphes.
+
+% E0 (c) : coût d'une synchronisation, par variante, à vide et sous charge.
+\newcommand{\GrapheChmSync}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=\linewidth, height=0.5\linewidth, ybar=2pt, bar width=12pt,
+  ylabel={\EF{cost of one synchronization (µs)}{coût d'une synchronisation (µs)}},
+  ymin=0, ymax=100, xmin=-0.6, xmax=4.6, xtick={0,1,2,3,4},
+  xticklabels={\texttt{evenement}, \texttt{sondage}, \texttt{boite}, \texttt{boite\_sans\_vidage}, \texttt{bloquant}},
+  x tick label style={font=\scriptsize}, major x grid style={draw=none}, legend pos=north west,
+  nodes near coords, nodes near coords style={font=\tiny, black!80, /pgf/number format/precision=1}, point meta=rawy]
+\addplot[fill=Accent!35, draw=Accent, erreurs] table[x=i, y=vide_us, y error=err_vide] {\DonneesTdeux/t2c-sync.csv};
+\addlegendentry{\EF{empty (router 0, experts 0)}{à vide (routeur 0, experts 0)}}
+\addplot[fill=Calcul!55, draw=Calcul, erreurs] table[x=i, y=charge_us, y error=err_charge] {\DonneesTdeux/t2c-sync.csv};
+\addlegendentry{\EF{loaded (router 50\,µs, experts 250\,µs)}{sous charge (routeur 50\,µs, experts 250\,µs)}}
+\end{axis}
+\end{tikzpicture}}
+
+% E0 (b) : chaque copie DMA de la série ABBA, 12 Mio et 64 Mio.
+\newcommand{\GrapheChmDma}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=\linewidth, height=0.45\linewidth,
+  xlabel={\EF{copy in the ABBA series}{copie dans la série ABBA}}, ylabel={\EF{DMA (GB/s)}{DMA (Go/s)}},
+  ymin=10.5, ymax=16.2, xmin=-0.5, xmax=15.5, legend pos=south east, legend columns=2]
+\addplot[only marks, SerieA, mark=*, mark size=1.7pt] table[x=k, y=go12] {\DonneesTdeux/t2c-dma.csv};
+\addlegendentry{12\,\EF{MiB (one chunk)}{Mio (un tronçon)}}
+\addplot[only marks, SerieB, mark=square*, mark size=1.5pt] table[x=k, y=go64] {\DonneesTdeux/t2c-dma.csv};
+\addlegendentry{64\,\EF{MiB (study 01)}{Mio (étude 01)}}
+\addplot[Signe, dashed, no markers, domain=-0.5:15.5] {11.0};
+\addlegendentry{\EF{threshold 11.0}{seuil 11,0}}
+\addplot[black!60, densely dotted, no markers, domain=-0.5:15.5] {15.754};
+\addlegendentry{\EF{link ceiling 15.754}{plafond du lien 15,754}}
+\end{axis}
+\end{tikzpicture}}
+
+% E1 : le lecteur sur le disque seul, séance 1 (machine chargée) et séance 3 (au calme).
+\newcommand{\GrapheChmEun}{%
+\begin{tikzpicture}
+\begin{groupplot}[group style={group size=2 by 1, horizontal sep=1.1cm, y descriptions at=edge left},
+  memoire, width=0.52\linewidth, height=0.46\linewidth, ymin=0, ymax=3.2, xmin=-0.5, xmax=7.5,
+  xtick={0,...,7}, xticklabels={A,B,B,A,A,B,B,A}, ylabel={\EF{reader (GB/s)}{lecteur (Go/s)}}]
+\nextgroupplot[title={\small\EF{session 1, 15:39 (others: 69--84\,\% CPU)}{séance 1, 15 h 39 (autres : 69 à 84\,\% du processeur)}}]
+\addplot[only marks, SerieA, mark=*, mark size=2pt, restrict expr to domain={\thisrow{qd}*10+\thisrow{propre}}{41:41}] table[x=k, y=go_s] {\DonneesTdeux/t2c-e1-s1.csv};
+\addplot[only marks, SerieA, mark=o, mark size=2pt, restrict expr to domain={\thisrow{qd}*10+\thisrow{propre}}{40:40}] table[x=k, y=go_s] {\DonneesTdeux/t2c-e1-s1.csv};
+\addplot[only marks, SerieB, mark=square*, mark size=1.8pt, restrict expr to domain={\thisrow{qd}*10+\thisrow{propre}}{11:11}] table[x=k, y=go_s] {\DonneesTdeux/t2c-e1-s1.csv};
+\addplot[only marks, SerieB, mark=square, mark size=1.8pt, restrict expr to domain={\thisrow{qd}*10+\thisrow{propre}}{10:10}] table[x=k, y=go_s] {\DonneesTdeux/t2c-e1-s1.csv};
+\addplot[Signe, dashed, no markers, domain=-0.5:7.5] {2.064};
+\nextgroupplot[title={\small\EF{session 3, 20:40 (others: 15--32\,\%)}{séance 3, 20 h 40 (autres : 15 à 32\,\%)}}, legend pos=south east, legend style={font=\scriptsize}]
+\addplot[only marks, SerieA, mark=*, mark size=2pt, restrict expr to domain={\thisrow{qd}}{4:4}] table[x=k, y=go_s] {\DonneesTdeux/t2c-e1-s3.csv};
+\addlegendentry{A : QD 4}
+\addplot[only marks, SerieB, mark=square*, mark size=1.8pt, restrict expr to domain={\thisrow{qd}}{1:1}] table[x=k, y=go_s] {\DonneesTdeux/t2c-e1-s3.csv};
+\addlegendentry{B : QD 1}
+\addplot[Signe, dashed, no markers, domain=-0.5:7.5] {2.064};
+\addlegendentry{\EF{threshold 2.064}{seuil 2,064}}
+\end{groupplot}
+\end{tikzpicture}}
+
+% Loi de Little : débit prédit par q·b/R contre débit du mur, chaque passe.
+\newcommand{\GrapheChmLittle}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=0.78\linewidth, height=0.6\linewidth,
+  xlabel={\EF{wall-clock throughput (GB/s)}{débit du mur (Go/s)}},
+  ylabel={$q\,b / R_{\mathrm{m\acute ediane}}$ (\EF{GB/s}{Go/s})},
+  xmin=0.6, xmax=3.1, ymin=0.6, ymax=3.1, legend pos=south east, legend style={font=\scriptsize}]
+\addplot[black!45, no markers, domain=0.6:3.1] {x};
+\addlegendentry{$y = x$}
+\addplot[black!30, dashed, no markers, domain=0.6:3.1, forget plot] {1.2*x};
+\addplot[only marks, SerieB, mark=triangle*, mark size=2.3pt, restrict expr to domain={\thisrow{groupe}}{1:1}] table[x=mur, y=little] {\DonneesTdeux/t2c-little.csv};
+\addlegendentry{\EF{E1 session 1 (loaded)}{E1 séance 1 (chargée)}}
+\addplot[only marks, SerieA, mark=*, mark size=2pt, restrict expr to domain={\thisrow{groupe}}{3:3}] table[x=mur, y=little] {\DonneesTdeux/t2c-little.csv};
+\addlegendentry{\EF{E1 session 3 (quiet)}{E1 séance 3 (calme)}}
+\addplot[only marks, SerieC, mark=square*, mark size=1.8pt, restrict expr to domain={\thisrow{groupe}}{2:2}] table[x=mur, y=little] {\DonneesTdeux/t2c-little.csv};
+\addlegendentry{\EF{E0 (b), disk}{E0 (b), disque}}
+\node[font=\scriptsize, black!55, rotate=40] at (axis cs:1.15,1.52) {$y = 1{,}2\,x$};
+\end{axis}
+\end{tikzpicture}}
+
+% E2 : les passes, lecture de longueur0 (N) et de 12 Mio (V), puis la série N V V N.
+\newcommand{\GrapheChmEdeux}{%
+\begin{tikzpicture}
+\begin{groupplot}[group style={group size=2 by 1, horizontal sep=1.0cm, y descriptions at=edge left},
+  memoire, height=0.48\linewidth, ymin=1.8, ymax=3.1, ylabel={\EF{experts served (GB/s, original size)}{experts servis (Go/s, taille d'origine)}}]
+\nextgroupplot[width=0.48\linewidth, xmin=-0.5, xmax=7.5, xtick={0,...,7}, xticklabels={A,B,B,A,A,B,B,A},
+  title={\small\EF{two sessions, 21:13 and 21:29}{deux séances, 21 h 13 et 21 h 29}}, legend columns=2, legend style={font=\scriptsize, at={(0.5,0.52)}, anchor=center}]
+\addplot[only marks, SerieB, mark=*, mark size=2pt, restrict expr to domain={\thisrow{a}}{1:1}] table[x=k, y=servis] {\DonneesTdeux/t2c-e2-n.csv};
+\addlegendentry{N, A}
+\addplot[only marks, SerieB, mark=o, mark size=2pt, restrict expr to domain={\thisrow{a}}{0:0}] table[x=k, y=servis] {\DonneesTdeux/t2c-e2-n.csv};
+\addlegendentry{N, B}
+\addplot[only marks, SerieA, mark=square*, mark size=1.8pt, restrict expr to domain={\thisrow{a}}{1:1}] table[x=k, y=servis] {\DonneesTdeux/t2c-e2-v.csv};
+\addlegendentry{V, A}
+\addplot[only marks, SerieA, mark=square, mark size=1.8pt, restrict expr to domain={\thisrow{a}}{0:0}] table[x=k, y=servis] {\DonneesTdeux/t2c-e2-v.csv};
+\addlegendentry{V, B}
+\addplot[Signe, dashed, no markers, domain=-0.5:7.5, forget plot] {2.2815};
+\nextgroupplot[width=0.53\linewidth, xmin=-0.5, xmax=15.5, xtick={1.5,5.5,9.5,13.5}, xticklabels={N,V,V,N},
+  title={\small\EF{series N V V N, A passes, 21:30}{série N V V N, passes A, 21 h 30}}]
+\addplot[only marks, SerieB, mark=*, mark size=2pt, restrict expr to domain={\thisrow{v}}{0:0}] table[x=k, y=servis] {\DonneesTdeux/t2c-nvvn.csv};
+\addplot[only marks, SerieA, mark=square*, mark size=1.8pt, restrict expr to domain={\thisrow{v}}{1:1}] table[x=k, y=servis] {\DonneesTdeux/t2c-nvvn.csv};
+\addplot[Signe, dashed, no markers, domain=-0.5:15.5] {2.2815};
+\node[font=\scriptsize, Signe, anchor=south east] at (axis cs:15.3,2.29) {\EF{threshold 2.2815}{seuil 2,2815}};
+\end{groupplot}
+\end{tikzpicture}}
+
+% E2 : les étages, en Go/s de tronçons (échelle logarithmique).
+\newcommand{\GrapheChmEtages}{%
+\begin{tikzpicture}
+\begin{semilogyaxis}[memoire, width=\linewidth, height=0.48\linewidth, ybar=2pt, bar width=14pt,
+  ylabel={\EF{GB/s of chunks (log scale)}{Go/s de tronçons (échelle log.)}}, ymin=1, ymax=80,
+  xmin=-0.5, xmax=1.5, xtick={0,1}, xticklabels={\EF{reads of \texttt{longueur0} (N)}{lectures de \texttt{longueur0} (N)}, \EF{reads of 12\,MiB (V)}{lectures de 12\,Mio (V)}},
+  log ticks with fixed point, ytick={1,2,5,10,20,50}, legend pos=north west, legend columns=2, legend style={font=\scriptsize},
+  major x grid style={draw=none}, nodes near coords, nodes near coords style={font=\tiny, black!80, /pgf/number format/precision=2}, point meta=rawy]
+\addplot[fill=Accent!60, draw=Accent] table[x=lecture, y=a] {\DonneesTdeux/t2c-etages.csv};
+\addlegendentry{\EF{end to end (A)}{bout en bout (A)}}
+\addplot[fill=Disque!60, draw=Disque] table[x=lecture, y=disque] {\DonneesTdeux/t2c-etages.csv};
+\addlegendentry{\EF{disk alone (B)}{disque seul (B)}}
+\addplot[fill=Pcie!60, draw=Pcie] table[x=lecture, y=dma] {\DonneesTdeux/t2c-etages.csv};
+\addlegendentry{DMA}
+\addplot[fill=Vram!60, draw=Vram] table[x=lecture, y=decodage] {\DonneesTdeux/t2c-etages.csv};
+\addlegendentry{\EF{decoding}{décodage}}
+\end{semilogyaxis}
+\end{tikzpicture}}
+
+% E2 : chronogramme des 40 premiers tronçons d'une passe A, longueur0 puis 12 Mio (même ordre tiré).
+\newcommand{\ChmGantt}[2]{%
+\addplot[draw=none, mark=none, forget plot, restrict expr to domain={\thisrow{rang}}{0:39},
+  error bars/.cd, x dir=both, x explicit, error mark=none, error bar style={chmseg, Disque!45}]
+  table[x expr={(\thisrow{soumis_ms}+\thisrow{lu_ms})/2}, x error expr={(\thisrow{lu_ms}-\thisrow{soumis_ms})/2}, y=rang] {#1};
+\addplot[draw=none, mark=none, forget plot, restrict expr to domain={\thisrow{rang}}{0:39},
+  error bars/.cd, x dir=both, x explicit, error mark=none, error bar style={chmseg, Signe!80}]
+  table[x expr={(\thisrow{copie_debut_ms}+\thisrow{copie_fin_ms})/2}, x error expr={(\thisrow{copie_fin_ms}-\thisrow{copie_debut_ms})/2}, y=rang] {#1};
+\addplot[draw=none, mark=none, forget plot, restrict expr to domain={\thisrow{rang}}{0:39},
+  error bars/.cd, x dir=both, x explicit, error mark=none, error bar style={chmseg, Vram}]
+  table[x expr={(\thisrow{decodage_debut_ms}+\thisrow{decodage_fin_ms})/2}, x error expr={(\thisrow{decodage_fin_ms}-\thisrow{decodage_debut_ms})/2}, y=rang] {#1};
+\node[font=\scriptsize, anchor=north east, fill=white, inner sep=1pt] at (rel axis cs:0.98,0.98) {#2};}
+\newcommand{\GrapheChmChrono}{%
+\begin{tikzpicture}
+\begin{groupplot}[group style={group size=2 by 1, horizontal sep=0.9cm, y descriptions at=edge left},
+  memoire, width=0.53\linewidth, height=0.7\linewidth, xmin=0, xmax=265, ymin=-1, ymax=40, y dir=reverse,
+  xlabel={ms}, ylabel={\EF{chunk (submission order)}{tronçon (ordre de soumission)}}, grid=none]
+\nextgroupplot[legend to name=chmlegchrono, legend columns=3, legend style={font=\scriptsize}]
+\addlegendimage{chmseg, Disque!45}\addlegendentry{\EF{read (submitted $\to$ read)}{lecture (soumis $\to$ lu)}}
+\addlegendimage{chmseg, Signe!80}\addlegendentry{\EF{copy}{copie}}
+\addlegendimage{chmseg, Vram}\addlegendentry{\EF{decoding}{décodage}}
+\ChmGantt{\MesMoteur/E/journaux/e2-2026-10-15-seance1/chrono-1/chrono-A-t1-r0.csv}{N : \texttt{longueur0}}
+\nextgroupplot
+\ChmGantt{\MesMoteur/E/journaux/e2-2026-10-15-v12/chrono-v12582912-1/chrono-A-t1-r0.csv}{V : 12\,\EF{MiB}{Mio}}
+\end{groupplot}
+\node[anchor=north] at ($(group c1r1.south)!0.5!(group c2r1.south)+(0,-0.9)$) {\ref{chmlegchrono}};
+\end{tikzpicture}}
+
+% La découverte : débit d'une lecture sans tampon contre sa seule longueur.
+\newcommand{\GrapheChmLongueurs}{%
+\begin{tikzpicture}
+\begin{groupplot}[group style={group size=1 by 2, vertical sep=0.35cm, x descriptions at=edge bottom},
+  memoire, width=\linewidth, xmin=7.85, xmax=13.15, xtick={8,8.5,...,13}]
+\nextgroupplot[height=0.5\linewidth, ymin=1.6, ymax=3.5, ylabel={QD 4 (\EF{GB/s}{Go/s})}, legend columns=3, legend style={font=\scriptsize, at={(0.5,1.03)}, anchor=south}]
+\fill[Echelle!14] (axis cs:11.218,1.6) rectangle (axis cs:11.684,3.5);
+\fill[Disque!22] (axis cs:11.289,1.6) rectangle (axis cs:11.582,3.5);
+\addplot[only marks, SerieA, mark=*, mark size=1.9pt, restrict expr to domain={\thisrow{replique}}{1:1}] table[x=mio, y=go_s_mediane] {\MesMoteur/E/csv/e2-balayage-2026-10-15-longueurs.csv};
+\addlegendentry{\EF{replica 1}{réplique 1}}
+\addplot[only marks, SerieB, mark=x, mark size=2.6pt, line width=0.9pt, restrict expr to domain={\thisrow{replique}}{2:2}] table[x=mio, y=go_s_mediane] {\MesMoteur/E/csv/e2-balayage-2026-10-15-longueurs.csv};
+\addlegendentry{\EF{replica 2 (other drawn order)}{réplique 2 (autre ordre tiré)}}
+\addplot[Signe, dashed, no markers, domain=7.85:13.15] {2.77};
+\addlegendentry{\EF{fast if $\ge 0.9 \times$ 12\,MiB}{rapide si $\ge 0{,}9 \times$ 12\,Mio}}
+\draw[black!50, densely dotted] (axis cs:12,1.6) -- (axis cs:12,3.5);
+\node[font=\scriptsize, anchor=north, align=center, black!70] at (axis cs:11.45,3.45) {\EF{chunks}{tronçons}\\20b / 120b};
+\nextgroupplot[height=0.3\linewidth, ymin=10, ymax=30, xlabel={\EF{length of the read (MiB)}{longueur de la lecture (Mio)}}, ylabel={\EF{latency (ms)}{latence (ms)}}]
+\fill[Echelle!14] (axis cs:11.218,10) rectangle (axis cs:11.684,30);
+\fill[Disque!22] (axis cs:11.289,10) rectangle (axis cs:11.582,30);
+\addplot[only marks, SerieA, mark=*, mark size=1.5pt, restrict expr to domain={\thisrow{replique}}{1:1}] table[x=mio, y expr=\thisrow{latence_us_mediane}/1000] {\MesMoteur/E/csv/e2-balayage-2026-10-15-longueurs.csv};
+\addplot[only marks, SerieB, mark=x, mark size=2.2pt, restrict expr to domain={\thisrow{replique}}{2:2}] table[x=mio, y expr=\thisrow{latence_us_mediane}/1000] {\MesMoteur/E/csv/e2-balayage-2026-10-15-longueurs.csv};
+\end{groupplot}
+\end{tikzpicture}}
+
+% Le moteur (lot O) : une couche du 120b, pas 8, couches 0 et 1, chaque défaut daté.
+\newcommand{\GrapheChmCouche}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=\linewidth, height=0.5\linewidth, xmin=0, xmax=52, ymin=-0.7, ymax=7.7, y dir=reverse,
+  xlabel={\EF{ms since the start of step 8}{ms depuis le début du pas 8}}, ylabel={\EF{miss}{défaut}}, ytick={0,...,7},
+  grid=none, legend columns=4, legend style={font=\scriptsize, at={(0.5,1.03)}, anchor=south}]
+\addlegendimage{chmseg, Disque!45}\addlegendentry{\EF{read}{lecture}}
+\addlegendimage{chmseg, Signe!80}\addlegendentry{\EF{copy}{copie}}
+\addlegendimage{chmseg, Vram}\addlegendentry{\EF{decoding}{décodage}}
+\addlegendimage{Calcul, dashed}\addlegendentry{\EF{router, end of layer}{routeur, fin de couche}}
+\addplot[draw=none, mark=none, forget plot, error bars/.cd, x dir=both, x explicit, error mark=none, error bar style={chmseg, Disque!45}]
+  table[x expr={(\thisrow{soumis}+\thisrow{lu})/2}, x error expr={(\thisrow{lu}-\thisrow{soumis})/2}, y=y] {\DonneesTdeux/t2c-couche.csv};
+\addplot[draw=none, mark=none, forget plot, error bars/.cd, x dir=both, x explicit, error mark=none, error bar style={chmseg, Signe!80}]
+  table[x expr={(\thisrow{copie_debut}+\thisrow{copie_fin})/2}, x error expr={(\thisrow{copie_fin}-\thisrow{copie_debut})/2}, y=y] {\DonneesTdeux/t2c-couche.csv};
+\addplot[draw=none, mark=none, forget plot, error bars/.cd, x dir=both, x explicit, error mark=none, error bar style={chmseg, Vram}]
+  table[x expr={(\thisrow{dec_debut}+\thisrow{dec_fin})/2}, x error expr={(\thisrow{dec_fin}-\thisrow{dec_debut})/2}, y=y] {\DonneesTdeux/t2c-couche.csv};
+\draw[Calcul, dashed] (axis cs:0.6099,-0.7) -- (axis cs:0.6099,7.7);
+\draw[Calcul, dashed] (axis cs:24.0062,-0.7) -- (axis cs:24.0062,7.7);
+\draw[Calcul, line width=0.9pt] (axis cs:23.7298,-0.7) -- (axis cs:23.7298,7.7);
+\draw[Calcul, line width=0.9pt] (axis cs:51.0439,-0.7) -- (axis cs:51.0439,7.7);
+\node[font=\scriptsize, anchor=west] at (axis cs:1,-0.35) {\EF{layer 0}{couche 0}};
+\node[font=\scriptsize, anchor=west] at (axis cs:24.4,3.65) {\EF{layer 1}{couche 1}};
+\end{axis}
+\end{tikzpicture}}
+
+% Le moteur (lot O) : lectures de 12 Mio (L12), série A B B A, génération et préremplissage par flux.
+\newcommand{\GrapheChmLdouze}{%
+\begin{tikzpicture}
+\begin{groupplot}[group style={group size=2 by 1, horizontal sep=1.6cm}, memoire, width=0.5\linewidth, height=0.42\linewidth,
+  xmin=-0.6, xmax=3.6, xtick={0,1,2,3}, xticklabels={A,B,B,A}, major x grid style={draw=none},
+  nodes near coords, nodes near coords style={font=\tiny, black!80, /pgf/number format/precision=2}, point meta=rawy, ymin=0]
+\nextgroupplot[ybar, bar width=14pt, title={\small\EF{generation (tok/s)}{génération (jetons/s)}}, ymax=3.6]
+\addplot[fill=Accent!55, draw=Accent] table[x=k, y=generation] {\DonneesTdeux/t2c-l12.csv};
+\nextgroupplot[ybar, bar width=14pt, title={\small\EF{streamed prefill (tok/s)}{préremplissage par flux (jetons/s)}}, ymax=40]
+\addplot[fill=SerieC!55, draw=SerieC] table[x=k, y=preremplissage] {\DonneesTdeux/t2c-l12.csv};
+\end{groupplot}
+\end{tikzpicture}}

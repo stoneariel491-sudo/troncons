@@ -1,0 +1,40 @@
+{
+ "gain_max": 1.4,
+ "outil": "quant-mse-xor.py",
+ "palette": "quantiles",
+ "L": 16,
+ "R": 2,
+ "P": 4,
+ "T": 4096,
+ "suites": 8,
+ "tirages": 0,
+ "graine": 1,
+ "casser": false,
+ "temoin": {
+  "code": "mul1-temoin",
+  "gain": 1.05,
+  "mse": 0.068236,
+  "erreur_type": 0.0007416,
+  "suites": 8,
+  "bits_par_poids": 2.0034,
+  "secondes": 88.4,
+  "attendu": 0.068236,
+  "tient": true
+ },
+ "recherche": [],
+ "resultat": {
+  "code": "parite",
+  "gain": 1.05,
+  "mse": 0.071163,
+  "erreur_type": 0.0009298,
+  "suites": 8,
+  "bits_par_poids": 2.0034,
+  "secondes": 63.7,
+  "masques": [
+   "0xdfea",
+   "0x30b1",
+   "0xb566",
+   "0x753c"
+  ]
+ }
+}

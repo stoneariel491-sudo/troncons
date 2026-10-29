@@ -1,0 +1,202 @@
+llama_model_loader: loaded meta data with 36 key-value pairs and 0 tensors from ~/dev/modeles/trc/gpt-oss-120b.vocab.gguf (version GGUF V3 (latest))
+llama_model_loader: Dumping metadata keys/values. Note: KV overrides do not apply in this output.
+llama_model_loader: - kv   0:                       general.architecture str              = gpt-oss
+llama_model_loader: - kv   1:                               general.type str              = model
+llama_model_loader: - kv   2:                               general.name str              = gpt-oss-120b
+llama_model_loader: - kv   3:                         general.size_label str              = 128x3.1B
+llama_model_loader: - kv   4:                            general.license str              = apache-2.0
+llama_model_loader: - kv   5:                               general.tags arr[str,2]       = ["vllm", "text-generation"]
+llama_model_loader: - kv   6:                        gpt-oss.block_count u32              = 36
+llama_model_loader: - kv   7:                     gpt-oss.context_length u32              = 131072
+llama_model_loader: - kv   8:                   gpt-oss.embedding_length u32              = 2880
+llama_model_loader: - kv   9:                gpt-oss.feed_forward_length u32              = 2880
+llama_model_loader: - kv  10:               gpt-oss.attention.head_count u32              = 64
+llama_model_loader: - kv  11:            gpt-oss.attention.head_count_kv u32              = 8
+llama_model_loader: - kv  12:                  gpt-oss.rope.scaling.type str              = yarn
+llama_model_loader: - kv  13:                gpt-oss.rope.scaling.factor f32              = 32.000000
+llama_model_loader: - kv  14: gpt-oss.rope.scaling.original_context_length u32              = 4096
+llama_model_loader: - kv  15:        gpt-oss.rope.scaling.yarn_beta_fast f32              = 32.000000
+llama_model_loader: - kv  16:        gpt-oss.rope.scaling.yarn_beta_slow f32              = 1.000000
+llama_model_loader: - kv  17:                     gpt-oss.rope.freq_base f32              = 150000.000000
+llama_model_loader: - kv  18:   gpt-oss.attention.layer_norm_rms_epsilon f32              = 0.000010
+llama_model_loader: - kv  19:                       gpt-oss.expert_count u32              = 128
+llama_model_loader: - kv  20:                  gpt-oss.expert_used_count u32              = 4
+llama_model_loader: - kv  21:               gpt-oss.attention.key_length u32              = 64
+llama_model_loader: - kv  22:             gpt-oss.attention.value_length u32              = 64
+llama_model_loader: - kv  23:           gpt-oss.attention.sliding_window u32              = 128
+llama_model_loader: - kv  24:         gpt-oss.expert_feed_forward_length u32              = 2880
+llama_model_loader: - kv  25:                       tokenizer.ggml.model str              = gpt2
+llama_model_loader: - kv  26:                         tokenizer.ggml.pre str              = gpt-4o
+llama_model_loader: - kv  27:                      tokenizer.ggml.tokens arr[str,201088]  = ["!", "\"", "#", "$", "%", "&", "'", ...
+llama_model_loader: - kv  28:                  tokenizer.ggml.token_type arr[i32,201088]  = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ...
+llama_model_loader: - kv  29:                      tokenizer.ggml.merges arr[str,446189]  = ["Ġ Ġ", "Ġ ĠĠĠ", "ĠĠ ĠĠ", "...
+llama_model_loader: - kv  30:                tokenizer.ggml.bos_token_id u32              = 199998
+llama_model_loader: - kv  31:                tokenizer.ggml.eos_token_id u32              = 200002
+llama_model_loader: - kv  32:            tokenizer.ggml.padding_token_id u32              = 199999
+llama_model_loader: - kv  33:                    tokenizer.chat_template str              = {#-\n  In addition to the normal input...
+llama_model_loader: - kv  34:               general.quantization_version u32              = 2
+llama_model_loader: - kv  35:                          general.file_type u32              = 38
+print_info: file format = GGUF V3 (latest)
+print_info: file type   = MXFP4 MoE
+print_info: file size   = 0.00 MiB (-nan(ind) BPW) 
+init_tokenizer: initializing tokenizer for type 2
+load: 0 unused tokens
+load: control token: 200003 '<|constrain|>' is not marked as EOG
+load: control token: 200008 '<|message|>' is not marked as EOG
+load: control token: 200000 '<|reserved_200000|>' is not marked as EOG
+load: control token: 200004 '<|reserved_200004|>' is not marked as EOG
+load: control token: 200013 '<|reserved_200013|>' is not marked as EOG
+load: control token: 200009 '<|reserved_200009|>' is not marked as EOG
+load: control token: 199998 '<|startoftext|>' is not marked as EOG
+load: control token: 200014 '<|reserved_200014|>' is not marked as EOG
+load: control token: 200011 '<|reserved_200011|>' is not marked as EOG
+load: control token: 200015 '<|reserved_200015|>' is not marked as EOG
+load: control token: 200001 '<|reserved_200001|>' is not marked as EOG
+load: control token: 200005 '<|channel|>' is not marked as EOG
+load: control token: 200006 '<|start|>' is not marked as EOG
+load: control token: 200010 '<|reserved_200010|>' is not marked as EOG
+load: control token: 200016 '<|reserved_200016|>' is not marked as EOG
+load: control token: 200017 '<|reserved_200017|>' is not marked as EOG
+load: control token: 200018 '<|endofprompt|>' is not marked as EOG
+load: setting token '<|constrain|>' (200003) attribute to USER_DEFINED (16), old attributes: 8
+load: setting token '<|message|>' (200008) attribute to USER_DEFINED (16), old attributes: 8
+load: setting token '<|channel|>' (200005) attribute to USER_DEFINED (16), old attributes: 8
+load: setting token '<|start|>' (200006) attribute to USER_DEFINED (16), old attributes: 8
+load: printing all EOG tokens:
+load:   - 199999 ('<|endoftext|>')
+load:   - 200002 ('<|return|>')
+load:   - 200007 ('<|end|>')
+load:   - 200012 ('<|call|>')
+load: special_eog_ids contains both '<|return|>' and '<|call|>', or '<|calls|>' and '<|flush|>' tokens, removing '<|end|>' token from EOG list
+load: special tokens cache size = 21
+load: token to piece cache size = 1.3332 MB
+print_info: arch                  = gpt-oss
+print_info: vocab_only            = 1
+print_info: no_alloc              = 0
+print_info: vocab type            = BPE
+print_info: n_vocab               = 201088
+print_info: n_merges              = 446189
+print_info: BOS token             = 199998 '<|startoftext|>'
+print_info: EOS token             = 200002 '<|return|>'
+print_info: EOT token             = 199999 '<|endoftext|>'
+print_info: PAD token             = 199999 '<|endoftext|>'
+print_info: LF token              = 198 'Ċ'
+print_info: EOG token             = 199999 '<|endoftext|>'
+print_info: EOG token             = 200002 '<|return|>'
+print_info: EOG token             = 200012 '<|call|>'
+print_info: max token length      = 256
+llama_model_load: vocab only - skipping tensors
+troncons : 708 jetons d'invite en 236.7 s (2.99 j/s), 256 produits en 64.6 s (3.948 j/s) ; h = 0.505 ; mémoire de pointe 342.3 Mo ; VRAM de pointe Some(7362) Mio
+
+
+The text appears to be a biography of Robert Boulter, an English film, television, and theatre actor. It provides a detailed overview of his career, including his roles in various television series, theatre productions, and films.
+
+Based on the provided text, it appears that Robert Boulter is an English actor who has worked in film, television, and theatre. He has had guest starring roles in television series such as The Bill, Judge John De
+
+Based on the provided text, it appears that Robert Boul
+
+Based on the provided text, it appears that Robert Boul
+
+Based on the provided text, it appears that Robert Boul
+
+Based on the provided text, it appears that Robert Boul
+
+Based on the provided text, it appears that Robert Boul
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based
+
+Based

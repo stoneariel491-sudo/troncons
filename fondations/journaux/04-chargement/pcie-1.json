@@ -1,0 +1,464 @@
+{
+ "outil": "chargement_pcie.py",
+ "date": "2026-10-15 00:08:28",
+ "machine": "Windows-11-10.0.26300-SP0",
+ "cudart": 12040,
+ "pilote_cuda": 13010,
+ "vram_libre_octets": 7440695296,
+ "vram_totale_octets": 8585216000,
+ "plafonds_go_s": {
+  "pcie_gen4_x8": 15.753846153846153,
+  "gddr6_128b_16gbps": 256.0
+ },
+ "temoin_casse": false,
+ "temoins": [
+  {
+   "nom": "aller-retour 64 Mio",
+   "reussi": true,
+   "detail": "67108864 octets, identiques=True"
+  }
+ ],
+ "transferts": [
+  {
+   "sens": "H2D",
+   "memoire": "epinglee",
+   "octets": 65536,
+   "repetitions": 200,
+   "go_s": {
+    "mediane": 1.5245939628036305,
+    "min": 1.4019570575161753,
+    "max": 1.5461972524864613,
+    "n": 6
+   },
+   "latence_us_mediane": 42.98880100250244
+  },
+  {
+   "sens": "H2D",
+   "memoire": "paginable",
+   "octets": 65536,
+   "repetitions": 200,
+   "go_s": {
+    "mediane": 1.614581417457136,
+    "min": 1.5540109818667565,
+    "max": 1.757570256630997,
+    "n": 6
+   },
+   "latence_us_mediane": 40.59079885482788
+  },
+  {
+   "sens": "D2H",
+   "memoire": "epinglee",
+   "octets": 65536,
+   "repetitions": 200,
+   "go_s": {
+    "mediane": 1.6271368784709968,
+    "min": 1.497836909035685,
+    "max": 1.6709910268290087,
+    "n": 6
+   },
+   "latence_us_mediane": 40.27847766876221
+  },
+  {
+   "sens": "D2H",
+   "memoire": "paginable",
+   "octets": 65536,
+   "repetitions": 200,
+   "go_s": {
+    "mediane": 1.1919085710608912,
+    "min": 1.1505197843529122,
+    "max": 1.2345046078882067,
+    "n": 6
+   },
+   "latence_us_mediane": 54.98447895050049
+  },
+  {
+   "sens": "H2D",
+   "memoire": "epinglee",
+   "octets": 262144,
+   "repetitions": 200,
+   "go_s": {
+    "mediane": 4.448047129799335,
+    "min": 4.1691264484233885,
+    "max": 4.75772850215742,
+    "n": 6
+   },
+   "latence_us_mediane": 58.936800956726074
+  },
+  {
+   "sens": "H2D",
+   "memoire": "paginable",
+   "octets": 262144,
+   "repetitions": 200,
+   "go_s": {
+    "mediane": 3.0037951219323675,
+    "min": 2.8060224894288464,
+    "max": 3.45004029797741,
+    "n": 6
+   },
+   "latence_us_mediane": 87.28608131408693
+  },
+  {
+   "sens": "D2H",
+   "memoire": "epinglee",
+   "octets": 262144,
+   "repetitions": 200,
+   "go_s": {
+    "mediane": 4.582918967368538,
+    "min": 4.5221569270814745,
+    "max": 4.670667388092715,
+    "n": 6
+   },
+   "latence_us_mediane": 57.20024108886719
+  },
+  {
+   "sens": "D2H",
+   "memoire": "paginable",
+   "octets": 262144,
+   "repetitions": 200,
+   "go_s": {
+    "mediane": 1.9432543552413328,
+    "min": 1.794163981257214,
+    "max": 2.059243457080164,
+    "n": 6
+   },
+   "latence_us_mediane": 135.0771999359131
+  },
+  {
+   "sens": "H2D",
+   "memoire": "epinglee",
+   "octets": 1048576,
+   "repetitions": 200,
+   "go_s": {
+    "mediane": 8.31723771461861,
+    "min": 8.193044322567214,
+    "max": 8.613580890352038,
+    "n": 6
+   },
+   "latence_us_mediane": 126.07344150543213
+  },
+  {
+   "sens": "H2D",
+   "memoire": "paginable",
+   "octets": 1048576,
+   "repetitions": 200,
+   "go_s": {
+    "mediane": 3.7580318822905507,
+    "min": 3.612691818192213,
+    "max": 3.872864954842062,
+    "n": 6
+   },
+   "latence_us_mediane": 279.04767990112305
+  },
+  {
+   "sens": "D2H",
+   "memoire": "epinglee",
+   "octets": 1048576,
+   "repetitions": 200,
+   "go_s": {
+    "mediane": 5.447745977624086,
+    "min": 5.256677716215458,
+    "max": 7.478597987377184,
+    "n": 6
+   },
+   "latence_us_mediane": 192.4832820892334
+  },
+  {
+   "sens": "D2H",
+   "memoire": "paginable",
+   "octets": 1048576,
+   "repetitions": 200,
+   "go_s": {
+    "mediane": 2.6104313493670697,
+    "min": 2.4128402820994115,
+    "max": 2.828675576843047,
+    "n": 6
+   },
+   "latence_us_mediane": 401.7373466491699
+  },
+  {
+   "sens": "H2D",
+   "memoire": "epinglee",
+   "octets": 4194304,
+   "repetitions": 200,
+   "go_s": {
+    "mediane": 5.93857401997324,
+    "min": 5.865683133205136,
+    "max": 6.010184833919496,
+    "n": 6
+   },
+   "latence_us_mediane": 706.3013076782227
+  },
+  {
+   "sens": "H2D",
+   "memoire": "paginable",
+   "octets": 4194304,
+   "repetitions": 200,
+   "go_s": {
+    "mediane": 4.642284194485291,
+    "min": 4.541930134146418,
+    "max": 4.781259070602643,
+    "n": 6
+   },
+   "latence_us_mediane": 903.5232925415039
+  },
+  {
+   "sens": "D2H",
+   "memoire": "epinglee",
+   "octets": 4194304,
+   "repetitions": 200,
+   "go_s": {
+    "mediane": 6.0638828581202855,
+    "min": 5.9844929943038245,
+    "max": 6.099949502028578,
+    "n": 6
+   },
+   "latence_us_mediane": 691.690788269043
+  },
+  {
+   "sens": "D2H",
+   "memoire": "paginable",
+   "octets": 4194304,
+   "repetitions": 200,
+   "go_s": {
+    "mediane": 4.206730533300638,
+    "min": 3.9650852164289754,
+    "max": 4.250783062801592,
+    "n": 6
+   },
+   "latence_us_mediane": 997.0520782470703
+  },
+  {
+   "sens": "H2D",
+   "memoire": "epinglee",
+   "octets": 16777216,
+   "repetitions": 64,
+   "go_s": {
+    "mediane": 6.235667911437276,
+    "min": 6.225761645568328,
+    "max": 6.261179405669738,
+    "n": 6
+   },
+   "latence_us_mediane": 2690.5246973037715
+  },
+  {
+   "sens": "H2D",
+   "memoire": "paginable",
+   "octets": 16777216,
+   "repetitions": 64,
+   "go_s": {
+    "mediane": 5.0692715548003,
+    "min": 4.9348634215297125,
+    "max": 5.167599255745504,
+    "n": 6
+   },
+   "latence_us_mediane": 3309.6097707748413
+  },
+  {
+   "sens": "D2H",
+   "memoire": "epinglee",
+   "octets": 16777216,
+   "repetitions": 64,
+   "go_s": {
+    "mediane": 6.303384332732217,
+    "min": 6.218321885389961,
+    "max": 6.336474148683873,
+    "n": 6
+   },
+   "latence_us_mediane": 2661.6263389587402
+  },
+  {
+   "sens": "D2H",
+   "memoire": "paginable",
+   "octets": 16777216,
+   "repetitions": 64,
+   "go_s": {
+    "mediane": 4.5643901507551075,
+    "min": 4.342307297660203,
+    "max": 4.774837600557112,
+    "n": 6
+   },
+   "latence_us_mediane": 3675.6807565689087
+  },
+  {
+   "sens": "H2D",
+   "memoire": "epinglee",
+   "octets": 67108864,
+   "repetitions": 16,
+   "go_s": {
+    "mediane": 6.264963656570661,
+    "min": 6.253743730717893,
+    "max": 6.341004356390449,
+    "n": 6
+   },
+   "latence_us_mediane": 10711.78913116455
+  },
+  {
+   "sens": "H2D",
+   "memoire": "paginable",
+   "octets": 67108864,
+   "repetitions": 16,
+   "go_s": {
+    "mediane": 3.986248683439911,
+    "min": 3.682939379194292,
+    "max": 4.260336460440826,
+    "n": 6
+   },
+   "latence_us_mediane": 16836.35425567627
+  },
+  {
+   "sens": "D2H",
+   "memoire": "epinglee",
+   "octets": 67108864,
+   "repetitions": 16,
+   "go_s": {
+    "mediane": 6.477641972255679,
+    "min": 6.437434664193009,
+    "max": 6.501409850635274,
+    "n": 6
+   },
+   "latence_us_mediane": 10360.078811645508
+  },
+  {
+   "sens": "D2H",
+   "memoire": "paginable",
+   "octets": 67108864,
+   "repetitions": 16,
+   "go_s": {
+    "mediane": 4.761103692775734,
+    "min": 4.389925697304699,
+    "max": 5.16082858832237,
+    "n": 6
+   },
+   "latence_us_mediane": 14099.3390083313
+  },
+  {
+   "sens": "H2D",
+   "memoire": "epinglee",
+   "octets": 268435456,
+   "repetitions": 4,
+   "go_s": {
+    "mediane": 6.376804010245906,
+    "min": 6.352580769821949,
+    "max": 6.384828297285887,
+    "n": 6
+   },
+   "latence_us_mediane": 42095.61347961426
+  },
+  {
+   "sens": "H2D",
+   "memoire": "paginable",
+   "octets": 268435456,
+   "repetitions": 4,
+   "go_s": {
+    "mediane": 5.070564490260669,
+    "min": 4.724297648662544,
+    "max": 5.194582491742112,
+    "n": 6
+   },
+   "latence_us_mediane": 52948.102951049805
+  },
+  {
+   "sens": "D2H",
+   "memoire": "epinglee",
+   "octets": 268435456,
+   "repetitions": 4,
+   "go_s": {
+    "mediane": 6.555702406477329,
+    "min": 6.510291447151024,
+    "max": 6.571645303161563,
+    "n": 6
+   },
+   "latence_us_mediane": 40946.916580200195
+  },
+  {
+   "sens": "D2H",
+   "memoire": "paginable",
+   "octets": 268435456,
+   "repetitions": 4,
+   "go_s": {
+    "mediane": 5.102911236659164,
+    "min": 4.91376075023328,
+    "max": 5.396605774069679,
+    "n": 6
+   },
+   "latence_us_mediane": 52637.115478515625
+  }
+ ],
+ "d2d": [
+  {
+   "octets": 16777216,
+   "go_s_lecture_plus_ecriture": {
+    "mediane": 718.944425694727,
+    "min": 655.5648821465685,
+    "max": 724.9780651893544,
+    "n": 12
+   }
+  },
+  {
+   "octets": 67108864,
+   "go_s_lecture_plus_ecriture": {
+    "mediane": 169.35419746952869,
+    "min": 168.74413108157654,
+    "max": 170.43434070486373,
+    "n": 12
+   }
+  },
+  {
+   "octets": 268435456,
+   "go_s_lecture_plus_ecriture": {
+    "mediane": 169.3727329369068,
+    "min": 169.21386586574363,
+    "max": 169.63132143286785,
+    "n": 12
+   }
+  }
+ ],
+ "recouvrement": [
+  {
+   "tour": 0,
+   "h2d_seul_s": 0.16723497009277344,
+   "d2d_seul_s": 0.05065523147583008,
+   "somme_s": 0.2178902015686035,
+   "h2d_ensemble_s": 0.1675202178955078,
+   "d2d_ensemble_s": 0.05367078399658203,
+   "mur_ensemble_s": 0.1676911000004111,
+   "h2d_seul_go_s": 6.420557993369107,
+   "h2d_ensemble_go_s": 6.409625282780827,
+   "d2d_seul_go_s": 169.57645521960845,
+   "d2d_ensemble_go_s": 160.04861401963203,
+   "part_cachee": 0.9943688382340038
+  },
+  {
+   "tour": 1,
+   "h2d_seul_s": 0.16749830627441406,
+   "d2d_seul_s": 0.0506429443359375,
+   "somme_s": 0.21814125061035156,
+   "h2d_ensemble_s": 0.16830105590820313,
+   "d2d_ensemble_s": 0.05348649597167969,
+   "mur_ensemble_s": 0.16856580000057875,
+   "h2d_seul_go_s": 6.410463770546304,
+   "h2d_ensemble_go_s": 6.379887625812958,
+   "d2d_seul_go_s": 169.61759835721807,
+   "d2d_ensemble_go_s": 160.60006242600457,
+   "part_cachee": 0.9841488356509434
+  },
+  {
+   "tour": 2,
+   "h2d_seul_s": 0.16740771484375,
+   "d2d_seul_s": 0.05061017608642578,
+   "somme_s": 0.2180178909301758,
+   "h2d_ensemble_s": 0.16694117736816405,
+   "d2d_ensemble_s": 0.0535203857421875,
+   "mur_ensemble_s": 0.16720600000007835,
+   "h2d_seul_go_s": 6.413932744988348,
+   "h2d_ensemble_go_s": 6.431857262106289,
+   "d2d_seul_go_s": 169.7274195871434,
+   "d2d_ensemble_go_s": 160.49836847922745,
+   "part_cachee": 1.0092182543445267
+  }
+ ],
+ "echecs": [
+  "D2D 16777216 o : 725.0 Go/s > plafond 256.0"
+ ],
+ "verdict": "TEMOIN TOMBE"
+}

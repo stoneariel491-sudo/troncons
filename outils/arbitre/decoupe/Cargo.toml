@@ -1,0 +1,19 @@
+[package]
+name = "decoupe-arbitre"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Mesure F1 de l'arbitre : ce que coûte, en octets réels, la découpe base + complément d'un code MXFP4 contre le flux unique de l'architecture A, avec un codeur rANS réel et un décodage exact."
+
+# Une seule dépendance, déjà dans le cache cargo de la machine (construction --offline) :
+# rayon 1.12.0 : MIT OU Apache-2.0.
+# La bibliothèque rANS de l'étude 03 (outils/03-entropie/rans/src/lib.rs, écrite pour
+# troncons) est incluse par chemin, sans copie, pour coder exactement comme elle.
+[dependencies]
+rayon = "1.12.0"
+
+[profile.release]
+opt-level = 3
+debug = false
+codegen-units = 1
+lto = "thin"

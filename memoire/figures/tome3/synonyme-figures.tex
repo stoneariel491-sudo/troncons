@@ -1,0 +1,365 @@
+% Figures du chapitre « Le génome synonyme, mode rapide » du Tome III (lot B de la construction,
+% genome/07-genome-synonyme.md ; juge : genome/JUGEMENT-construction.md). Gardé par \ifdefined\GrapheSynoBasePropre.
+% Données : \Racine/figures/tome3/donnees/synonyme-*.csv et synonyme-nombres.tex, écrits par
+% memoire/outils/tome3_synonyme.py depuis mesures/genome/construction/{synonyme,juge}/ et mesures/moteur/O/ (C4).
+% Styles préfixés « syno ».
+%
+% Second flux (2026-10-27) : couleurs, traits et marques du dictionnaire du Tome III (palette-tome3.tex : frontière,
+% synonymes λ = 1 et λ = 0, Q2_0, moteur exact, R1 et fenêtres neuves, hors domaine) ; légendes G9 (\Titre,
+% \Legende, \Source ; le chapitre écrit \LegendeFigure{<Nom>}). Graves corrigés : G3 (l'aire n'est pas le
+% sur-apprentissage), G4 (la queue repose sur trois positions), G1 et G5 (III-9.3 : un seul axe, aucun point hors
+% du cadre, chemins mêlés dits), G3, G4 et G7 du juge de design.
+%   III-9.1 (a)(b)(b′) SynoBasePropre   III-9.2 SynoQueue   III-9.3 SynoForet   III-9.6 SynoVariantes
+% Le panneau (c) de III-9.1 est la rangée de 32 poids du lot « espaces latents » : ce fichier nomme sa part
+% cumulée (b′) pour lui laisser la lettre (c).
+
+\ifdefined\GrapheSynoBasePropre\else
+\input{\Racine/figures/tome3/legende-tome3}
+\providecommand{\CodonDonnees}{\Racine/figures/tome3/donnees}
+\providecommand{\CodonNum}[1]{\num[group-digits=integer]{#1}}
+\input{\CodonDonnees/synonyme-nombres}
+
+\tikzset{
+  % Calibration contre évaluation (III-9.1) : le trait plein est la calibration, le pointillé ce que voit
+  % l'évaluation ; la couleur reste celle de la variante.
+  syno calib/.style={solid, line width=1.1pt},
+  syno eval/.style={dash pattern=on 1.2pt off 1.6pt, line width=1.3pt},
+}
+
+% =============================================================================================================
+% III-9.1 (a)(b)(b′). La mutation synonyme dans la base propre de H (L8, E0, gate du 20b).
+\newcommand{\SynoMuet}[2]{% les directions muettes en calibration (k ≥ rang), hors du domaine de H : hachurées
+  \fill[t3 hors domaine] (axis cs:\SynoNRang,#1) rectangle (axis cs:2880,#2);}
+\newcommand{\GrapheSynoBasePropre}{%
+\begin{tikzpicture}
+% Troisième passe (DN16 du juge de design) : 4 mm de plus entre (a) et (b), pris sur leurs largeurs.
+\begin{axis}[t3 graphe, name=a, width=0.485\linewidth, height=5.4cm, ymode=log,
+  title={(a) \EF{the spectrum of $H$}{le spectre de $H$}}, xtick={0,500,...,2500},
+  xlabel={\EF{eigendirection $k$ (by decreasing $\lambda_k$)}{direction propre $k$ (par $\lambda_k$ décroissant)}},
+  ylabel={\EF{weight of direction $k$}{poids de la direction $k$}},
+  xmin=0, xmax=2880, ymin=1e-3, ymax=1e3, unbounded coords=jump, legend pos=north east]
+\SynoMuet{1e-3}{1e3}
+\addplot[Encre, syno calib] table[x=k, y=lambda_calib] {\CodonDonnees/synonyme-spectre.csv};
+\addlegendentry{$\lambda_k$ (\EF{calibration}{calibration})}
+\addplot[Encre!70, syno eval] table[x=k, y=lambda_eval] {\CodonDonnees/synonyme-spectre.csv};
+\addlegendentry{$u_k^\top H_{\EF{\mathrm{ev}}{\mathrm{év}}}\,u_k$ (\EF{evaluation}{évaluation})}
+\draw[black!55, line width=0.5pt] (axis cs:\SynoNRang,1e-3) -- (axis cs:\SynoNRang,1e3);
+\node[t3 note, anchor=south west] at (axis cs:\SynoNRang+40,1.6e-3)
+  {\EF{rank}{rang} \CodonNum{\SynoNRang}\\\EF{silent in calibration}{muettes en calibration}};
+\end{axis}
+\begin{axis}[t3 graphe, name=b, at={(a.east)}, anchor=west, xshift=1.9cm, width=0.485\linewidth, height=5.4cm, ymode=log,
+  title={(b) \EF{where the weight error goes}{où va l'erreur sur les poids}}, xtick={0,500,...,2500},
+  xlabel={\EF{eigendirection $k$}{direction propre $k$}},
+  ylabel={$e_k=\lVert\Delta W u_k\rVert^2$ (\EF{mean over}{moyenne par} \SynoNPaquet)},
+  xmin=0, xmax=2880, ymin=1e-3, ymax=0.1, legend pos=south east]
+\SynoMuet{1e-3}{0.1}
+\addplot[t3 frontiere, t3 frontiere point, mark size=1.5pt] table[x=k_milieu, y=e_frontiere] {\CodonDonnees/synonyme-energie.csv};
+\addlegendentry{\EF{frontier}{frontière}}
+\addplot[t3 synonyme, t3 synonyme point, mark size=1.2pt] table[x=k_milieu, y=e_synonyme] {\CodonDonnees/synonyme-energie.csv};
+\addlegendentry{\EF{synonym}{synonyme} $\lambda=1$}
+\end{axis}
+\begin{axis}[t3 graphe, t3 decimales y=1, name=c, at={(a.south west)}, anchor=north west, yshift=-2.25cm,
+  width=\linewidth, height=5.6cm, xtick={0,500,...,2500},
+  title={(b$'$) \EF{cumulative share of the output error $\sum_{j\le k}\lambda_j e_j$}{part cumulée de l'erreur de sortie $\sum_{j\le k}\lambda_j e_j$}},
+  xlabel={\EF{eigendirection $k$}{direction propre $k$}}, ylabel={\EF{share}{part}},
+  xmin=0, xmax=2880, ymin=0, ymax=1.02,
+  legend style={at={(0.5,-0.3)}, anchor=north}, legend columns=2]
+\SynoMuet{0}{1.02}
+\addplot[fill=CouleurSynonyme, fill opacity=0.14, draw=none, forget plot] table[x=k, y=part] {\CodonDonnees/synonyme-cumul-aire.csv} \closedcycle;
+\addplot[fill=CouleurFrontiere, fill opacity=0.35, draw=none, forget plot] table[x=k, y=part] {\CodonDonnees/synonyme-cumul-aire-frontiere.csv} \closedcycle;
+\addplot[CouleurSynonyme, syno calib] table[x=k, y=synonyme_calib] {\CodonDonnees/synonyme-cumul.csv};
+\addlegendentry{\EF{synonym, calibration}{synonyme, calibration}}
+\addplot[CouleurSynonyme, syno eval] table[x=k, y=synonyme_eval] {\CodonDonnees/synonyme-cumul.csv};
+\addlegendentry{\EF{synonym, seen by evaluation}{synonyme, vue par l'évaluation}}
+\addplot[CouleurFrontiere, syno calib, line width=1.3pt] table[x=k, y=frontiere_calib] {\CodonDonnees/synonyme-cumul.csv};
+\addlegendentry{\EF{frontier, calibration}{frontière, calibration}}
+\addplot[CouleurFrontiere, syno eval] table[x=k, y=frontiere_eval] {\CodonDonnees/synonyme-cumul.csv};
+\addlegendentry{\EF{frontier, seen by evaluation}{frontière, vue par l'évaluation}}
+\draw[t3 rappel] (axis cs:1300,0.66) -- (axis cs:1560,0.36);
+\node[t3 nombre=CouleurSynonyme!85!black, anchor=north west, align=left] at (axis cs:1420,0.36)
+  {\EF{synonym: area}{synonyme : aire} \CodonNum{\SynoNAireS}\Pv\ \EF{cost seen by evaluation}{coût vu par l'évaluation}
+   $\times\,\CodonNum{\SynoNSurS}$};
+\draw[t3 rappel] (axis cs:2400,0.965) -- (axis cs:2400,0.2);
+\node[t3 nombre=CouleurFrontiereMarque, anchor=north west, align=left] at (axis cs:1420,0.2)
+  {\EF{frontier: area}{frontière : aire} \CodonNum{\SynoNAireF}\Pv\ \EF{cost seen by evaluation}{coût vu par l'évaluation}
+   $\times\,\CodonNum{\SynoNSurF}$};
+\end{axis}
+\end{tikzpicture}}
+\Titre{SynoBasePropre}{The synonymous mutation in the eigenbasis of $H$}{La mutation synonyme dans la base propre de $H$}
+\Legende{SynoBasePropre}{\mes\,\calc}
+  {The synonym lowers the calibration cost by pushing the error towards the directions calibration does not see;
+   evaluation still sees them.}
+  {Le synonyme baisse le coût de calibration en poussant l'erreur vers les directions que la calibration ne voit
+   pas ; l'évaluation, elle, les voit.}
+  {Before (frontier) and after (synonym $\lambda=1$), for one matrix: layer 8, expert 0, gate of gpt-oss-20b;
+   $H=\mathrm{E}[g^2xx^\top]/\mathrm{E}[g^2]$ from the calibration inputs; the output cost is
+   $\mathrm{tr}(\Delta W H\Delta W^\top)=\sum_k\lambda_k e_k$. (a) The calibration $H$ has rank
+   \CodonNum{\SynoNRang} (the number of calibration inputs): the
+   \CodonNum{\the\numexpr\SynoNDirections-\SynoNRang\relax} directions beyond (hatched), out of
+   \CodonNum{\SynoNDirections}, weigh nothing in calibration, but the evaluation inputs still weigh them (at least
+   \CodonNum{\SynoNLambdaEvalMin}). The coder itself minimised the cost with $H+\delta^*\,\overline{\mathrm{diag}\,H}\,I$,
+   $\delta^*=1$ (07 §~2): \CodonNum{\SynoNAmorti} added to every direction, more than the evaluation weight of the
+   silent directions; only \SynoNAmortiDessus\ eigenvalues exceed it. (b) The synonym raises the weight error,
+   $\sum e_k$ \CodonNum{\SynoNEnergieF} $\to$ \CodonNum{\SynoNEnergieS} ($+\Pourcent{\SynoNEnergieHausse}$), and
+   moves it towards the silent directions (\Pourcent{\SynoNPartNulleF} $\to$ \Pourcent{\SynoNPartNulleS} of
+   $\sum e_k$ beyond the rank). (b$'$) The cumulative share of the output error, in calibration (solid) and
+   seen by the evaluation inputs (dotted). The output cost falls by $\times\,1/\CodonNum{\SynoNCalibRapport}$ in
+   calibration (\CodonNum{\SynoNCalibF} $\to$ \CodonNum{\SynoNCalibS}) but only by
+   $\times\,1/\CodonNum{\SynoNEvalRapport}$ seen by the evaluation (\CodonNum{\SynoNEvalF} $\to$ \CodonNum{\SynoNEvalS}):
+   the frontier's cost seen by the evaluation stays at its calibration cost ($\times\,\CodonNum{\SynoNSurF}$), the
+   synonym's rises by $\times\,\CodonNum{\SynoNSurS}$; that is the residual over-fitting. The shaded area between
+   the two curves is not its measure: the frontier has one too (\CodonNum{\SynoNAireF}, against
+   \CodonNum{\SynoNAireS} for the synonym), because the calibration share reaches 1 at the rank of $H$, for any
+   variant. One matrix of one expert; the other two spectra in the same folder are not drawn.}
+  {Avant (frontière) et après (synonyme $\lambda=1$), pour une matrice : couche 8, expert 0, gate de gpt-oss-20b ;
+   $H=\mathrm{E}[g^2xx^\top]/\mathrm{E}[g^2]$ sur les entrées de calibration ; le coût de sortie vaut
+   $\mathrm{tr}(\Delta W H\Delta W^\top)=\sum_k\lambda_k e_k$. (a) Le $H$ de calibration est de rang
+   \CodonNum{\SynoNRang} (le nombre d'entrées de calibration) : les
+   \CodonNum{\the\numexpr\SynoNDirections-\SynoNRang\relax} directions au-delà (hachurées), sur
+   \CodonNum{\SynoNDirections}, ne pèsent rien en calibration, mais les entrées d'évaluation les pèsent encore (au
+   moins \CodonNum{\SynoNLambdaEvalMin}). Le codeur, lui, a minimisé le coût avec
+   $H+\delta^*\,\overline{\mathrm{diag}\,H}\,I$, $\delta^*=1$ (07 §~2) : \CodonNum{\SynoNAmorti} ajouté à chaque
+   direction, plus que le poids d'évaluation des directions muettes ; seules \SynoNAmortiDessus\ valeurs propres le
+   dépassent. (b) Le synonyme augmente l'erreur sur les poids, $\sum e_k$ \CodonNum{\SynoNEnergieF} $\to$
+   \CodonNum{\SynoNEnergieS} ($+\Pourcent{\SynoNEnergieHausse}$), et la déplace vers les directions muettes
+   (\Pourcent{\SynoNPartNulleF} $\to$ \Pourcent{\SynoNPartNulleS} de $\sum e_k$ au-delà du rang).
+   (b$'$) La part cumulée de l'erreur de sortie, en calibration (trait plein) et vue par les entrées
+   d'évaluation (pointillés). Le coût de sortie baisse de $\times\,1/\CodonNum{\SynoNCalibRapport}$ en calibration
+   (\CodonNum{\SynoNCalibF} $\to$ \CodonNum{\SynoNCalibS}) mais seulement de $\times\,1/\CodonNum{\SynoNEvalRapport}$
+   vu par l'évaluation (\CodonNum{\SynoNEvalF} $\to$ \CodonNum{\SynoNEvalS}) : le coût de la frontière vu par
+   l'évaluation reste à son coût de calibration ($\times\,\CodonNum{\SynoNSurF}$), celui du synonyme monte de
+   $\times\,\CodonNum{\SynoNSurS}$ ; c'est le sur-apprentissage résiduel. L'aire ombrée entre les deux courbes n'en
+   est pas la mesure : la frontière en a une aussi (\CodonNum{\SynoNAireF}, contre \CodonNum{\SynoNAireS} pour le
+   synonyme), parce que la part en calibration atteint 1 au rang de $H$, pour toute variante. Une matrice d'un
+   expert ; les deux autres spectres du même dossier ne sont pas tracés.}
+\Source{SynoBasePropre}{\fichier{mesures/genome/construction/synonyme/figures/spectre-L08-E00-gate.csv}\Pv{}
+  \EF{script}{script} \fichier{memoire/outils/tome3_synonyme.py}.}
+
+% =============================================================================================================
+% III-9.2. La queue de la KL : survie sur les 2 550 positions de R1, 768 experts substitués.
+% Lignes de quantiles du CSV : 0 Q2_0, 1 frontière, 2 λ = 1, 3 λ = 0 (marques de la forme de leur série).
+\newcommand{\SynoQuantile}[2]{% #1 rang dans synonyme-quantiles.csv, #2 style de marque
+  \addplot[only marks, #2, forget plot, restrict expr to domain={\coordindex}{#1:#1}]
+    table[x=mediane, y=p_mediane] {\CodonDonnees/synonyme-quantiles.csv};
+  \addplot[only marks, #2, forget plot, restrict expr to domain={\coordindex}{#1:#1}]
+    table[x=p999, y=p_p999] {\CodonDonnees/synonyme-quantiles.csv};}
+\pgfplotstableread{\CodonDonnees/synonyme-quantiles.csv}\SynoQuantTable
+\newcommand{\GrapheSynoQueue}{%
+\pgfplotstablegetelem{1}{mediane}\of\SynoQuantTable\let\SynoMedF\pgfplotsretval
+\pgfplotstablegetelem{2}{mediane}\of\SynoQuantTable\let\SynoMedU\pgfplotsretval
+\begin{tikzpicture}
+\begin{axis}[t3 graphe, width=0.86\linewidth, height=7.4cm, xmode=log, ymode=log,
+  xmin=1e-2, xmax=10, ymin=3e-4, ymax=1.4, unbounded coords=jump,
+  xlabel={\EF{threshold $t$ (KL per position, nats)}{seuil $t$ (KL par position, nats)}},
+  ylabel={$P(\mathrm{KL}>t)$}, legend style={at={(0.03,0.25)}, anchor=south west}]
+\draw[black!40, densely dotted, line width=0.5pt] (axis cs:1e-2,0.5) -- (axis cs:10,0.5);
+\draw[black!40, densely dotted, line width=0.5pt] (axis cs:1e-2,0.001) -- (axis cs:10,0.001);
+\node[t3 etiquette, text=black!65, anchor=south west] at (axis cs:1.1e-2,0.5) {\EF{median}{médiane}};
+\node[t3 etiquette, text=black!65, anchor=south west] at (axis cs:1.1e-2,0.001) {\EF{99.9th percentile}{99,9\textsuperscript{e} centile}};
+\addplot[t3 qdeux] table[x=t, y=q2_0] {\CodonDonnees/synonyme-survie.csv};
+\addlegendentry{llama.cpp Q2\_0}
+\addplot[t3 frontiere] table[x=t, y=frontiere] {\CodonDonnees/synonyme-survie.csv};
+\addlegendentry{\EF{frontier}{frontière}}
+\addplot[t3 synonyme] table[x=t, y=lambda1] {\CodonDonnees/synonyme-survie.csv};
+\addlegendentry{\EF{synonym}{synonyme} $\lambda=1$}
+\addplot[t3 lambda zero] table[x=t, y=lambda0] {\CodonDonnees/synonyme-survie.csv};
+\addlegendentry{\EF{synonym}{synonyme} $\lambda=0$}
+\SynoQuantile{0}{t3 qdeux point}
+\SynoQuantile{1}{t3 frontiere point}
+\SynoQuantile{2}{t3 synonyme point}
+\SynoQuantile{3}{t3 lambda zero point}
+% le rappel « ÷ » : de la médiane de la frontière à celle de λ = 1, sur la ligne des médianes
+\draw[t3 rappel, {Stealth[length=1.6mm]}-, line width=0.6pt, draw=Encre] (axis cs:\SynoMedU,0.32) -- (axis cs:\SynoMedF,0.32);
+\draw[t3 rappel] (axis cs:\SynoMedU,0.32) -- (axis cs:\SynoMedU,0.45);
+\draw[t3 rappel] (axis cs:\SynoMedF,0.32) -- (axis cs:\SynoMedF,0.45);
+\node[t3 etiquette, anchor=north] at (axis cs:0.1,0.31) {$\div\,\CodonNum{\SynoNDivUn}$};
+\end{axis}
+\end{tikzpicture}}
+\Titre{SynoQueue}{The tail of the KL}{La queue de la KL}
+\Legende{SynoQueue}{\mes}
+  {The synonym divides the median KL by nearly three; the tail rests on too few positions to rank the variants.}
+  {Le synonyme divise la KL médiane par près de trois ; la queue repose sur trop peu de positions pour classer les
+   variantes.}
+  {Survival function $P(\mathrm{KL}>t)$ over the \CodonNum{\SynoNPositions} scored positions of R1 (10 windows), all
+   768 experts of gpt-oss-20b replaced in the f64 reference; on the dotted lines, the medians and the 99.9th
+   percentiles, each with the mark of its series. The median of the frontier (\CodonNum{\SynoNMedF}) is divided by
+   \CodonNum{\SynoNDivUn} with $\lambda=1$ (\CodonNum{\SynoNMedUn}) and by \CodonNum{\SynoNDivZero} with $\lambda=0$
+   (\CodonNum{\SynoNMedZero}). Each 99.9th percentile leaves only \SynoNQueueDessus\ positions above it: against
+   the frontier, $\lambda=1$ lowers it by \Pourcent{\SynoNQueueUnRun} on R1 but by \Pourcent{\SynoNQueueUnNeuf} on
+   the judge's ten new windows, $\lambda=0$ by \Pourcent{\SynoNQueueZeroRun} and \Pourcent{\SynoNQueueZeroNeuf} (new
+   windows: frontier through the substituted reference, synonyms through the engine). Between $\lambda=0$ and
+   $\lambda=1$ the tail is not comparable at this size (barred, JUGEMENT-construction M2). Left of $10^{-2}$: at most
+   \Pourcent{\SynoNSurvieGauche} of the positions of a series. Q2\_0 is computed by llama.cpp on the processor,
+   another path (a landmark). Positions of one window share their past and are not independent
+   (\cref{fig:t3-syno-foret}).}
+  {Fonction de survie $P(\mathrm{KL}>t)$ sur les \CodonNum{\SynoNPositions} positions notées de R1 (10 fenêtres), les
+   768 experts de gpt-oss-20b substitués dans la référence f64 ; sur les lignes pointillées, les médianes et les
+   99,9\textsuperscript{es} centiles, chacun à la marque de sa série. La médiane de la frontière
+   (\CodonNum{\SynoNMedF}) est divisée par \CodonNum{\SynoNDivUn} avec $\lambda=1$ (\CodonNum{\SynoNMedUn}) et par
+   \CodonNum{\SynoNDivZero} avec $\lambda=0$ (\CodonNum{\SynoNMedZero}). Chaque 99,9\textsuperscript{e} centile ne
+   laisse que \SynoNQueueDessus\ positions au-dessus de lui : contre la frontière, $\lambda=1$ l'abaisse de
+   \Pourcent{\SynoNQueueUnRun} sur R1 mais de \Pourcent{\SynoNQueueUnNeuf} sur les dix fenêtres neuves du juge,
+   $\lambda=0$ de \Pourcent{\SynoNQueueZeroRun} et de \Pourcent{\SynoNQueueZeroNeuf} (fenêtres neuves : frontière par
+   la référence substituée, synonymes par le moteur). Entre $\lambda=0$ et $\lambda=1$, la queue n'est pas
+   comparable à cette taille (barré, JUGEMENT-construction M2). À gauche de $10^{-2}$ : au plus
+   \Pourcent{\SynoNSurvieGauche} des positions d'une série. Q2\_0 est calculé par llama.cpp sur le processeur, un
+   autre chemin (un repère). Les positions d'une fenêtre partagent leur passé et ne sont pas indépendantes
+   (\cref{fig:t3-syno-foret}).}
+\Source{SynoQueue}{\fichier{mesures/genome/construction/synonyme/kl/kl-*-768-positions.csv},
+  \fichier{repere/kl-q2\_0-positions.csv}, \fichier{kl/kl-*-768-juge.json}\Pv{}
+  \fichier{mesures/genome/construction/juge/kl/kl-neuf-*-positions.csv}\Pv\ \EF{script}{script}
+  \fichier{memoire/outils/tome3_synonyme.py}.}
+
+% =============================================================================================================
+% III-9.3 (F-S3 + F-J3). B2 fenêtre par fenêtre : forêt des différences appariées, R1 et fenêtres neuves.
+% Un seul axe pour les trois panneaux (bornes écrites par le script, qui s'arrête si un point ou une bande sort).
+\newcommand{\SynoForet}[3]{% #1 fichier, #2 titre, #3 1 si les neuves mêlent deux chemins (marques creuses)
+\nextgroupplot[title={#2}]
+\pgfplotstableread{\CodonDonnees/synonyme-foret-#1-moyennes.csv}\SynoMoy
+\pgfplotstablegetelem{0}{moyenne}\of\SynoMoy\let\SynoMa\pgfplotsretval
+\pgfplotstablegetelem{0}{deux_sigma}\of\SynoMoy\let\SynoSa\pgfplotsretval
+\pgfplotstablegetelem{1}{moyenne}\of\SynoMoy\let\SynoMb\pgfplotsretval
+\pgfplotstablegetelem{1}{deux_sigma}\of\SynoMoy\let\SynoSb\pgfplotsretval
+\edef\SynoBandes{%
+  \noexpand\fill[CouleurRun!14] (axis cs:\SynoMa-\SynoSa,13.6) rectangle (axis cs:\SynoMa+\SynoSa,23.4);
+  \noexpand\draw[CouleurRun, line width=1.1pt] (axis cs:\SynoMa,13.6) -- (axis cs:\SynoMa,23.4);
+  \noexpand\fill[CouleurNeuves!16] (axis cs:\SynoMb-\SynoSb,0.6) rectangle (axis cs:\SynoMb+\SynoSb,10.4);
+  \noexpand\draw[CouleurNeuves, line width=1.1pt] (axis cs:\SynoMb,0.6) -- (axis cs:\SynoMb,10.4);}
+\SynoBandes
+\draw[black!55, dashed, line width=0.6pt] (axis cs:0,0) -- (axis cs:0,25);
+\addplot[only marks, t3 run point, unbounded coords=discard]
+  table[x=d, y expr={\thisrow{y}>11 ? \thisrow{y} : nan}] {\CodonDonnees/synonyme-foret-#1.csv};
+\ifnum#3=1
+\addplot[only marks, mark=diamond, mark size=2.4pt, mark options={solid, draw=CouleurNeuves!85!black, line width=0.7pt},
+  unbounded coords=discard] table[x=d, y expr={\thisrow{y}<11 ? \thisrow{y} : nan}] {\CodonDonnees/synonyme-foret-#1.csv};
+\else
+\addplot[only marks, t3 neuves point, unbounded coords=discard]
+  table[x=d, y expr={\thisrow{y}<11 ? \thisrow{y} : nan}] {\CodonDonnees/synonyme-foret-#1.csv};
+\fi
+}
+\newcommand{\GrapheSynoForet}{%
+\begin{tikzpicture}
+\begin{groupplot}[group style={group size=3 by 1, horizontal sep=0.35cm, y descriptions at=edge left},
+  t3 graphe, t3 decimales x=1, width=0.37\linewidth, height=9.2cm, ymin=0, ymax=25, scaled ticks=false,
+  xmin=\SynoNForXmin, xmax=\SynoNForXmax, xtick={-0.3,-0.2,-0.1,0},
+  ytick={1,...,10,14,15,...,23}, yticklabels={9,8,7,6,5,4,3,2,1,0,9,8,7,6,5,4,3,2,1,0},
+  yticklabel style={font=\scriptsize}, ymajorgrids=false, xmajorgrids=true,
+  xlabel={$\bar d$ \EF{per window}{par fenêtre}}, ylabel={\EF{window}{fenêtre}}]
+\SynoForet{un-frontiere}{$\lambda=1$ \EF{vs}{contre} \EF{frontier}{frontière}}{1}
+\node[t3 nombre=CouleurRun, anchor=north west] at (axis cs:\SynoNForXmin+0.01,24.8) {R1\Dp\ \CodonNum{\SynoNForUnFRunZ}\,$\sigma$, \SynoNForUnFRunNeg/10 $<0$};
+\node[t3 nombre=CouleurNeuves!85!black, anchor=west, align=left] at (axis cs:\SynoNForXmin+0.01,12)
+  {\EF{new}{neuves}\Dp\ \CodonNum{\SynoNForUnFNeufZ}\,$\sigma$, \SynoNForUnFNeufNeg/10 $<0$\\[-1pt]\EF{two paths, indicative}{deux chemins, indicatif}};
+\SynoForet{zero-un}{$\lambda=0$ \EF{vs}{contre} $\lambda=1$}{0}
+\node[t3 nombre=CouleurRun, anchor=north west] at (axis cs:\SynoNForXmin+0.01,24.8) {R1\Dp\ \CodonNum{\SynoNForZeroUnRunZ}\,$\sigma$, \SynoNForZeroUnRunNeg/10 $<0$};
+\node[t3 nombre=CouleurNeuves!85!black, anchor=west] at (axis cs:\SynoNForXmin+0.01,12) {\EF{new}{neuves}\Dp\ \CodonNum{\SynoNForZeroUnNeufZ}\,$\sigma$, \SynoNForZeroUnNeufNeg/10 $<0$};
+\SynoForet{zero-frontiere}{$\lambda=0$ \EF{vs}{contre} \EF{frontier}{frontière}}{0}
+\node[t3 nombre=CouleurRun, anchor=north west] at (axis cs:\SynoNForXmin+0.01,24.8) {R1\Dp\ \CodonNum{\SynoNForZeroFRunZ}\,$\sigma$, \SynoNForZeroFRunNeg/10 $<0$};
+\node[t3 nombre=CouleurNeuves!85!black, anchor=west] at (axis cs:\SynoNForXmin+0.01,12) {\EF{new}{neuves}\Dp\ \CodonNum{\SynoNForZeroFNeufZ}\,$\sigma$, \SynoNForZeroFNeufNeg/10 $<0$};
+\end{groupplot}
+\node[rotate=90, anchor=south, text=CouleurRun, font=\sffamily\small\bfseries] at ($(group c1r1.west)+(-1.0cm,2.0cm)$) {R1};
+\node[rotate=90, anchor=south, text=CouleurNeuves!85!black, font=\sffamily\small\bfseries] at ($(group c1r1.west)+(-1.0cm,-2.1cm)$) {\EF{new}{neuves}};
+\end{tikzpicture}}
+\Titre{SynoForet}{Criterion B2, window by window}{Le critère B2, fenêtre par fenêtre}
+\Legende{SynoForet}{\mes}
+  {Both synonyms beat the frontier on both sets of windows, each in at least \SynoNForBatMin\ of
+   \SynoNForFenetres\ windows; between them the gap is much smaller, and $\lambda=0$ passes on R1 by a hair.}
+  {Les deux synonymes battent la frontière sur les deux jeux de fenêtres, chacun dans au moins \SynoNForBatMin\
+   fenêtres sur \SynoNForFenetres\ ; entre eux, l'écart est bien plus petit, et $\lambda=0$ ne passe que de
+   justesse sur R1.}
+  {Paired differences of the mean KL per window, $\bar d=\overline{\mathrm{KL}}_b-\overline{\mathrm{KL}}_a$, negative
+   when the second variant wins; one axis for the three panels, no point outside the frame. Top (circles), the ten
+   windows of R1 by lot B through the substituted f64 reference (for $\lambda=0$ against the frontier, the judge's
+   recomputation on the same path). Bottom (diamonds), ten new windows of the judge: panel 1 sets $\lambda=1$
+   through the engine against the frontier through the substituted reference, two paths, published as indicative
+   only (JUGEMENT-construction §~9; hollow diamonds; on R1, where both paths exist, this mix moves $\bar d$ by
+   \CodonNum{\SynoNForMelange}); panel 2 through the engine; panel 3 through the substituted reference. Vertical
+   line and band: mean and $\pm2\sigma$, $\sigma$ the standard deviation of the ten windows divided by $\sqrt{10}$.
+   $\lambda=0$ against $\lambda=1$ passes on R1 by a hair (\CodonNum{\SynoNForZeroUnRunZ}\,$\sigma$, window 7
+   against) and with more margin on the new windows (\CodonNum{\SynoNForZeroUnNeufZ}\,$\sigma$). The new windows are
+   drawn from wiki.test, the corpus of R1: they test other text, not another kind of text.}
+  {Différences appariées des KL moyennes par fenêtre, $\bar d=\overline{\mathrm{KL}}_b-\overline{\mathrm{KL}}_a$,
+   négatives quand la seconde variante gagne ; un seul axe pour les trois panneaux, aucun point hors du cadre. En
+   haut (cercles), les dix fenêtres de R1 par le lot B, par la référence f64 substituée (pour $\lambda=0$ contre la
+   frontière, le recalcul du juge par le même chemin). En bas (losanges), dix fenêtres neuves du juge : le
+   panneau 1 met $\lambda=1$ par le moteur contre la frontière par la référence substituée, deux chemins, publiés à
+   titre indicatif seulement (JUGEMENT-construction §~9 ; losanges creux ; sur R1, où les deux chemins existent, ce
+   mélange déplace $\bar d$ de \CodonNum{\SynoNForMelange}) ; le panneau 2 par le moteur ; le panneau 3 par la
+   référence substituée. Trait vertical et bande : moyenne et $\pm2\sigma$, $\sigma$ l'écart-type des dix fenêtres
+   divisé par $\sqrt{10}$. $\lambda=0$ contre $\lambda=1$ passe de justesse sur R1
+   (\CodonNum{\SynoNForZeroUnRunZ}\,$\sigma$, la fenêtre 7 contre) et avec plus de marge sur les fenêtres neuves
+   (\CodonNum{\SynoNForZeroUnNeufZ}\,$\sigma$). Les fenêtres neuves sont tirées de wiki.test, le corpus de R1 :
+   elles éprouvent un autre texte, pas une autre sorte de texte.}
+\Source{SynoForet}{\fichier{mesures/genome/construction/synonyme/kl/apparie-*-par-fenetre.csv},
+  \fichier{mesures/genome/construction/juge/figures/apparie-par-fenetre.csv}\Pv\ \EF{two-path check}{mesure du
+  mélange} \fichier{mesures/genome/construction/synonyme/moteur/kl-moteur-*-positions.csv}\Pv\ \EF{script}{script}
+  \fichier{memoire/outils/tome3_synonyme.py}.}
+
+% =============================================================================================================
+% III-9.6 (F-S8). La frontière des variantes à 768 experts (réserve R3 : aucun point du protocole à 32 experts).
+% Lignes de synonyme-variantes.csv : 0 frontière, 1 λ = 1, 2 λ = 0, 3 Q2_0, 4 exact. Le cadre (G7 du juge de
+% design) ne tient que les trois premières ; Q2_0 et le moteur exact sont des repères de marge.
+\newcommand{\SynoVariante}[2]{% #1 rang dans synonyme-variantes.csv, #2 styles (marque, couleur des barres)
+  \addplot[only marks, restrict expr to domain={\coordindex}{#1:#1}, erreurs, /pgfplots/.cd, #2]
+    table[x=bits, y=kl, y error=deux_sigma_f] {\CodonDonnees/synonyme-variantes.csv};}
+\newcommand{\GrapheSynoVariantes}{%
+\begin{tikzpicture}
+\begin{axis}[t3 graphe, t3 points, t3 decimales x=2, width=0.8\linewidth, height=7.2cm, ymode=log, clip=false,
+  xmin=\SynoNVarXmin, xmax=\SynoNVarXmax, ymin=\SynoNVarYmin, ymax=\SynoNVarYmax,
+  ytick={0.1,0.15,0.2,0.3}, log ticks with fixed point, yticklabel style={/pgf/number format/.cd, fixed, fixed zerofill, precision=2},
+  xlabel={\EF{bits per expert weight (real file)}{bits par poids d'expert (fichier réel)}},
+  ylabel={\EF{end-to-end KL (768 experts)}{KL de bout en bout (768 experts)}}]
+\SynoVariante{0}{t3 frontiere point, error bars/error bar style={CouleurFrontiereMarque, line width=0.6pt}}
+\SynoVariante{1}{t3 synonyme point, error bars/error bar style={CouleurSynonyme, line width=0.6pt}}
+\SynoVariante{2}{t3 lambda zero point, error bars/error bar style={CouleurLambdaZero, line width=0.6pt}}
+\draw[-{Stealth[length=2.2mm]}, Encre, line width=0.7pt] (axis cs:\SynoNVarFBits-0.006,\SynoNVarFKL*0.97) -- (axis cs:\SynoNVarUnBits+0.008,\SynoNVarUnKL*1.06);
+\node[t3 etiquette, anchor=south, rotate=0] at (axis cs:0.5*\SynoNVarFBits+0.5*\SynoNVarUnBits,0.205) {\EF{dominates on both axes}{domine sur les deux axes}};
+\node[t3 nombre=CouleurFrontiereMarque, anchor=west] at (axis cs:\SynoNVarFBits+0.006,\SynoNVarFKL) {\EF{frontier}{frontière}};
+% Troisième passe (G7 du juge de design) : le cadre resserré (2,56 à 2,70 bits, tiré des données par le script)
+% ne laisse plus de place à gauche de λ = 1 : son étiquette passe à droite de son point ; celle de λ = 0 passe sous
+% son point, à gauche de sa barre.
+\node[t3 nombre=CouleurSynonyme, anchor=west] at (axis cs:\SynoNVarUnBits+0.004,\SynoNVarUnKL) {\EF{synonym}{synonyme} $\lambda=1$};
+\node[t3 nombre=CouleurLambdaZero!85!black, anchor=north east, align=right] at (axis cs:\SynoNVarZeroBits-0.004,\SynoNVarZeroKL*0.975)
+  {\EF{synonym}{synonyme} $\lambda=0$\\$-\CodonNum{\SynoNAchatKL}$ \EF{KL for}{de KL pour} $+\CodonNum{\SynoNAchatBits}$ bit};
+% repères de marge : une flèche au bord, vers le point hors du cadre
+% (le repère est dessiné hors du cadre, au-delà du coin, pour ne pas se lire comme un point du cadre)
+\draw[-{Stealth[length=2.2mm]}, CouleurQdeux!85!black, line width=0.7pt] (rel axis cs:0.07,0.9) -- (rel axis cs:-0.015,1.02);
+\path[t3 qdeux point] plot coordinates {(rel axis cs:-0.03,1.045)};
+\node[t3 nombre=CouleurQdeux!80!black, anchor=north west, align=left] at (rel axis cs:0.075,0.94)
+  {llama.cpp Q2\_0, \EF{off the frame}{hors du cadre}\\\num[round-mode=places, round-precision=2]{\SynoNVarQBits} bits,
+   KL \num[round-mode=places, round-precision=2]{\SynoNVarQKL}};
+% Le moteur exact : son étiquette en bas, à gauche de la barre de λ = 0 (N1 du juge des chiffres de la construction :
+% elle en couvrait le bas) ; la flèche part de son bord droit, sous la barre.
+\draw[-{Stealth[length=2.2mm]}, Encre, line width=0.7pt] (rel axis cs:0.775,0.055) -- (rel axis cs:1.02,0.015);
+\path[t3 exact point] plot coordinates {(rel axis cs:1.045,0.0)};
+\node[t3 nombre=Encre, anchor=south east, align=right] at (rel axis cs:0.765,0.025)
+  {\EF{exact engine (v1.0), off the frame}{moteur exact (v1.0), hors du cadre}\\\CodonNum{\SynoNExactBits} bits, KL \CodonNum{\SynoNExactKL}};
+\end{axis}
+\end{tikzpicture}}
+\Titre{SynoVariantes}{The frontier of the variants, 768 experts}{La frontière des variantes, 768 experts}
+\Legende{SynoVariantes}{\mes}
+  {Synonym $\lambda=1$ dominates the frontier on both axes; $\lambda=0$ buys KL with bits.}
+  {Le synonyme $\lambda=1$ domine la frontière sur les deux axes ; $\lambda=0$ achète de la KL avec des bits.}
+  {All 768 experts of gpt-oss-20b replaced: bits per expert weight of the real companion file (useful bits)
+   against the end-to-end KL on the ten windows of R1, logarithmic; bars: $\pm2\sigma$ by windows, recomputed from
+   the per-position files (for the frontier $\sigma=\CodonNum{\SynoNVarFSf}$, against \CodonNum{\SynoNVarFSn} by
+   positions: the per-position $\sigma$ published in 07 is \CodonNum{\SynoNSigmaRapportMin} to
+   \CodonNum{\SynoNSigmaRapportMax} times too small). $\lambda=0$ buys \CodonNum{\SynoNAchatKL} of KL with
+   \CodonNum{\SynoNAchatBits} bit. Margin landmarks, outside the frame (arrows): llama.cpp Q2\_0 (its KL computed
+   by llama.cpp on the processor, another path than the substituted reference) and the exact engine against the
+   f64 reference (useful bits of the v1.0 file, the definition used for the companions). Reservation R3: these
+   points are measured with 768 experts replaced; the points of the round (\cref{t3syn:ch}) are measured with 32 experts,
+   and nothing joins them to these.}
+  {Les 768 experts de gpt-oss-20b substitués : bits par poids d'expert du fichier compagnon réel (bits utiles)
+   contre la KL de bout en bout sur les dix fenêtres de R1, en échelle logarithmique ; barres : $\pm2\sigma$ par
+   fenêtres, recalculé depuis les fichiers par position (pour la frontière $\sigma=\CodonNum{\SynoNVarFSf}$, contre
+   \CodonNum{\SynoNVarFSn} par positions : le $\sigma$ par positions publié dans 07 est de
+   \CodonNum{\SynoNSigmaRapportMin} à \CodonNum{\SynoNSigmaRapportMax} fois trop petit). $\lambda=0$ achète
+   \CodonNum{\SynoNAchatKL} de KL avec \CodonNum{\SynoNAchatBits} bit. Repères de marge, hors du cadre (flèches) :
+   llama.cpp Q2\_0 (sa KL calculée par llama.cpp sur le processeur, un autre chemin que la référence substituée) et
+   le moteur exact contre la référence f64 (bits utiles du fichier v1.0, la définition prise pour les compagnons).
+   Réserve R3 : ces points sont mesurés avec les 768 experts substitués ; ceux de la ronde (\cref{t3syn:ch}) le sont avec 32
+   experts, et rien ne les relie à ceux-ci.}
+\Source{SynoVariantes}{\fichier{mesures/genome/construction/synonyme/figures/variantes-768.csv},
+  \fichier{kl/kl-*-768-positions.csv}, \fichier{repere/kl-q2\_0-positions.csv}\Pv{}
+  \fichier{mesures/moteur/O/journaux/o3/c4-20b-comparer.json}\Pv\ \fichier{mesures/genome/construction/juge/J-T0-fichiers.json}\Pv\ \EF{script}{script} \fichier{memoire/outils/tome3_synonyme.py}.}
+\fi

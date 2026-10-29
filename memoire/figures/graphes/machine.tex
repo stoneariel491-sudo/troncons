@@ -1,0 +1,157 @@
+% Graphes du chapitre « La machine et sa physique ». Chaque commande trace un tikzpicture ;
+% chaque série lit un CSV commité (memoire/figures/donnees/ ou fondations/journaux/01-machine/).
+
+% Débit du disque selon la taille de bloc (lectures aléatoires sans tampon, ABBA).
+\newcommand{\GrapheDisque}{%
+\begin{tikzpicture}
+\begin{semilogxaxis}[memoire, width=\linewidth, height=0.6\linewidth,
+  xlabel={\EF{block size (KiB, log scale)}{taille de bloc (Kio, échelle log.)}},
+  ylabel={\EF{throughput (GB/s)}{débit (Go/s)}},
+  xmin=3, xmax=22000, ymin=0, ymax=8.4, log basis x=2,
+  xtick={4,16,64,256,1024,4096,16384}, xticklabels={4,16,64,256,1\,024,4\,096,16\,384},
+  legend pos=north west, legend columns=2]
+\addplot[SerieA, mark=*, mark size=1.6pt, erreurs] table[x=bloc_kio, y=go_s, y error=err] {\Donnees/machine-disque-alea-qd1.csv};
+\addlegendentry{\EF{random, QD 1}{aléatoire, QD 1}}
+\addplot[SerieB, mark=square*, mark size=1.5pt, erreurs] table[x=bloc_kio, y=go_s, y error=err] {\Donnees/machine-disque-alea-qd4.csv};
+\addlegendentry{\EF{random, QD 4}{aléatoire, QD 4}}
+\addplot[SerieC, mark=triangle*, mark size=2pt, erreurs] table[x=bloc_kio, y=go_s, y error=err] {\Donnees/machine-disque-alea-qd16.csv};
+\addlegendentry{\EF{random, QD 16}{aléatoire, QD 16}}
+\addplot[SerieE, mark=diamond*, mark size=2pt, erreurs] table[x=bloc_kio, y=go_s, y error=err] {\Donnees/machine-disque-alea-qd64.csv};
+\addlegendentry{\EF{random, QD 64}{aléatoire, QD 64}}
+\addplot[black!60, dashed, no markers, domain=3:22000] {7.877};
+\addlegendentry{\EF{link ceiling 7.877}{plafond du lien 7,877}}
+\addplot[Echelle, densely dotted, no markers, domain=3:22000] {6.0};
+\addlegendentry{\EF{advertised 6.0 [lit.]}{annonce 6,0 [litt.]}}
+\node[font=\scriptsize, anchor=south east, black!70] at (axis cs:16384,3.0) {\num{2.82}};
+\end{semilogxaxis}
+\end{tikzpicture}}
+
+% Plafond calculé contre débit mesuré, par étage (échelle logarithmique).
+\newcommand{\GrapheEtages}{%
+\begin{tikzpicture}
+\begin{semilogyaxis}[memoire, width=\linewidth, height=0.55\linewidth, ybar=1pt, bar width=13pt,
+  ylabel={\EF{GB/s (log scale)}{Go/s (échelle log.)}}, ymin=1, ymax=600, xmin=-0.6, xmax=3.6,
+  xtick={0,1,2,3}, xticklabels={\EF{NVMe$\to$RAM}{NVMe$\to$RAM}, \EF{RAM (CPU)}{RAM (processeur)},
+    \EF{host$\to$device}{hôte$\to$carte}, VRAM},
+  x tick label style={font=\small}, log ticks with fixed point, ytick={1,2,5,10,20,50,100,250},
+  legend pos=north west, major x grid style={draw=none},
+  nodes near coords, nodes near coords style={font=\tiny, black!80},
+  point meta=rawy]
+\addplot[fill=black!18, draw=black!50] table[x=i, y=plafond] {\Donnees/machine-etages.csv};
+\addlegendentry{\EF{computed ceiling}{plafond calculé}}
+\addplot[fill=Accent!75, draw=Accent] table[x=i, y=mesure] {\Donnees/machine-etages.csv};
+\addlegendentry{\EF{measured here (best reproducible)}{mesuré ici (meilleur reproductible)}}
+\end{semilogyaxis}
+\end{tikzpicture}}
+
+% Déchiffrement XTS-AES (BitLocker) par CNG selon le nombre de fils, sur batterie.
+\newcommand{\GrapheAES}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=\linewidth, height=0.55\linewidth,
+  xlabel={\EF{threads}{fils}}, ylabel={\EF{decryption (GB/s)}{déchiffrement (Go/s)}},
+  xmin=0.5, xmax=8.5, ymin=0, ymax=10.5, xtick={1,2,4,8}, legend pos=south east]
+\addplot[only marks, SerieA, mark=*, error bars/.cd, y dir=both, y explicit, error bar style={line width=0.6pt}]
+  table[x=fils, y=go_s, y error plus=plus, y error minus=moins] {\Donnees/machine-aes-128.csv};
+\addlegendentry{XTS-AES-128}
+\addplot[only marks, SerieB, mark=square*, error bars/.cd, y dir=both, y explicit, error bar style={line width=0.6pt}]
+  table[x=fils, y=go_s, y error plus=plus, y error minus=moins] {\Donnees/machine-aes-256.csv};
+\addlegendentry{XTS-AES-256}
+\addplot[Disque, dashed, no markers, domain=0.5:8.5] {2.82};
+\addlegendentry{\EF{disk plateau 2.82}{plateau du disque 2,82}}
+\end{axis}
+\end{tikzpicture}}
+
+% Latence d'un accès dépendant (chasse de pointeurs) selon la taille du tampon, sur batterie.
+\newcommand{\GrapheLatence}{%
+\begin{tikzpicture}
+\begin{semilogxaxis}[memoire, width=\linewidth, height=0.55\linewidth, log basis x=2,
+  xlabel={\EF{buffer size (MiB, log scale)}{taille du tampon (Mio, échelle log.)}},
+  ylabel={\EF{latency (ns)}{latence (ns)}}, xmin=1.4, xmax=750, ymin=0, ymax=1400,
+  xtick={2,8,32,128,512}, xticklabels={2,8,32,128,512}]
+\addplot[SerieA, mark=*, error bars/.cd, y dir=both, y explicit, error bar style={line width=0.6pt}]
+  table[x=taille_mio, y=ns, y error plus=plus, y error minus=moins] {\Donnees/machine-ram-latence.csv};
+\draw[black!45, dashed] (axis cs:24,0) -- (axis cs:24,1400) node[pos=0.93, left, font=\scriptsize, black!60] {L3 = 24\,\EF{MiB}{Mio}};
+\end{semilogxaxis}
+\end{tikzpicture}}
+
+% Thermique : débit de la GEMV q4b par tranche de 5 s, secteur contre batterie.
+\newcommand{\GrapheThermique}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=\linewidth, height=0.5\linewidth,
+  xlabel={\EF{time (s)}{temps (s)}}, ylabel={\EF{GEMV throughput (GB/s)}{débit de la GEMV (Go/s)}},
+  xmin=0, xmax=305, ymin=40, ymax=100, legend pos=north east, legend columns=2]
+\addplot[SerieA, mark=none] table[x=t_s, y=go_s] {\Donnees/machine-thermique-secteur.csv};
+\addlegendentry{\EF{mains (80 W limit)}{secteur (limite 80 W)}}
+\addplot[SerieB, mark=none] table[x=t_s, y=go_s] {\Donnees/machine-thermique-batterie.csv};
+\addlegendentry{\EF{battery (52.6 W limit)}{batterie (limite 52,6 W)}}
+\end{axis}
+\end{tikzpicture}}
+
+% Génération du lien PCIe relevée par nvidia-smi pendant trois séries de copies.
+\newcommand{\GraphePCIe}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=\linewidth, height=0.42\linewidth, axis y line*=left,
+  xlabel={\EF{time (s)}{temps (s)}}, ylabel={\EF{PCIe generation}{génération PCIe}},
+  xmin=0, xmax=46, ymin=0.5, ymax=4.5, ytick={1,2,3,4}, grid=none]
+\addplot[const plot, SerieA, line width=1.1pt] table[x=t_s, y=gen] {\Donnees/machine-pcie-generation.csv};
+\label{pl:gen}
+\end{axis}
+\begin{axis}[memoire, width=\linewidth, height=0.42\linewidth, axis y line*=right, axis x line=none,
+  ylabel={\EF{memory clock (MHz)}{horloge mémoire (MHz)}}, xmin=0, xmax=46, ymin=0, ymax=9000, grid=none,
+  legend pos=north east]
+\addlegendimage{/pgfplots/refstyle=pl:gen}\addlegendentry{\EF{link generation}{génération du lien}}
+\addplot[const plot, SerieD, line width=0.7pt, densely dashed] table[x=t_s, y=mem_mhz] {\Donnees/machine-pcie-generation.csv};
+\addlegendentry{\EF{VRAM clock}{horloge de la VRAM}}
+\end{axis}
+\end{tikzpicture}}
+
+% Noyaux GEMV écrits ici (Vulkan, RTX 4060) : débit de poids lus.
+\newcommand{\GrapheGEMV}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, xbar, bar width=9pt, width=0.86\linewidth, height=0.62\linewidth,
+  xlabel={\EF{weights read (GB/s)}{poids lus (Go/s)}}, xmin=0, xmax=300, ymin=-0.6, ymax=6.6,
+  ytick={0,...,6}, yticklabels={\EF{f16, VRAM}{f16, VRAM}, \EF{q4 naive, VRAM}{q4 naïf, VRAM},
+    \EF{q4b, VRAM}{q4b, VRAM}, \EF{q4, BAR}{q4, BAR}, \EF{q4, host RAM}{q4, RAM hôte},
+    \EF{f16, batch 8}{f16, lot 8}, \EF{q4, batch 8}{q4, lot 8}},
+  y dir=reverse, major y grid style={draw=none}, nodes near coords,
+  nodes near coords style={font=\tiny}, tick label style={font=\small}]
+\addplot[fill=Accent!70, draw=Accent] table[x=go_s, y=i] {\Donnees/machine-gemv.csv};
+\draw[Vram, dashed] (axis cs:256,-0.6) -- (axis cs:256,6.6) node[pos=0.02, right, font=\scriptsize] {VRAM 256};
+\draw[Pcie, dashed] (axis cs:15.754,-0.6) -- (axis cs:15.754,6.6) node[pos=0.98, right, font=\scriptsize] {PCIe \num{15.75}};
+\end{axis}
+\end{tikzpicture}}
+
+% Le toit du Qwen3.5-9B entièrement sur disque, selon le facteur de compression r.
+\newcommand{\GrapheToitR}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=\linewidth, height=0.58\linewidth,
+  xlabel={\EF{compression factor $r$ of the disk-resident weights}{facteur de compression $r$ des poids sur le disque}},
+  ylabel={\EF{tokens/s ceiling}{plafond (jetons/s)}}, xmin=0, xmax=16, ymin=0, ymax=9.5, legend pos=north west]
+\addplot[SerieB, no markers, line width=1.2pt] table[x=r, y=jetons_s_A] {\CsvMachine/toit-9b-compression.csv};
+\addlegendentry{\EF{architecture A (CPU decodes)}{architecture A (le processeur décode)}}
+\addplot[SerieA, no markers, line width=1.2pt, densely dashed] table[x=r, y=jetons_s_B] {\CsvMachine/toit-9b-compression.csv};
+\addlegendentry{\EF{architecture B (GPU decodes)}{architecture B (la carte décode)}}
+\draw[black!50, dotted] (axis cs:4.33,0) -- (axis cs:4.33,2.39);
+\node[font=\scriptsize, anchor=north west] at (axis cs:4.4,1.0) {$r^\star = \num{4.33}$};
+\node[circle, fill=black, inner sep=1.3pt] at (axis cs:4.33,2.392) {};
+\node[font=\scriptsize, anchor=south east, black!70] at (axis cs:15.8,2.5) {\EF{PCIe roof 2.39}{toit PCIe 2,39}};
+\end{axis}
+\end{tikzpicture}}
+
+% Le toit des trois MoE visés sur la machine, architecture A, routage uniforme, sans cache.
+\newcommand{\GrapheToitPlacements}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, ybar=1.5pt, bar width=11pt, width=\linewidth, height=0.52\linewidth,
+  ylabel={\EF{tokens/s ceiling (overlapped)}{plafond, étages recouverts (jetons/s)}},
+  ymin=0, ymax=16, xmin=-0.6, xmax=2.6, xtick={0,1,2},
+  xticklabels={gpt-oss-120b, Qwen3.8-Flash-Next, Kimi-K2.6}, major x grid style={draw=none},
+  legend pos=north east, nodes near coords, nodes near coords style={font=\tiny},
+  every node near coord/.append style={/pgf/number format/fixed, /pgf/number format/precision=1}]
+\addplot[fill=SerieF!50, draw=SerieF] table[x=i, y=r1_rec] {\Donnees/machine-toit-placements.csv};
+\addlegendentry{$r=1$}
+\addplot[fill=SerieA!50, draw=SerieA] table[x=i, y=r2_rec] {\Donnees/machine-toit-placements.csv};
+\addlegendentry{$r=2$}
+\addplot[fill=SerieC!60, draw=SerieC] table[x=i, y=r433_rec] {\Donnees/machine-toit-placements.csv};
+\addlegendentry{$r=r^\star=\num{4.33}$}
+\end{axis}
+\end{tikzpicture}}

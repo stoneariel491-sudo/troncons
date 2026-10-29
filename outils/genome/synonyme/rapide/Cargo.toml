@@ -1,0 +1,21 @@
+# Lot B de la construction (génome synonyme, genome/07-genome-synonyme.md) : l'empaqueteur du
+# fichier compagnon `<nom>.rapide.trc` et sa vérification. Hors de l'espace de travail du moteur
+# (table [workspace] vide), comme genome-capture : rien ne change pour les autres lots.
+[package]
+name = "trc-rapide"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+trc-format = { path = "../../../../moteur/crates/trc-format" }
+trc-codec = { path = "../../../../moteur/crates/trc-codec" }
+rayon = "=1.12.0"
+anyhow = "=1.0.104"
+serde_json = "=1.0.151"
+
+[profile.release]
+opt-level = 3
+debug = "line-tables-only"

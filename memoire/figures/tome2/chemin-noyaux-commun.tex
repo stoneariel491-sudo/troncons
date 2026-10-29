@@ -1,0 +1,30 @@
+% Réglages communs aux chapitres « Le chemin des octets » et « Les noyaux sur la carte » du Tome II :
+% chemins des données, langages des listings (Rust, CUDA) et caractères des sources. Chargé une fois
+% par le premier des deux chapitres qui en a besoin (garde \TdeuxChmNoyCommun).
+\def\TdeuxChmNoyCommun{}
+\providecommand{\DonneesTdeux}{\Racine/figures/tome2/donnees}
+\providecommand{\MesMoteur}{\Depot/mesures/moteur}
+\providecommand{\ListingsTdeux}{\Racine/listings/tome2}
+
+% Rust (listings n'en a pas) : mots clés de l'édition 2024 qui paraissent dans les extraits.
+\lstdefinelanguage{Rust}{morekeywords={as,break,const,continue,crate,else,enum,extern,false,fn,for,
+  if,impl,in,let,loop,match,mod,move,mut,pub,ref,return,self,Self,static,struct,super,trait,true,
+  type,unsafe,use,where,while,Some,None,Ok,Err,Box,Vec,Option,Result,u8,u16,u32,u64,usize,i32,i64,
+  f32,f64,bool}, sensitive=true, morecomment=[l]{//}, morecomment=[s]{/*}{*/},
+  morestring=[b]", alsoletter={!}}
+% CUDA : C++ et ses qualificatifs.
+\lstdefinelanguage{CUDA}[ISO]{C++}{morekeywords={__global__,__device__,__host__,__shared__,
+  __forceinline__,__launch_bounds__,__restrict__,uint32_t,uint64_t,uint8_t,int8_t,uint4,float4,
+  constexpr,namespace,extern}}
+% Les caractères non ASCII des commentaires des sources, rendus par le texte ou les mathématiques.
+\lstdefinestyle{tdeux}{style=memoire, extendedchars=true,
+  literate={é}{{\'e}}1 {è}{{\`e}}1 {à}{{\`a}}1 {ç}{{\c{c}}}1 {ê}{{\^e}}1 {ù}{{\`u}}1
+           {î}{{\^i}}1 {ô}{{\^o}}1 {â}{{\^a}}1 {É}{{\'E}}1 {À}{{\`A}}1 {ï}{{\"i}}1 {û}{{\^u}}1
+           {Ç}{{\c{C}}}1 {œ}{{\oe}}1 {«}{{\guillemotleft}}1 {»}{{\guillemotright}}1
+           {→}{{$\rightarrow$}}1 {←}{{$\leftarrow$}}1 {×}{{$\times$}}1 {≤}{{$\le$}}1 {≥}{{$\ge$}}1
+           {·}{{$\cdot$}}1 {≈}{{$\approx$}}1 {−}{{-}}1 {…}{{\ldots}}1 {⌊}{{$\lfloor$}}1 {⌋}{{$\rfloor$}}1
+           {⌈}{{$\lceil$}}1 {⌉}{{$\rceil$}}1 {Σ}{{$\Sigma$}}1 {κ}{{$\kappa$}}1 {β}{{$\beta$}}1
+           {δ}{{$\delta$}}1 {θ}{{$\theta$}}1 {ℓ}{{$\ell$}}1 {²}{{$^2$}}1 {₀}{{$_0$}}1 {₁}{{$_1$}}1
+           {₂}{{$_2$}}1 {₃}{{$_3$}}1 {ᵀ}{{$^{\mathsf T}$}}1 {√}{{$\surd$}}1 {≫}{{$\gg$}}1
+           {≠}{{$\ne$}}1 {∎}{{$\blacksquare$}}1 {’}{{'}}1 {▲}{{$\blacktriangle$}}1 {─}{{-}}1
+           {┘}{{'}}1 {ε}{{$\varepsilon$}}1 {σ}{{$\sigma$}}1 {α}{{$\alpha$}}1}

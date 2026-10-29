@@ -1,0 +1,45 @@
+% Les figures du Tome III, chargées une fois, dans le préambule du fichier maître (après
+% memoire/commun/preambule.tex) : legende-tome3.tex le demande (sa version grasse des mathématiques se
+% déclare avant \begin{document}). Ossature du 2026-10-29. Chaque fichier de figures ne fait que
+% définir des commandes ; un chapitre dessine une figure là où il l'appelle :
+%   \begin{figure}[tbp]\centering\Graphe<Nom>\LegendeFigure{<Nom>}\label{fig:t3-<nom>}\end{figure}
+% (convention de légende G9 : memoire/tome3/CONVENTIONS-figures.md ; étiquettes fig:t3-… des pilotes).
+% Rien ici ne modifie une figure : les fichiers de memoire/figures/tome3/ sont jugés, ceux des pistes
+% appartiennent à leur flux et ne se lisent qu'en lecture.
+
+% --- Le commun : la palette (chargée par la légende) et la convention de légende -------------------------
+\input{\Racine/figures/tome3/legende-tome3}
+
+% --- Les huit fichiers de figures au style du Tome III --------------------------------------------------
+% Ordre des pilotes : ronde (éclaireur, génome, duplication, synthèse), construction (codon, synonyme,
+% juge), espaces latents. codon et juge partagent \CodonDonnees (\providecommand).
+\input{\Racine/figures/tome3/eclaireur-figures}     % III-1.1, 1.2, 2.1
+\input{\Racine/figures/tome3/genome-figures}        % III-3.4, 3.6
+\input{\Racine/figures/tome3/duplication-figures}   % III-4.2, 4.8
+\input{\Racine/figures/tome3/synthese-figures}      % III-7.1 à 7.4
+\input{\Racine/figures/tome3/codon-figures}         % III-8.1 à 8.7
+\input{\Racine/figures/tome3/synonyme-figures}      % III-9.1, 9.2, 9.3, 9.6
+\input{\Racine/figures/tome3/juge-figures}          % III-8.8, 10.1, 10.3
+\input{\Racine/figures/tome3/latents-figures}       % III-7.6, III-9.1 (rangée), 9.7
+
+% --- La piste tropicale : macros au style du préambule commun (memoire, SerieA…F), lues par \Depot ------
+% Données : \Depot/mesures/pistes/tropicale/figures/ (\TropicaleDonnees). Les légendes ne sont pas dans
+% le fichier : le chapitre 11 écrit les siennes (\caption[titre]{… \sourcefig{…}}).
+\input{\Depot/genome/pistes/tropicale/figures-tropicale}   % III-11.1 à 11.7
+
+% --- La piste des spectres : un document autonome (classe standalone), qui ne peut pas s'inclure par
+% \input. construire.sh le compile à part, dans son propre dossier (ses chemins de données sont relatifs
+% à lui), avec sa sortie sous memoire/tome3/pistes/ (ignoré par git) ; le chapitre 12 en prend une page.
+% Pages : 1 survie (F1), 2 exposants α̂ (F2), 3 levier (F3), 4 plafond par rang (P1), 5 l'exposant
+% désigne le levier (P2). Le juge de la piste n'a jugé que 1 et 2 (genome/pistes/spectres/JUGEMENT.md § 5).
+\newcommand{\SpectresPdf}{\Racine/tome3/pistes/spectres-figures.pdf}
+\newcommand{\FigureSpectres}[2][width=\linewidth]{\includegraphics[#1, page=#2]{\SpectresPdf}}
+
+% --- Les figures hors du style commun (mimétisme, PDF ou PNG tracés par chaque piste), incluses telles
+% qu'elles ont été tracées : \FigureHorsStyle{chemin} (largeur du texte par défaut), et, dans la
+% légende, \HorsStyle, qui le dit au lecteur (réserve R5 de l'inventaire).
+\newcommand{\Mimetisme}{\Depot/genome/mimetisme}
+\newcommand{\MimetismeMesures}{\Depot/mesures/mimetisme}
+\newcommand{\FigureHorsStyle}[2][width=\linewidth]{\includegraphics[#1]{#2}}
+\newcommand{\HorsStyle}{\EF{(figure outside the common style of the thesis, included as its lead drew it)}%
+  {(figure hors du style commun du mémoire, incluse telle que sa piste l'a tracée)}}

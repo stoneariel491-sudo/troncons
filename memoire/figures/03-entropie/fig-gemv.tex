@@ -1,0 +1,32 @@
+% La question clé mesurée : produit matrice-vecteur MXFP4 (gpt-oss-20b, 256 Mio de codes),
+% brut, fondu au décodeur rANS, décodage seul, deux passes. Données :
+% fondations/journaux/03-entropie/csv/fig-gemv.csv (vers_csv.py, depuis
+% gemv-gptoss20b-calme.json et gemv-gptoss20b-secteur.json).
+% Compilation seule : lualatex fig-gemv.tex (depuis ce dossier).
+\documentclass[tikz,border=4pt]{standalone}
+\usepackage{fontspec}
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
+\pgfplotsset{compat=1.18}
+\providecommand{\donnees}{../../../fondations/journaux/03-entropie/csv}
+\begin{document}
+\pgfplotstableread[col sep=comma]{\donnees/fig-gemv.csv}\table
+\begin{tikzpicture}
+\begin{axis}[
+  xbar, bar width=8pt, width=11cm, height=6cm,
+  xlabel={Go/s de poids MXFP4 équivalents (médiane)}, xmin=0, xmax=270,
+  symbolic y coords={deux passes,decodage seul,fondu,brut}, ytick=data,
+  yticklabels={brut, fondu, décodage seul, deux passes}, % dans l ordre des lignes du CSV (ytick=data)
+  clip=false,
+  y tick label style={font=\small}, enlarge y limits=0.2,
+  legend style={at={(0.98,0.02)}, anchor=south east, font=\small}, area legend,
+  nodes near coords, nodes near coords style={font=\tiny, /pgf/number format/fixed, /pgf/number format/precision=0},
+  xmajorgrids, grid style={gray!25},
+]
+\addplot[fill=gray!45] table[y=chemin, x=batterie] {\table};
+\addplot[fill=blue!55] table[y=chemin, x=secteur] {\table};
+\draw[red!60, dashed] (axis cs:251,{[normalized]-0.5}) -- (axis cs:251,{[normalized]3.5}) node[above, font=\small, red!70!black] {VRAM 251};
+\legend{batterie, secteur}
+\end{axis}
+\end{tikzpicture}
+\end{document}

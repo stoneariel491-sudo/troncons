@@ -1,0 +1,40 @@
+alimentation : 2 (2 = secteur)
+llama_model_loader: tensor overrides to CPU are used with mmap enabled - consider using --load-mode none for better performance
+load_tensors: offloading output layer to GPU
+load_tensors: offloading 23 repeating layers to GPU
+load_tensors: offloaded 25/25 layers to GPU
+................................................................................
+architecture gpt-oss : 24 couches, 32 experts, k = 4
+llama_kv_cache_iswa: using full-size SWA cache (ref: https://github.com/ggml-org/llama.cpp/pull/13194#issuecomment-2868343055)
+impl:      CUDA0 MoE cache size =  4084.61 MiB for 9682.03 MiB of host experts
+impl: 24 layers, mxfp4:   323 slots (42.1%)
+[prose-en] 2378 jetons
+[prose-en] lecture : 100.8 s (23.6 jetons/s), désaccords tri/top-k 0 sur 57072, ordre différent 0
+[prose-en] génération : 256 jetons en 8.2 s (31.20 jetons/s), invite 13.7 s ; relecture : 4771/6144 choix (jeton, couche) identiques, 23 jetons entièrement identiques
+[prose-fr] 2887 jetons
+[prose-fr] lecture : 5.9 s (486.6 jetons/s), désaccords tri/top-k 0 sur 69288, ordre différent 0
+[prose-fr] génération : 256 jetons en 15.9 s (16.11 jetons/s), invite 0.7 s ; relecture : 5570/6144 choix (jeton, couche) identiques, 96 jetons entièrement identiques
+[dialogue] 2862 jetons
+[dialogue] lecture : 5.3 s (537.0 jetons/s), désaccords tri/top-k 0 sur 68688, ordre différent 0
+[dialogue] génération : 256 jetons en 16.9 s (15.17 jetons/s), invite 0.7 s ; relecture : 5846/6144 choix (jeton, couche) identiques, 136 jetons entièrement identiques
+[code] 2542 jetons
+[code] lecture : 9.1 s (278.4 jetons/s), désaccords tri/top-k 0 sur 61008, ordre différent 0
+[code] génération : 256 jetons en 27.1 s (9.43 jetons/s), invite 0.9 s ; relecture : 5881/6144 choix (jeton, couche) identiques, 135 jetons entièrement identiques
+llama_moe_cache: ubatch <= 8: hits = 88443, misses = 9861, hit rate = 89.97%, uploaded = 124315.77 MiB
+llama_moe_cache: large batches: 14580 experts copied from the cache, 61269.10 MiB
+alimentation : 2
+llama_model_loader: tensor overrides to CPU are used with mmap enabled - consider using --load-mode none for better performance
+load_tensors: offloading output layer to GPU
+load_tensors: offloading 23 repeating layers to GPU
+load_tensors: offloaded 25/25 layers to GPU
+................................................................................
+architecture gpt-oss : 24 couches, 32 experts, k = 4
+llama_kv_cache_iswa: using full-size SWA cache (ref: https://github.com/ggml-org/llama.cpp/pull/13194#issuecomment-2868343055)
+impl:      CUDA0 MoE cache size =  4084.61 MiB for 9682.03 MiB of host experts
+impl: 24 layers, mxfp4:   323 slots (42.1%)
+[wiki] 708 jetons
+[wiki] lecture : 32.2 s (22.0 jetons/s), désaccords tri/top-k 0 sur 16992, ordre différent 0
+[wiki] génération : 256 jetons en 20.6 s (12.45 jetons/s), invite 3.8 s ; relecture : 5692/6144 choix (jeton, couche) identiques, 98 jetons entièrement identiques
+llama_moe_cache: ubatch <= 8: hits = 20373, misses = 4203, hit rate = 82.90%, uploaded = 52986.43 MiB
+llama_moe_cache: large batches: 1854 experts copied from the cache, 7791.01 MiB
+alimentation : 2

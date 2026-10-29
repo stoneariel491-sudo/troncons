@@ -1,0 +1,49 @@
+chargé gen-prose-en (256, 36, 4)
+chargé gen-wiki (256, 36, 4)
+chargé code (2542, 36, 4)
+chargé dialogue (2862, 36, 4)
+chargé prose-en (2378, 36, 4)
+chargé prose-fr (2887, 36, 4)
+chargé wiki-lecture (708, 36, 4)
+  cache 120-gen-prose-en N=323 lfu8 : 0.4 s, taux de succès 0.7420
+  cache 120-gen-wiki N=323 lfu8 : 0.7 s, taux de succès 0.4804
+  cache 120-code N=323 lfu8 : 58.0 s, taux de succès 0.4434
+  cache 120-dialogue N=323 lfu8 : 58.2 s, taux de succès 0.5560
+  cache 120-prose-en N=323 lfu8 : 45.8 s, taux de succès 0.5502
+  cache 120-prose-fr N=323 lfu8 : 52.8 s, taux de succès 0.5993
+  cache 120-wiki-lecture N=323 lfu8 : 19.8 s, taux de succès 0.5487
+gen-prose-en theta 0.20: {'accepter': (0.101, 0.2596, 0.725), 'remonter0.30': (0.0822, 0.1342, 0.461), 'remonter0.40': (0.0929, 0.1887, 0.573), 'remonter0.50': (0.0977, 0.2124, 0.613)} oracle {'0.20': (0.0885, 0.14)}
+gen-wiki theta 0.20: {'accepter': (0.0778, 0.1559, 0.565), 'remonter0.30': (0.0695, 0.0963, 0.391), 'remonter0.40': (0.0751, 0.1201, 0.451), 'remonter0.50': (0.0774, 0.1516, 0.553)} oracle {'0.20': (0.0719, 0.227)}
+cumul génération theta 0.20 {'accepter': (0.0855, 0.688, 0.058), 'remonter0.30': (0.0737, 0.442, 0.028), 'remonter0.40': (0.081, 0.539, 0.043), 'remonter0.50': (0.0841, 0.612, 0.043)}
+lecture cumul theta 0.20 {'accepter': (0.0835, 0.559), 'remonter0.30': (0.0744, 0.308), 'remonter0.40': (0.0802, 0.391), 'remonter0.50': (0.0824, 0.484)}
+T0 tient: True
+T2 (mélange, accepter) {'0.20': 0.614, '0.25': 0.763} vrai {'0.20': 0.565, '0.25': 0.757} tient False
+T3 (hasard) {'0.20': {'r_moyen': 1.000094360388103, 'r_min': 0.9546389054237694, 'r_max': 1.0654859347567627, 'sigma': 0.023144955025724598}, '0.25': {'r_moyen': 1.005144075209861, 'r_min': 0.9759156460041293, 'r_max': 1.0279369681429755, 'sigma': 0.0099875903677461}} tient True
+sans portage {'0.20': {'r_vrai': 0.18451270630902109, 'r_melange': 0.1855071299685194, 'r0_marginal': 0.4138466601550796}, '0.25': {'r_vrai': 0.2702643827114923, 'r_melange': 0.2723036887891951, 'r0_marginal': 0.6142734775734209}}
+  cache 120-gen-prose-en N=326 lfu8 : 4.2 s, taux de succès 0.7435
+  cache 120-gen-wiki N=326 lfu8 : 7.4 s, taux de succès 0.4823
+sensibilité N326 {'accepter': (0.0854, 0.692), 'remonter0.30': (0.0737, 0.445), 'remonter0.40': (0.081, 0.544), 'remonter0.50': (0.0841, 0.616)}
+  cache 120-gen-prose-en N=922 lfu8 : 2.1 s, taux de succès 0.8621
+  cache 120-gen-wiki N=922 lfu8 : 3.0 s, taux de succès 0.7874
+sensibilité N922 {'accepter': (0.0992, 0.765), 'remonter0.30': (0.0603, 0.522), 'remonter0.40': (0.0835, 0.608), 'remonter0.50': (0.0949, 0.7)}
+  cache 120-gen-prose-en N=323 lru8 : 2.7 s, taux de succès 0.7366
+  cache 120-gen-wiki N=323 lru8 : 6.9 s, taux de succès 0.3921
+sensibilité LRU {'accepter': (0.0817, 0.763), 'remonter0.30': (0.0647, 0.558), 'remonter0.40': (0.0761, 0.628), 'remonter0.50': (0.0802, 0.661)}
+  cache 120-gen-prose-en N=323 lfu32 : 3.8 s, taux de succès 0.7189
+  cache 120-gen-wiki N=323 lfu32 : 5.8 s, taux de succès 0.5057
+sensibilité demi-vie32 {'accepter': (0.0893, 0.533), 'remonter0.30': (0.0814, 0.346), 'remonter0.40': (0.086, 0.405), 'remonter0.50': (0.0884, 0.477)}
+sensibilité rho0.70 {'accepter': (0.0909, 0.688), 'remonter0.30': (0.0792, 0.438), 'remonter0.40': (0.0864, 0.538), 'remonter0.50': (0.0896, 0.611)}
+sensibilité rho0.766 {'accepter': (0.0709, 0.688), 'remonter0.30': (0.0592, 0.457), 'remonter0.40': (0.0664, 0.546), 'remonter0.50': (0.0696, 0.614)}
+  cache 20b-gen-code N=54 lfu8 : 3.6 s, taux de succès 0.2605
+  cache 20b-gen-dialogue N=54 lfu8 : 2.4 s, taux de succès 0.3204
+  cache 20b-gen-prose-en N=54 lfu8 : 2.8 s, taux de succès 0.3763
+  cache 20b-gen-prose-fr N=54 lfu8 : 2.2 s, taux de succès 0.3281
+  cache 20b-gen-wiki N=54 lfu8 : 2.3 s, taux de succès 0.2747
+  cache 20b-lec-code N=54 lfu8 : 28.6 s, taux de succès 0.3049
+  cache 20b-lec-dialogue N=54 lfu8 : 25.2 s, taux de succès 0.3833
+  cache 20b-lec-prose-en N=54 lfu8 : 23.8 s, taux de succès 0.3719
+  cache 20b-lec-prose-fr N=54 lfu8 : 33.0 s, taux de succès 0.3902
+  cache 20b-lec-wiki N=54 lfu8 : 7.7 s, taux de succès 0.3563
+20b cumul génération theta 0.20 {'accepter': (0.0916, 0.413), 'remonter0.30': (0.0886, 0.327), 'remonter0.40': (0.0908, 0.38), 'remonter0.50': (0.0914, 0.406)}
+20b cumul lecture theta 0.20 {'accepter': (0.098, 0.45), 'remonter0.30': (0.0956, 0.297), 'remonter0.40': (0.0972, 0.351), 'remonter0.50': (0.0978, 0.416)}
+fini en 715 s

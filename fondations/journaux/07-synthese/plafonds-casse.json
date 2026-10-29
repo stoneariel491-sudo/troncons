@@ -1,0 +1,837 @@
+{
+ "etude": "07-synthese",
+ "casser": true,
+ "modele": {
+  "nom": "gpt-oss-120b MXFP4",
+  "A": 1.685668608,
+  "R": 1.90854144,
+  "E_tot": 61.07332608,
+  "bits_stockes": 4.25,
+  "source": "07-synthese/inventaire-gptoss.json (en-tête lu sur le disque de la machine)"
+ },
+ "debits": {
+  "disque": [
+   2.82,
+   "mesuré ici",
+   "01-machine/debits-mesures.json : 16 Mio aléatoire QD 1"
+  ],
+  "disque_expert": [
+   2.58,
+   "mesuré ici",
+   "01-machine/disque-analyse.md : 4 Mio aléatoire QD 4 (une matrice d'expert gpt-oss = 4,2 Mio)"
+  ],
+  "disque_lien": [
+   7.877,
+   "calculé",
+   "plafond du lien PCIe 4.0 x4 (étude 01) ; témoin T3 et cassure seulement"
+  ],
+  "pcie": [
+   12.2,
+   "mesuré ici",
+   "01-machine/debits-mesures.json : DMA hôte vers carte, 64 Mio, au calme"
+  ],
+  "vram": [
+   251.3,
+   "mesuré ici",
+   "01-machine/debits-mesures.json : lecture de VRAM par shader"
+  ],
+  "gemv": [
+   209.4,
+   "mesuré ici",
+   "03-entropie/gemv-gptoss20b-secteur.json : GEMV MXFP4 brut, Vulkan"
+  ],
+  "decodeur": [
+   70.0,
+   "mesuré ici",
+   "03-entropie/rans-gptoss20b-secteur.json : rANS v4 Vulkan, octets de codes produits"
+  ],
+  "decodeur_classes": [
+   41.6,
+   "mesuré ici",
+   "03-entropie.md § 8 : décodage puis réassemblage des trois flux de classe"
+  ],
+  "cpu_ram": [
+   15.6,
+   "mesuré ici (chargé)",
+   "01-machine/memoire.log : lecture 1 fil, premier passage"
+  ],
+  "mmap_4k": [
+   0.22,
+   "mesuré ici",
+   "01-machine : 4 Kio aléatoire, QD >= 16"
+  ],
+  "mmap_1m": [
+   1.307,
+   "mesuré ici",
+   "01-machine : 1 Mio aléatoire, QD 1"
+  ]
+ },
+ "t0": [
+  0.0035,
+  "calculé sur mesure",
+  "02 § 5.1 passe 3 : Qwen3.5-4B Q4_K_M, 14,4 ms mesurés contre 10,9 ms à 251 Go/s"
+ ],
+ "capacites": {
+  "vram_poids": [
+   6.5,
+   "hypothèse dite",
+   "06 § 5.1"
+  ],
+  "ram_poids": [
+   11.0,
+   "hypothèse dite",
+   "06 § 5.1"
+  ]
+ },
+ "betas": {
+  "uniforme": 1.0,
+  "lru_cale": 0.20748720472596094,
+  "belady_cale": 0.11665033363865179
+ },
+ "raffinement": {
+  "base_2b": {
+   "bits_par_poids": 2.6838659700881857,
+   "r_base": 1.5835366025600581,
+   "erreur_relative": 0.042919745124980244,
+   "classes": [
+    0,
+    0,
+    1,
+    1,
+    1,
+    2,
+    2,
+    3
+   ],
+   "H_complement": 1.218227332822482
+  },
+  "base_1b": {
+   "bits_par_poids": 1.9974346710454742,
+   "r_base": 2.1277291626141213,
+   "erreur_relative": 0.1640437193790052,
+   "classes": [
+    0,
+    0,
+    0,
+    0,
+    1,
+    1,
+    1,
+    1
+   ],
+   "H_complement": 1.9026054973715465
+  },
+  "erreur_relative_mxfp4_gaussienne": 0.013271112776579818
+ },
+ "temoins": {
+  "T1_gptoss120b_etude01": {
+   "attendu": 1.98,
+   "obtenu": 5.569368072305689,
+   "tient": false
+  },
+  "T2_9b_r16_etude01": {
+   "attendu": 8.85,
+   "obtenu": 8.847058823529412,
+   "tient": true
+  },
+  "T3_lien_etude06": {
+   "attendu": 5.6,
+   "obtenu": 5.569368072305689,
+   "tient": true
+  }
+ },
+ "temoins_tiennent": false,
+ "gptoss120b": {
+  "uniforme": {
+   "base_llamacpp_4k": {
+    "h_r": 0.18011136294740343,
+    "jetons_s": 0.1399330691907778,
+    "D_mmap": 0.22
+   },
+   "base_llamacpp_1m": {
+    "h_r": 0.18011136294740343,
+    "jetons_s": 0.8124636466529974,
+    "D_mmap": 1.307
+   },
+   "A_brut_r1": {
+    "h_v": 0.07882870806305363,
+    "h_r": 0.18011136294740343,
+    "h_s": 0.741059928989543,
+    "c_v": 0.07882870806305363,
+    "c_r": 0.18011136294740343,
+    "T_disque_ms": 548.1951875968992,
+    "T_pcie_ms": 144.10603147540985,
+    "T_carte_ms": 17.16432687679083,
+    "etage_limitant": "disque",
+    "jetons_s_plafond": 1.8125951113618533,
+    "jetons_s_serie": 1.4025923211602038,
+    "disque_go_par_jeton": 1.414343584,
+    "part_avec_perte": 0.0,
+    "ram_pointe_go": 14.328687168,
+    "vram_pointe_go": 7.5
+   },
+   "A_sans_perte": {
+    "h_v": 0.07882870806305363,
+    "h_r": 0.198590788785807,
+    "h_s": 0.7225805031511394,
+    "c_v": 0.07882870806305363,
+    "c_r": 0.19859078878580702,
+    "T_disque_ms": 484.7860778680975,
+    "T_pcie_ms": 130.69656400817146,
+    "T_carte_ms": 59.42619187679084,
+    "etage_limitant": "disque",
+    "jetons_s_plafond": 2.047979750653742,
+    "jetons_s_serie": 1.474037409666159,
+    "disque_go_par_jeton": 1.2507480808996916,
+    "part_avec_perte": 0.0,
+    "ram_pointe_go": 14.001496161799384,
+    "vram_pointe_go": 7.5
+   },
+   "A0_sans_ram": {
+    "h_v": 0.07882870806305363,
+    "h_r": 0.0,
+    "h_s": 0.9211712919369464,
+    "c_v": 0.07882870806305363,
+    "c_r": 0.0,
+    "T_disque_ms": 618.0225119766246,
+    "T_pcie_ms": 130.69656400817146,
+    "T_carte_ms": 59.42619187679084,
+    "etage_limitant": "disque",
+    "jetons_s_plafond": 1.6089521790927663,
+    "jetons_s_serie": 1.2320653364180447,
+    "disque_go_par_jeton": 1.5944980808996916,
+    "part_avec_perte": 0.0,
+    "ram_pointe_go": 3.688996161799383,
+    "vram_pointe_go": 7.5
+   },
+   "B1_base2b_aux_defauts": {
+    "h_v": 0.07882870806305363,
+    "h_r": 0.198590788785807,
+    "h_s": 0.7225805031511394,
+    "c_v": 0.07882870806305363,
+    "c_r": 0.19859078878580702,
+    "T_disque_ms": 337.55148355473,
+    "T_pcie_ms": 99.56006783370519,
+    "T_carte_ms": 59.42619187679084,
+    "etage_limitant": "disque",
+    "jetons_s_plafond": 2.932108635262763,
+    "jetons_s_serie": 1.9998490383346683,
+    "disque_go_par_jeton": 0.8708828275712033,
+    "part_avec_perte": 0.7225805031511394,
+    "ram_pointe_go": 13.241765655142407,
+    "vram_pointe_go": 7.5
+   },
+   "B2_base2b_hors_vram": {
+    "h_v": 0.07882870806305363,
+    "h_r": 0.2852129357641928,
+    "h_s": 0.6359583561727535,
+    "c_v": 0.07882870806305363,
+    "c_r": 0.2852129357641928,
+    "T_disque_ms": 297.0861871708139,
+    "T_pcie_ms": 91.0026526967787,
+    "T_carte_ms": 59.42619187679084,
+    "etage_limitant": "disque",
+    "jetons_s_plafond": 3.3268328442242443,
+    "jetons_s_serie": 2.217221000666688,
+    "disque_go_par_jeton": 0.7664823629006999,
+    "part_avec_perte": 0.9211712919369464,
+    "ram_pointe_go": 13.0329647258014,
+    "vram_pointe_go": 7.5
+   },
+   "B2_base1b_hors_vram": {
+    "h_v": 0.07882870806305363,
+    "h_r": 0.38322819946136677,
+    "h_s": 0.5379430924755796,
+    "c_v": 0.07882870806305363,
+    "c_r": 0.38322819946136677,
+    "T_disque_ms": 187.0259534540993,
+    "T_pcie_ms": 67.7276196648833,
+    "T_carte_ms": 59.42619187679084,
+    "etage_limitant": "disque",
+    "jetons_s_plafond": 5.248628766163953,
+    "jetons_s_serie": 3.1478240359857494,
+    "disque_go_par_jeton": 0.48252695991157624,
+    "part_avec_perte": 0.9211712919369464,
+    "ram_pointe_go": 12.465053919823152,
+    "vram_pointe_go": 7.5
+   },
+   "A_sans_perte_disque_non_chiffre_6": {
+    "h_v": 0.07882870806305363,
+    "h_r": 0.198590788785807,
+    "h_s": 0.7225805031511394,
+    "c_v": 0.07882870806305363,
+    "c_r": 0.19859078878580702,
+    "T_disque_ms": 208.45801348328195,
+    "T_pcie_ms": 130.69656400817146,
+    "T_carte_ms": 59.42619187679084,
+    "etage_limitant": "disque",
+    "jetons_s_plafond": 4.717915513389515,
+    "jetons_s_serie": 2.487062491377581,
+    "disque_go_par_jeton": 1.2507480808996916,
+    "part_avec_perte": 0.0,
+    "ram_pointe_go": 14.001496161799384,
+    "vram_pointe_go": 7.5
+   },
+   "B1_base2b_disque_non_chiffre_6": {
+    "h_v": 0.07882870806305363,
+    "h_r": 0.198590788785807,
+    "h_s": 0.7225805031511394,
+    "c_v": 0.07882870806305363,
+    "c_r": 0.19859078878580702,
+    "T_disque_ms": 145.14713792853388,
+    "T_pcie_ms": 99.56006783370519,
+    "T_carte_ms": 59.42619187679084,
+    "etage_limitant": "disque",
+    "jetons_s_plafond": 6.727341097416736,
+    "jetons_s_serie": 3.2506223565926917,
+    "disque_go_par_jeton": 0.8708828275712033,
+    "part_avec_perte": 0.7225805031511394,
+    "ram_pointe_go": 13.241765655142407,
+    "vram_pointe_go": 7.5
+   }
+  },
+  "lru_cale": {
+   "base_llamacpp_4k": {
+    "h_r": 0.7007035316866855,
+    "jetons_s": 0.37123259460384445,
+    "D_mmap": 0.22
+   },
+   "base_llamacpp_1m": {
+    "h_r": 0.7007035316866855,
+    "jetons_s": 1.871529960045399,
+    "D_mmap": 1.307
+   },
+   "A_brut_r1": {
+    "h_v": 0.5903045518280592,
+    "h_r": 0.1652161264635642,
+    "h_s": 0.2444793217083766,
+    "c_v": 0.07882870806305363,
+    "c_r": 0.18011136294740343,
+    "T_disque_ms": 180.85229329594122,
+    "T_pcie_ms": 64.0918639848788,
+    "T_carte_ms": 17.16432687679083,
+    "etage_limitant": "disque",
+    "jetons_s_plafond": 5.424396855181494,
+    "jetons_s_serie": 3.7649399761138826,
+    "disque_go_par_jeton": 0.4665989167035284,
+    "part_avec_perte": 0.0,
+    "ram_pointe_go": 12.433197833407057,
+    "vram_pointe_go": 7.5
+   },
+   "A_sans_perte": {
+    "h_v": 0.5903045518280592,
+    "h_r": 0.1760999524739313,
+    "h_s": 0.23359549569800953,
+    "c_v": 0.07882870806305363,
+    "c_r": 0.19859078878580702,
+    "T_disque_ms": 156.72142228200326,
+    "T_pcie_ms": 58.12793758831743,
+    "T_carte_ms": 35.9604985262024,
+    "etage_limitant": "disque",
+    "jetons_s_plafond": 6.241362645251741,
+    "jetons_s_serie": 3.9322109111507095,
+    "disque_go_par_jeton": 0.4043412694875684,
+    "part_avec_perte": 0.0,
+    "ram_pointe_go": 12.308682538975138,
+    "vram_pointe_go": 7.5
+   },
+   "A0_sans_ram": {
+    "h_v": 0.5903045518280592,
+    "h_r": 0.0,
+    "h_s": 0.4096954481719408,
+    "c_v": 0.07882870806305363,
+    "c_r": 0.0,
+    "T_disque_ms": 274.8685420842917,
+    "T_pcie_ms": 58.12793758831743,
+    "T_carte_ms": 35.9604985262024,
+    "etage_limitant": "disque",
+    "jetons_s_plafond": 3.5923599430900994,
+    "jetons_s_serie": 2.6848738472721436,
+    "disque_go_par_jeton": 0.7091608385774726,
+    "part_avec_perte": 0.0,
+    "ram_pointe_go": 1.9183216771549452,
+    "vram_pointe_go": 7.5
+   },
+   "B1_base2b_aux_defauts": {
+    "h_v": 0.5903045518280592,
+    "h_r": 0.1760999524739313,
+    "h_s": 0.23359549569800953,
+    "c_v": 0.07882870806305363,
+    "c_r": 0.19859078878580702,
+    "T_disque_ms": 109.12348974363732,
+    "T_pcie_ms": 48.062145297417096,
+    "T_carte_ms": 35.9604985262024,
+    "etage_limitant": "disque",
+    "jetons_s_plafond": 8.879142373196574,
+    "jetons_s_serie": 5.0852766940265335,
+    "disque_go_par_jeton": 0.2815386035385843,
+    "part_avec_perte": 0.23359549569800953,
+    "ram_pointe_go": 12.063077207077168,
+    "vram_pointe_go": 7.5
+   },
+   "B2_base2b_hors_vram": {
+    "h_v": 0.5903045518280592,
+    "h_r": 0.22055280531706445,
+    "h_s": 0.18914264285487636,
+    "c_v": 0.07882870806305363,
+    "c_r": 0.2852129357641928,
+    "T_disque_ms": 88.35746248438655,
+    "T_pcie_ms": 40.473875931420416,
+    "T_carte_ms": 35.9604985262024,
+    "etage_limitant": "disque",
+    "jetons_s_plafond": 10.886431792843993,
+    "jetons_s_serie": 5.942058855442785,
+    "disque_go_par_jeton": 0.2279622532097173,
+    "part_avec_perte": 0.4096954481719408,
+    "ram_pointe_go": 11.955924506419434,
+    "vram_pointe_go": 7.5
+   },
+   "B2_base1b_hors_vram": {
+    "h_v": 0.5903045518280592,
+    "h_r": 0.26167387837506373,
+    "h_s": 0.14802156979687708,
+    "c_v": 0.07882870806305363,
+    "c_r": 0.38322819946136677,
+    "T_disque_ms": 51.46246063990528,
+    "T_pcie_ms": 30.122190883606514,
+    "T_carte_ms": 35.9604985262024,
+    "etage_limitant": "disque",
+    "jetons_s_plafond": 18.19423636346357,
+    "jetons_s_serie": 8.261380151036965,
+    "disque_go_par_jeton": 0.13277314845095564,
+    "part_avec_perte": 0.4096954481719408,
+    "ram_pointe_go": 11.765546296901912,
+    "vram_pointe_go": 7.5
+   },
+   "A_sans_perte_disque_non_chiffre_6": {
+    "h_v": 0.5903045518280592,
+    "h_r": 0.1760999524739313,
+    "h_s": 0.23359549569800953,
+    "c_v": 0.07882870806305363,
+    "c_r": 0.19859078878580702,
+    "T_disque_ms": 67.3902115812614,
+    "T_pcie_ms": 58.12793758831743,
+    "T_carte_ms": 35.9604985262024,
+    "etage_limitant": "disque",
+    "jetons_s_plafond": 14.106319866935378,
+    "jetons_s_serie": 6.061390452441996,
+    "disque_go_par_jeton": 0.4043412694875684,
+    "part_avec_perte": 0.0,
+    "ram_pointe_go": 12.308682538975138,
+    "vram_pointe_go": 7.5
+   },
+   "B1_base2b_disque_non_chiffre_6": {
+    "h_v": 0.5903045518280592,
+    "h_r": 0.1760999524739313,
+    "h_s": 0.23359549569800953,
+    "c_v": 0.07882870806305363,
+    "c_r": 0.19859078878580702,
+    "T_disque_ms": 46.92310058976405,
+    "T_pcie_ms": 48.062145297417096,
+    "T_carte_ms": 35.9604985262024,
+    "etage_limitant": "pcie",
+    "jetons_s_plafond": 19.394072807325433,
+    "jetons_s_serie": 7.437944610022583,
+    "disque_go_par_jeton": 0.2815386035385843,
+    "part_avec_perte": 0.23359549569800953,
+    "ram_pointe_go": 12.063077207077168,
+    "vram_pointe_go": 7.5
+   }
+  },
+  "belady_cale": {
+   "base_llamacpp_4k": {
+    "h_r": 0.8187637801206177,
+    "jetons_s": 0.5938320335300625,
+    "D_mmap": 0.22
+   },
+   "base_llamacpp_1m": {
+    "h_r": 0.8187637801206177,
+    "jetons_s": 2.6569671564729918,
+    "D_mmap": 1.307
+   },
+   "A_brut_r1": {
+    "h_v": 0.7435289248965342,
+    "h_r": 0.11065127119544149,
+    "h_s": 0.1458198039080243,
+    "c_v": 0.07882870806305363,
+    "c_r": 0.18011136294740343,
+    "T_disque_ms": 107.8694335392009,
+    "T_pcie_ms": 40.12177663904236,
+    "T_carte_ms": 17.16432687679083,
+    "etage_limitant": "disque",
+    "jetons_s_plafond": 8.979124417006307,
+    "jetons_s_serie": 5.929245001151012,
+    "disque_go_par_jeton": 0.2783031385311383,
+    "part_avec_perte": 0.0,
+    "ram_pointe_go": 12.056606277062276,
+    "vram_pointe_go": 7.5
+   },
+   "A_sans_perte": {
+    "h_v": 0.7435289248965342,
+    "h_r": 0.11754758702703627,
+    "h_s": 0.1389234880764295,
+    "c_v": 0.07882870806305363,
+    "c_r": 0.19859078878580702,
+    "T_disque_ms": 93.2050790391181,
+    "T_pcie_ms": 36.38833361059528,
+    "T_carte_ms": 28.930809448817676,
+    "etage_limitant": "disque",
+    "jetons_s_plafond": 10.340718501408707,
+    "jetons_s_serie": 6.171916686579581,
+    "disque_go_par_jeton": 0.24046910392092471,
+    "part_avec_perte": 0.0,
+    "ram_pointe_go": 11.980938207841849,
+    "vram_pointe_go": 7.5
+   },
+   "A0_sans_ram": {
+    "h_v": 0.7435289248965342,
+    "h_r": 0.0,
+    "h_s": 0.2564710751034658,
+    "c_v": 0.07882870806305363,
+    "c_r": 0.0,
+    "T_disque_ms": 172.06886436017922,
+    "T_pcie_ms": 36.388333610595275,
+    "T_carte_ms": 28.930809448817676,
+    "etage_limitant": "disque",
+    "jetons_s_plafond": 5.695770737278917,
+    "jetons_s_serie": 4.151306703526109,
+    "disque_go_par_jeton": 0.4439376700492624,
+    "part_avec_perte": 0.0,
+    "ram_pointe_go": 1.3878753400985246,
+    "vram_pointe_go": 7.5
+   },
+   "B1_base2b_aux_defauts": {
+    "h_v": 0.7435289248965342,
+    "h_r": 0.11754758702703627,
+    "h_s": 0.1389234880764295,
+    "c_v": 0.07882870806305363,
+    "c_r": 0.19859078878580702,
+    "T_disque_ms": 64.89772322432566,
+    "T_pcie_ms": 30.402023938286714,
+    "T_carte_ms": 28.930809448817676,
+    "etage_limitant": "disque",
+    "jetons_s_plafond": 14.620369697398784,
+    "jetons_s_serie": 7.828980210601497,
+    "disque_go_par_jeton": 0.1674361259187602,
+    "part_avec_perte": 0.1389234880764295,
+    "ram_pointe_go": 11.83487225183752,
+    "vram_pointe_go": 7.5
+   },
+   "B2_base2b_hors_vram": {
+    "h_v": 0.7435289248965342,
+    "h_r": 0.1452794241709532,
+    "h_s": 0.1111916509325126,
+    "c_v": 0.07882870806305363,
+    "c_r": 0.2852129357641928,
+    "T_disque_ms": 51.942872202460585,
+    "T_pcie_ms": 25.33681670141292,
+    "T_carte_ms": 28.930809448817676,
+    "etage_limitant": "disque",
+    "jetons_s_plafond": 18.036583608949815,
+    "jetons_s_serie": 9.114897981643068,
+    "disque_go_par_jeton": 0.13401261028234832,
+    "part_avec_perte": 0.2564710751034658,
+    "ram_pointe_go": 11.768025220564697,
+    "vram_pointe_go": 7.5
+   },
+   "B2_base1b_hors_vram": {
+    "h_v": 0.7435289248965342,
+    "h_r": 0.17034569098158092,
+    "h_s": 0.08612538412188486,
+    "c_v": 0.07882870806305363,
+    "c_r": 0.38322819946136677,
+    "T_disque_ms": 29.94309678347118,
+    "T_pcie_ms": 18.856618287709544,
+    "T_carte_ms": 28.930809448817676,
+    "etage_limitant": "disque",
+    "jetons_s_plafond": 29.901537123626575,
+    "jetons_s_serie": 12.310643146885095,
+    "disque_go_par_jeton": 0.07725318970135564,
+    "part_avec_perte": 0.2564710751034658,
+    "ram_pointe_go": 11.654506379402712,
+    "vram_pointe_go": 7.5
+   },
+   "A_sans_perte_disque_non_chiffre_6": {
+    "h_v": 0.7435289248965342,
+    "h_r": 0.11754758702703627,
+    "h_s": 0.1389234880764295,
+    "c_v": 0.07882870806305363,
+    "c_r": 0.19859078878580702,
+    "T_disque_ms": 40.07818398682079,
+    "T_pcie_ms": 36.38833361059528,
+    "T_carte_ms": 28.930809448817676,
+    "etage_limitant": "disque",
+    "jetons_s_plafond": 22.947261875401388,
+    "jetons_s_serie": 9.182961851537799,
+    "disque_go_par_jeton": 0.24046910392092471,
+    "part_avec_perte": 0.0,
+    "ram_pointe_go": 11.980938207841849,
+    "vram_pointe_go": 7.5
+   },
+   "B1_base2b_disque_non_chiffre_6": {
+    "h_v": 0.7435289248965342,
+    "h_r": 0.11754758702703627,
+    "h_s": 0.1389234880764295,
+    "c_v": 0.07882870806305363,
+    "c_r": 0.19859078878580702,
+    "T_disque_ms": 27.90602098646003,
+    "T_pcie_ms": 30.402023938286714,
+    "T_carte_ms": 28.930809448817676,
+    "etage_limitant": "pcie",
+    "jetons_s_plafond": 29.49676402271269,
+    "jetons_s_serie": 11.020637266182378,
+    "disque_go_par_jeton": 0.1674361259187602,
+    "part_avec_perte": 0.1389234880764295,
+    "ram_pointe_go": 11.83487225183752,
+    "vram_pointe_go": 7.5
+   }
+  }
+ },
+ "gain_taux_sur_cache_uniforme": 0.13079812441737304,
+ "balayage_ram": [
+  {
+   "ram_cache_go": 0,
+   "lru": 3.5923599430900994,
+   "uniforme": 1.6089521790927663,
+   "belady": 5.695770737278917,
+   "ram_pointe": 1.9183216771549452
+  },
+  {
+   "ram_cache_go": 0.5,
+   "lru": 3.7125230562938345,
+   "uniforme": 1.6247843026654971,
+   "belady": 5.909465810681222,
+   "ram_pointe": 2.371830358055086
+  },
+  {
+   "ram_cache_go": 1,
+   "lru": 3.8306117766465495,
+   "uniforme": 1.6409310994933342,
+   "belady": 6.11907494216407,
+   "ram_pointe": 2.8289833186307494
+  },
+  {
+   "ram_cache_go": 2,
+   "lru": 4.062786702043363,
+   "uniforme": 1.674206999845019,
+   "belady": 6.530155884507427,
+   "ram_pointe": 3.752004214152517
+  },
+  {
+   "ram_cache_go": 3,
+   "lru": 4.292329034328939,
+   "uniforme": 1.708860416401431,
+   "belady": 6.935375048277591,
+   "ram_pointe": 4.684084560384736
+  },
+  {
+   "ram_cache_go": 4,
+   "lru": 4.521630995891233,
+   "uniforme": 1.7449786942362688,
+   "belady": 7.339111348166566,
+   "ram_pointe": 5.623121136782026
+  },
+  {
+   "ram_cache_go": 6,
+   "lru": 4.986383471844977,
+   "uniforme": 1.821997766005293,
+   "belady": 8.154556435687608,
+   "ram_pointe": 7.516758126029682
+  },
+  {
+   "ram_cache_go": 8,
+   "lru": 5.468076981986485,
+   "uniforme": 1.9061296447466916,
+   "belady": 8.996182583481238,
+   "ram_pointe": 9.425598989622607
+  },
+  {
+   "ram_cache_go": 11,
+   "lru": 6.241362645251741,
+   "uniforme": 2.047979750653742,
+   "belady": 10.340718501408707,
+   "ram_pointe": 12.308682538975138
+  }
+ ],
+ "dense_C": {
+  "V_cible_go": 5.192305536,
+  "t_brouillon_s": 0.08828621570200573,
+  "cas_E": {
+   "sans_speculation": 1.0,
+   "chaine_a08_k4": 3.3616,
+   "chaine_a08_borne": 5.0,
+   "arbre_specexec_rtx4060": 9.7,
+   "arbre_10": 10.0
+  },
+  "fichiers": {
+   "Llama-3.3-70B-Instruct-Q4_K_M.gguf": {
+    "octets_par_passe_go": 41.929773815999994,
+    "cas": {
+     "sans_speculation": {
+      "T_passe_s": 9.126761801418438,
+      "T_passe_serie_s": 12.338267390528307,
+      "disque_go": 25.737468279999995,
+      "jetons_s_plafond": 0.10851815401744203,
+      "jetons_s_serie": 0.08047283516313236
+     },
+     "chaine_a08_k4": {
+      "T_passe_s": 9.126761801418438,
+      "T_passe_serie_s": 12.338267390528307,
+      "disque_go": 25.737468279999995,
+      "jetons_s_plafond": 0.36479462654503314,
+      "jetons_s_serie": 0.2705174826843858
+     },
+     "chaine_a08_borne": {
+      "T_passe_s": 9.126761801418438,
+      "T_passe_serie_s": 12.338267390528307,
+      "disque_go": 25.737468279999995,
+      "jetons_s_plafond": 0.5425907700872101,
+      "jetons_s_serie": 0.40236417581566186
+     },
+     "arbre_specexec_rtx4060": {
+      "T_passe_s": 9.126761801418438,
+      "T_passe_serie_s": 12.338267390528307,
+      "disque_go": 25.737468279999995,
+      "jetons_s_plafond": 1.0526260939691876,
+      "jetons_s_serie": 0.7805865010823839
+     },
+     "arbre_10": {
+      "T_passe_s": 9.126761801418438,
+      "T_passe_serie_s": 12.338267390528307,
+      "disque_go": 25.737468279999995,
+      "jetons_s_plafond": 1.0851815401744203,
+      "jetons_s_serie": 0.8047283516313237
+     }
+    }
+   },
+   "Llama-3.3-70B-Instruct-IQ3_XXS.gguf": {
+    "octets_par_passe_go": 26.87887436,
+    "cas": {
+     "sans_speculation": {
+      "T_passe_s": 3.7895634127659585,
+      "T_passe_serie_s": 5.695512407919011,
+      "disque_go": 10.686568824000002,
+      "jetons_s_plafond": 0.25787487804035186,
+      "jetons_s_serie": 0.17289675264902946
+     },
+     "chaine_a08_k4": {
+      "T_passe_s": 3.7895634127659585,
+      "T_passe_serie_s": 5.695512407919011,
+      "disque_go": 10.686568824000002,
+      "jetons_s_plafond": 0.8668721900204468,
+      "jetons_s_serie": 0.5812097237049775
+     },
+     "chaine_a08_borne": {
+      "T_passe_s": 3.7895634127659585,
+      "T_passe_serie_s": 5.695512407919011,
+      "disque_go": 10.686568824000002,
+      "jetons_s_plafond": 1.2893743902017591,
+      "jetons_s_serie": 0.8644837632451473
+     },
+     "arbre_specexec_rtx4060": {
+      "T_passe_s": 3.7895634127659585,
+      "T_passe_serie_s": 5.695512407919011,
+      "disque_go": 10.686568824000002,
+      "jetons_s_plafond": 2.501386316991413,
+      "jetons_s_serie": 1.6770985006955856
+     },
+     "arbre_10": {
+      "T_passe_s": 3.7895634127659585,
+      "T_passe_serie_s": 5.695512407919011,
+      "disque_go": 10.686568824000002,
+      "jetons_s_plafond": 2.5787487804035183,
+      "jetons_s_serie": 1.7289675264902946
+     }
+    }
+   },
+   "Llama-3.3-70B-Instruct-IQ2_M.gguf": {
+    "octets_par_passe_go": 23.528674040000002,
+    "cas": {
+     "sans_speculation": {
+      "T_passe_s": 2.601549114893618,
+      "T_passe_serie_s": 4.216892480021775,
+      "disque_go": 7.336368504000003,
+      "jetons_s_plafond": 0.3717699699403402,
+      "jetons_s_serie": 0.2322783955502877
+     },
+     "chaine_a08_k4": {
+      "T_passe_s": 2.601549114893618,
+      "T_passe_serie_s": 4.216892480021775,
+      "disque_go": 7.336368504000003,
+      "jetons_s_plafond": 1.2497419309514475,
+      "jetons_s_serie": 0.7808270544818472
+     },
+     "chaine_a08_borne": {
+      "T_passe_s": 2.601549114893618,
+      "T_passe_serie_s": 4.216892480021775,
+      "disque_go": 7.336368504000003,
+      "jetons_s_plafond": 1.8588498497017008,
+      "jetons_s_serie": 1.1613919777514385
+     },
+     "arbre_specexec_rtx4060": {
+      "T_passe_s": 2.601549114893618,
+      "T_passe_serie_s": 4.216892480021775,
+      "disque_go": 7.336368504000003,
+      "jetons_s_plafond": 3.606168708421299,
+      "jetons_s_serie": 2.2531004368377907
+     },
+     "arbre_10": {
+      "T_passe_s": 2.601549114893618,
+      "T_passe_serie_s": 4.216892480021775,
+      "disque_go": 7.336368504000003,
+      "jetons_s_plafond": 3.7176996994034015,
+      "jetons_s_serie": 2.322783955502877
+     }
+    }
+   },
+   "Llama-3.3-70B-Instruct-IQ2_XXS.gguf": {
+    "octets_par_passe_go": 18.506765048000002,
+    "cas": {
+     "sans_speculation": {
+      "T_passe_s": 1.0913491403278692,
+      "T_passe_serie_s": 2.0004594305325076,
+      "disque_go": 2.3144595120000027,
+      "jetons_s_plafond": 0.847719589692151,
+      "jetons_s_serie": 0.47875623429915953
+     },
+     "chaine_a08_k4": {
+      "T_passe_s": 1.0913491403278692,
+      "T_passe_serie_s": 2.0004594305325076,
+      "disque_go": 2.3144595120000027,
+      "jetons_s_plafond": 2.849694172709135,
+      "jetons_s_serie": 1.6093869572200548
+     },
+     "chaine_a08_borne": {
+      "T_passe_s": 1.0913491403278692,
+      "T_passe_serie_s": 2.0004594305325076,
+      "disque_go": 2.3144595120000027,
+      "jetons_s_plafond": 4.238597948460755,
+      "jetons_s_serie": 2.3937811714957977
+     },
+     "arbre_specexec_rtx4060": {
+      "T_passe_s": 1.0913491403278692,
+      "T_passe_serie_s": 2.0004594305325076,
+      "disque_go": 2.3144595120000027,
+      "jetons_s_plafond": 8.222880020013864,
+      "jetons_s_serie": 4.6439354727018465
+     },
+     "arbre_10": {
+      "T_passe_s": 1.0913491403278692,
+      "T_passe_serie_s": 2.0004594305325076,
+      "disque_go": 2.3144595120000027,
+      "jetons_s_plafond": 8.47719589692151,
+      "jetons_s_serie": 4.787562342991595
+     }
+    }
+   }
+  }
+ },
+ "moe_speculation_condition_k1": {
+  "formule": "E(alpha,1) = 1 + alpha > U(2)/t = 2 - rho  <=>  alpha > 1 - rho",
+  "rho_publies": {
+   "Qwen3-30B-A3B (0,444)": 0.556,
+   "Qwen3.6-35B-A3B (~0,25)": 0.75,
+   "independant gpt-oss-120b (4/128)": 0.96875
+  }
+ }
+}

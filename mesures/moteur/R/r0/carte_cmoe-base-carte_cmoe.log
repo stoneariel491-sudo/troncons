@@ -1,0 +1,21 @@
+# 2026-10-15T19:59:43-04:00 ~\dev\modeles\llama.cpp-b11515\llama-perplexity.exe -m ~\dev\modeles\gguf\gpt-oss-20b-MXFP4.gguf -ngl 99 --cpu-moe -c 512 -b 512 -t 6 --seed 1 --chunks 10 -f ~\dev\essais\troncons\modeles\donnees\wiki.test.raw --kl-divergence-base ~\dev\essais\troncons\lot-R\r0\carte_cmoe.kld  env+={}
+# avant : {"date": "2026-10-15T19:59:43-04:00", "batterie_statut": "2", "carte": "344 MiB, 8188 MiB, 0 %", "processus_llama_ou_traceur": ""}
+0.03.532.369 W load: setting token '<|constrain|>' (200003) attribute to USER_DEFINED (16), old attributes: 8
+0.03.532.624 W load: setting token '<|message|>' (200008) attribute to USER_DEFINED (16), old attributes: 8
+0.03.540.153 W load: setting token '<|channel|>' (200005) attribute to USER_DEFINED (16), old attributes: 8
+0.03.540.162 W load: setting token '<|start|>' (200006) attribute to USER_DEFINED (16), old attributes: 8
+0.03.540.180 W load: special_eog_ids contains both '<|return|>' and '<|call|>', or '<|calls|>' and '<|flush|>' tokens, removing '<|end|>' token from EOG list
+0.03.595.128 W llama_model_loader: tensor overrides to CPU are used with mmap enabled - consider using --load-mode none for better performance
+0.08.770.217 I cmn          init: llama threadpool init, n_threads = 6
+0.10.826.708 I 
+0.10.827.457 I system_info: n_threads = 6 (n_threads_batch = 6) / 16 | CUDA : ARCHS = 500,610,700,750,800,860,890,900 | USE_GRAPHS = 1 | FA_QUANTS = q4_0-q4_0,q8_0-q8_0,f16-f16,bf16-bf16 | CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX_VNNI = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | BMI2 = 1 | LLAMAFILE = 1 | OPENMP = 1 | REPACK = 1 | 
+0.10.829.793 I perplexity: saving all logits to ~\dev\essais\troncons\lot-R\r0\carte_cmoe.kld
+0.10.829.808 I perplexity: tokenizing the input ..
+0.11.670.860 I perplexity: tokenization took 841.033 ms
+0.11.671.798 I perplexity: calculating perplexity over 10 chunks, n_ctx=512, batch_size=512, n_seq=1
+0.28.753.577 I perplexity: 17.00 seconds per pass - ETA 2.82 minutes
+[1]186.3412,[2]223.6053,[3]514.9587,[4]431.8125,[5]345.7845,[6]370.4742,[7]378.4764,[8]438.3633,[9]431.6833,[10]452.4649,
+0.49.245.459 I Final estimate: PPL = 452.4649 +/- 28.16810
+
+
+# fin 2026-10-15T20:00:36-04:00 code 0 durée 52.3 s

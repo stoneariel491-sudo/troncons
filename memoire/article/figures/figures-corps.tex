@@ -1,0 +1,30 @@
+% Les figures de l'article court, tirées des macros jugées du Tome III, une page par figure.
+% Ce fichier ne dessine rien de neuf : il appelle les macros de memoire/figures/tome3/codon-figures.tex
+% (données memoire/figures/tome3/donnees/codon-*.csv et codon-nombres.tex, écrites par
+% memoire/outils/tome3_codon.py depuis les fichiers commités) dans une boîte de 156 mm, la largeur du texte
+% du Tome III (A4, marges 30 et 24 mm) et celle de l'article : chaque figure garde la taille où elle a été
+% jugée. L'article (pdflatex, pour arXiv) inclut les pages par \includegraphics[page=…].
+% Appelé par figures-en.tex et figures-fr.tex, qui posent \ifanglais ; construit par
+% memoire/article/construire-article.sh (lualatex, comme les tomes : polices Libertinus par fontspec).
+%   page 1  III-8.1  \GrapheCodonRoue        la roue des seize codons
+%   page 2  III-8.2  \GrapheCodonOctets      la carte des 256 octets avant et après le fondu
+%   page 3  III-8.3  \GrapheCodonTheoreme    le théorème du gain, tenseur par tenseur
+%   page 4  III-8.6  \GrapheCodonJalon       le J1 en ABBA (séance s2)
+%   page 5  III-8.6 bis \GrapheCodonJalonBis d'où vient le gain du J1 (motif croisé, cascade)
+\documentclass[11pt, a4paper]{scrbook}
+\newcommand{\Racine}{../..}          % memoire/
+\newcommand{\Depot}{../../..}        % racine du dépôt
+\input{\Racine/commun/preambule}
+\input{\Racine/figures/tome3/legende-tome3}
+\input{\Racine/figures/tome3/codon-figures}
+\usepackage[active, tightpage]{preview}
+\setlength{\PreviewBorder}{1pt}
+\newcommand{\PageFigure}[1]{%
+  \begin{preview}\begin{minipage}{156mm}\centering #1\end{minipage}\end{preview}}
+\begin{document}
+\PageFigure{\GrapheCodonRoue}
+\PageFigure{\GrapheCodonOctets}
+\PageFigure{\GrapheCodonTheoreme}
+\PageFigure{\GrapheCodonJalon}
+\PageFigure{\GrapheCodonJalonBis}
+\end{document}

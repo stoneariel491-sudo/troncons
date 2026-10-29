@@ -1,0 +1,291 @@
+% Figures des chapitres « Résultats du jalon J1 », « L'épreuve indépendante et la ronde de
+% corrections » et « Discussion » du Tome II (rédacteur « résultats »).
+% Chargé par chacun de ces chapitres, gardé par \ifdefined\GrapheResVitesse : le fichier maître n'a
+% rien à faire. Toutes les données sont sous \Racine/figures/tome2/donnees/res-*.csv, écrites par
+% memoire/outils/tome2_resultats.py depuis les CSV et journaux commités des lots et de l'épreuve.
+% Styles TikZ préfixés « res » (règle du Tome I : un préfixe par chapitre).
+
+\newcommand{\ResDonnees}{\Racine/figures/tome2/donnees}
+
+% Langage des listings de ces chapitres (nom propre au rédacteur : d'autres chapitres définissent
+% « Rust » à leur façon, et une redéfinition ne doit changer le rendu de personne).
+\lstdefinelanguage{RustRes}{morekeywords={as,break,const,continue,crate,else,enum,extern,false,fn,
+  for,if,impl,in,let,loop,match,mod,move,mut,pub,ref,return,self,Self,static,struct,super,trait,
+  true,type,unsafe,use,where,while,Result,Option,Some,None,Ok,Err,u8,u16,u32,u64,usize,f32,f64,bool},
+  sensitive=true, morecomment=[l]{//}, morestring=[b]"}
+
+\tikzset{
+  resboite/.style={draw=black!55, rounded corners=1.5pt, fill=white, align=center,
+    font=\sffamily\footnotesize, inner sep=3pt, minimum height=7mm},
+  resfleche/.style={-{Stealth[length=2mm]}, line width=0.6pt, black!70},
+  resmesure/.style={font=\sffamily\scriptsize, fill=white, inner sep=1pt, text=Accent!85!black},
+  resfaux/.style={font=\sffamily\scriptsize, text=Signe},
+}
+
+% ---------------------------------------------------------------------------------------------
+% Génération du 120b : troncons (quatre séances) contre llama.cpp (base publiée et base balayée).
+\newcommand{\GrapheResVitesse}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=0.96\linewidth, height=6.4cm, ybar, bar width=9pt,
+  ymin=0, ymax=2.6, ylabel={\EF{generation (tokens/s)}{génération (jetons/s)}},
+  xtick={0,...,9}, xmin=-0.6, xmax=9.6,
+  xticklabels={\EF{J1 (15 Oct.)}{J1 (15 oct.)}, \EF{trial}{épreuve}, \EF{round, no guard}{ronde, sans garde},
+    \EF{round, guard}{ronde, garde}, \EF{fit -t 6 (published)}{fit -t 6 (publiée)},
+    fit -t 6, fit -t 10, n-cpu-moe 34, fit -t 12, fit -t 16},
+  x tick label style={rotate=35, anchor=north east, font=\scriptsize},
+  legend pos=north east, enlarge x limits=false, grid=major, xmajorgrids=false]
+\addplot[fill=SerieA!75, draw=SerieA, restrict x to domain=-0.5:3.5, erreurs]
+  table[x=x, y=moyenne, y error plus=plus, y error minus=moins] {\ResDonnees/res-vitesse-120b.csv};
+\addlegendentry{troncons (A0, \EF{120b}{120b})}
+\addplot[fill=SerieB!60, draw=SerieB, restrict x to domain=3.5:9.5, erreurs]
+  table[x=x, y=moyenne, y error plus=plus, y error minus=moins] {\ResDonnees/res-vitesse-120b.csv};
+\addlegendentry{llama.cpp b11515}
+\draw[densely dashed, SerieB] (axis cs:-0.6,0.8838) -- (axis cs:9.6,0.8838)
+  node[pos=0.02, above right, font=\scriptsize\sffamily, fill=white, inner sep=1pt]{\EF{best base measured:}{meilleure base mesurée :} \num{0.884}};
+\end{axis}
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------------------------------
+% Le plancher en série, étage par étage, contre le temps mesuré par jeton (losanges).
+\newcommand{\GrapheResPlancher}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, name=pile, width=0.96\linewidth, height=6.2cm, ybar stacked, bar width=13pt,
+  ymin=0, ymax=650, ylabel={\EF{ms per token}{ms par jeton}},
+  xtick={0,...,7}, xmin=-0.6, xmax=7.6,
+  xticklabels={J1-1, J1-6, \EF{02 guard}{02 garde}, \EF{03 none}{03 sans}, \EF{04 none}{04 sans},
+    \EF{05 guard}{05 garde}, \EF{07 guard}{07 garde}, \EF{08 guard}{08 garde}},
+  x tick label style={font=\scriptsize}, xmajorgrids=false,
+  legend style={at={(0.5,1.03)}, anchor=south, legend columns=6}, reverse legend=false]
+\addplot[fill=Disque!70, draw=Disque] table[x=x, y=disque] {\ResDonnees/res-plancher.csv};
+\addlegendentry{\EF{disk}{disque}}
+\addplot[fill=Pcie!70, draw=Pcie] table[x=x, y=pcie] {\ResDonnees/res-plancher.csv};
+\addlegendentry{PCIe}
+\addplot[fill=Vram!60, draw=Vram] table[x=x, y=dec] {\ResDonnees/res-plancher.csv};
+\addlegendentry{\EF{decode}{décodage}}
+\addplot[fill=Calcul!60, draw=Calcul] table[x=x, y=gemv] {\ResDonnees/res-plancher.csv};
+\addlegendentry{GEMV}
+\addplot[fill=black!35, draw=black!60] table[x=x, y=t0] {\ResDonnees/res-plancher.csv};
+\addlegendentry{$T_0$}
+\addlegendimage{only marks, mark=diamond*, mark size=3pt, black}
+\addlegendentry{\EF{measured}{mesuré}}
+\end{axis}
+\begin{axis}[at={(pile.south west)}, anchor=south west, width=0.96\linewidth, height=6.2cm,
+  ymin=0, ymax=650, xmin=-0.6, xmax=7.6, axis lines=none, lua backend=false]
+\addplot[only marks, mark=diamond*, mark size=3pt, black] table[x=x, y=mesure] {\ResDonnees/res-plancher.csv};
+\end{axis}
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------------------------------
+% Mémoire de pointe contre taille du modèle : la pente est la thèse.
+\newcommand{\GrapheResMemoire}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=0.86\linewidth, height=6.4cm, ymode=log, xmin=0, xmax=72, ymin=100, ymax=30000,
+  xlabel={\EF{model file size (GB)}{taille du fichier du modèle (Go)}},
+  ylabel={\EF{peak working set (MB)}{ensemble de travail de pointe (Mo)}},
+  legend pos=north west, log basis y=10]
+\addplot[SerieB, mark=square*, thick] table[x=taille_go, y=llama_mo] {\ResDonnees/res-memoire.csv};
+\addlegendentry{llama.cpp \texttt{fit}}
+\addplot[SerieA, mark=*, thick] table[x=taille_go, y=troncons_mo] {\ResDonnees/res-memoire.csv};
+\addlegendentry{troncons A0}
+\addplot[black!60, densely dashed, domain=0:72] {1900};
+\addlegendentry{\EF{J1 ceiling C7:}{plafond de J1, C7 :} \num{1.9}\,\EF{GB}{Go}}
+\addplot[Signe!70, dotted, thick, domain=0:72] {15600};
+\addlegendentry{\EF{usable RAM:}{RAM utilisable :} \num{15.6}\,\EF{GB}{Go}}
+\node[font=\scriptsize\sffamily, anchor=south, SerieA] at (axis cs:63.4,420) {\num{384.2}\,\EF{MB}{Mo}};
+\node[font=\scriptsize\sffamily, anchor=south, SerieA] at (axis cs:12.1,420) {\num{380.5}};
+\node[font=\scriptsize\sffamily, anchor=north, SerieB] at (axis cs:63.4,9500) {\num{10.9}\,\EF{GB}{Go}};
+\end{axis}
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------------------------------
+% KL par position contre la vérité f64 : fenêtre 0 du 120b, et l'invite au-delà de la fenêtre 0.
+\newcommand{\GrapheResKL}{%
+\begin{tikzpicture}
+\begin{groupplot}[group style={group size=1 by 2, vertical sep=12mm},
+  memoire, width=0.96\linewidth, height=5cm, ymode=log, ymin=5e-5, ymax=4,
+  ylabel={KL (nat)}]
+\nextgroupplot[xmin=250, xmax=516, xlabel={\EF{position (window 0)}{position (fenêtre 0)}},
+  legend style={at={(0.5,1.03)}, anchor=south, legend columns=3}]
+\addplot[only marks, mark=x, mark size=1.4pt, SerieC] table[x=position, y=d_f32] {\ResDonnees/res-kl-120b-f0.csv};
+\addlegendentry{troncons, KV f32}
+\addplot[only marks, mark=*, mark size=0.9pt, SerieB] table[x=position, y=d_llama] {\ResDonnees/res-kl-120b-f0.csv};
+\addlegendentry{llama.cpp \EF{GPU}{carte}}
+\addplot[only marks, mark=*, mark size=0.9pt, SerieA] table[x=position, y=d_f16] {\ResDonnees/res-kl-120b-f0.csv};
+\addlegendentry{troncons, KV f16}
+\node[anchor=north west, font=\sffamily\bfseries\small, fill=white, inner sep=1pt] at (rel axis cs:0.01,0.98) {(a)};
+\draw[black!45, densely dotted] (axis cs:250,1e-4) -- (axis cs:516,1e-4);
+\nextgroupplot[xmin=350, xmax=710, xlabel={\EF{position (prompt of C12)}{position (invite de C12)}}]
+\addplot[only marks, mark=x, mark size=1.4pt, SerieC] table[x=position, y=d_f32] {\ResDonnees/res-kl-invite.csv};
+\addplot[only marks, mark=*, mark size=0.9pt, SerieA] table[x=position, y=d_f16] {\ResDonnees/res-kl-invite.csv};
+\node[anchor=north west, font=\sffamily\bfseries\small, fill=white, inner sep=1pt] at (rel axis cs:0.01,0.98) {(b)};
+\draw[black!45, densely dashed] (axis cs:512,5e-5) -- (axis cs:512,4) node[pos=0.93, right, font=\scriptsize\sffamily]{512};
+\draw[black!45, densely dotted] (axis cs:350,1e-4) -- (axis cs:710,1e-4);
+\end{groupplot}
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------------------------------
+% Accord de routage moteur (KV f16) / vérité f64, par couche, sur l'invite de 708 jetons.
+\newcommand{\GrapheResRoutage}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=0.92\linewidth, height=6cm, xmin=-0.5, xmax=35.5, ymin=0.78, ymax=1.005,
+  xlabel={\EF{layer}{couche}}, ylabel={\EF{share of identical top-4 choices}{part des choix top-4 identiques}},
+  legend pos=south west, unbounded coords=jump, yticklabel style={/pgf/number format/fixed, /pgf/number format/precision=2}]
+\addplot[SerieA, mark=*, mark size=1.2pt] table[x=couche, y=a120_256] {\ResDonnees/res-routage.csv};
+\addlegendentry{120b, positions 256--511}
+\addplot[SerieB, mark=square*, mark size=1.2pt] table[x=couche, y=a120_512] {\ResDonnees/res-routage.csv};
+\addlegendentry{120b, positions 512--706}
+\addplot[SerieC, mark=*, mark size=1.2pt, densely dashed] table[x=couche, y=a20_256] {\ResDonnees/res-routage.csv};
+\addlegendentry{20b, positions 256--511}
+\addplot[SerieD, mark=square*, mark size=1.2pt, densely dashed] table[x=couche, y=a20_512] {\ResDonnees/res-routage.csv};
+\addlegendentry{20b, positions 512--706}
+\end{axis}
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------------------------------
+% La séance de l'épreuve (s1-2026-10-16), passe par passe, dans l'ordre du palindrome.
+\newcommand{\GrapheResSeance}{%
+\begin{tikzpicture}
+\begin{groupplot}[group style={group size=1 by 2, vertical sep=10mm, x descriptions at=edge bottom},
+  memoire, width=0.96\linewidth, height=4.8cm, xmin=-0.5, xmax=11.5, xtick={0,...,11},
+  xticklabels={00 D, 01 T, 02 L6, 03 L10, 04 L10, 05 L6, 06 T, 07 D, 08 T20, 09 T20, \EF{10 T warm}{10 T tiède}, 11 T},
+  x tick label style={font=\scriptsize, rotate=30, anchor=north east}, xmajorgrids=false, unbounded coords=discard]
+\nextgroupplot[ymin=0, ymax=2.5, ylabel={\EF{tokens/s (120b)}{jetons/s (120b)}},
+  legend style={at={(0.5,1.04)}, anchor=south, legend columns=2}]
+\addplot[only marks, mark=*, mark size=2.4pt, SerieA] table[x=x, y=gen_t120] {\ResDonnees/res-epreuve-seance.csv};
+\addlegendentry{troncons}
+\addplot[only marks, mark=diamond*, mark size=2.8pt, SerieA!50] table[x=x, y=gen_tiede] {\ResDonnees/res-epreuve-seance.csv};
+\addlegendentry{\EF{troncons, 1 GB warm cache}{troncons, 1\,Go tiède}}
+\addplot[only marks, mark=square*, mark size=2.2pt, SerieB] table[x=x, y=gen_l6] {\ResDonnees/res-epreuve-seance.csv};
+\addlegendentry{\texttt{fit -t 6}}
+\addplot[only marks, mark=triangle*, mark size=2.8pt, SerieD] table[x=x, y=gen_l10] {\ResDonnees/res-epreuve-seance.csv};
+\addlegendentry{\texttt{fit -t 10}}
+\nextgroupplot[ymode=log, ymin=100, ymax=30000, ylabel={Mo},
+  legend style={at={(0.5,1.04)}, anchor=south, legend columns=3}]
+\addplot[SerieA, mark=*, mark size=1.6pt] table[x=x, y=et] {\ResDonnees/res-epreuve-seance.csv};
+\addlegendentry{\EF{peak working set}{ensemble de travail de pointe}}
+\addplot[SerieE, mark=square*, mark size=1.4pt, densely dashed] table[x=x, y=engagee] {\ResDonnees/res-epreuve-seance.csv};
+\addlegendentry{\EF{peak commit}{mémoire engagée de pointe}}
+\addplot[SerieB, mark=triangle*, mark size=1.8pt, densely dotted] table[x=x, y=perte] {\ResDonnees/res-epreuve-seance.csv};
+\addlegendentry{\EF{memory lost by the machine}{perte de la machine}}
+\end{groupplot}
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------------------------------
+% Les chemins de la vérité : cinq programmes, quatre implémenteurs, et la mesure qui relie chaque paire.
+\newcommand{\SchemaResChemins}{%
+\begin{tikzpicture}[x=1mm, y=1mm]
+\tikzset{resd/.style={Accent, line width=0.8pt, {Stealth[length=1.6mm]}-{Stealth[length=1.6mm]}}}
+\node[resboite, fill=Fond, minimum width=24mm] (gguf) at (0,24) {GGUF\\(OpenAI, MXFP4)};
+\node[resboite, minimum width=40mm, anchor=west] (ref) at (40,48) {\texttt{trc-reference}\\\EF{lot R, Rust, f64}{lot R, Rust, f64}};
+\node[resboite, minimum width=40mm, anchor=west] (np) at (40,36) {\texttt{gptoss\_numpy.py}\\\EF{trial, numpy, f64}{épreuve, numpy, f64}};
+\node[resboite, minimum width=40mm, anchor=west] (ll) at (40,24) {llama.cpp b11515\\\EF{GPU, KV f16}{carte, KV f16}};
+\node[resboite, minimum width=40mm, anchor=west] (tr) at (40,8) {troncons\\\EF{coded and raw \texttt{.trc}}{\texttt{.trc} codé et brut}};
+\node[resboite, minimum width=40mm, anchor=west] (dec) at (40,-4) {\texttt{decodeur\_s4.py}\\\EF{trial, from §\,4 only}{épreuve, depuis le seul §\,4}};
+\node[resboite, minimum width=16mm, fill=Echelle!12] (trc) at (22,2) {\texttt{.trc}\\\EF{lot F}{lot F}};
+\draw[resfleche] (gguf.east) -- (30,24) |- (ref.west);
+\draw[resfleche] (30,24) |- (np.west);
+\draw[resfleche] (gguf.east) -- (ll.west);
+\draw[resfleche] (gguf.south) |- (trc.west);
+\draw[resfleche] (trc.east) -- (33,2) |- (tr.west);
+\draw[resfleche] (33,2) |- (dec.west);
+% Les mesures qui relient les paires, à droite.
+\draw[resd] (ref.east) -- ++(5,0) |- (np.east);
+\node[resmesure, anchor=west] at (86,42) {\num{0.504} \EF{quantization step: the rounding}{pas de quantification : l'arrondi}};
+\draw[resd] ([yshift=-1mm]np.east) -- ++(5,0) |- ([yshift=1mm]ll.east);
+\node[resmesure, anchor=west] at (86,30) {\EF{llama.cpp: KL}{llama.cpp : KL} \num{0.0607}};
+\draw[resd] ([yshift=-2mm]np.east) -- ++(22,0) |- (tr.east);
+\node[resmesure, anchor=west, align=left] at (103,16) {C4\EF{:}{ :} KL \num{0.00308} (KV f16)\\\EF{KV f32: at the floor of the format}{KV f32 : au plancher du format}};
+\node[resmesure, anchor=west] at (86,4) {C3\EF{:}{ :} \EF{coded = raw, 0 of 5\,120 steps differ}{codé = brut, 0 pas différent sur \num{5120}}};
+\draw[resd] (dec.south) -- ++(0,-6) -| (gguf.south west);
+\node[resmesure, anchor=north] at (60,-12) {C1\EF{:}{ :} \EF{40 chunks equal to the GGUF bit for bit}{40 tronçons égaux au GGUF au bit près}};
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------------------------------
+% Lemme 4 bis : le tourniquet des tampons d'arrivée, le contre-exemple et la règle corrigée.
+\newcommand{\SchemaResTampons}{%
+\begin{tikzpicture}[x=9mm, y=7mm]
+\foreach \fk in {0,...,11} {
+  \draw[black!50, fill=white] (\fk,0) rectangle ++(1,1);
+  \node[font=\scriptsize\sffamily] at (\fk+0.5,1.35) {\fk};
+}
+\node[font=\scriptsize\sffamily, anchor=east, align=right] at (-0.2,0.5) {\EF{arrival}{tampons}\\\EF{buffers}{d'arrivée}};
+\fill[Signe!35] (0,0) rectangle ++(1,1);
+\node[font=\scriptsize\sffamily, align=center] at (0.5,0.5) {$s{-}12$};
+\foreach \fk in {1,...,11} { \fill[Vram!25] (\fk,0) rectangle ++(1,1); }
+\node[font=\scriptsize\sffamily] at (6.5,0.5) {$s{-}11 \;\dots\; s{-}1$ : \EF{reaped}{récoltées}};
+\node[font=\scriptsize\sffamily, anchor=north west, align=left, text=Signe, text width=44mm] (av) at (0.8,-0.9)
+  {\EF{Before: read $s$ takes buffer $s \bmod 12 = 0$, which the disk is still writing for read $s-12$.}{Avant : la lecture $s$ prend le tampon $s \bmod 12 = 0$, que le disque écrit encore pour la lecture $s-12$.}};
+\node[font=\scriptsize\sffamily, anchor=north west, align=left, text=Mant!75!black, text width=52mm] (ap) at (6.2,-0.9)
+  {\EF{After: the next buffer that holds no read in flight (here 1); such a skip is counted in \texttt{flux\_conflits\_evites}.}{Après : le tampon suivant qui ne porte aucune lecture en vol (ici 1) ; un tel saut est compté dans \texttt{flux\_conflits\_evites}.}};
+\draw[resfleche, Signe] (0.5,-1.6) -- (0.5,-0.05);
+\draw[resfleche, Mant] (6.6,-0.9) -- (6.6,-0.45) -| (1.5,-0.05);
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------------------------------
+% G1 et G2 : la sortie sur erreur, avant et après la ronde.
+\newcommand{\SchemaResSortie}{%
+\begin{tikzpicture}[node distance=4mm]
+\node[resboite, minimum width=28mm] (p1) {\EF{driver (pipes)}{pilote (tuyaux)}};
+\node[resboite, below=of p1, minimum width=28mm] (t1) {troncons};
+\node[resboite, below=of t1, minimum width=28mm, fill=Signe!8] (e1) {\EF{error}{erreur}};
+\node[resboite, below=of e1, minimum width=28mm, fill=Signe!8] (d1) {\texttt{drop(Moteur)}\\\texttt{cuEventDestroy} $\to$ \texttt{nvcuda64.dll}};
+\node[resboite, right=4mm of t1, minimum width=24mm, fill=Signe!8] (n1) {\texttt{nvidia-smi}\\\EF{inherits the pipes}{hérite des tuyaux}};
+\draw[resfleche] (p1) -- (t1); \draw[resfleche] (t1) -- (e1); \draw[resfleche] (e1) -- (d1);
+\draw[resfleche] (t1) -- (n1);
+\node[resfaux, below=1mm of d1, align=center] {\EF{35 min and more, nothing written}{35 min et plus, rien d'écrit}};
+\node[resfaux, below=1mm of n1, align=center, text width=24mm] {\EF{orphan: the driver waits forever}{orphelin : le pilote attend sans fin}};
+\node[font=\sffamily\bfseries\small, above=2mm of p1] {\EF{Before the round}{Avant la ronde}};
+\begin{scope}[xshift=70mm]
+\node[resboite, minimum width=28mm] (p2) {\EF{driver (pipes)}{pilote (tuyaux)}};
+\node[resboite, below=of p2, minimum width=28mm] (t2) {troncons};
+\node[resboite, below=of t2, minimum width=28mm, fill=Mant!10] (e2) {\EF{error written first}{erreur écrite d'abord}\\\texttt{<journal>.erreur.json}};
+\node[resboite, below=of e2, minimum width=28mm, fill=Mant!10] (d2) {\texttt{TerminateProcess}\\\EF{nothing destroyed}{rien n'est détruit}};
+\node[resboite, right=4mm of t2, minimum width=24mm, fill=Mant!10] (n2) {\texttt{nvidia-smi}\\\EF{job: kill on close}{tâche : tuer à la fermeture}};
+\draw[resfleche] (p2) -- (t2); \draw[resfleche] (t2) -- (e2); \draw[resfleche] (e2) -- (d2);
+\draw[resfleche] (t2) -- (n2);
+\node[font=\sffamily\scriptsize, text=Mant!80!black, below=1mm of d2, align=center] {\EF{back in}{retour en} \numrange{1.5}{4.9}\,s};
+\node[font=\sffamily\scriptsize, text=Mant!80!black, below=1mm of n2, align=center, text width=24mm] {\EF{0 orphans, handles not inherited}{0 orphelin, poignées non héritées}};
+\node[font=\sffamily\bfseries\small, above=2mm of p2] {\EF{After the round}{Après la ronde}};
+\end{scope}
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------------------------------
+% La garde de production : le hachage court en parallèle de la copie et du décodage.
+\newcommand{\SchemaResGarde}{%
+\begin{tikzpicture}[x=1mm, y=1mm]
+\node[resboite, fill=Disque!15, text width=19mm] (dk) at (0,10) {\EF{disk}{disque}\\\EF{1 read = 1 chunk}{1 lecture = 1 tronçon}};
+\node[resboite, fill=Ram!15, text width=19mm] (buf) at (28,10) {\EF{pinned arrival buffer $i$}{tampon d'arrivée épinglé $i$}};
+\node[resboite, fill=Pcie!15] (cp) at (56,20) {\EF{copy (DMA)}{copie (DMA)}};
+\node[resboite, fill=Vram!15] (de) at (80,20) {\EF{decode}{décodage}};
+\node[resboite, fill=Calcul!12] (gv) at (101,20) {GEMV};
+\node[resboite, fill=Echelle!15, text width=44mm] (h) at (72,0) {\EF{4 hashing threads}{4 fils de hachage} : \texttt{empreinte64}\\\EF{(64-bit prefix of SHA-256)}{(préfixe de 64 bits de SHA-256)}};
+\node[resboite, fill=Fond] (bar) at (123,10) {\texttt{attendre\_tout}};
+\node[resboite] (tok) at (123,-6) {\EF{token, logits}{jeton, logits}};
+\draw[resfleche] (dk) -- (buf);
+\draw[resfleche] (buf.east) -- (42,10) |- (cp.west);
+\draw[resfleche] (42,10) |- (h.west);
+\draw[resfleche] (cp) -- (de); \draw[resfleche] (de) -- (gv);
+\draw[resfleche] (gv.east) -| (bar.north);
+\draw[resfleche] (h.east) -| ([xshift=-4mm]bar.south);
+\draw[resfleche] ([xshift=4mm]bar.south) -- ([xshift=4mm]tok.north);
+\node[resmesure, anchor=north] at (72,-6.5) {\EF{compared with \texttt{empreinte\_niveau[0]} of the directory}{comparée à \texttt{empreinte\_niveau[0]} du répertoire}};
+\node[resfaux, anchor=north, align=center] at (123,-10.5) {\EF{mismatch:}{différence :}\\\EF{named fatal error}{erreur fatale nommée}};
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------------------------------
+% Les jalons : ce qui est fait, ce qui vient (discussion, travaux futurs).
+\newcommand{\SchemaResJalons}{%
+\begin{tikzpicture}[x=1mm, y=1mm]
+\tikzset{resj/.style={resboite, text width=30mm, minimum height=19mm}}
+\node[resj, fill=Mant!15] (j1) at (0,0) {\textbf{J1}\\\EF{A exact, bounded window: holds (trial, round)}{A exact, fenêtre bornée : tient (épreuve, ronde)}};
+\node[resj, fill=Mant!15] (j1p) at (37,0) {\textbf{J1+}\\\EF{stream prefill kept; prefetch killed; 12 MiB reads open}{flux gardé ; préchargement tué ; lectures de 12\,Mio ouvertes}};
+\node[resj, fill=Echelle!15] (j2) at (74,0) {\textbf{J2}\\\EF{base + complement, format v1.1, gates Q0 to Q2}{base + complément, format v1.1, portes Q0 à Q2}};
+\node[resj, fill=Fond] (j3) at (111,0) {\textbf{J3}\\\EF{unencrypted disk, speculation, Vulkan}{disque non chiffré, spéculation, Vulkan}};
+\draw[resfleche] (j1) -- (j1p); \draw[resfleche] (j1p) -- (j2); \draw[resfleche] (j2) -- (j3);
+\node[resboite, fill=Index!10, text width=30mm] (r) at (0,-26) {\EF{OpenAI-compatible gate for relais}{porte compatible OpenAI pour relais}};
+\node[resboite, fill=Disque!12, text width=30mm] (d) at (37,-26) {\EF{Stone's gesture: \texttt{D:} without BitLocker}{geste de Stone : \texttt{D:} sans BitLocker}};
+\node[resboite, fill=Ram!12, text width=30mm] (g) at (74,-26) {\EF{the weight genome (biomimetics)}{le génome des poids (biomimétisme)}};
+\draw[resfleche, densely dashed] (j1) -- (r);
+\draw[resfleche, densely dashed] (d) -- (j1p);
+\draw[resfleche, densely dashed] (g) -- (j2);
+\end{tikzpicture}}

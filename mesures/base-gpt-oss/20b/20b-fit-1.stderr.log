@@ -1,0 +1,29 @@
+0.00.006.942 I llama_completion: llama backend init
+0.00.200.500 I llama_completion: load the model and apply lora adapter, if any
+0.13.611.251 W load: setting token '<|constrain|>' (200003) attribute to USER_DEFINED (16), old attributes: 8
+0.13.611.669 W load: setting token '<|message|>' (200008) attribute to USER_DEFINED (16), old attributes: 8
+0.13.625.126 W load: setting token '<|channel|>' (200005) attribute to USER_DEFINED (16), old attributes: 8
+0.13.625.143 W load: setting token '<|start|>' (200006) attribute to USER_DEFINED (16), old attributes: 8
+0.13.625.175 W load: special_eog_ids contains both '<|return|>' and '<|call|>', or '<|calls|>' and '<|flush|>' tokens, removing '<|end|>' token from EOG list
+0.13.752.703 W llama_model_loader: tensor overrides to CPU are used with mmap enabled - consider using --load-mode none for better performance
+0.24.844.987 I cmn          init: llama threadpool init, n_threads = 6
+0.27.658.325 I 
+0.27.658.909 I system_info: n_threads = 6 (n_threads_batch = 6) / 16 | CUDA : ARCHS = 500,610,700,750,800,860,890,900 | USE_GRAPHS = 1 | FA_QUANTS = q4_0-q4_0,q8_0-q8_0,f16-f16,bf16-bf16 | CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX_VNNI = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | BMI2 = 1 | LLAMAFILE = 1 | OPENMP = 1 | REPACK = 1 | 
+0.27.658.915 I 
+0.27.666.529 I sampler seed: 4294967295
+0.27.666.560 I sampler params: 
+	repeat_last_n = 64, repeat_penalty = 1.000, frequency_penalty = 0.000, presence_penalty = 0.000
+	dry_multiplier = 0.000, dry_base = 1.750, dry_allowed_length = 2, dry_penalty_last_n = 64
+	top_k = 40, top_p = 0.950, min_p = 0.050, xtc_probability = 0.000, xtc_threshold = 0.100, typical_p = 1.000, top_n_sigma = -1.000, temp = 0.000
+	mirostat = 0, mirostat_lr = 0.100, mirostat_ent = 5.000, adaptive_target = -1.000, adaptive_decay = 0.900
+0.27.666.896 I sampler chain: logits -> logit-bias -> ?penalties -> ?dry -> ?top-n-sigma -> top-k -> ?typical -> top-p -> min-p -> ?xtc -> temp-ext -> greedy 
+0.27.666.902 I generate: n_ctx = 2048, n_batch = 2048, n_predict = 256, n_keep = 0
+0.27.666.903 I 
+0.51.103.934 I common_perf_print:    sampling time =     120.76 ms
+0.51.103.944 I common_perf_print:    samplers time =      51.39 ms /   964 tokens
+0.51.103.947 I common_perf_print:        load time =   14644.58 ms
+0.51.104.302 I common_perf_print: prompt eval time =    9689.99 ms /   708 tokens (   13.69 ms per token,    73.07 tokens per second)
+0.51.104.309 I common_perf_print:        eval time =   13604.80 ms /   255 runs   (   53.35 ms per token,    18.74 tokens per second)
+0.51.104.370 I common_perf_print:       total time =   23445.63 ms /   963 tokens
+0.51.104.372 I common_perf_print: unaccounted time =      30.08 ms /   0.1 %      (total - sampling - prompt eval - eval) / (total)
+0.51.104.378 I common_perf_print:    graphs reused =        253

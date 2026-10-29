@@ -1,0 +1,36 @@
+{
+  "commande": [
+    "~\\dev\\cibles\\troncons-genome-eclaireur\\release\\genome-capture.exe",
+    "capturer",
+    "--gguf",
+    "~/dev/modeles/gguf/gpt-oss-20b-MXFP4.gguf",
+    "--dll",
+    "~/dev/modeles/llama.cpp-b11515/llama.dll",
+    "--vocab",
+    "~/dev/modeles/gguf/gpt-oss-20b-MXFP4.gguf",
+    "--texte",
+    "~/dev/essais/troncons/modeles/donnees/wiki.test.raw",
+    "--kld",
+    "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+    "--de",
+    "0",
+    "--a",
+    "10",
+    "--sortie",
+    "~/dev/essais/troncons/genome/eclaireur/eval",
+    "--fils",
+    "6"
+  ],
+  "couches": 24,
+  "d_modele": 2880,
+  "duree_s": 2523.9822297,
+  "fenetres": [
+    0,
+    10
+  ],
+  "fenetres_du_kld_egales": true,
+  "jetons_du_texte": 287210,
+  "octets_experts_lus": 9728259840,
+  "outil": "genome-capture capturer",
+  "positions": 5110
+}

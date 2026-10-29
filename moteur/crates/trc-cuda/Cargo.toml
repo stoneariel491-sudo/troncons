@@ -1,0 +1,16 @@
+[package]
+name = "trc-cuda"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+description = "L'API du pilote CUDA (nvcuda.dll), enveloppée à la main : contexte, flux, événements, mémoire, copies, modules. Seule crate du moteur qui appelle le pilote (couture C, ARCHITECTURE.md § 5.5)."
+
+# Dépendance : windows-sys 0.61.2 (MIT ou Apache-2.0), couture D (§ 2.4).
+# Elle sert seulement à charger nvcuda.dll (LoadLibraryExW, GetProcAddress) : aucune
+# bibliothèque de CUDA n'est liée à la construction, le pilote suffit à l'exécution (§ 2.2).
+[dependencies]
+windows-sys = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_System_LibraryLoader",
+] }

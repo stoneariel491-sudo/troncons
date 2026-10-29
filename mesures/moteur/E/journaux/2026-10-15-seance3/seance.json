@@ -1,0 +1,391 @@
+{
+  "seance": "2026-10-15-seance3",
+  "debut": "2026-10-15T15:43:38",
+  "batterie_debut": 2,
+  "commit": "a34774f5ea06ed70ea06ad21dad7f70d9c27fbdd",
+  "banc": "~\\dev\\cibles\\troncons-E\\release\\banc-chemin.exe",
+  "banc_sha256": "5cb47c93f07cbc8d35b9852f41e305bd18df12bcde70152ebe0e4c672405e96c",
+  "modele": "~\\dev\\modeles\\gguf\\gpt-oss-20b-MXFP4.gguf",
+  "passes": [
+    {
+      "nom": "a",
+      "commande": [
+        "~\\dev\\cibles\\troncons-E\\release\\banc-chemin.exe",
+        "essai-a",
+        "--journal",
+        "~\\dev\\active\\troncons\\mesures\\moteur\\E\\journaux\\2026-10-15-seance3\\a.json"
+      ],
+      "code": 0,
+      "secondes": 5.439255952835083,
+      "avant": {
+        "heure": "2026-10-15T16:46:47",
+        "carte": "439, 8188, 0, P0, 4, 8, 64, 2685",
+        "batterie": 2,
+        "interdits": []
+      },
+      "apres": {
+        "heure": "2026-10-15T16:46:52",
+        "carte": "439, 8188, 0, P0, 4, 8, 63, 2250",
+        "batterie": 2,
+        "interdits": []
+      }
+    },
+    {
+      "nom": "b-temoin",
+      "commande": [
+        "~\\dev\\cibles\\troncons-E\\release\\banc-chemin.exe",
+        "essai-b",
+        "--journal",
+        "~\\dev\\active\\troncons\\mesures\\moteur\\E\\journaux\\2026-10-15-seance3\\b-temoin.json",
+        "--fichier",
+        "~\\dev\\modeles\\gguf\\gpt-oss-20b-MXFP4.gguf",
+        "--morceaux",
+        "32",
+        "--serie",
+        "8",
+        "--repetitions-dma",
+        "4",
+        "--tours-abba",
+        "1"
+      ],
+      "code": 0,
+      "secondes": 4.865171909332275,
+      "avant": {
+        "heure": "2026-10-15T16:46:54",
+        "carte": "439, 8188, 0, P5, 2, 8, 62, 480",
+        "batterie": 2,
+        "interdits": []
+      },
+      "apres": {
+        "heure": "2026-10-15T16:46:59",
+        "carte": "439, 8188, 18, P0, 4, 8, 63, 2250",
+        "batterie": 2,
+        "interdits": []
+      }
+    },
+    {
+      "nom": "b-casse",
+      "commande": [
+        "~\\dev\\cibles\\troncons-E\\release\\banc-chemin.exe",
+        "essai-b",
+        "--journal",
+        "~\\dev\\active\\troncons\\mesures\\moteur\\E\\journaux\\2026-10-15-seance3\\b-casse.json",
+        "--fichier",
+        "~\\dev\\modeles\\gguf\\gpt-oss-20b-MXFP4.gguf",
+        "--morceaux",
+        "4",
+        "--serie",
+        "8",
+        "--repetitions-dma",
+        "4",
+        "--tours-abba",
+        "1",
+        "--casser"
+      ],
+      "code": 0,
+      "secondes": 2.771672010421753,
+      "avant": {
+        "heure": "2026-10-15T16:47:01",
+        "carte": "439, 8188, 0, P0, 2, 8, 62, 1260",
+        "batterie": 2,
+        "interdits": []
+      },
+      "apres": {
+        "heure": "2026-10-15T16:47:04",
+        "carte": "439, 8188, 0, P0, 4, 8, 63, 2250",
+        "batterie": 2,
+        "interdits": []
+      }
+    },
+    {
+      "nom": "b-A1",
+      "commande": [
+        "~\\dev\\cibles\\troncons-E\\release\\banc-chemin.exe",
+        "essai-b",
+        "--journal",
+        "~\\dev\\active\\troncons\\mesures\\moteur\\E\\journaux\\2026-10-15-seance3\\b-A1.json",
+        "--fichier",
+        "~\\dev\\modeles\\gguf\\gpt-oss-20b-MXFP4.gguf",
+        "--morceaux",
+        "4",
+        "--serie",
+        "128",
+        "--profondeur",
+        "4",
+        "--graine",
+        "20261018",
+        "--repetitions-dma",
+        "16",
+        "--tours-abba",
+        "2"
+      ],
+      "code": 0,
+      "secondes": 3.5801916122436523,
+      "avant": {
+        "heure": "2026-10-15T16:47:05",
+        "carte": "439, 8188, 0, P0, 2, 8, 63, 2250",
+        "batterie": 2,
+        "interdits": []
+      },
+      "apres": {
+        "heure": "2026-10-15T16:47:09",
+        "carte": "439, 8188, 100, P0, 4, 8, 63, 2250",
+        "batterie": 2,
+        "interdits": []
+      }
+    },
+    {
+      "nom": "b-B1",
+      "commande": [
+        "~\\dev\\cibles\\troncons-E\\release\\banc-chemin.exe",
+        "essai-b",
+        "--journal",
+        "~\\dev\\active\\troncons\\mesures\\moteur\\E\\journaux\\2026-10-15-seance3\\b-B1.json",
+        "--fichier",
+        "~\\dev\\modeles\\gguf\\gpt-oss-20b-MXFP4.gguf",
+        "--morceaux",
+        "4",
+        "--serie",
+        "128",
+        "--profondeur",
+        "1",
+        "--graine",
+        "20261019",
+        "--repetitions-dma",
+        "16",
+        "--tours-abba",
+        "2"
+      ],
+      "code": 0,
+      "secondes": 3.773606538772583,
+      "avant": {
+        "heure": "2026-10-15T16:47:10",
+        "carte": "439, 8188, 0, P0, 4, 8, 64, 2685",
+        "batterie": 2,
+        "interdits": []
+      },
+      "apres": {
+        "heure": "2026-10-15T16:47:14",
+        "carte": "439, 8188, 100, P0, 4, 8, 63, 2685",
+        "batterie": 2,
+        "interdits": []
+      }
+    },
+    {
+      "nom": "b-B2",
+      "commande": [
+        "~\\dev\\cibles\\troncons-E\\release\\banc-chemin.exe",
+        "essai-b",
+        "--journal",
+        "~\\dev\\active\\troncons\\mesures\\moteur\\E\\journaux\\2026-10-15-seance3\\b-B2.json",
+        "--fichier",
+        "~\\dev\\modeles\\gguf\\gpt-oss-20b-MXFP4.gguf",
+        "--morceaux",
+        "4",
+        "--serie",
+        "128",
+        "--profondeur",
+        "1",
+        "--graine",
+        "20261020",
+        "--repetitions-dma",
+        "16",
+        "--tours-abba",
+        "2"
+      ],
+      "code": 0,
+      "secondes": 3.879080057144165,
+      "avant": {
+        "heure": "2026-10-15T16:47:16",
+        "carte": "439, 8188, 0, P0, 4, 8, 64, 2685",
+        "batterie": 2,
+        "interdits": []
+      },
+      "apres": {
+        "heure": "2026-10-15T16:47:20",
+        "carte": "439, 8188, 100, P0, 4, 8, 63, 2685",
+        "batterie": 2,
+        "interdits": []
+      }
+    },
+    {
+      "nom": "b-A2",
+      "commande": [
+        "~\\dev\\cibles\\troncons-E\\release\\banc-chemin.exe",
+        "essai-b",
+        "--journal",
+        "~\\dev\\active\\troncons\\mesures\\moteur\\E\\journaux\\2026-10-15-seance3\\b-A2.json",
+        "--fichier",
+        "~\\dev\\modeles\\gguf\\gpt-oss-20b-MXFP4.gguf",
+        "--morceaux",
+        "4",
+        "--serie",
+        "128",
+        "--profondeur",
+        "4",
+        "--graine",
+        "20261021",
+        "--repetitions-dma",
+        "16",
+        "--tours-abba",
+        "2"
+      ],
+      "code": 0,
+      "secondes": 3.513007879257202,
+      "avant": {
+        "heure": "2026-10-15T16:47:21",
+        "carte": "439, 8188, 0, P0, 2, 8, 64, 2685",
+        "batterie": 2,
+        "interdits": []
+      },
+      "apres": {
+        "heure": "2026-10-15T16:47:25",
+        "carte": "439, 8188, 100, P0, 4, 8, 64, 2685",
+        "batterie": 2,
+        "interdits": []
+      }
+    },
+    {
+      "nom": "c-vide",
+      "commande": [
+        "~\\dev\\cibles\\troncons-E\\release\\banc-chemin.exe",
+        "essai-c",
+        "--journal",
+        "~\\dev\\active\\troncons\\mesures\\moteur\\E\\journaux\\2026-10-15-seance3\\c-vide.json",
+        "--variantes",
+        "asynchrone,evenement,sondage,bloquant,boite,boite_sans_vidage",
+        "--jetons",
+        "30",
+        "--chauffe",
+        "3",
+        "--tours-abba",
+        "2"
+      ],
+      "code": 0,
+      "secondes": 2.8012208938598633,
+      "avant": {
+        "heure": "2026-10-15T16:47:27",
+        "carte": "439, 8188, 0, P0, 4, 8, 64, 2685",
+        "batterie": 2,
+        "interdits": []
+      },
+      "apres": {
+        "heure": "2026-10-15T16:47:29",
+        "carte": "439, 8188, 21, P0, 4, 8, 64, 2250",
+        "batterie": 2,
+        "interdits": []
+      }
+    },
+    {
+      "nom": "c-charge",
+      "commande": [
+        "~\\dev\\cibles\\troncons-E\\release\\banc-chemin.exe",
+        "essai-c",
+        "--journal",
+        "~\\dev\\active\\troncons\\mesures\\moteur\\E\\journaux\\2026-10-15-seance3\\c-charge.json",
+        "--variantes",
+        "asynchrone,evenement,sondage,bloquant,boite,boite_sans_vidage",
+        "--jetons",
+        "30",
+        "--chauffe",
+        "3",
+        "--tours-abba",
+        "2",
+        "--ns-routeur",
+        "50000",
+        "--ns-expert",
+        "250000"
+      ],
+      "code": 0,
+      "secondes": 11.527245283126831,
+      "avant": {
+        "heure": "2026-10-15T16:47:31",
+        "carte": "439, 8188, 0, P5, 2, 8, 63, 930",
+        "batterie": 2,
+        "interdits": []
+      },
+      "apres": {
+        "heure": "2026-10-15T16:47:42",
+        "carte": "439, 8188, 99, P0, 4, 8, 65, 2685",
+        "batterie": 2,
+        "interdits": []
+      }
+    },
+    {
+      "nom": "c-charge-ctx-bloquant",
+      "commande": [
+        "~\\dev\\cibles\\troncons-E\\release\\banc-chemin.exe",
+        "essai-c",
+        "--journal",
+        "~\\dev\\active\\troncons\\mesures\\moteur\\E\\journaux\\2026-10-15-seance3\\c-charge-ctx-bloquant.json",
+        "--variantes",
+        "asynchrone,evenement,boite",
+        "--jetons",
+        "30",
+        "--chauffe",
+        "3",
+        "--tours-abba",
+        "2",
+        "--ns-routeur",
+        "50000",
+        "--ns-expert",
+        "250000",
+        "--attente",
+        "bloquante"
+      ],
+      "code": 0,
+      "secondes": 6.632069110870361,
+      "avant": {
+        "heure": "2026-10-15T16:47:44",
+        "carte": "439, 8188, 0, P0, 4, 8, 65, 2685",
+        "batterie": 2,
+        "interdits": []
+      },
+      "apres": {
+        "heure": "2026-10-15T16:47:50",
+        "carte": "439, 8188, 90, P0, 4, 8, 66, 2685",
+        "batterie": 2,
+        "interdits": []
+      }
+    },
+    {
+      "nom": "c-casse",
+      "commande": [
+        "~\\dev\\cibles\\troncons-E\\release\\banc-chemin.exe",
+        "essai-c",
+        "--journal",
+        "~\\dev\\active\\troncons\\mesures\\moteur\\E\\journaux\\2026-10-15-seance3\\c-casse.json",
+        "--variantes",
+        "asynchrone,sans_synchro",
+        "--jetons",
+        "10",
+        "--chauffe",
+        "1",
+        "--tours-abba",
+        "1",
+        "--ns-routeur",
+        "50000",
+        "--ns-expert",
+        "250000"
+      ],
+      "code": 0,
+      "secondes": 2.3565430641174316,
+      "avant": {
+        "heure": "2026-10-15T16:47:52",
+        "carte": "439, 8188, 0, P0, 2, 8, 65, 2685",
+        "batterie": 2,
+        "interdits": []
+      },
+      "apres": {
+        "heure": "2026-10-15T16:47:54",
+        "carte": "439, 8188, 100, P0, 4, 8, 64, 2685",
+        "batterie": 2,
+        "interdits": []
+      }
+    }
+  ],
+  "avertissements": [],
+  "carte_debut": "439, 8188, 0, P0, 4, 8, 64, 2685",
+  "fin": "2026-10-15T16:47:56",
+  "batterie_fin": 2
+}

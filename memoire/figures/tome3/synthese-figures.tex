@@ -1,0 +1,339 @@
+% Figures du chapitre 7 du Tome III (la synthèse de la ronde : genome/05-synthese.md,
+% genome/construction-synthese-pour-le-memoire.md § 4, figures F1, F2, F3, F7). Gardé par
+% \ifdefined\GrapheSynthFrontiere. Données : \Racine/figures/tome3/donnees/synthese-*.csv, écrites par
+% memoire/outils/tome3_synthese.py depuis mesures/genome/construction/synthese/k10/ (passe --k10 de
+% frontiere.py, réserve R4), mesures/genome/etat-de-l-art/journaux/ et mesures/genome/genome/csv/.
+% Chaque nombre d'une légende ou d'une annotation se lit dans synthese-nombres.csv par \synthNombre{cle}.
+% Styles préfixés « synth ». Pour chaque figure <Nom> : \Graphe<Nom> (le dessin) et, par la convention du
+% Tome III (legende-tome3.tex), \Titre<Nom>, \Legende<Nom>, \Source<Nom> ; le chapitre écrit
+% \LegendeFigure{<Nom>}.
+%
+% Second flux (2026-10-27) : couleurs du dictionnaire (palette-tome3.tex) ; G1 du juge ronde (les classes de
+% III-7.1 suivent la règle déclarée, appliquée par le script) ; G10 (III-7.1 : la frontière seule, le
+% protocole par la forme ; l'axe sans perte part en III-8.5, lot construction) et G5 (III-7.4 : étiquettes
+% directes, S* en violet, légende supprimée) du juge de design ; mineurs M5, M7 à M11, D1, D2, D4, D6
+% (juge ronde), D8, D9, D28 (juge de design).
+
+\ifdefined\GrapheSynthFrontiere\else
+\input{\Racine/figures/tome3/legende-tome3}
+\newcommand{\SynthDonnees}{\Racine/figures/tome3/donnees}
+
+% --- Les nombres des légendes, lus dans le CSV au chargement -----------------------------------------
+\pgfplotstableread[col sep=comma]{\SynthDonnees/synthese-nombres.csv}\synthTableNombres
+\pgfplotstableforeachcolumnelement{cle}\of\synthTableNombres\as\synthCle{%
+  \pgfplotstablegetelem{\pgfplotstablerow}{valeur}\of\synthTableNombres
+  \expandafter\xdef\csname synthN@\synthCle\endcsname{\pgfplotsretval}}
+\newcommand{\synthVal}[1]{\ifcsname synthN@#1\endcsname\csname synthN@#1\endcsname\else
+  \PackageError{synthese-figures}{nombre inconnu : #1}{}0\fi}
+\NewDocumentCommand{\synthNombre}{O{}m}{\pgfmathprintnumber[#1]{\synthVal{#2}}}
+\NewDocumentCommand{\synthEntier}{m}{\pgfmathprintnumber[fixed, precision=0]{\synthVal{#1}}}
+\NewDocumentCommand{\synthPct}{O{0}m}{\pgfmathparse{100*\synthVal{#2}}\pgfmathprintnumber[fixed, fixed zerofill, precision=#1]{\pgfmathresult}\EF{\%}{\,\%}}
+
+% --- Styles ------------------------------------------------------------------------------------------
+% III-7.1 et III-7.2 : le protocole par la forme (P1 cercle, P2 carré, P3 triangle), le verdict par le
+% remplissage (plein : meilleur ; demi : égal ; creux : tombe), la couleur par la variante du dictionnaire
+% (synonyme λ = 0, S*, les bases ; prédictif-élagage en encre). JUGEMENT-figures-design.md § 2.1 et G10.
+\pgfplotsset{
+  % garde seulement les lignes dont la colonne #1 vaut #2 (chaînes comparées telles quelles)
+  synth si/.style 2 args={x filter/.append code={%
+    \edef\synthTmpA{\thisrow{#1}}\edef\synthTmpB{#2}%
+    \ifx\synthTmpA\synthTmpB\else\def\pgfmathresult{}\fi}},
+  synth gagne/.style={only marks, mark options={solid, fill=#1, draw=#1!70!black, line width=0.6pt}},
+  synth egal/.style={only marks, mark options={solid, fill=#1!30, draw=#1!85!black, line width=0.8pt}},
+  synth tombe/.style={only marks, mark options={solid, fill=white, draw=#1, line width=0.8pt}},
+  % les bases : le gris de la frontière, plein mais clair, pour ne pas se lire « meilleur »
+  synth ref/.style={only marks, mark options={solid, fill=CouleurFrontiere,
+    draw=CouleurFrontiereMarque, line width=0.6pt}},
+  % une base dans la bande sans KL : un trait vertical, qui reste visible sous un losange voisin
+  synth ref trait/.style={only marks, mark=|, mark size=5pt,
+    mark options={solid, draw=CouleurFrontiereMarque, line width=1.3pt}},
+  synth P1/.style={mark=*, mark size=2.5pt},
+  synth P2/.style={mark=square*, mark size=2.3pt},
+  synth P3/.style={mark=triangle*, mark size=3.0pt},
+  synth sans kl/.style={mark=diamond*, mark size=2.8pt},
+}
+\tikzset{
+  synth promesse/.style={-{Stealth[length=1.7mm]}, black!40, densely dashed, line width=0.5pt},
+  % une étiquette qui ne laisse rien passer sous elle (un trait la traverserait sinon)
+  synth opaque/.style={t3 etiquette, fill opacity=1},
+}
+
+% =====================================================================================================
+% III-7.1. La frontière commune : bits par poids contre rapport de KL, protocole par la forme, verdict
+% par le remplissage ; l'encart agrandit la frontière à 2,64 bits (les trois bases, S*, λ = 0) ; en bas,
+% les points sans KL sur l'axe des bits seul. L'axe sans perte n'est plus ici (G10) : III-8.5.
+\newcommand{\SynthPoint}[4]{% #1 protocole (colonne du CSV), #2 forme (P1, P2, P3), #3 classe, #4 couleur
+\addplot[synth #2, synth #3=#4, forget plot, synth si={protocole}{#1}, synth si={classe}{#3}]
+  table[x=bits, y=rapport] {\SynthDonnees/synthese-frontiere-kl.csv};}
+% Tous les points jugés à la KL : chaque protocole, chaque classe qu'il porte (le script vérifie qu'aucune
+% autre combinaison n'existe, sans quoi un point disparaîtrait en silence).
+\newcommand{\SynthTousPoints}{%
+\SynthPoint{P1}{P1}{ref}{}\SynthPoint{P2-10}{P2}{ref}{}\SynthPoint{P3}{P3}{ref}{}
+\SynthPoint{P3}{P3}{tombe}{Encre}\SynthPoint{P3}{P3}{egal}{Encre}
+\SynthPoint{P1}{P1}{gagne}{CouleurLambdaZero}\SynthPoint{P2-10}{P2}{egal}{CouleurSetoile}}
+\newcommand{\SynthPromesse}[1]{%
+\draw[synth promesse] (axis cs:\synthVal{#1-bits},1) -- (axis cs:\synthVal{#1-bits},\synthVal{#1-rapport});
+\addplot[forget plot, only marks, mark=|, mark size=3pt, mark options={black!50, line width=0.7pt}]
+  coordinates {(\synthVal{#1-bits},1)};}
+\newcommand{\SynthEtiq}[3]{% #1 clé, #2 ancre, #3 texte
+\node[t3 etiquette, anchor=#2] at (axis cs:\synthVal{#1-bits},\synthVal{#1-rapport}) {#3};}
+% Une étiquette de la bande sans KL : #1 clé, #2 hauteur (0 à 1), #3 ancre, #4 texte ; un trait de rappel
+% va du losange (hauteur 0,5) au bord de l'étiquette.
+\newcommand{\SynthSansKL}[4]{%
+\draw[t3 rappel] (axis cs:\synthVal{#1-bits},0.5) -- (axis cs:\synthVal{#1-bits},#2);
+\node[t3 etiquette, anchor=#3, inner sep=1.5pt] at (axis cs:\synthVal{#1-bits},#2) {#4};}
+\newcommand{\GrapheSynthFrontiere}{%
+\begin{tikzpicture}
+% --- Le plan jugé à la KL ---------------------------------------------------------------------------
+\begin{axis}[t3 graphe, t3 points, name=synthplan, scale only axis, width=0.86\linewidth, height=6.9cm,
+  ymode=log, xmin=1.6, xmax=3.4, ymin=0.6, ymax=6.5, minor tick length=0pt,
+  ytick={0.7,1,1.5,2,3,5}, yticklabels={\EF{0.7}{0{,}7},1,\EF{1.5}{1{,}5},2,3,5},
+  xtick={1.6,1.8,...,3.4}, t3 decimales x=1,
+  ylabel={\EF{KL / KL of the same protocol's base}{KL / KL de la base du même protocole}},
+  xlabel={\EF{bits per weight read}{bits par poids lus}}, clip=false,
+  legend style={at={(0.5,1.015)}, anchor=south, draw=none, fill=none, column sep=7pt}, legend columns=6]
+\fill[t3 gagne] (axis cs:1.6,0.6) rectangle (axis cs:3.4,1);
+\draw[t3 seuil] (axis cs:1.6,1) -- (axis cs:3.4,1);
+\node[t3 etiquette, anchor=south west, text=Mant!55!black, fill=CouleurGagne] at (axis cs:1.61,0.61)
+  {\EF{better than its base in KL}{mieux que sa base en KL}};
+% Les promesses des perdants : le rapport 1 qu'annonçait la métrique intermédiaire.
+\SynthPromesse{p3-kappa}\SynthPromesse{p3-hebbdlc}\SynthPromesse{p3-hebbe}
+\SynthPromesse{p3-hebbelc}\SynthPromesse{p3-partse}\SynthPromesse{p3-elag}
+\SynthTousPoints
+% La légende, en une ligne : la forme dit le protocole, le remplissage le verdict.
+\addlegendimage{synth P1, only marks, mark options={fill=black!45, draw=black!45}}\addlegendentry{P1}
+\addlegendimage{synth P2, only marks, mark options={fill=black!45, draw=black!45}}\addlegendentry{P2-10}
+\addlegendimage{synth P3, only marks, mark options={fill=black!45, draw=black!45}}\addlegendentry{P3}
+\addlegendimage{only marks, mark=*, mark size=2.4pt, mark options={fill=Encre, draw=Encre}}
+\addlegendentry{\EF{better}{meilleur}}
+\addlegendimage{only marks, mark=*, mark size=2.4pt, mark options={fill=Encre!30, draw=Encre, line width=0.8pt}}
+\addlegendentry{\EF{equal}{égal}}
+\addlegendimage{only marks, mark=*, mark size=2.4pt, mark options={fill=white, draw=Encre, line width=0.8pt}}
+\addlegendentry{\EF{worse}{pire}}
+% La frontière à 2,64 bits : agrandie dans l'encart. Troisième passe (G10 du juge de design, N1 du juge
+% ronde) : le trait de rappel part du bord droit de la loupe, sous l'étiquette « partitions κ, par tenseur »,
+% et rejoint le bas de l'encart à droite de cette étiquette ; il ne traverse plus aucun texte. L'étiquette de
+% la loupe descend sous le point de départ du trait. La clé dit « pire », comme la légende (DN8).
+\draw[t3 rappel, rounded corners=1.5pt] (axis cs:2.630,0.685) rectangle (axis cs:2.658,1.09);
+\coordinate (synthloupe) at (axis cs:2.658,0.87);
+\node[t3 etiquette, anchor=west, text=black!60] at (axis cs:2.664,0.745)
+  {\EF{bases, $S^{*}$, $\lambda = 0$: inset}{bases, $S^{*}$, $\lambda = 0$ : encart}};
+% Les étiquettes des perdants et des égaux.
+\SynthEtiq{p3-kappat}{west}{\kern3pt\relax \EF{$\kappa$ partitions, per tensor}{partitions $\kappa$, par tenseur}}
+\SynthEtiq{p3-kappa}{west}{\kern3pt\relax \EF{$\kappa$ partitions, mean}{partitions $\kappa$, moyenne}}
+\SynthEtiq{p3-hebbdlc}{east}{\EF{Hebbian $(\delta, \ell, c)$}{hebbien $(\delta, \ell, c)$}\kern3pt\relax }
+\SynthEtiq{p3-hebbe}{west}{\kern3pt\relax \EF{Hebbian by $e$}{hebbien par $e$}}
+\SynthEtiq{p3-hebbelc}{west}{\kern3pt\relax \EF{Hebbian $(e, \ell, c)$}{hebbien $(e, \ell, c)$}}
+\SynthEtiq{p3-partse}{west}{\kern3pt\relax \EF{partitions by $e$}{partitions par $e$}}
+\SynthEtiq{p3-elag}{west}{\kern3pt\relax \EF{pruning $(e, q)$}{élagage $(e, q)$}}
+\end{axis}
+% --- L'encart : la frontière à 2,64 bits, agrandie ----------------------------------------------------
+\begin{axis}[t3 encart, t3 points, name=synthencart, at={(synthplan.north east)}, anchor=north east,
+  xshift=-0.2cm, yshift=-0.75cm, scale only axis, width=4.6cm, height=2.9cm,
+  axis background/.style={fill=white}, ymode=log, xmin=2.6345, xmax=2.6525, ymin=0.68, ymax=1.12,
+  minor tick length=0pt, xtick={2.636,2.640,2.644,2.648,2.652}, t3 decimales x=3,
+  ytick={0.7,0.8,0.9,1}, yticklabels={\EF{0.7}{0{,}7},\EF{0.8}{0{,}8},\EF{0.9}{0{,}9},1}, clip=true,
+  title={\EF{inset: where the bases and $S^{*}$ sit}{encart : où sont les bases et $S^{*}$}}]
+\fill[t3 gagne] (axis cs:2.6345,0.68) rectangle (axis cs:2.6525,1);
+\draw[t3 seuil] (axis cs:2.6345,1) -- (axis cs:2.6525,1);
+\SynthTousPoints
+\node[t3 etiquette, anchor=north] at (axis cs:\synthVal{p1-base-bits},0.985) [yshift=-1pt] {\EF{base P1}{base P1}};
+\node[t3 etiquette, anchor=north] at (axis cs:\synthVal{p3-base-bits},0.985) [yshift=-1pt]
+  {\EF{bases P2-10, P3}{bases P2-10, P3}};
+\node[t3 etiquette, anchor=south, text=CouleurSetoile!70!black] at (axis cs:\synthVal{p2-sstar-bits},\synthVal{p2-sstar-rapport}) [yshift=2.5pt]
+  {$S^{*}$ $\times\synthNombre[fixed, precision=3]{p2-sstar-rapport}$};
+\node[t3 etiquette, anchor=east, text=CouleurLambdaZero!70!black] at (axis cs:\synthVal{p1-syn-bits},\synthVal{p1-syn-rapport}) [xshift=-3.5pt]
+  {\EF{synonym}{synonyme} $\lambda = 0$ $\times\synthNombre[fixed, precision=3]{p1-syn-rapport}$};
+\end{axis}
+\draw[t3 rappel] (synthloupe) -- ($(synthencart.south west)!0.72!(synthencart.south east)$);
+% --- La bande des points sans KL, sous l'axe des bits -------------------------------------------------
+\begin{axis}[at={(synthplan.south west)}, anchor=north west, yshift=-1.25cm, scale only axis,
+  width=0.86\linewidth, height=1.55cm, xmin=1.6, xmax=3.4, ymin=0, ymax=1, axis lines=none, clip=false]
+\draw[black!30, line width=0.5pt] (axis cs:2.25,0.5) -- (axis cs:3.4,0.5);
+\node[t3 note, anchor=west, text width=3.0cm] at (axis cs:1.6,0.5)
+  {\EF{without KL, on the bit axis only (judged at equal weight or expert error)}{sans KL, sur l'axe des bits seul (jugés à erreur de poids ou d'expert égale)}};
+\addplot[synth sans kl, synth gagne=CouleurBrin, synth si={cle}{s-brin}]
+  table[x=bits, y expr=0.5] {\SynthDonnees/synthese-frontiere-sans-kl.csv};
+\addplot[synth sans kl, synth gagne=CouleurSetoile, synth si={cle}{s-sstar}]
+  table[x=bits, y expr=0.5] {\SynthDonnees/synthese-frontiere-sans-kl.csv};
+\addplot[synth sans kl, synth gagne=CouleurSynonyme, synth si={cle}{s-lam1}]
+  table[x=bits, y expr=0.5] {\SynthDonnees/synthese-frontiere-sans-kl.csv};
+\addplot[synth sans kl, synth tombe=Encre, synth si={classe}{tombe}]
+  table[x=bits, y expr=0.5] {\SynthDonnees/synthese-frontiere-sans-kl.csv};
+\addplot[synth ref trait, synth si={classe}{ref}]
+  table[x=bits, y expr=0.5] {\SynthDonnees/synthese-frontiere-sans-kl.csv};
+\SynthSansKL{s-brin}{0.80}{south east}{\EF{strand (W)}{brin (W)}}
+\SynthSansKL{s-sstar}{0.20}{north east}{$S^{*}$ \EF{(output)}{(sortie)}}
+\SynthSansKL{s-lam1}{0.80}{south east}{$\lambda = 1$}
+\SynthSansKL{s-baselam1}{0.80}{south west}{\EF{its base}{sa base}}
+\SynthSansKL{s-d2b}{0.20}{north west}{D2b}
+\SynthSansKL{s-motifs}{0.80}{south}{\EF{motifs}{motifs}}
+\SynthSansKL{s-graine}{0.20}{north}{\EF{seed}{graine}}
+\end{axis}
+\end{tikzpicture}}
+\Titre{SynthFrontiere}{The common frontier of the round}{La frontière commune de la ronde}
+\Legende{SynthFrontiere}{\mes\,\calc}
+  {Judged by the KL on text, a single mechanism of the round passes under its base: the synonymous mutation $\lambda = 0$.}
+  {Jugé par la KL sur le texte, un seul mécanisme de la ronde passe sous sa base : la mutation synonyme $\lambda = 0$.}
+  {Each mechanism is placed by its bits per weight and by its KL as a ratio to the base of its own protocol (the protocols differ in substituted experts and windows; an absolute KL from one does not compare with another). Shape gives the protocol (P1: scout, 32 experts; P2-10: genome, 8 experts, 10 windows; P3: predictive-pruning, 12 tensors), colour the variant (green: synonym $\lambda = 0$; violet: $S^{*}$; grey: the bases; ink: predictive-pruning), filling the verdict of the declared rule, applied by the script to the paired difference $\bar d \pm \sigma$ against the base: better if $\bar d + 2\sigma < 0$, equal if $|\bar d| \le 2\sigma$, worse otherwise. The synonymous mutation $\lambda = 0$ is better ($\times\synthNombre[fixed, precision=2]{syn-rapport}$; $\bar d = \synthNombre[fixed, precision=4]{syn-apparie} \pm \synthNombre[fixed, precision=4]{syn-apparie-sigma}$, $\synthNombre[fixed, precision=2]{syn-apparie-z}\,\sigma$), at $+\synthNombre[fixed, precision=3]{syn-ecart-bits}$ bit. The $\kappa$ partitions per tensor give a KL equal by the rule ($\times\synthNombre[fixed, precision=3]{p3-kappat-rapport}$; $+\synthNombre[fixed, precision=4]{kappa-t-apparie} \pm \synthNombre[fixed, precision=4]{kappa-t-apparie-sigma}$, $+\synthNombre[fixed, precision=2]{kappa-t-apparie-z}\,\sigma$) for $\synthNombre[fixed, precision=3]{kappa-t-part-bits}\times$ the bits: the \texttt{verdict} column of the source calls them a win, the rule calls them equal, and the figure follows the rule. Two losers have no paired difference (partitions by $e$, pruning $(e, q)$): their verdict is the source's, from the ratio ($\times\synthNombre[fixed, precision=2]{p3-partse-rapport}$ and $\times\synthNombre[fixed, precision=2]{p3-elag-rapport}$). The dashed arrows go from each loser's \emph{promise} (the ratio 1 that its intermediate metric announced, measured or only predicted) to the KL it actually got. $S^{*}$ is drawn from the 10-window pass K10 ($\times\synthNombre[fixed, precision=3]{sstar-rapport}$, paired $+\synthNombre[fixed, precision=4]{sstar-apparie} \pm \synthNombre[fixed, precision=4]{sstar-apparie-sigma}$), not from the 3-window pass (reserve R4); it hides under the bases, which the inset pulls apart. Below, diamonds: the \synthEntier{points-sans-kl} points without KL, on the bit axis only, filled if they won at their own metric (weight or expert output error), hollow if they fell there (the grey bar: the base of $\lambda = 1$); $\lambda = 1$ is judged there under protocol P1-outputs (\synthEntier{lam1-experts} of the 32 experts of P1, its own base at $\synthNombre[fixed, precision=4]{lam1-base-bits}$ bits); its KL measured later on 768 experts is another protocol, not drawn here (reserve R3). What the figure does not show: the lossless axis (KL $= 0$: frontier $\synthNombre[fixed, precision=4]{sans-perte}$, zero codon $\synthNombre[fixed, precision=4]{codon}$, column context $\synthNombre[fixed, precision=4]{colonne}$, duplication D1 $\synthNombre[fixed, precision=4]{d1}$, which falls), drawn tensor by tensor in \cref{t3cod:ch}; nor the bit estimators, which differ between protocols (real codec, $H_0$ of symbols, full strand accounting: column \texttt{estimateur\_bits} of the source).}
+  {Chaque mécanisme se place par ses bits par poids et par sa KL en rapport à la base de son propre protocole (les protocoles diffèrent par les experts substitués et les fenêtres ; une KL absolue de l'un ne se compare pas à celle d'un autre). La forme dit le protocole (P1 : éclaireur, 32 experts ; P2-10 : génome, 8 experts, 10 fenêtres ; P3 : prédictif-élagage, 12 tenseurs), la couleur la variante (vert : synonyme $\lambda = 0$ ; violet : $S^{*}$ ; gris : les bases ; encre : prédictif-élagage), le remplissage le verdict de la règle déclarée, appliquée par le script à la différence appariée $\bar d \pm \sigma$ contre la base : meilleur si $\bar d + 2\sigma < 0$, égal si $|\bar d| \le 2\sigma$, pire sinon. La mutation synonyme $\lambda = 0$ est meilleure ($\times\synthNombre[fixed, precision=2]{syn-rapport}$ ; $\bar d = \synthNombre[fixed, precision=4]{syn-apparie} \pm \synthNombre[fixed, precision=4]{syn-apparie-sigma}$, $\synthNombre[fixed, precision=2]{syn-apparie-z}\,\sigma$), à $+\synthNombre[fixed, precision=3]{syn-ecart-bits}$ bit. Les partitions par $\kappa$ tenseur par tenseur rendent une KL égale par la règle ($\times\synthNombre[fixed, precision=3]{p3-kappat-rapport}$ ; $+\synthNombre[fixed, precision=4]{kappa-t-apparie} \pm \synthNombre[fixed, precision=4]{kappa-t-apparie-sigma}$, $+\synthNombre[fixed, precision=2]{kappa-t-apparie-z}\,\sigma$) pour $\synthNombre[fixed, precision=3]{kappa-t-part-bits}\times$ les bits : la colonne \texttt{verdict} de la source les dit gagnantes, la règle les dit égales, et la figure suit la règle. Deux perdants n'ont pas de différence appariée (partitions par $e$, élagage $(e, q)$) : leur verdict est celui de la source, tiré du rapport ($\times\synthNombre[fixed, precision=2]{p3-partse-rapport}$ et $\times\synthNombre[fixed, precision=2]{p3-elag-rapport}$). Les flèches en tirets vont de la \emph{promesse} de chaque perdant (le rapport 1 qu'annonçait sa métrique intermédiaire, mesurée ou seulement prédite) à la KL qu'il a rendue. $S^{*}$ est tiré de la passe K10 à 10 fenêtres ($\times\synthNombre[fixed, precision=3]{sstar-rapport}$, appariée $+\synthNombre[fixed, precision=4]{sstar-apparie} \pm \synthNombre[fixed, precision=4]{sstar-apparie-sigma}$), pas de la passe à 3 fenêtres (réserve R4) ; il se cache sous les bases, que l'encart sépare. En bas, losanges : les \synthEntier{points-sans-kl} points sans KL, sur l'axe des bits seul, pleins s'ils gagnaient à leur propre métrique (erreur de poids ou de sortie d'expert), creux s'ils y tombaient (le trait gris : la base de $\lambda = 1$) ; $\lambda = 1$ y est jugé au protocole P1-sorties (\synthEntier{lam1-experts} des 32 experts de P1, sa propre base à $\synthNombre[fixed, precision=4]{lam1-base-bits}$ bits) ; sa KL mesurée plus tard à 768 experts est un autre protocole, non tracé ici (réserve R3). Ce que la figure ne montre pas : l'axe sans perte (KL $= 0$ : frontière $\synthNombre[fixed, precision=4]{sans-perte}$, codon du zéro $\synthNombre[fixed, precision=4]{codon}$, contexte de colonne $\synthNombre[fixed, precision=4]{colonne}$, duplication D1 $\synthNombre[fixed, precision=4]{d1}$, qui tombe), tracé tenseur par tenseur au \cref{t3cod:ch} ; ni les estimateurs de bits, qui diffèrent d'un protocole à l'autre (codec réel, $H_0$ des symboles, comptabilité complète du brin : colonne \texttt{estimateur\_bits} de la source).}
+\Source{SynthFrontiere}{\fichier{mesures/genome/construction/synthese/k10/frontiere.csv} (\fichier{outils/genome/synthese/frontiere.py}~\texttt{-{}-k10}), \fichier{mesures/genome/etat-de-l-art/passes/synonyme-lam1-damp1-e0_8_16_24.json}\Pv{} \EF{script}{script} \fichier{memoire/outils/tome3_synthese.py}.}
+
+% =====================================================================================================
+% III-7.2. L'erreur d'expert ne prédit pas la KL (R4 : le point de S* vient de K10).
+\newcommand{\SynthEK}[3]{% #1 clé, #2 ancre, #3 texte
+\node[t3 etiquette, anchor=#2] at (axis cs:\synthVal{ek-#1-x},\synthVal{ek-#1-y}) {#3};}
+\newcommand{\GrapheSynthErreurKL}{%
+\begin{tikzpicture}
+\begin{axis}[t3 graphe, t3 points, width=0.86\linewidth, height=8.4cm, xmode=log, ymode=log,
+  xmin=0.2, xmax=6, ymin=0.6, ymax=6.5, minor tick length=0pt,
+  xtick={0.25,0.5,1,2,4}, xticklabels={\EF{0.25}{0{,}25},\EF{0.5}{0{,}5},1,2,4},
+  ytick={0.7,1,1.5,2,3,5}, yticklabels={\EF{0.7}{0{,}7},1,\EF{1.5}{1{,}5},2,3,5},
+  xlabel={\EF{expert output error / base (evaluation inputs)}{erreur de sortie d'expert / base (entrées d'évaluation)}},
+  ylabel={\EF{KL / KL of the base (same protocol)}{KL / KL de la base (même protocole)}}, clip=false]
+\fill[t3 gagne] (axis cs:0.2,0.6) rectangle (axis cs:6,1);
+% La bande d'erreur d'expert (troisième passe, GD1 et DN11 du juge de design) : un contour tireté d'encre, sans
+% aplat ; le bleu n'y désignait rien, et son aplat se confondait en gris avec la zone gagnante.
+\draw[Encre!45, densely dashed, line width=0.6pt] (axis cs:\synthVal{bande-x-min},0.6) -- (axis cs:\synthVal{bande-x-min},6.5)
+  (axis cs:\synthVal{bande-x-max},0.6) -- (axis cs:\synthVal{bande-x-max},6.5);
+\draw[t3 seuil] (axis cs:0.2,1) -- (axis cs:6,1);
+\draw[black!35, line width=0.5pt] (axis cs:1,0.6) -- (axis cs:1,6.5);
+\node[t3 etiquette, anchor=south east, text=Mant!55!black, fill=CouleurGagne] at (axis cs:5.9,0.61)
+  {\EF{better in KL}{meilleur en KL}};
+\node[t3 etiquette, anchor=south, text=black!65, align=center] at (axis cs:0.87,6.5) [yshift=1pt]
+  {\EF{same band of}{même bande}\\\EF{expert error}{d'erreur d'expert}};
+\addplot[black!40, dashed, line width=0.6pt, domain=0.6:6, samples=2] {x};
+\node[t3 etiquette, anchor=south, rotate=42, text=black!55] at (axis cs:0.68,0.68) {$y = x$};
+% S* à 3 fenêtres : barré (05 § 2), montré comme tel ; la flèche va vers le point de K10.
+\draw[-{Stealth[length=2mm]}, black!45, line width=0.6pt, densely dashed, shorten <=3pt, shorten >=3pt]
+  (axis cs:\synthVal{ek-sstar3-x},\synthVal{ek-sstar3-y}) -- (axis cs:\synthVal{ek-sstar10-x},\synthVal{ek-sstar10-y});
+\addplot[only marks, synth P2, mark options={solid, fill=white, draw=black!40, line width=0.6pt}]
+  coordinates {(\synthVal{ek-sstar3-x},\synthVal{ek-sstar3-y})};
+\SynthEK{sstar3}{east}{\textcolor{black!50}{\barre{$S^{*}$, 3 \EF{windows}{fenêtres}}}\kern3pt\relax }
+\addplot[synth P1, synth gagne=CouleurLambdaZero, synth si={cle}{syn}] table[x=x, y=y] {\SynthDonnees/synthese-erreur-kl.csv};
+\addplot[synth P2, synth egal=CouleurSetoile, synth si={cle}{sstar10}] table[x=x, y=y] {\SynthDonnees/synthese-erreur-kl.csv};
+\addplot[synth P3, synth tombe=Encre, synth si={protocole}{P3}, synth si={classe}{tombe}]
+  table[x=x, y=y] {\SynthDonnees/synthese-erreur-kl.csv};
+\SynthEK{syn}{south west}{\kern-4pt\EF{synonym}{synonyme} $\lambda = 0$ (P1)}
+\SynthEK{sstar10}{north east}{$S^{*}$, 10 \EF{windows}{fenêtres} (P2-10)\kern2pt\relax }
+\SynthEK{kappa}{west}{\kern5pt\relax \EF{$\kappa$ partitions, mean}{partitions $\kappa$, moyenne}}
+\node[synth opaque, anchor=south] at (axis cs:\synthVal{ek-hebbe-x},\synthVal{ek-hebbe-y}) [yshift=4pt]
+  {\EF{Hebbian by $e$}{hebbien par $e$}};
+\SynthEK{hebbelc}{west}{\kern4pt\relax \EF{Hebbian $(e, \ell, c)$}{hebbien $(e, \ell, c)$}}
+\SynthEK{partse}{east}{\EF{partitions by $e$}{partitions par $e$}\kern7pt\relax }
+\end{axis}
+\end{tikzpicture}}
+\Titre{SynthErreurKL}{The expert's output error does not predict the KL}{L'erreur de sortie d'un expert ne prédit pas la KL}
+\Legende{SynthErreurKL}{\mes}
+  {The expert's output error does not predict the KL: inside one band of expert error, the KL goes from equal to several times the base.}
+  {L'erreur de sortie d'un expert ne prédit pas la KL : dans une même bande d'erreur d'expert, la KL va de l'égalité à plusieurs fois la base.}
+  {Each point is a mechanism judged both ways, as ratios to the base of its own protocol: horizontally, the output error of the substituted experts on held-out inputs; vertically, the KL of the whole model on text. Inside the same band of expert error ($\synthNombre[fixed, precision=2]{bande-x-min}$ to $\synthNombre[fixed, precision=2]{bande-x-max}$), the KL goes from $\times\synthNombre[fixed, precision=2]{bande-y-min}$ to $\times\synthNombre[fixed, precision=2]{bande-y-max}$ the base; only the synonymous mutation $\lambda = 0$ passes under 1. $S^{*}$ is placed by the 10-window pass K10 ($\times\synthNombre[fixed, precision=3]{ek-sstar10-y}$); its 3-window ratio, struck out in the synthesis (05 \S\,2), is shown hollow and struck, with the arrow of the correction (reserve R4). Shapes, colours and fillings as in the common frontier: the shape gives the protocol (P1 scout, P2-10 genome, P3 predictive-pruning), the filling the verdict of the same rule. What the figure does not show: the uncertainty of each ratio (paired differences in the frontier's source), nor the why. The synthesis reads the KL as a smooth part, which expert error follows, and a tail of routing flips, which it does not see (next figure); this is its working hypothesis, supported by imposing the routing (Volume II, batch R).}
+  {Chaque point est un mécanisme jugé des deux façons, en rapports à la base de son propre protocole : en abscisse, l'erreur de sortie des experts substitués sur des entrées tenues à l'écart ; en ordonnée, la KL du modèle entier sur le texte. Dans la même bande d'erreur d'expert ($\synthNombre[fixed, precision=2]{bande-x-min}$ à $\synthNombre[fixed, precision=2]{bande-x-max}$), la KL va de $\times\synthNombre[fixed, precision=2]{bande-y-min}$ à $\times\synthNombre[fixed, precision=2]{bande-y-max}$ la base ; seule la mutation synonyme $\lambda = 0$ passe sous 1. $S^{*}$ est placé par la passe K10 à 10 fenêtres ($\times\synthNombre[fixed, precision=3]{ek-sstar10-y}$) ; son rapport à 3 fenêtres, barré dans la synthèse (05 \S\,2), est montré creux et barré, avec la flèche de la correction (réserve R4). Formes, couleurs et remplissages comme dans la frontière commune : la forme dit le protocole (P1 éclaireur, P2-10 genome, P3 prédictif-élagage), le remplissage le verdict de la même règle. Ce que la figure ne montre pas : l'incertitude de chaque rapport (différences appariées dans la source de la frontière), ni le pourquoi. La synthèse lit la KL comme une part lisse, que l'erreur d'expert suit, et une queue de bascules de routage, qu'elle ne voit pas (figure suivante) ; c'est son hypothèse de travail, appuyée par le routage imposé (Tome II, lot R).}
+\Source{SynthErreurKL}{\fichier{mesures/genome/construction/synthese/k10/erreur-contre-kl.csv} (\fichier{frontiere.py}~\texttt{-{}-k10}, \fichier{mesures/genome/genome/kl/comparer10-base-contre-recette.json})\Pv{} \EF{script}{script} \fichier{memoire/outils/tome3_synthese.py}.}
+
+% =====================================================================================================
+% III-7.3. Deux parts de la KL, position par position. Les points sont gris ; seules les queues (les
+% ⌊n/100⌋ plus grandes positions de la base et du synonyme) sont marquées (D6, D9 du juge de design ; M9).
+\pgfplotsset{
+  synth position/.style={only marks, mark=*, mark size=0.8pt, color=black!45,
+    mark options={solid, fill=black!45, draw=black!45, line width=0.1pt, opacity=0.5}},
+  synth queue base/.style={only marks, mark=o, mark size=2.1pt,
+    mark options={solid, draw=CouleurFrontiereMarque, line width=0.7pt}},
+  synth queue syn/.style={only marks, mark=*, mark size=1.5pt,
+    mark options={solid, fill=CouleurLambdaZero, draw=CouleurLambdaZero!70!black, line width=0.3pt}},
+}
+\newcommand{\GrapheSynthDeuxParts}{%
+\begin{tikzpicture}
+\begin{axis}[t3 graphe, name=synthnuage, scale only axis, width=7.9cm, height=7.9cm, xmode=log, ymode=log,
+  xmin=1e-5, xmax=10, ymin=1e-5, ymax=10, enlargelimits=false, minor tick length=0pt,
+  xlabel={\EF{KL per position, frontier base}{KL par position, base frontière}},
+  ylabel={\EF{KL per position, synonymous mutation $\lambda = 0$}{KL par position, mutation synonyme $\lambda = 0$}}]
+\addplot[black!45, dashed, line width=0.6pt, domain=1e-5:10, samples=2, forget plot] {x};
+\addplot[synth position] table[x=kl_base, y=kl_syn] {\SynthDonnees/synthese-positions.csv};
+\addplot[synth queue base] table[x=kl_base, y=kl_syn] {\SynthDonnees/synthese-queue-base.csv};
+\addplot[synth queue syn] table[x=kl_base, y=kl_syn] {\SynthDonnees/synthese-queue-syn.csv};
+\draw[black!70, line width=0.5pt, densely dotted] (axis cs:\synthVal{med-base},1e-5) -- (axis cs:\synthVal{med-base},10);
+\draw[black!70, line width=0.5pt, densely dotted] (axis cs:1e-5,\synthVal{med-syn}) -- (axis cs:10,\synthVal{med-syn});
+\node[t3 etiquette, anchor=south west, rotate=90] at (axis cs:\synthVal{med-base},1.3e-5) {\EF{median, base}{médiane, base}};
+\node[t3 etiquette, anchor=south west] at (axis cs:1.3e-5,\synthVal{med-syn}) {\EF{median, synonym}{médiane, synonyme}};
+\end{axis}
+\node[t3 note, anchor=north west, text width=3.6cm, inner sep=2pt] at ($(synthnuage.north east)+(1.95cm,0)$)
+  {\EF{smooth part}{part lisse}\Dp{} \EF{median}{médiane} $\div\,\synthNombre[fixed, precision=1]{med-rapport}$\\[1pt]
+   \EF{tail}{queue} (\synthEntier{n-1pct} \EF{largest}{plus grandes})\Dp\\
+   \quad\synthPct{part-1pct-base} \EF{of the base's mean KL,}{de la KL moyenne de la base,}\\
+   \quad\synthPct{part-1pct-syn} \EF{of the synonym's}{de celle du synonyme}\\[2pt]
+   \tikz[baseline=-0.6ex]\draw[CouleurFrontiereMarque, line width=0.7pt] (0,0) circle[radius=2.1pt];~\EF{tail of the base}{queue de la base}\\
+   \tikz[baseline=-0.6ex]\fill[CouleurLambdaZero] (0,0) circle[radius=1.5pt];~\EF{tail of the synonym}{queue du synonyme}\\
+   \EF{common to both}{communes aux deux}\Dp{} \mbox{\synthEntier{queue-communes}~\EF{of}{sur}~\synthEntier{n-1pct}}};
+% Densités marginales (log10 de la KL, 48 cases).
+\begin{axis}[at={(synthnuage.north west)}, anchor=south west, yshift=0.15cm, scale only axis, width=7.9cm, height=1.5cm,
+  xmin=-5, xmax=1, ymin=0, enlargelimits=false, axis lines=none, clip=false]
+\addplot[const plot mark mid, fill=black!12, draw=black!55, line width=0.5pt] table[x=log10_kl, y=densite] {\SynthDonnees/synthese-densite-base.csv} \closedcycle;
+\node[t3 etiquette, anchor=south west, text=black!60] at (axis cs:-4.9,0.02) {\EF{base}{base}};
+\end{axis}
+\begin{axis}[at={(synthnuage.south east)}, anchor=south west, xshift=0.15cm, scale only axis, width=1.5cm, height=7.9cm,
+  ymin=-5, ymax=1, xmin=0, enlargelimits=false, axis lines=none, clip=false]
+\addplot[const plot mark mid, fill=black!12, draw=black!55, line width=0.5pt] table[y=log10_kl, x=densite] {\SynthDonnees/synthese-densite-syn.csv} \closedcycle;
+\node[t3 etiquette, anchor=south west, rotate=90, text=black!60] at (axis cs:0.02,-4.9) {\EF{synonym}{synonyme}};
+\end{axis}
+\end{tikzpicture}}
+\Titre{SynthDeuxParts}{Two parts of the KL, position by position}{Deux parts de la KL, position par position}
+\Legende{SynthDeuxParts}{\mes\,\calc}
+  {The KL has two parts: its bulk passes under the diagonal; its tail keeps its shape, not its positions.}
+  {La KL a deux parts : sa masse passe sous la diagonale ; sa queue garde sa forme, pas ses positions.}
+  {The \synthEntier{positions} positions of the scout's KL pass (\synthEntier{fenetres} windows of wiki.test, 32 experts of 768 substituted: protocol P1), the frontier base horizontally, the synonymous mutation $\lambda = 0$ vertically, same positions and same truth; marginal densities on the margins. The bulk passes under the diagonal: the median is divided by $\synthNombre[fixed, precision=1]{med-rapport}$ ($\synthNombre[fixed, precision=4]{med-base}$ to $\synthNombre[fixed, precision=4]{med-syn}$), and the synonym has less KL on \synthEntier{positions-gagnees} positions. The tail keeps its shape: the \synthEntier{n-1pct} largest positions of each (the ``1\%'', $\lfloor \synthEntier{positions}/100 \rfloor$, that is \synthPct[2]{n-1pct-part}) carry \synthPct{part-1pct-base} of the base's mean KL and \synthPct{part-1pct-syn} of the synonym's, so the mean only falls by $\times\synthNombre[fixed, precision=2]{moy-rapport}$ and the 99.9th percentile rises ($\synthNombre[fixed, fixed zerofill, precision=2]{p999-base}$ to $\synthNombre[fixed, fixed zerofill, precision=2]{p999-syn}$). It does not keep its positions: only \synthEntier{queue-communes} of the \synthEntier{n-1pct} are common to both tails (hollow rings: the base's tail; green discs: the synonym's). The base's tail spreads over \synthEntier{queue-base-fenetres} of the \synthEntier{fenetres} windows, at most \synthEntier{queue-base-fenetre-max} in one. The synthesis reads the bulk as the smooth part, which expert error follows, and the tail as routing flips, which move when the weights move; this is its working hypothesis, supported by the intervention that imposes the routing (Volume II, batch R, experiment B), which this figure does not repeat. The only KL below $10^{-5}$ is negative ($\synthNombre[sci, precision=1]{kl-negative}$, rounding noise) and is drawn at that floor. What the figure does not show: which positions flipped an expert (these logs have no routing column), nor the other 736 experts, left exact.}
+  {Les \synthEntier{positions} positions de la passe KL de l'éclaireur (\synthEntier{fenetres} fenêtres de wiki.test, 32 experts sur 768 substitués : protocole P1), la base frontière en abscisse, la mutation synonyme $\lambda = 0$ en ordonnée, mêmes positions et même vérité ; les densités marginales en marge. La masse passe sous la diagonale : la médiane est divisée par $\synthNombre[fixed, precision=1]{med-rapport}$ (de $\synthNombre[fixed, precision=4]{med-base}$ à $\synthNombre[fixed, precision=4]{med-syn}$), et le synonyme a moins de KL sur \synthEntier{positions-gagnees} positions. La queue garde sa forme : les \synthEntier{n-1pct} plus grandes positions de chacun (le « 1 \% », $\lfloor \synthEntier{positions}/100 \rfloor$, soit \synthPct[2]{n-1pct-part}) portent \synthPct{part-1pct-base} de la KL moyenne de la base et \synthPct{part-1pct-syn} de celle du synonyme, si bien que la moyenne ne baisse que de $\times\synthNombre[fixed, precision=2]{moy-rapport}$ et que le 99,9\textsuperscript{e} centile monte (de $\synthNombre[fixed, fixed zerofill, precision=2]{p999-base}$ à $\synthNombre[fixed, fixed zerofill, precision=2]{p999-syn}$). Elle ne garde pas ses positions : \synthEntier{queue-communes} seulement des \synthEntier{n-1pct} sont communes aux deux queues (anneaux : la queue de la base ; disques verts : celle du synonyme). La queue de la base se répartit sur \synthEntier{queue-base-fenetres} des \synthEntier{fenetres} fenêtres, au plus \synthEntier{queue-base-fenetre-max} dans une seule. La synthèse lit la masse comme la part lisse, que l'erreur d'expert suit, et la queue comme des bascules de routage, qui se déplacent quand les poids changent ; c'est son hypothèse de travail, appuyée par l'intervention qui impose le routage (Tome II, lot R, expérience B), que cette figure ne refait pas. La seule KL sous $10^{-5}$ est négative ($\synthNombre[sci, precision=1]{kl-negative}$, bruit d'arrondi) et portée à ce plancher. Ce que la figure ne montre pas : quelles positions ont basculé un expert (ces journaux n'ont pas de colonne de routage), ni les 736 autres experts, laissés exacts.}
+\Source{SynthDeuxParts}{\fichier{mesures/genome/etat-de-l-art/journaux/kl-frontiere-positions.csv}, \fichier{kl-synonyme-d1-positions.csv}, \fichier{kl-frontiere-juge.json}, \fichier{kl-synonyme-d1-juge.json}\Pv{} \EF{script}{script} \fichier{memoire/outils/tome3_synthese.py}.}
+
+% =====================================================================================================
+% III-7.4. Les colonnes géantes (un tenseur : blk.8 down, expert 16). Étiquettes directes, sans légende
+% (G5) ; base, brin et S* aux couleurs du dictionnaire. Troisième passe : la colonne d'étiquettes de droite est
+% retirée (DN9), le cadre s'élargit ; la géante est encadrée de deux pointillés, plus d'un gris de fond (DN4).
+% Une colonne encadrée : #1 colonne, #2 haut de l'axe.
+\newcommand{\SynthCadreColonne}[2]{%
+\draw[Encre!40, densely dotted, line width=0.5pt] (axis cs:#1-18,0.05) -- (axis cs:#1-18,#2)
+  (axis cs:#1+18,0.05) -- (axis cs:#1+18,#2);}
+\newcommand{\GrapheSynthColonnes}{%
+% La légende dit la seconde pointe « premier canal du morceau de la géante » : le script le vérifie, ceci le relit.
+\ifnum\synthVal{col-second-bord}\synthVal{col-second-morceau}=11 \else
+  \PackageError{synthese-figures}{la seconde pointe n'est plus le premier canal du morceau de la géante}{}\fi
+\begin{tikzpicture}
+\begin{groupplot}[t3 graphe, group style={group size=1 by 2, vertical sep=1.05cm, x descriptions at=edge bottom},
+  scale only axis, width=0.86\linewidth, height=4.1cm, xmin=-20, xmax=2900, ymode=log, minor tick length=0pt,
+  xlabel={\EF{column (input channel of the down matrix)}{colonne (canal d'entrée de la matrice down)}}, clip=false]
+\nextgroupplot[ymin=0.05, ymax=600, ylabel={\EF{energy / mean}{énergie / moyenne}},
+  title={(a) \EF{the energy of each column}{l'énergie de chaque colonne}}]
+\SynthCadreColonne{\synthVal{col-massive}}{600}
+\addplot[Encre!80, line width=0.45pt] table[x=colonne, y=energie] {\SynthDonnees/synthese-colonnes.csv};
+\node[t3 etiquette, anchor=west] at (axis cs:\synthVal{col-massive},\synthVal{col-energie-x}) [xshift=6pt]
+  {\EF{column}{colonne} \synthEntier{col-massive}\Dp{} $\times\synthNombre[fixed, precision=0]{col-energie-x}$ \EF{the mean energy}{l'énergie moyenne}};
+\nextgroupplot[ymin=0.05, ymax=1500, ylabel={\EF{error energy / mean}{erreur / moyenne}},
+  title={(b) \EF{the error of three reconstructions at the same rate}{l'erreur de trois reconstructions au même débit}}]
+\SynthCadreColonne{\synthVal{col-massive}}{1500}
+\addplot[CouleurFrontiere, line width=0.45pt] table[x=colonne, y=base] {\SynthDonnees/synthese-colonnes.csv};
+\addplot[CouleurBrin, line width=0.45pt] table[x=colonne, y=brin] {\SynthDonnees/synthese-colonnes.csv};
+\addplot[CouleurSetoile, line width=0.45pt] table[x=colonne, y=sstar] {\SynthDonnees/synthese-colonnes.csv};
+% Les nombres contre le pic, chacun dans la couleur de sa série ; ils nomment aussi la série (troisième passe,
+% DN9 du juge de design : la colonne d'étiquettes à droite suggérait un ordre de fin de courbe qui n'existe pas,
+% elle est retirée ; chaque série est nommée une fois, contre le pic).
+\node[t3 nombre=CouleurBrin!85!black, anchor=west] at (axis cs:\synthVal{col-massive},\synthVal{col-brin-x}) [xshift=6pt]
+  {\EF{weighted strand}{brin pondéré} $\times\synthNombre[fixed, precision=0]{col-brin-x}$};
+\node[t3 nombre=CouleurFrontiereMarque, anchor=west] at (axis cs:\synthVal{col-massive},\synthVal{col-base-x}) [xshift=6pt]
+  {\EF{frontier base}{base frontière} $\times\synthNombre[fixed, precision=0]{col-base-x}$};
+\node[synth opaque, text=CouleurSetoile!70!black, anchor=east] at (axis cs:\synthVal{col-massive},\synthVal{col-sstar-x}) [xshift=-6pt, yshift=6pt]
+  {$S^{*}$ \EF{(+ exceptions)}{(+ exceptions)} $\times\synthNombre[fixed, precision=2]{col-sstar-x}$};
+% La seconde pointe (N2 du juge ronde) : la colonne qui reçoit le plus d'erreur du brin après la géante.
+\node[t3 nombre=CouleurBrin!85!black, anchor=east] at (axis cs:\synthVal{col-second},\synthVal{col-second-brin-x}) [xshift=-5pt]
+  {\EF{column}{colonne} \synthEntier{col-second}\Dp{} $\times\synthNombre[fixed, precision=0]{col-second-brin-x}$};
+\end{groupplot}
+\end{tikzpicture}}
+\Titre{SynthColonnes}{A giant column draws the strand's error}{Une colonne géante aspire l'erreur du brin}
+\Legende{SynthColonnes}{\mes}
+  {A giant column, and the first channel of its rotation block, draw the strand's error; the base contains it,
+   $S^{*}$ removes it.}
+  {Une colonne géante, et le premier canal de son morceau de rotation, aspirent l'erreur du brin ; la base la
+   contient, $S^{*}$ l'efface.}
+  {One matrix: layer 8, down, expert 16 of gpt-oss-20b, its \synthEntier{col-n} columns in natural order. (a) The energy $\sum_r w_{rc}^2$ of each column, divided by the mean over the columns. (b) The error energy $\sum_r (\hat w_{rc} - w_{rc})^2$ of three reconstructions at the same rate ($\synthNombre[fixed, precision=2]{p2-sstar-bits}$ bits), each divided by its own mean: the frontier base (grey-blue), the weighted strand (brown), $S^{*}$ (violet). Column \synthEntier{col-massive} (between dotted lines) carries $\times\synthNombre[fixed, precision=0]{col-energie-x}$ the mean energy and receives $\times\synthNombre[fixed, precision=0]{col-brin-x}$ the strand's mean error: the rotation spreads it into 64 large values per row, the table clips them, and the clipping errors, of the same sign in every row, return onto the column through the inverse rotation. The frontier base keeps the largest weights of each block nearly exact ($\times\synthNombre[fixed, precision=0]{col-base-x}$); $S^{*}$ keeps the three largest of each row aside, exact, and brings the column back to $\times\synthNombre[fixed, precision=2]{col-sstar-x}$. The second peak is column \synthEntier{col-second}, the first channel of the giant's rotation block (\synthEntier{col-morceau-debut} to \synthEntier{col-morceau-fin}), of ordinary energy ($\times\synthNombre[fixed, precision=2]{col-second-energie-x}$): it receives $\times\synthNombre[fixed, precision=0]{col-second-brin-x}$ the strand's mean error, against $\times\synthNombre[fixed, precision=2]{col-second-base-x}$ for the base and $\times\synthNombre[fixed, precision=2]{col-second-sstar-x}$ for $S^{*}$; its cause is not measured. The \synthEntier{col-morceau-sans-n} other columns of the block receive $\times\synthNombre[fixed, fixed zerofill, precision=1]{col-morceau-sans-x}$ the mean, and the \synthEntier{col-bord-autres-n} other block edges (columns $\equiv 0 \pmod{64}$) $\times\synthNombre[fixed, fixed zerofill, precision=2]{col-bord-autres-x}$ (at most $\times\synthNombre[fixed, fixed zerofill, precision=2]{col-bord-autres-max-x}$): the ``edges $\times\synthNombre[fixed, precision=1]{col-bord-x}$'' of the source are a mean that this one column carries. What the figure does not show: the other tensors (one matrix only is in CSV; the column classes of blk.0 gate remain to be drawn), nor the cost of the exceptions (counted in the rate of $S^{*}$).}
+  {Une matrice : couche 8, down, expert 16 de gpt-oss-20b, ses \synthEntier{col-n} colonnes dans l'ordre naturel. (a) L'énergie $\sum_r w_{rc}^2$ de chaque colonne, divisée par la moyenne des colonnes. (b) L'énergie d'erreur $\sum_r (\hat w_{rc} - w_{rc})^2$ de trois reconstructions au même débit ($\synthNombre[fixed, precision=2]{p2-sstar-bits}$ bits), chacune divisée par sa propre moyenne : la base frontière (gris bleuté), le brin pondéré (brun), $S^{*}$ (violet). La colonne \synthEntier{col-massive} (entre deux pointillés) porte $\times\synthNombre[fixed, precision=0]{col-energie-x}$ l'énergie moyenne et reçoit $\times\synthNombre[fixed, precision=0]{col-brin-x}$ l'erreur moyenne du brin : la rotation la répartit en 64 grandes valeurs par rangée, la table les écrête, et les erreurs d'écrêtage, de même signe dans toutes les rangées, reviennent sur la colonne par la rotation inverse. La base frontière rend presque exacts les plus grands poids de chaque bloc ($\times\synthNombre[fixed, precision=0]{col-base-x}$) ; $S^{*}$ garde à part, exacts, les trois plus grands de chaque rangée et ramène la colonne à $\times\synthNombre[fixed, precision=2]{col-sstar-x}$. La seconde pointe est la colonne \synthEntier{col-second}, premier canal du morceau de rotation de la géante (\synthEntier{col-morceau-debut} à \synthEntier{col-morceau-fin}), d'énergie ordinaire ($\times\synthNombre[fixed, precision=2]{col-second-energie-x}$) : elle reçoit $\times\synthNombre[fixed, precision=0]{col-second-brin-x}$ l'erreur moyenne du brin, contre $\times\synthNombre[fixed, precision=2]{col-second-base-x}$ pour la base et $\times\synthNombre[fixed, precision=2]{col-second-sstar-x}$ pour $S^{*}$ ; la cause n'en est pas mesurée. Les \synthEntier{col-morceau-sans-n} autres colonnes du morceau reçoivent $\times\synthNombre[fixed, fixed zerofill, precision=1]{col-morceau-sans-x}$ la moyenne, et les \synthEntier{col-bord-autres-n} autres bords de morceau (colonnes $\equiv 0 \pmod{64}$) $\times\synthNombre[fixed, fixed zerofill, precision=2]{col-bord-autres-x}$ (au plus $\times\synthNombre[fixed, fixed zerofill, precision=2]{col-bord-autres-max-x}$) : les « bords $\times\synthNombre[fixed, precision=1]{col-bord-x}$ » de la source sont une moyenne que porte cette seule colonne. Ce que la figure ne montre pas : les autres tenseurs (une seule matrice est en CSV ; les classes de colonne de blk.0 gate restent à tracer), ni le coût des exceptions (compté dans le débit de $S^{*}$).}
+\Source{SynthColonnes}{\fichier{mesures/genome/genome/csv/colonnes-energie-erreur.csv} (\fichier{outils/genome/recette/figures_transformations.py})\Pv{} \EF{script}{script} \fichier{memoire/outils/tome3_synthese.py}.}
+\fi

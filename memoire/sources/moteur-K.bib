@@ -1,0 +1,128 @@
+% Sources du lot K (noyaux : décodeur rANS à table par voie, K1 ; GEMV MXFP4, K2).
+% Toutes consultées le 2026-10-15, à la source primaire. Les chiffres de la machine viennent des
+% journaux commités sous mesures/moteur/K/ ; ces entrées ne portent que la documentation et les
+% formats. Le rANS lui-même (Duda, Giesen, Weissenberger et Schmidt) est dans 03-entropie.bib
+% (clés duda2013ans, giesen2014interleaved, weissenberger2019multians) ; le format MX dans
+% 03-entropie.bib (ocpmx2023) et quantification.bib (mx2023).
+
+@manual{nvidia2026adatuning,
+  author       = {{NVIDIA}},
+  title        = {{NVIDIA} {Ada} {GPU} Architecture Tuning Guide},
+  version      = {13.4},
+  date         = {2026-10-12},
+  url          = {https://docs.nvidia.com/cuda/ada-tuning-guide/index.html},
+  urldate      = {2026-10-15},
+  note         = {Capacité de calcul 8.9 : « The shared memory capacity per SM is 100 KB », 99 Kio au
+                  plus par bloc (1 Kio réservé par bloc), 48 warps résidents au plus par SM, 64 K
+                  registres de 32 bits par SM. D'où l'occupation de decoder_codes (48 Kio de LUT par
+                  bloc de 8 warps : 2 blocs, 16 warps par SM) et le calcul de la vague unique.}
+}
+
+@manual{nvidia2026cppext,
+  author       = {{NVIDIA}},
+  title        = {{CUDA} Programming Guide, 5.4 {C/C++} Language Extensions},
+  version      = {13.4.2},
+  url          = {https://docs.nvidia.com/cuda/cuda-programming-guide/05-appendices/cpp-language-extensions.html},
+  urldate      = {2026-10-15},
+  note         = {Fonctions de vote du warp (\_\_ballot\_sync, § 5.4.6.2 : « Evaluates predicate for all
+                  non-exited threads in mask »), d'échange (\_\_shfl\_sync, \_\_shfl\_xor\_sync, § 5.4.6.5),
+                  bornes de lancement (\_\_launch\_bounds\_\_, § 5.4.3.2). Le pas rANS du décodeur repose
+                  sur le vote (quelles voies renormalisent) et le comptage de bits (où chacune lit).}
+}
+
+@manual{nvidia2026flottants,
+  author       = {{NVIDIA}},
+  title        = {{CUDA} Programming Guide, 5.5 Floating-Point Computation},
+  version      = {13.4.2},
+  url          = {https://docs.nvidia.com/cuda/cuda-programming-guide/05-appendices/mathematical-functions.html},
+  urldate      = {2026-10-15},
+  note         = {fmaf : un seul arrondi (« computes the result with only one rounding step »), erreur
+                  maximale de 0 ulp ; addition et multiplication finies non associatives (l'ordre
+                  change l'erreur) ; sous-normaux pris en charge sauf -ftz=true, compris dans
+                  --use_fast_math. D'où la règle de déterminisme de la GEMV (ordre fixe, pas
+                  d'atomique flottant) et l'interdiction de --use_fast_math (échelles E8M0 2\textsuperscript{-127} et
+                  2\textsuperscript{-128} sous-normales).}
+}
+
+@misc{ggml2026mxfp4,
+  author       = {{ggml-org}},
+  title        = {llama.cpp, ggml/src/ggml-common.h : block\_mxfp4 et kvalues\_fp4},
+  url          = {https://github.com/ggml-org/llama.cpp/blob/master/ggml/src/ggml-common.h},
+  urldate      = {2026-10-15},
+  note         = {Licence MIT (vérifiée par l'étude 06). QK\_MXFP4 = 32 ; bloc de 17 octets : un octet
+                  E8M0 puis 16 octets de demi-octets ; table des valeurs 0, 1, 2, 3, 4, 6, 8, 12 et
+                  leurs opposées (grandeurs E2M1 doublées). Lu pour cadrer la disposition, rien de
+                  copié ; la GEMV de troncons la redérive (03-derivations § 1.2) et la juge contre une
+                  référence f64 écrite depuis cette seule définition.}
+}
+
+% ---------------------------------------------------------------- étape K3 (passe avant), ajoutées le 2026-10-15
+% Déjà ailleurs, à citer par leur clé : openai2025gptossref et openai2025gptoss20bconfig (définition
+% des opérations, moteur-R.bib), peng2023yarn (YaRN, moteur-R.bib), merity2016wikitext (jetons de la
+% chaîne), ggml2026llamacppb11515.
+
+@inproceedings{xiao2024sinks,
+  author       = {Xiao, Guangxuan and Tian, Yuandong and Chen, Beidi and Han, Song and Lewis, Mike},
+  title        = {Efficient Streaming Language Models with Attention Sinks},
+  booktitle    = {International Conference on Learning Representations (ICLR)},
+  year         = {2024},
+  eprint       = {2309.17453},
+  eprinttype   = {arXiv},
+  url          = {https://arxiv.org/abs/2309.17453},
+  date         = {2023-09-29},
+  note         = {v4 du 2024-04-07. Le « puits » d'attention. Dans gpt-oss, il est appris par tête et
+                  entre dans le dénominateur du softmax (noyau attention). C'est pourquoi un biais de
+                  clé ne s'y annulerait pas, et le biais des clés vaut exactement 0 dans les deux GGUF
+                  (k3-biais-attention-*.log).},
+  urldate      = {2026-10-15}
+}
+
+@inproceedings{zhang2019rmsnorm,
+  author       = {Zhang, Biao and Sennrich, Rico},
+  title        = {Root Mean Square Layer Normalization},
+  booktitle    = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year         = {2019},
+  eprint       = {1910.07467},
+  eprinttype   = {arXiv},
+  url          = {https://arxiv.org/abs/1910.07467},
+  date         = {2019-10-16},
+  note         = {Version unique. Définition du noyau rmsnorm.},
+  urldate      = {2026-10-15}
+}
+
+@online{shazeer2020glu,
+  author       = {Shazeer, Noam},
+  title        = {{GLU} Variants Improve Transformer},
+  eprint       = {2002.05202},
+  eprinttype   = {arXiv},
+  url          = {https://arxiv.org/abs/2002.05202},
+  date         = {2020-02-12},
+  note         = {Version unique. SwiGLU. gpt-oss en emploie une forme bornée, avec α = 1,702 et
+                  u + 1 (openai2025gptossref) : c'est le noyau swiglu\_oai.},
+  urldate      = {2026-10-15}
+}
+
+@online{su2021roformer,
+  author       = {Su, Jianlin and Lu, Yu and Pan, Shengfeng and Murtadha, Ahmed and Wen, Bo and Liu, Yunfeng},
+  title        = {{RoFormer}: Enhanced Transformer with Rotary Position Embedding},
+  eprint       = {2104.09864},
+  eprinttype   = {arXiv},
+  url          = {https://arxiv.org/abs/2104.09864},
+  date         = {2021-04-20},
+  note         = {v5 du 2023-11-08. Rotation par paires. gpt-oss tourne par moitiés (forme NEOX), avec les
+                  fréquences de YaRN (peng2023yarn) : c'est le noyau rope\_yarn.},
+  urldate      = {2026-10-15}
+}
+
+@manual{nvidia2026intrinseques,
+  author       = {{NVIDIA}},
+  title        = {{CUDA} Math {API}, Single Precision Intrinsics},
+  version      = {13.4},
+  date         = {2026-10-12},
+  url          = {https://docs.nvidia.com/cuda/cuda-math-api/cuda_math_api/group__CUDA__MATH__INTRINSIC__SINGLE.html},
+  urldate      = {2026-10-15},
+  note         = {Pour \_\_fadd\_rn et \_\_fmul\_rn : « This operation will never be merged into a single
+                  multiply-add instruction ». Le noyau combiner en dépend pour égaler au bit la
+                  somme de l'hôte. La cassure qui remet un fmaf fait tomber le test dès
+                  l'élément 649 (tests/passe.rs).}
+}

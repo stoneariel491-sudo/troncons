@@ -1,0 +1,124 @@
+{
+  "alimentation": {
+    "ACLineStatus": 1,
+    "BatteryFlag": 1,
+    "BatteryLifePercent": 80,
+    "secteur": true
+  },
+  "base": "../base-invite-708.kld",
+  "commande": "evaluer --modele ~/dev/modeles/trc/gpt-oss-120b.trc --base ../base-invite-708.kld --fenetres 1 --positions 708 --sortie t120-boucle.kld --empreintes t120-boucle-empreintes.csv --trace t120-boucle.trace --journal t120-boucle.json",
+  "compteurs": {
+    "acces": 101952,
+    "defauts_disque": 55161,
+    "emplacements": 326,
+    "evictions": 54835,
+    "experts_decodes": 55161,
+    "experts_verifies": 0,
+    "h_vram": 0.4589512711864407,
+    "lectures_enchassement": 708,
+    "lectures_troncons": 55161,
+    "ms_copie_carte": 80198.60329991579,
+    "ms_decodage_carte": 56126.61634653807,
+    "octets_copies_cache": 663381852160,
+    "octets_disque_cache": 663381852160,
+    "octets_dma": 663381852160,
+    "octets_lus": 665073328128,
+    "octets_lus_enchassement": 5799936,
+    "octets_lus_troncons": 663381852160,
+    "pas": 708,
+    "pf_emis": 0,
+    "pf_octets": 0,
+    "pf_utiles": 0,
+    "s_attente_routeur": 81.4259483999995,
+    "s_fin_jeton": 5.1267412999999955,
+    "s_lectures": 367.32559129999964,
+    "s_pas": 459.57284409999994,
+    "succes_ram": 0,
+    "succes_vram": 46791,
+    "tiedes": 0
+  },
+  "date_utc": "2026-10-16T09:19:11Z",
+  "empreinte_csv_sha256": "683eb23d6bcbe0b5d71c570b8157b0d5910f56fb568243dc3059b482414e8813",
+  "fenetres": 1,
+  "flux": false,
+  "flux_experts": 0,
+  "flux_positions": 0,
+  "moteur": {
+    "arrivees": 12,
+    "brut": false,
+    "carte": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "chargement": {
+      "empreintes_verifiees": 470,
+      "lectures": 101,
+      "octets_lus": 1685676032,
+      "octets_tenseurs": 1685668608,
+      "secondes": 1.864539,
+      "tenseurs": 470
+    },
+    "contexte": 4096,
+    "couches": 36,
+    "couches_d_avance": 3,
+    "emplacements": 326,
+    "enchassement_en_ram": false,
+    "etapes_memoire": [
+      {
+        "ensemble_travail": 4952064,
+        "etape": "avant"
+      },
+      {
+        "ensemble_travail": 18681856,
+        "etape": "fichier"
+      },
+      {
+        "ensemble_travail": 128585728,
+        "etape": "contexte_flux"
+      },
+      {
+        "ensemble_travail": 129572864,
+        "etape": "noyaux"
+      },
+      {
+        "ensemble_travail": 130936832,
+        "etape": "modele"
+      },
+      {
+        "ensemble_travail": 131141632,
+        "etape": "luts"
+      },
+      {
+        "ensemble_travail": 282152960,
+        "etape": "fenetre_et_tampons"
+      },
+      {
+        "ensemble_travail": 282673152,
+        "etape": "emplacements_cache_evenements"
+      }
+    ],
+    "experts": 128,
+    "fichier": "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "k": 4,
+    "longueur_arrivee": 12251136,
+    "longueur_lecture": null,
+    "octets_emplacement": 13254144,
+    "octets_epingles": 147841024,
+    "octets_vram_moteur": 6317303600,
+    "ouverture_s": 2.1147048,
+    "prechargement": false,
+    "profondeur_es": 4,
+    "ram_tiede_go": 0.0,
+    "temoin": false,
+    "tiedes": 0,
+    "vocab": 201088,
+    "vram_plafond_mio": 7179
+  },
+  "n_ctx": 708,
+  "outil": "troncons evaluer",
+  "pas": 708,
+  "pas_s": 1.5303789815400637,
+  "positions_notees": 353,
+  "positions_par_fenetre": 708,
+  "ppl_positions_notees": 1200.3016943255727,
+  "secondes": 462.6305043,
+  "sortie": "t120-boucle.kld",
+  "version": "0.1.0"
+}

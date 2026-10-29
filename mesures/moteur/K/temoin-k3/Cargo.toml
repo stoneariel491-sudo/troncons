@@ -1,0 +1,28 @@
+# Témoin K3 (ARCHITECTURE.md § 5.6 et § 6.5, K3 : « chaque noyau contre trc-reference ») : les douze
+# noyaux de la passe avant, lancés par le chemin du moteur (trc-noyaux sur trc-cuda), jugés un à un
+# contre les opérations de trc-reference (lot R) appliquées en f64 aux mêmes entrées, sur les poids
+# réels du GGUF d'origine.
+#
+# Outil hors de l'espace de travail du moteur (dossier du lot K sous mesures/), pour ne toucher ni
+# moteur/Cargo.toml ni moteur/Cargo.lock (lot O). Les crates du moteur sont prises par chemin ; leurs
+# `x.workspace = true` se résolvent dans leur propre espace (moteur/Cargo.toml). Dépendances directes
+# de la couture D seulement (§ 2.4), à leur version exacte : half, anyhow.
+[package]
+name = "temoin-k3"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+publish = false
+
+[dependencies]
+trc-noyaux = { path = "../../../../moteur/crates/trc-noyaux" }
+trc-cuda = { path = "../../../../moteur/crates/trc-cuda" }
+trc-reference = { path = "../../../../moteur/crates/trc-reference" }
+half = "=2.7.1"
+anyhow = "=1.0.104"
+
+[profile.release]
+opt-level = 3
+debug = "line-tables-only"
+
+[workspace]

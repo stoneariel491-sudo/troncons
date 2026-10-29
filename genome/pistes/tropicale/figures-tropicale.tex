@@ -1,0 +1,161 @@
+% Figures de la piste « la garde tropicale » (genome/pistes/tropicale/garde-tropicale.md), pour le
+% Tome III. Gardé par \ifdefined\GrapheTropicaleCourbe. Données : mesures/pistes/tropicale/figures/,
+% écrites par outils/pistes/tropicale/figures.py depuis les journaux de routage du lot R (commit 21453da).
+% Styles et couleurs : ceux du préambule commun (memoire/commun/preambule.tex : memoire, SerieA…F, Signe).
+% Le rédacteur peut déplacer ce fichier sous memoire/figures/tome3/ ; seul \TropicaleDonnees change.
+
+\ifdefined\GrapheTropicaleCourbe\else
+\providecommand{\TropicaleDonnees}{\Depot/mesures/pistes/tropicale/figures}
+
+% ---------------------------------------------------------------------------------------------
+% T1. La courbe de la garde : part des bascules signalées contre part des cellules signalées.
+% La zone de construction (c ≤ 10 %, b ≥ 80 %) est le seuil déclaré avant la lecture.
+\newcommand{\GrapheTropicaleCourbe}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=0.86\linewidth, height=7.4cm,
+  xmin=0, xmax=0.4, ymin=0, ymax=1.0,
+  xlabel={\EF{share of cells flagged ($m_B<\tau$)}{part des cellules signalées ($m_B<\tau$)}},
+  ylabel={\EF{share of flips caught}{part des bascules attrapées}},
+  xticklabel style={/pgf/number format/fixed, /pgf/number format/precision=2},
+  yticklabel style={/pgf/number format/fixed, /pgf/number format/precision=1},
+  legend pos=south east, unbounded coords=jump]
+\fill[SerieC!12] (axis cs:0,0.8) rectangle (axis cs:0.1,1.0);
+\draw[SerieC!70!black, line width=0.6pt] (axis cs:0,0.8) -- (axis cs:0.1,0.8) -- (axis cs:0.1,1.0);
+\node[font=\sffamily\scriptsize, text=SerieC!60!black, anchor=north west, align=left] at (axis cs:0.003,0.995)
+  {\EF{build zone}{zone de construction}\\[-1pt]\EF{(declared before)}{(déclarée avant)}};
+\addplot[domain=0:0.4, samples=2, black!40, dashed, line width=0.6pt] {x};
+\addlegendentry{\EF{chance}{hasard}}
+\addplot[SerieF, line width=0.8pt, densely dotted] table[x=c, y=oracle] {\TropicaleDonnees/fig-courbe.csv};
+\addlegendentry{\EF{$\min(m_A,m_B)$, not deployable}{$\min(m_A,m_B)$, non déployable}}
+\addplot[SerieB, line width=1.2pt] table[x=c, y=toutes] {\TropicaleDonnees/fig-courbe.csv};
+\addlegendentry{\EF{all flips (decides)}{toutes les bascules (décide)}}
+\addplot[SerieA, line width=1.0pt] table[x=c, y=racines] {\TropicaleDonnees/fig-courbe.csv};
+\addlegendentry{\EF{cascade roots (explored after)}{racines de cascade (explorées après)}}
+\addplot[SerieD, line width=0.9pt] table[x=c, y=secondaires] {\TropicaleDonnees/fig-courbe.csv};
+\addlegendentry{\EF{flips after a flip}{bascules après une bascule}}
+\addplot[only marks, mark=*, mark size=2.2pt, SerieB] coordinates {(0.1,0.5711)};
+\addplot[only marks, mark=*, mark size=2.0pt, SerieA] coordinates {(0.1,0.8520)};
+\node[font=\sffamily\scriptsize, text=SerieB, anchor=west] at (axis cs:0.104,0.555) {57{,}1\,\%};
+\node[font=\sffamily\scriptsize, text=SerieA, anchor=west] at (axis cs:0.104,0.835) {85{,}2\,\%};
+\end{axis}
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------------------------------
+% T2. Par couche, au τ₁₀ global : la garde voit les premières couches et perd les dernières.
+\newcommand{\GrapheTropicaleCouches}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=0.92\linewidth, height=6.2cm,
+  xmin=-0.7, xmax=23.7, ymin=0, ymax=1.05, xtick={0,2,...,22},
+  xlabel={\EF{layer $\ell$}{couche $\ell$}},
+  ylabel={\EF{flips caught at $\tau_{10}$}{bascules attrapées à $\tau_{10}$}},
+  yticklabel style={/pgf/number format/fixed, /pgf/number format/precision=1},
+  legend style={at={(0.5,1.03)}, anchor=south, legend columns=3}, unbounded coords=jump]
+\draw[SerieC!70!black, dashed, line width=0.6pt] (axis cs:-0.7,0.8) -- (axis cs:23.7,0.8);
+\addplot[SerieB, mark=*, mark size=1.4pt] table[x=couche, y=toutes] {\TropicaleDonnees/fig-par-couche.csv};
+\addlegendentry{\EF{all}{toutes}}
+\addplot[SerieA, mark=square*, mark size=1.3pt] table[x=couche, y=racines] {\TropicaleDonnees/fig-par-couche.csv};
+\addlegendentry{\EF{roots}{racines}}
+\addplot[SerieD, mark=triangle*, mark size=1.6pt] table[x=couche, y=secondaires] {\TropicaleDonnees/fig-par-couche.csv};
+\addlegendentry{\EF{after a flip}{après une bascule}}
+\end{axis}
+\begin{axis}[width=0.92\linewidth, height=6.2cm, xmin=-0.7, xmax=23.7, ymin=0, ymax=0.0105,
+  axis x line=none, axis y line*=right, ylabel={\EF{robust scale of $\delta$ (logit)}{échelle robuste de $\delta$ (logit)}},
+  ylabel style={font=\small, text=SerieF}, tick label style={font=\small, text=SerieF},
+  yticklabel style={/pgf/number format/fixed, /pgf/number format/precision=3}, scaled y ticks=false]
+\addplot[SerieF, line width=0.7pt, densely dashed] table[x=couche, y=sigma_delta] {\TropicaleDonnees/fig-par-couche.csv};
+\end{axis}
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------------------------------
+% T3. La loi de la marge : la survie P(m > x) en échelle logarithmique est une droite (exponentielle).
+\newcommand{\GrapheTropicaleSurvie}{%
+\begin{tikzpicture}
+\begin{semilogyaxis}[memoire, width=0.8\linewidth, height=6.4cm, xmin=0, xmax=0.8, ymin=1e-4, ymax=1.2,
+  xlabel={\EF{router margin $x$ (logit)}{marge du routeur $x$ (logit)}}, ylabel={$P(m>x)$},
+  xticklabel style={/pgf/number format/fixed, /pgf/number format/precision=1}, legend pos=south west]
+\addplot[SerieA] table[x=x, y=s0] {\TropicaleDonnees/fig-survie.csv}; \addlegendentry{\EF{layer}{couche} 0}
+\addplot[SerieC] table[x=x, y=s8] {\TropicaleDonnees/fig-survie.csv}; \addlegendentry{\EF{layer}{couche} 8}
+\addplot[SerieD] table[x=x, y=s16] {\TropicaleDonnees/fig-survie.csv}; \addlegendentry{\EF{layer}{couche} 16}
+\addplot[SerieB] table[x=x, y=s23] {\TropicaleDonnees/fig-survie.csv}; \addlegendentry{\EF{layer}{couche} 23}
+\addplot[SerieA, dashed, line width=0.5pt, forget plot] table[x=x, y=e0] {\TropicaleDonnees/fig-survie.csv};
+\addplot[SerieC, dashed, line width=0.5pt, forget plot] table[x=x, y=e8] {\TropicaleDonnees/fig-survie.csv};
+\addplot[SerieD, dashed, line width=0.5pt, forget plot] table[x=x, y=e16] {\TropicaleDonnees/fig-survie.csv};
+\addplot[SerieB, dashed, line width=0.5pt, forget plot] table[x=x, y=e23] {\TropicaleDonnees/fig-survie.csv};
+\node[font=\sffamily\scriptsize, anchor=north east, align=right, text=black!70] at (rel axis cs:0.98,0.98)
+  {\EF{dashed: exponential law of the same mean}{tirets : loi exponentielle de même moyenne}};
+\end{semilogyaxis}
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------------------------------
+% T4. La loi de bascule : P(bascule | m) mesurée, le modèle à δ empirique P(δ < −m) et Φ(−m/σ̂) ;
+% le palier ½ quand m → 0.
+\newcommand{\GrapheTropicaleLoiBascule}{%
+\begin{tikzpicture}
+\begin{semilogxaxis}[memoire, width=0.84\linewidth, height=6.4cm, xmin=1e-4, xmax=1, ymin=0, ymax=0.75,
+  xlabel={\EF{margin of $B$, $m_B$ (logit)}{marge de $B$, $m_B$ (logit)}},
+  ylabel={\EF{$P(\text{flip}\mid m_B)$}{$P(\text{bascule}\mid m_B)$}},
+  yticklabel style={/pgf/number format/fixed, /pgf/number format/precision=1},
+  legend pos=north east, unbounded coords=jump]
+\draw[black!35, dotted, line width=0.6pt] (axis cs:1e-4,0.5) -- (axis cs:1,0.5);
+\addplot[only marks, mark=*, mark size=1.6pt, SerieA] table[x=m, y=p1] {\TropicaleDonnees/fig-loi-bascule.csv};
+\addlegendentry{\EF{layers}{couches} 0--7}
+\addplot[only marks, mark=square*, mark size=1.5pt, SerieD] table[x=m, y=p2] {\TropicaleDonnees/fig-loi-bascule.csv};
+\addlegendentry{\EF{layers}{couches} 8--15}
+\addplot[only marks, mark=triangle*, mark size=1.8pt, SerieB] table[x=m, y=p3] {\TropicaleDonnees/fig-loi-bascule.csv};
+\addlegendentry{\EF{layers}{couches} 16--23}
+\addplot[SerieA, line width=0.8pt, forget plot] table[x=m, y=emp1] {\TropicaleDonnees/fig-loi-bascule.csv};
+\addplot[SerieD, line width=0.8pt, forget plot] table[x=m, y=emp2] {\TropicaleDonnees/fig-loi-bascule.csv};
+\addplot[SerieB, line width=0.8pt, forget plot] table[x=m, y=emp3] {\TropicaleDonnees/fig-loi-bascule.csv};
+\addplot[SerieA, line width=0.5pt, densely dotted, forget plot] table[x=m, y=phi1] {\TropicaleDonnees/fig-loi-bascule.csv};
+\addplot[SerieD, line width=0.5pt, densely dotted, forget plot] table[x=m, y=phi2] {\TropicaleDonnees/fig-loi-bascule.csv};
+\addplot[SerieB, line width=0.5pt, densely dotted, forget plot] table[x=m, y=phi3] {\TropicaleDonnees/fig-loi-bascule.csv};
+\node[font=\sffamily\scriptsize, anchor=south west, align=left, text=black!70] at (rel axis cs:0.02,0.03)
+  {\EF{solid: empirical $\delta$; dotted: Gaussian $\delta$}{trait plein : $\delta$ empirique ; pointillés : $\delta$ gaussien}};
+\node[font=\sffamily\scriptsize, anchor=south west, text=black!70] at (axis cs:1.2e-4,0.51) {$\tfrac12$};
+\end{semilogxaxis}
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------------------------------
+% T5. L'extrapolation (modèle) : b(τ₁₀) quand la perturbation de l'écart est multipliée par s.
+\newcommand{\GrapheTropicaleExtrapolation}{%
+\begin{tikzpicture}
+\begin{semilogxaxis}[memoire, width=0.8\linewidth, height=6.2cm, xmin=0.45, xmax=11, ymin=0, ymax=1,
+  xlabel={\EF{perturbation factor $s$ (1 = the two ramps)}{facteur de perturbation $s$ (1 = les deux rampes)}},
+  ylabel={\EF{predicted $b(\tau_{10})$}{$b(\tau_{10})$ prédit}}, xtick={0.5,1,2,5,10}, xticklabels={0{,}5,1,2,5,10},
+  yticklabel style={/pgf/number format/fixed, /pgf/number format/precision=1}, legend pos=north east]
+\draw[SerieC!70!black, dashed, line width=0.6pt] (axis cs:0.45,0.8) -- (axis cs:11,0.8);
+\addplot[SerieA, mark=square*, mark size=1.4pt] table[x=s, y=racines_empirique] {\TropicaleDonnees/fig-extrapolation.csv};
+\addlegendentry{\EF{roots, empirical $\delta$}{racines, $\delta$ empirique}}
+\addplot[SerieB, mark=*, mark size=1.4pt] table[x=s, y=toutes_empirique] {\TropicaleDonnees/fig-extrapolation.csv};
+\addlegendentry{\EF{all, empirical $\delta$}{toutes, $\delta$ empirique}}
+\addplot[SerieB!60, densely dashed, mark=o, mark size=1.4pt] table[x=s, y=toutes_gauss] {\TropicaleDonnees/fig-extrapolation.csv};
+\addlegendentry{\EF{all, Gaussian $\delta$}{toutes, $\delta$ gaussien}}
+\addplot[only marks, mark=*, mark size=2.4pt, Encre] coordinates {(1,0.5711) (1,0.8520)};
+\node[font=\sffamily\scriptsize, anchor=north, text=Encre] at (axis cs:1,0.545) {\EF{measured}{mesuré}};
+\end{semilogxaxis}
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------------------------------
+% T7. Le théorème du nombre de garde : b(10 %) et P(B) contre κ = σ/E[m] (forme close).
+\newcommand{\GrapheTropicaleKappa}{%
+\begin{tikzpicture}
+\begin{semilogxaxis}[memoire, width=0.8\linewidth, height=6.2cm, xmin=1e-3, xmax=10, ymin=0, ymax=1,
+  xlabel={\EF{guard number $\kappa=\sigma/\mathbb{E}[m]$}{nombre de garde $\kappa=\sigma/\mathbb{E}[m]$}},
+  ylabel={\EF{share}{part}}, yticklabel style={/pgf/number format/fixed, /pgf/number format/precision=1},
+  legend pos=north east]
+\fill[SerieC!12] (axis cs:1e-3,0.8) rectangle (axis cs:0.1079,1.0);
+\addplot[SerieB, line width=1.1pt] table[x=kappa, y=b_a_10_pour_cent] {\Depot/mesures/pistes/tropicale/theoreme-kappa.csv};
+\addlegendentry{\EF{$b$ at $c=10\,\%$}{$b$ à $c=10\,\%$}}
+\addplot[SerieF, line width=0.9pt, densely dashed] table[x=kappa, y=p_bascule] {\Depot/mesures/pistes/tropicale/theoreme-kappa.csv};
+\addlegendentry{\EF{flip rate $P(B)$}{taux de bascule $P(B)$}}
+\draw[SerieC!70!black, line width=0.6pt] (axis cs:0.1079,0) -- (axis cs:0.1079,1);
+\node[font=\sffamily\scriptsize, text=SerieC!60!black, anchor=north west, align=left] at (axis cs:0.12,0.74)
+  {$\kappa^\ast=0{,}108$\\$P(B)=4{,}0\,\%$};
+\end{semilogxaxis}
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------------------------------
+% T6. La coupe réelle du routeur de la couche 12 : les polyèdres top-4 et la bande de garde.
+\newcommand{\FigureTropicaleCoupe}{%
+\includegraphics[width=\linewidth]{\TropicaleDonnees/coupe-routeur-c12-\EF{en}{fr}.png}}
+\fi

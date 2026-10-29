@@ -1,0 +1,17 @@
+% Juge de la rédaction du Tome III (FR) : essai du seul chapitre 13 corrigé (G7), avec le préambule, la
+% bibliographie et les figures du maître. Les renvois vers les autres chapitres y sont indéfinis par construction.
+\documentclass[11pt, a4paper, twoside, openright, parskip=false, headings=big,
+               chapterprefix=true, numbers=noenddot, bibliography=totoc,
+               listof=totoc]{scrbook}
+\newif\ifanglais
+\anglaisfalse
+\newcommand{\Racine}{~/dev/active/troncons/memoire}
+\newcommand{\Depot}{~/dev/active/troncons}
+\input{\Racine/commun/preambule}
+\input{\Racine/tome3/commun/bibliographie}
+\input{\Racine/tome3/commun/figures}
+\begin{document}
+\mainmatter
+\input{\Racine/tome3/fr/chapitres/13-discussion}
+\printbibliography
+\end{document}

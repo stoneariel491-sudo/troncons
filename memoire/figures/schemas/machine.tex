@@ -1,0 +1,94 @@
+% Schémas TikZ du chapitre « La machine et sa physique ». Les débits inscrits viennent de
+% fondations/journaux/01-machine/debits-mesures.json et de fondations/01-machine.md § 0.
+
+\tikzset{
+  etage/.style={draw=#1, fill=#1!10, line width=0.9pt, rounded corners=2pt, align=center,
+    minimum height=1.55cm, text width=2.55cm, font=\sffamily\small},
+  filtre/.style={draw=black!45, fill=white, dashed, rounded corners=1pt, align=center,
+    font=\sffamily\scriptsize, text width=2.3cm, inner sep=3pt},
+  flux/.style={-{Latex[length=2.4mm]}, line width=#1, black!70},
+  flux/.default=1pt,
+  debit/.style={font=\sffamily\scriptsize, align=center, text=black!80},
+  bloc/.style={draw=#1!80!black, fill=#1!35, line width=0.4pt},
+}
+
+% Le chemin des données du disque jusqu'aux unités de calcul, avec plafonds et mesures.
+\newcommand{\SchemaChemin}{%
+\begin{tikzpicture}[node distance=1.95cm]
+  \node[etage=Disque] (disque) {\textbf{NVMe}\\ Samsung MZVMA1T0\\ \EF{1\,TB, PCIe 4.0 $\times$4}{1\,To, PCIe 4.0 $\times$4}};
+  \node[etage=Ram, right=of disque] (ram) {\textbf{RAM}\\ \EF{one DDR5-5200\\ module, 16\,GiB}{un module\\ DDR5-5200, 16\,Gio}};
+  \node[etage=Vram, right=of ram] (vram) {\textbf{VRAM}\\ \EF{GDDR6, 128 bits\\ 8\,188\,MiB}{GDDR6, 128 bits\\ 8\,188\,Mio}};
+  \node[etage=Calcul, right=of vram] (sm) {\textbf{\EF{Compute}{Calcul}}\\ \EF{24 SMs, AD107\\ L2 32\,MiB}{24 SM, AD107\\ L2 32\,Mio}};
+  % Les filtres du chemin disque.
+  \node[filtre, below=0.55cm of disque] (vmd) {Intel RST VMD\\ (\texttt{iaStor})};
+  \node[filtre, below=0.25cm of vmd] (bl) {BitLocker \texttt{fvevol}\\ XTS-AES, \EF{CPU}{processeur}\\ \EF{BypassIO refused}{BypassIO refusé}};
+  \node[filtre, below=0.55cm of ram] (cpu) {\EF{CPU i7-13620H}{processeur i7-13620H}\\ 6P + 4E, L3 24\,\EF{MiB}{Mio}};
+  % Les flux, épaisseur selon le débit mesuré.
+  \draw[flux=1.0pt] (disque) -- node[debit, above] {\textbf{\num{2.82}}\\[-1pt] /\num{7.877}} (ram);
+  \draw[flux=1.8pt] (ram) -- node[debit, above] {\textbf{\num{12.2}}\\[-1pt] /\num{15.754}} node[debit, below] {PCIe 4.0 $\times$8} (vram);
+  \draw[flux=3.6pt] (vram) -- node[debit, above] {\textbf{\num{251.3}}\\[-1pt] /256} (sm);
+  \draw[flux=0.8pt, densely dashed] (ram) -- node[debit, right] {\textbf{\num{15.6}}/\num{41.6}} (cpu);
+  \draw[black!40] (disque) -- (vmd); \draw[black!40] (vmd) -- (bl);
+  % Le chemin « zéro copie » : la carte lit la RAM hôte à travers le lien.
+  \draw[flux=0.9pt, Pcie, densely dotted, rounded corners=6pt]
+    ([yshift=-4pt]ram.east) -- ++(0.5,0) |- ([yshift=-0.95cm]sm.south) -- (sm.south);
+  \node[below, debit, text=Pcie] at ([yshift=-0.95cm]vram.south) {\EF{zero copy: GEMV on host RAM, \num{11.75}}{zéro copie : GEMV sur la RAM hôte, \num{11.75}}};
+  % Légende.
+  \node[debit, anchor=north west, text width=15.5cm, align=left] at ([yshift=-2.2cm]bl.south west)
+    {\EF{Bold: best reproducible throughput measured here (GB/s). After the slash: computed ceiling of the stage.}%
+        {En gras : meilleur débit reproductible mesuré ici (Go/s). Après la barre : plafond calculé de l'étage.}};
+\end{tikzpicture}}
+
+% Architectures A et B : où se fait la décompression, et ce qui traverse chaque étage.
+\newcommand{\SchemaArchitectures}{%
+\begin{tikzpicture}[x=1cm, y=1cm, font=\sffamily\small]
+  \foreach \yy/\nom/\dec in {0/A/1, -3.1/B/0}{
+    \node[font=\sffamily\bfseries\large, Accent] at (-1.0,\yy) {\nom};
+    \node[etage=Disque, text width=2cm, minimum height=1.1cm] (d\nom) at (1.1,\yy) {\EF{Disk}{Disque}\\[-1pt]{\scriptsize $f_D B / r$}};
+    \node[etage=Ram, text width=2cm, minimum height=1.1cm] (r\nom) at (4.4,\yy) {RAM};
+    \node[etage=Vram, text width=2cm, minimum height=1.1cm] (v\nom) at (8.6,\yy) {VRAM};
+    \node[etage=Calcul, text width=2.3cm, minimum height=1.1cm] (c\nom) at (12.2,\yy) {GEMV};
+    \draw[flux=1pt] (d\nom) -- node[debit, above] {$f_DB/r$} (r\nom);
+  }
+  % A : le processeur décode, la PCIe porte les octets servis.
+  \node[draw=Signe, fill=Signe!8, rounded corners=1pt, font=\sffamily\scriptsize, align=center] (decA) at (4.4,-1.05)
+    {\EF{CPU decoder}{décodeur du processeur}\\ \EF{must output $f_D B$}{doit sortir $f_D B$}};
+  \draw[black!40] (rA) -- (decA);
+  \draw[flux=2pt] (rA) -- node[debit, above] {$(f_R + f_D)\,B$} node[debit, below] {\EF{served bytes}{octets servis}} (vA);
+  \draw[flux=1.5pt] (vA) -- node[debit, above] {$B$} (cA);
+  % B : la carte décode, la PCIe porte les octets compressés.
+  \draw[flux=1pt] (rB) -- node[debit, above] {$(f_R + f_D/r)\,B$} node[debit, below] {\EF{compressed bytes}{octets compressés}} (vB);
+  \node[draw=Signe, fill=Signe!8, rounded corners=1pt, font=\sffamily\scriptsize, align=center] (decB) at (10.4,-4.15)
+    {\EF{decoded in registers}{décodé dans les registres}\\ \EF{fused or on arrival}{fondu, ou à l'arrivée}};
+  \draw[black!40] (decB) -- ($(vB)!0.5!(cB)$);
+  \draw[flux=1.5pt] (vB) -- node[debit, above] {$B$} (cB);
+  \node[debit, anchor=west, text width=15cm, align=left] at (-1.4,-5.2)
+    {\EF{In A, any factor $r$ beyond $r^\star = W_{\mathrm{PCIe}}/W_{\mathrm{disk}} = \num{4.33}$ is lost: the link carries the served bytes. In B, disk and link both carry $f_D B/r$; the roof grows with $r$ until the GPU decoder or the VRAM bounds it (\cref{cor:sans-croisement}).}%
+        {En A, tout facteur $r$ au-delà de $r^\star = W_{\mathrm{PCIe}}/W_{\mathrm{disque}} = \num{4.33}$ est perdu : le lien porte les octets servis. En B, disque et lien portent tous deux $f_D B/r$ ; le toit croît avec $r$ jusqu'à ce que le décodeur de la carte ou la VRAM le borne (\cref{cor:sans-croisement}).}};
+\end{tikzpicture}}
+
+% Chronogramme : sans recouvrement (somme) et avec double tampon (maximum).
+\newcommand{\SchemaChronogramme}{%
+\begin{tikzpicture}[x=0.68cm, y=0.6cm, font=\sffamily\scriptsize]
+  % En série : lecture, copie, calcul d'une couche, puis la suivante.
+  \node[anchor=east, font=\sffamily\small\bfseries] at (-0.3,6.5) {\EF{serial}{en série}};
+  \foreach \l/\x in {0/0, 1/7.5}{
+    \draw[bloc=Disque] (\x,5.8) rectangle ++(3,0.5) node[midway] {\EF{read}{lecture} $\ell{+}\l$};
+    \draw[bloc=Pcie] (\x+3,5.1) rectangle ++(2.5,0.5) node[midway] {\EF{copy}{copie}};
+    \draw[bloc=Calcul] (\x+5.5,4.4) rectangle ++(2,0.5) node[midway] {\EF{comp.}{calc.}};
+  }
+  \draw[decorate, decoration={brace, amplitude=4pt, mirror}] (0,4.2) -- (7.5,4.2) node[midway, below=4pt] {$t = \sum_i O_i/W_i$};
+  % Recouvert : les couches avancent en décalé ; le plus lent fixe le pas.
+  \node[anchor=east, font=\sffamily\small\bfseries] at (-0.3,2.4) {\EF{overlapped}{recouvert}};
+  \foreach \l in {0,1,2,3,4}{
+    \pgfmathsetmacro{\x}{3*\l}
+    \draw[bloc=Disque] (\x,1.7) rectangle ++(3,0.5) node[midway] {$\ell{+}\l$};
+    \ifnum\l<4 \draw[bloc=Pcie] (\x+3,1.0) rectangle ++(2.5,0.5) node[midway] {$\ell{+}\l$};\fi
+    \ifnum\l<4 \draw[bloc=Calcul] (\x+5.5,0.3) rectangle ++(2,0.5) node[midway] {$\ell{+}\l$};\fi
+  }
+  \node[anchor=west, font=\sffamily\scriptsize] at (17.4,1.95) {\EF{disk}{disque}};
+  \node[anchor=west, font=\sffamily\scriptsize] at (17.4,1.25) {PCIe};
+  \node[anchor=west, font=\sffamily\scriptsize] at (17.4,0.55) {\EF{compute}{calcul}};
+  \draw[decorate, decoration={brace, amplitude=4pt, mirror}] (3,0.1) -- (6,0.1) node[midway, below=4pt] {$t = \max_i O_i/W_i$};
+  \draw[-{Latex}, black!50] (0,-1.1) -- (17.3,-1.1) node[right] {$t$};
+\end{tikzpicture}}

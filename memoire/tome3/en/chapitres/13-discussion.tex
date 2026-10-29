@@ -1,0 +1,132 @@
+% Volume~III, chapter 13: discussion (English version). Translator EN2, 2026-10-29, from
+% memoire/tome3/fr/chapitres/13-discussion.tex (writer D, as corrected: G7); same labels, same macros, same numbers.
+% Figures: those of the chapters of the volume, with their sources (genome/05-synthese.md § 2.3 to 2.5 and § 4.11,
+% 06 § 12, 07 § 8, JUGEMENT-construction § 11, garde-tropicale, spectres/JUGEMENT, mimetisme/*/JUGEMENT),
+% taken as they are, strike-throughs included. Model of form: memoire/tome2/en/chapitres/09-discussion.tex.
+
+\chapter{Discussion}\label{t3dis:ch}
+
+\begin{origine}
+\textbf{At the start}, twelve chapters, each closed on its own ``What could be wrong'' section, and each judged by a judge that had not done the work.
+\textbf{This chapter establishes} what the volume says as a whole: the verdicts, each with its judge and the number that decides it; the struck-through figures, gathered together; the lesson of the quest; what could be wrong at the scale of the volume; and the work to come, in order of expected gain, costed where it is.
+\textbf{What remains} is to do it.
+\end{origine}
+
+\section{What the volume establishes, together}\label{t3dis:sec:bilan}
+
+\Cref{t3dis:tab:verdicts} gathers the verdicts. A verdict is that of the criterion declared before the measurement, as the judge of the step redid it; ``open'' means that neither of the two thresholds, success or death, is crossed, and the chapter says why.
+
+\begingroup\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.25\linewidth}>{\raggedright\arraybackslash}p{0.17\linewidth}>{\raggedright\arraybackslash}p{0.40\linewidth}>{\raggedright\arraybackslash}p{0.11\linewidth}@{}}
+\caption[The verdicts of Volume~III]{The verdicts of Volume~III, each with the number that decides it and the chapter that carries it.}\label{t3dis:tab:verdicts}\\
+\toprule
+Mechanism & Verdict & The number that says it & Where \\
+\midrule
+\endfirsthead
+\toprule
+Mechanism & Verdict & The number that says it & Where \\
+\midrule
+\endhead
+\multicolumn{4}{@{}l}{\textsf{\bfseries They win (the synonyms)}} \\
+zero-synonym codon & wins, lossless & the sign of a zero has an entropy of 0.9999999967 bit and the computation never reads it; \num{0.12791} and \num{0.12562} bit per expert weight; logits identical to the bit (judge: 0 out of \num{5120}, two models) & \cref{t3ecl:ch,t3cod:ch,t3jug:ch} \\
+column context & wins, lossless, at layer 0 & $-\num{0.142}$ and $-\num{0.123}$ bit at layer 0 (gate and up, against the byte stream); below \num{0.01} bit elsewhere & \cref{t3syn:ch} \\
+synonymous mutation ($\lambda = 0$, 768 experts) & wins in KL & \num{0.1318} against \num{0.2640} (R1); $-\num{0.1565} \pm \num{0.0334}$ against the frontier outside R1 (judge, \num{4.7}\,$\sigma$) & \cref{t3sno:ch,t3jug:ch} \\
+$\lambda = 0$ against $\lambda = 1$ & $\lambda = 0$ kept & \num{2.09}\,$\sigma$ on R1, \num{3.6}\,$\sigma$ outside R1 & \cref{t3sno:ch} \\
+\multicolumn{4}{@{}l}{\textsf{\bfseries Equal}} \\
+partitions by $\kappa$ & equal in KL, fewer bits & paired $+\num{0.0066} \pm \num{0.0053}$; \num{0.911} times the bits & \cref{t3syn:ch} \\
+S\textsuperscript{*} (the strand and its exceptions) & wins at expert output, equal in KL & error ratio \num{0.747}; paired KL $+\num{0.0004} \pm \num{0.0019}$ (ten windows; R4) & \cref{t3gen:ch,t3syn:ch} \\
+\multicolumn{4}{@{}l}{\textsf{\bfseries They fall}} \\
+seed and coefficients & falls & \num{3.06} bits at the base's error & \cref{t3gen:ch} \\
+shared motifs & falls & \num{2.90} bits & \cref{t3gen:ch} \\
+recipe and exact complement & falls & \numrange{4.05}{4.37} bits against \num{3.84} & \cref{t3gen:ch} \\
+duplication (the parent) & falls & \num{0.0034} bit, of which \num{0.0016} by chance & \cref{t3dup:ch} \\
+Hebbian, pruning, partitions by $e$ & fall & Hebbian: KL $\times 3.06$ the base for an expert error $\times 1.02$; pruning by magnitude: $\times 1.012$ the bits of the base at equal error & \cref{t3pre:ch,t3syn:ch} \\
+fast mode, generation gain & does not hold & $\times 1.28$ (120b) and $\times 0.94$ (20b) against v1.2 (judge) & \cref{t3sno:ch,t3jug:ch} \\
+tropical guard & falls & \SI{57.1}{\percent} of the flips for \SI{10}{\percent} of the cells; 80\,\% would cost \SI{26.6}{\percent} (judge) & \cref{t3tro:ch} \\
+power law of the spectra & cannot be written & 0 matrices out of 48 under the main criterion, 9 ``compatible'' under the amended criterion, 32 were needed (judge) & \cref{t3spe:ch} \\
+\multicolumn{4}{@{}l}{\textsf{\bfseries Open}} \\
+P1, two-scale cache memory & open & the protocol's ``falls'' is decided by tokens produced after the end of the message (judge) & \cref{t3mim:ch} \\
+P2, exclusive cache & open & an inclusive RAM tier smaller than the VRAM is useless & \cref{t3mim:ch} \\
+P3, cache-conditioned routing & at the limit & about \SI{10}{\percent} of the misses removed for a KL of \num{0.0314} at the online router ($\beta_1 = \num{0.041}$), \num{0.0209} and \num{0.0239} at stage B ($\beta = \num{0.06}$ and \num{0.07}) (what is judged; reserve R6) & \cref{t3mim:ch} \\
+P4, prefetch with calibrated confidence & open, rather falls & simulator not validated & \cref{t3mim:ch} \\
+P5, annealing and replica exchange & open & median \SI{5.09}{\percent} of gain held out; the announced mechanism does not hold at the threshold (judge) & \cref{t3mim:ch} \\
+P6, fidelity decided per call & open; B holds at step 0 & a ``holds'' that could hardly fall (judge) & \cref{t3mim:ch} \\
+\bottomrule
+\end{longtable}
+\endgroup
+
+\paragraph{What this does, for the machine.} Of the three synonyms, two are built: the zero-synonym codon, in the format, and the synonymous mutation, in the fast mode; the column context, which returns something only at layer 0, stays outside the v1.2 format (\cref{t3cod:sec:colonne}). Losslessly, the v1.2 format makes the 120b read \SI{3.3}{\percent} fewer bytes per token, and J1 gains $\times 1.44$ there on this disk, because the pattern of its read requests is fast where that of v1.0 is not (reserve R1). Lossily, the fast mode serves the 20b with a KL of \num{0.13} for \num{2.67} bits per expert weight instead of \num{3.86}, but this gain in bytes does not become a generation gain: the routing of a lossy model misses the VRAM more often, and the bytes per step stay the same. The speed gain that the quest found is not a mechanism of the genome: it is the format, read on this disk.
+
+\section{The struck-through figures}\label{t3dis:sec:barres}
+
+When a measurement contradicted a published figure, the sentence was struck through where it stood. \Cref{t3dis:tab:barres} gathers them; it is the trace that the method worked.
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[The figures and sentences struck through in Volume~III]{The figures and sentences struck through during the quest, and what replaced them.}
+\label{t3dis:tab:barres}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.33\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.12\linewidth}@{}}
+\toprule
+Struck through & Replaced by, and why & Where \\
+\midrule
+\barre{S*: 33 \% more KL} (three windows) & equal to the base over ten windows, $+\num{0.0004} \pm \num{0.0019}$ (R4) & \cref{t3syn:ch} \\
+\barre{$\lambda = 1$: KL 0.0262} & the KL 0.0262 was that of $\lambda = 0$; no variant was yet below the frontier in bits and in KL at once & \cref{t3syn:ch} \\
+\barre{768 substituted experts} (control) & substituted = read (732 out of 732): 36 experts are routed by no position & \cref{t3sno:ch} \\
+\barre{20b $\times 1.24$, 120b $\times 2.00$} (gains of the fast mode) & $\times 0.94$ and $\times 1.28$ against v1.2, which the disk stage reads at the same speed (G1, G2) & \cref{t3sno:ch,t3jug:ch} \\
+\barre{cause: the system's file cache} & impossible: the engine reads without buffering & \cref{t3jug:ch} \\
+\barre{it is the state of the files, not the format} & the pattern of read requests of the format, specific to this disk (reserve R1) & \cref{t3jug:ch} \\
+\barre{with $\lambda = 0$ the tail falls too, against $\lambda = 1$} & not reproduced outside R1; a 99.9th percentile of \num{2550} positions rests on three positions (M2) & \cref{t3sno:ch} \\
+\barre{$\lambda = 0$ distorts in a privileged direction} & the direction of the perplexity reverses outside R1 (M3) & \cref{t3sno:ch} \\
+\barre{at most 4.0 \% of cells that flip} (guard) & true only for a homogeneous population; a counter-example of the judge holds 80/10 with \SI{5.26}{\percent} & \cref{t3tro:ch} \\
+\barre{only place} (spectra) & false: 11 matrices out of 48 & \cref{t3spe:ch} \\
+\barre{the misses are not correlated with the small weights} (P6) & they are: \SI{35}{\percent} of misses at rank 0, \SI{56}{\percent} at rank 3 & \cref{t3mim:ch} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{The lesson of the quest}\label{t3dis:sec:lecon}
+
+The synthesis of the round said it in one sentence per level, and the construction confirmed it.
+\begin{itemize}
+\item \textbf{In the domain of the weights, there is nothing to generate.} The gain is taken on what the computation does not read (the sign of a zero) or on what the coder already knows (the scale, the column). The recipe, the seed, the kinship assume a dependence between weights that these weights, once the scale is known, do not have.
+\item \textbf{In the domain of the outputs, the mean of the error is not enough.} What counts is where the error falls: the synonymous mutation places it where the inputs do not look, the Hebbian where the energy is low; both have a low expert error, only the first wins in KL.
+\item \textbf{In the domain of the text, what costs is the flip.} An error is worth only its probability of making a later layer cross a boundary of the router; and one flip brings others, far from the boundaries, that the local margin does not see (\cref{t3tro:ch}).
+\end{itemize}
+For Stone's conviction, the answer is twofold, and both halves are measured. DNA as a \emph{recipe} does not work on these weights: theory predicted it before the measurement, and the measurement confirmed it. DNA as a \emph{redundant code}, where a synonym changes the sequence without changing the phenotype, is exactly what wins, three times. Living things had the right idea; it was not the one we expected of them.
+
+\section{What could be wrong, at the scale of the volume}\label{t3dis:sec:faux}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{The samples.} The round measured on 12 reference tensors (layers 0, 8, 16, 23 of gpt-oss-20b) and often on 16 or 32 experts out of 768; the spectra on 48 matrices (\SI{2}{\percent}) of three layers; P5 on synthetic weights. A property true of these samples may not be true of another.
+\item \textbf{The text.} All the KLs are taken on wiki.test: R1, the calibration and the judge's new windows come from it. Ten windows of one corpus, whose positions are correlated (a design effect of 32 for an absolute KL); no code or dialogue text. Mimicry judges generation on two traces of 256 tokens, which the judges showed to be degenerate.
+\item \textbf{The protocols at 32 and at 768 experts} measure two different things (R3); a variant judged on 32 experts is not thereby judged: $\lambda = 1$ equals the frontier there, and beats it by \SI{42}{\percent} at 768.
+\item \textbf{A single disk, a single machine} (reserve R1). Every speed figure of the volume holds for this NVMe, behind Intel RST VMD, under BitLocker, on a given day; the gain of the v1.2 format rests on the pattern of its requests on this disk, and the exact variable of the pattern is not isolated.
+\item \textbf{A single model, born in MXFP4.} gpt-oss has expert weights published in four bits; the volume says nothing of a model published in BF16, where the frontier and the noise are different.
+\item \textbf{The analogies.} The genome, the ribosome, the cingulate cortex, the spin glass oriented the research; none of them proved anything. A chapter that read an analogy as an argument would be mistaken, and the volume states them as such.
+\item \textbf{The figures not judged.} Pages 3 to 5 of the figures of the spectra (the lever, the ceiling) are not judged and are not placed; the explorations of the tropical lead after its verdict (the cascade roots, the memory of conflict) are presented as such; the second draw of P3 does not enter the volume (R6); the quality proxy of the 120b is validated on the 20b, not on the 120b.
+\item \textbf{The judges share conventions.} The judge of the construction has its own code, but the same KL convention (cut at $\log p > -16$) and the same engine, built from the same repository; a defect common to this convention or to this engine would not be seen. The second path for the logits remains the f64 reference of Volume~II.
+\item \textbf{A judge can be wrong, and a judge was}: the ``state of the file'' attribution of the judge of the construction fell before the placement judge. Nothing guarantees that another reading will not come.
+\end{itemize}
+\end{faux}
+
+\section{Future work}\label{t3dis:sec:futurs}
+
+Ranked by expected gain, each with the measurement that will judge it.
+
+\paragraph{1. Make v1.2 the default format, and isolate the pattern.} Both files are already recoded and checked (\cref{t3cod:sec:fichiers}); the move from v1.0 to v1.2 is the only speed lever measured end to end: $\times 1.30$ (20b) to $\times 1.44$ (120b) between two files of the same model on this disk, losslessly. The choice of the v1.2 files as default files, and the erasure of the v1.0 ones (\SI{57.7}{\Go} and \SI{11.2}{\Go}), belong to Stone. The exact variable of the slow v1.0 pattern is to be sought at the disk stage, by patterns declared beforehand (the placement judge proposes four); a read lever can be measured end to end only once it is found.
+
+\paragraph{2. The tail of the KL, or the flips.} It carries most of the mean, and no mechanism of the volume targets it: the synonymous mutation lowers the smooth part (median divided by nearly three) much more than the tail (99.9th percentile against the frontier on R1: $-\SI{3.4}{\percent}$ for $\lambda = 1$, $-\SI{17.2}{\percent}$ for $\lambda = 0$); the tropical guard falls because the secondary flips arrive at wide margins. The next step that the measurements point to is the cascade: the guard catches \SI{85.2}{\percent} of the cascade roots, an exploratory reading made after the verdict, to be declared as a criterion before any new measurement.
+
+\paragraph{3. The synonymous mutation of the 120b.} It needs the capture of the f64 reference on the 120b (36 layers, 128 experts), a coder on the card (the Python coder would require about \SI{23}{\hour}), then the end-to-end KL against an f64 reference of the 120b on the ten windows, which does not exist yet. Predicted, not measured: around \num{0.07} of KL if the ratio of the 20b carries over.
+
+\paragraph{4. The uses of the fast mode, redone with the right ratios.} The mixed miss policy (serving a cold expert in fast mode, rereading a promoted expert in exact mode) is first to be simulated on the traces by the same code as the real cache, with $r(R/B)$ and not $r(R/A)$: $\times 1.28$ in generation for a KL of \num{0.14} on the 120b, nothing in generation on the 20b. The speculative draft, an idea of Stone's (``un genre de puissance de raisonnement différent'', \emph{a different kind of reasoning power}), returns the text exact to the bit; but by the lemma of the synthesis, a draft read from the disk pays only if $\alpha > 1 - \rho + b_d/b_e$, and with independent routing the reuse $\rho$ of experts between neighbouring positions is of the order of \num{0.03} on the 120b: the only resident draft of a 120b on this machine would be the 20b in fast mode, whose agreement with the 120b is not measured (\cref{t3syn:ch}).
+
+\paragraph{5. Another corpus.} Windows of code and dialogue, kept apart, for the KL of the synonymous genome and for B2; and, for mimicry, generations of the 120b that stop at the end token, the measurement that the judge of P1 asks for to decide.
+
+\paragraph{6. What the round leaves.} S\textsuperscript{*} combined with feedback through the full $H$ (the prediction that would say why S\textsuperscript{*} does not win in KL); the bridge expert, whose best paralogue leaves 33 to \SI{84}{\percent} of the output energy in error; the second draw of P3. None has a gain figure today.
+
+\section*{Conclusion}\label{t3dis:sec:conclusion}
+
+Volume~I had measured the machine and proved that, on it, everything comes down to bits read per weight. Volume~II had built a program that serves a model four times larger than the RAM, exactly. This volume looked in living things for a way to read fewer bits, and it found three, all of the same family: a synonym changes the code without changing what counts. It also showed, with the same demands, what does not work and why: the weights of gpt-oss, once the scale is known, are noise; what costs the text is the flip of the router; and the speed gain found along the way belongs to the format and to this disk, not to the genome. Each verdict has its threshold declared beforehand, its control that can fail, and a judge that did not do the work. What remains is written above, in the order in which it would pay.

@@ -1,0 +1,11 @@
+﻿batterie: 1 61%
+RESULTAT op=vram_lecture api=vulkan taille=536870912 reps=20 go_s_mur_mediane=201.69 go_s_mur_min=96.14 go_s_mur_max=232.59 go_s_carte_mediane=247.66 go_s_carte_min=216.51 go_s_carte_max=248.65 sous_plafond=true temoin_somme=ok
+CARTE api=vulkan nom="NVIDIA GeForce RTX 4060 Laptop GPU" chrono_carte=true
+RESULTAT op=h2d_hote_dma api=vulkan taille=67108864 reps=16 go_s_mur_mediane=10.563 go_s_mur_min=7.602 go_s_mur_max=12.026 go_s_carte_mediane=11.786 bruit_abba=0.423 sous_plafond=true temoin_aller_retour=ok
+RESULTAT op=h2d_bar_cpu api=vulkan taille=67108864 reps=16 go_s_mur_mediane=1.669 go_s_mur_min=1.319 go_s_mur_max=5.512 go_s_carte_mediane=NaN bruit_abba=0.415 sous_plafond=true temoin_aller_retour=ok
+RESULTAT op=write_buffer api=vulkan taille=67108864 reps=16 go_s_mur_mediane=1.254 go_s_mur_min=1.009 go_s_mur_max=4.295 go_s_carte_mediane=NaN bruit_abba=0.394 sous_plafond=true temoin_aller_retour=ok
+RESULTAT op=d2h api=vulkan taille=67108864 reps=16 go_s_mur_mediane=6.357 go_s_mur_min=5.625 go_s_mur_max=6.461 go_s_carte_mediane=6.492 bruit_abba=0.124 sous_plafond=true temoin_aller_retour=ok
+RESULTAT op=d2d api=vulkan taille=67108864 reps=16 go_s_mur_mediane=151.169 go_s_mur_min=110.175 go_s_mur_max=197.071 go_s_carte_mediane=172.095 bruit_abba=0.544 sous_plafond=true temoin_aller_retour=ok
+RESULTAT op=copie_tampon_envoi api=vulkan taille=67108864 reps=16 go_s_mur_mediane=70.420 go_s_mur_min=67.568 go_s_mur_max=95.706 go_s_carte_mediane=91.843 bruit_abba=0.117 sous_plafond=true temoin_aller_retour=ok
+RESULTAT op=gemv api=vulkan format=f16 residence=carte m=8192 k=8192 lot=1 octets_poids=134217728 reps=50 go_s_mur_mediane=213.25 go_s_mur_min=205.83 go_s_mur_max=213.87 go_s_carte_mediane=216.16 go_s_carte_min=209.22 go_s_carte_max=216.27 us_par_gemv_carte=620.9 gflops_carte=216.2 ecart_relatif_max=3.55e-9 temoin=ok sous_plafond=true
+batterie fin: 1 61%

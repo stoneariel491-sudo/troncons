@@ -1,0 +1,16 @@
+[package]
+name = "trc-codeur"
+description = "GGUF -> .trc (+ compagnon .vocab.gguf), et la vérification C1 : chaque expert décodé égal à l'original. Lot F."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+# Couture D (§ 2.4) : rayon, sha2, serde_json, anyhow (MIT ou Apache-2.0).
+[dependencies]
+trc-format = { path = "../../crates/trc-format" }
+trc-codec = { path = "../../crates/trc-codec" }
+rayon.workspace = true
+sha2.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true

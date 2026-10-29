@@ -1,0 +1,87 @@
+Thu Oct 15 02:14:56     2026
+0 %, 4062 MiB
+RESULTAT op=lecture fils=1 taille=536870912 go_s_mediane=14.487 go_s_min=14.487 go_s_max=15.440 temoin=ECHEC sous_plafond=true
+
+thread 'main' (29336) panicked at /rustc/48a229ceaefd4985c50990b14116b6d856af0985/library\std\src\io\stdio.rs:1166:9:
+failed printing to stdout: Le canal de communication est sur le point d’être fermé. (os error 232)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+== passe A
+RESULTAT op=lecture fils=1 taille=536870912 go_s_mediane=15.578 go_s_min=15.352 go_s_max=15.692 temoin=ok sous_plafond=true
+RESULTAT op=ecriture fils=1 taille=536870912 go_s_mediane=8.414 go_s_min=2.571 go_s_max=8.597 temoin=ok sous_plafond=true
+RESULTAT op=copie_lu+ecrit fils=1 taille=536870912 go_s_mediane=18.120 go_s_min=14.771 go_s_max=19.673 temoin=ok sous_plafond=true
+RESULTAT op=lecture fils=2 taille=536870912 go_s_mediane=11.919 go_s_min=9.896 go_s_max=13.188 temoin=ok sous_plafond=true
+RESULTAT op=ecriture fils=2 taille=536870912 go_s_mediane=8.618 go_s_min=8.115 go_s_max=9.454 temoin=ok sous_plafond=true
+RESULTAT op=copie_lu+ecrit fils=2 taille=536870912 go_s_mediane=19.010 go_s_min=13.025 go_s_max=20.967 temoin=ok sous_plafond=true
+RESULTAT op=lecture fils=4 taille=536870912 go_s_mediane=13.206 go_s_min=8.214 go_s_max=20.080 temoin=ok sous_plafond=true
+RESULTAT op=ecriture fils=4 taille=536870912 go_s_mediane=7.481 go_s_min=6.035 go_s_max=9.326 temoin=ok sous_plafond=true
+RESULTAT op=copie_lu+ecrit fils=4 taille=536870912 go_s_mediane=12.189 go_s_min=2.175 go_s_max=17.648 temoin=ok sous_plafond=true
+RESULTAT op=lecture fils=6 taille=536870912 go_s_mediane=2.736 go_s_min=1.790 go_s_max=2.935 temoin=ok sous_plafond=true
+RESULTAT op=ecriture fils=6 taille=536870912 go_s_mediane=2.417 go_s_min=2.299 go_s_max=2.807 temoin=ok sous_plafond=true
+RESULTAT op=copie_lu+ecrit fils=6 taille=536870912 go_s_mediane=4.633 go_s_min=4.267 go_s_max=5.021 temoin=ok sous_plafond=true
+RESULTAT op=lecture fils=8 taille=536870912 go_s_mediane=2.568 go_s_min=1.951 go_s_max=2.954 temoin=ok sous_plafond=true
+RESULTAT op=ecriture fils=8 taille=536870912 go_s_mediane=2.209 go_s_min=1.384 go_s_max=2.676 temoin=ok sous_plafond=true
+RESULTAT op=copie_lu+ecrit fils=8 taille=536870912 go_s_mediane=4.646 go_s_min=3.882 go_s_max=5.737 temoin=ok sous_plafond=true
+RESULTAT op=lecture fils=16 taille=536870912 go_s_mediane=2.004 go_s_min=1.449 go_s_max=2.313 temoin=ok sous_plafond=true
+RESULTAT op=ecriture fils=16 taille=536870912 go_s_mediane=4.776 go_s_min=2.328 go_s_max=5.636 temoin=ok sous_plafond=true
+RESULTAT op=copie_lu+ecrit fils=16 taille=536870912 go_s_mediane=3.632 go_s_min=2.797 go_s_max=4.340 temoin=ok sous_plafond=true
+RESULTAT op=latence taille=536870912 sauts=20000000 ns_mediane=420.8 ns_min=321.8 ns_max=733.4
+== passe B
+RESULTAT op=lecture fils=1 taille=536870912 go_s_mediane=2.996 go_s_min=2.142 go_s_max=4.009 temoin=ok sous_plafond=true
+RESULTAT op=ecriture fils=1 taille=536870912 go_s_mediane=2.346 go_s_min=1.408 go_s_max=5.426 temoin=ok sous_plafond=true
+RESULTAT op=copie_lu+ecrit fils=1 taille=536870912 go_s_mediane=4.697 go_s_min=3.516 go_s_max=6.691 temoin=ok sous_plafond=true
+RESULTAT op=lecture fils=2 taille=536870912 go_s_mediane=5.287 go_s_min=3.769 go_s_max=8.642 temoin=ok sous_plafond=true
+RESULTAT op=ecriture fils=2 taille=536870912 go_s_mediane=4.714 go_s_min=3.793 go_s_max=6.647 temoin=ok sous_plafond=true
+RESULTAT op=copie_lu+ecrit fils=2 taille=536870912 go_s_mediane=6.980 go_s_min=6.389 go_s_max=10.139 temoin=ok sous_plafond=true
+RESULTAT op=lecture fils=4 taille=536870912 go_s_mediane=4.821 go_s_min=3.667 go_s_max=5.352 temoin=ok sous_plafond=true
+RESULTAT op=ecriture fils=4 taille=536870912 go_s_mediane=4.890 go_s_min=3.244 go_s_max=5.499 temoin=ok sous_plafond=true
+RESULTAT op=copie_lu+ecrit fils=4 taille=536870912 go_s_mediane=6.528 go_s_min=3.313 go_s_max=23.027 temoin=ok sous_plafond=true
+RESULTAT op=lecture fils=6 taille=536870912 go_s_mediane=3.987 go_s_min=2.872 go_s_max=4.503 temoin=ok sous_plafond=true
+RESULTAT op=ecriture fils=6 taille=536870912 go_s_mediane=3.771 go_s_min=1.885 go_s_max=10.218 temoin=ok sous_plafond=true
+RESULTAT op=copie_lu+ecrit fils=6 taille=536870912 go_s_mediane=10.630 go_s_min=4.470 go_s_max=15.771 temoin=ok sous_plafond=true
+RESULTAT op=lecture fils=8 taille=536870912 go_s_mediane=2.539 go_s_min=1.259 go_s_max=4.507 temoin=ok sous_plafond=true
+RESULTAT op=ecriture fils=8 taille=536870912 go_s_mediane=3.561 go_s_min=1.447 go_s_max=11.810 temoin=ok sous_plafond=true
+RESULTAT op=copie_lu+ecrit fils=8 taille=536870912 go_s_mediane=7.118 go_s_min=5.859 go_s_max=12.019 temoin=ok sous_plafond=true
+RESULTAT op=lecture fils=16 taille=536870912 go_s_mediane=3.682 go_s_min=1.848 go_s_max=15.225 temoin=ok sous_plafond=true
+RESULTAT op=ecriture fils=16 taille=536870912 go_s_mediane=3.964 go_s_min=3.056 go_s_max=4.776 temoin=ok sous_plafond=true
+RESULTAT op=copie_lu+ecrit fils=16 taille=536870912 go_s_mediane=11.131 go_s_min=2.582 go_s_max=20.432 temoin=ok sous_plafond=true
+RESULTAT op=latence taille=536870912 sauts=20000000 ns_mediane=348.8 ns_min=292.9 ns_max=350.5
+== passe B
+RESULTAT op=lecture fils=1 taille=536870912 go_s_mediane=3.236 go_s_min=2.003 go_s_max=3.871 temoin=ok sous_plafond=true
+RESULTAT op=ecriture fils=1 taille=536870912 go_s_mediane=3.078 go_s_min=0.937 go_s_max=4.223 temoin=ok sous_plafond=true
+RESULTAT op=copie_lu+ecrit fils=1 taille=536870912 go_s_mediane=5.568 go_s_min=3.398 go_s_max=14.818 temoin=ok sous_plafond=true
+RESULTAT op=lecture fils=2 taille=536870912 go_s_mediane=3.878 go_s_min=2.475 go_s_max=7.044 temoin=ok sous_plafond=true
+RESULTAT op=ecriture fils=2 taille=536870912 go_s_mediane=3.835 go_s_min=2.946 go_s_max=5.775 temoin=ok sous_plafond=true
+RESULTAT op=copie_lu+ecrit fils=2 taille=536870912 go_s_mediane=9.315 go_s_min=3.973 go_s_max=14.928 temoin=ok sous_plafond=true
+RESULTAT op=lecture fils=4 taille=536870912 go_s_mediane=4.015 go_s_min=1.567 go_s_max=16.796 temoin=ok sous_plafond=true
+RESULTAT op=ecriture fils=4 taille=536870912 go_s_mediane=4.359 go_s_min=2.817 go_s_max=5.777 temoin=ok sous_plafond=true
+RESULTAT op=copie_lu+ecrit fils=4 taille=536870912 go_s_mediane=11.406 go_s_min=7.446 go_s_max=22.645 temoin=ok sous_plafond=true
+RESULTAT op=lecture fils=6 taille=536870912 go_s_mediane=18.296 go_s_min=3.385 go_s_max=21.445 temoin=ok sous_plafond=true
+RESULTAT op=ecriture fils=6 taille=536870912 go_s_mediane=4.209 go_s_min=3.036 go_s_max=14.778 temoin=ok sous_plafond=true
+RESULTAT op=copie_lu+ecrit fils=6 taille=536870912 go_s_mediane=9.224 go_s_min=5.010 go_s_max=10.945 temoin=ok sous_plafond=true
+RESULTAT op=lecture fils=8 taille=536870912 go_s_mediane=1.814 go_s_min=1.631 go_s_max=11.877 temoin=ok sous_plafond=true
+RESULTAT op=ecriture fils=8 taille=536870912 go_s_mediane=3.838 go_s_min=2.178 go_s_max=12.004 temoin=ok sous_plafond=true
+RESULTAT op=copie_lu+ecrit fils=8 taille=536870912 go_s_mediane=8.230 go_s_min=4.950 go_s_max=9.837 temoin=ok sous_plafond=true
+RESULTAT op=lecture fils=16 taille=536870912 go_s_mediane=3.072 go_s_min=1.662 go_s_max=10.555 temoin=ok sous_plafond=true
+RESULTAT op=ecriture fils=16 taille=536870912 go_s_mediane=2.752 go_s_min=1.693 go_s_max=11.430 temoin=ok sous_plafond=true
+RESULTAT op=copie_lu+ecrit fils=16 taille=536870912 go_s_mediane=7.756 go_s_min=4.871 go_s_max=10.088 temoin=ok sous_plafond=true
+RESULTAT op=latence taille=536870912 sauts=20000000 ns_mediane=1594.6 ns_min=728.5 ns_max=1676.4
+== passe A
+RESULTAT op=lecture fils=1 taille=536870912 go_s_mediane=11.036 go_s_min=9.776 go_s_max=15.352 temoin=ok sous_plafond=true
+RESULTAT op=ecriture fils=1 taille=536870912 go_s_mediane=8.308 go_s_min=2.473 go_s_max=8.568 temoin=ok sous_plafond=true
+RESULTAT op=copie_lu+ecrit fils=1 taille=536870912 go_s_mediane=16.293 go_s_min=14.444 go_s_max=16.656 temoin=ok sous_plafond=true
+RESULTAT op=lecture fils=2 taille=536870912 go_s_mediane=10.317 go_s_min=9.348 go_s_max=12.154 temoin=ok sous_plafond=true
+RESULTAT op=ecriture fils=2 taille=536870912 go_s_mediane=5.775 go_s_min=4.102 go_s_max=8.467 temoin=ok sous_plafond=true
+RESULTAT op=copie_lu+ecrit fils=2 taille=536870912 go_s_mediane=10.284 go_s_min=8.847 go_s_max=13.590 temoin=ok sous_plafond=true
+RESULTAT op=lecture fils=4 taille=536870912 go_s_mediane=6.747 go_s_min=5.639 go_s_max=8.997 temoin=ok sous_plafond=true
+RESULTAT op=ecriture fils=4 taille=536870912 go_s_mediane=2.494 go_s_min=2.060 go_s_max=7.841 temoin=ok sous_plafond=true
+RESULTAT op=copie_lu+ecrit fils=4 taille=536870912 go_s_mediane=3.928 go_s_min=2.114 go_s_max=5.039 temoin=ok sous_plafond=true
+RESULTAT op=lecture fils=6 taille=536870912 go_s_mediane=2.315 go_s_min=1.363 go_s_max=2.999 temoin=ok sous_plafond=true
+RESULTAT op=ecriture fils=6 taille=536870912 go_s_mediane=2.853 go_s_min=2.176 go_s_max=2.964 temoin=ok sous_plafond=true
+RESULTAT op=copie_lu+ecrit fils=6 taille=536870912 go_s_mediane=3.505 go_s_min=2.436 go_s_max=4.044 temoin=ok sous_plafond=true
+RESULTAT op=lecture fils=8 taille=536870912 go_s_mediane=2.311 go_s_min=1.545 go_s_max=2.820 temoin=ok sous_plafond=true
+RESULTAT op=ecriture fils=8 taille=536870912 go_s_mediane=2.224 go_s_min=2.025 go_s_max=2.562 temoin=ok sous_plafond=true
+RESULTAT op=copie_lu+ecrit fils=8 taille=536870912 go_s_mediane=3.863 go_s_min=3.026 go_s_max=5.186 temoin=ok sous_plafond=true
+RESULTAT op=lecture fils=16 taille=536870912 go_s_mediane=2.359 go_s_min=0.933 go_s_max=3.670 temoin=ok sous_plafond=true
+RESULTAT op=ecriture fils=16 taille=536870912 go_s_mediane=1.259 go_s_min=0.731 go_s_max=1.633 temoin=ok sous_plafond=true
+RESULTAT op=copie_lu+ecrit fils=16 taille=536870912 go_s_mediane=3.322 go_s_min=2.575 go_s_max=5.007 temoin=ok sous_plafond=true
+RESULTAT op=latence taille=536870912 sauts=20000000 ns_mediane=457.7 ns_min=433.5 ns_max=1933.6

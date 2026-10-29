@@ -1,0 +1,250 @@
+% Tome~III, chapitre 1 : la question du génome (version française).
+% Rédacteur A, 2026-10-29. Plan et réserves : memoire/tome3/PLAN-redaction.md § 01.
+% Chaque nombre vient d'un fichier commité, nommé à côté de lui : genome/00-etat-de-l-art.md,
+% genome/01-eclaireur.md § 3, genome/etat-de-l-art-pour-le-memoire.md, mesures/genome/etat-de-l-art/
+% (borne-rd.json, borne-rd-passe1.json, zero-canonique.json, zero-temoin-sans-drapeau.json),
+% memoire/figures/tome3/donnees/eclaireur-nombres.csv (nombres des figures, tirés des mêmes journaux).
+% Figures (jugées, non modifiées) : III-1.1 \GrapheEclBloc, III-1.2 \GrapheEclBorne.
+\chapter{La question du génome : le toit, les bits lus par poids, la frontière}\label{t3que:ch}
+
+\begin{origine}
+\textbf{Au départ}, deux tomes et une idée. Le Tome~I a posé le toit : à disque limitant, la vitesse d'un jeton est le débit du disque divisé par les octets qu'il doit lire, et seul le nombre de bits par poids a sur ce toit une pente de $-1$ sans contrepartie. Le Tome~II a construit le moteur et le format \texttt{.trc}, qui lit les experts de gpt-oss à \textbf{3,8431 bits par poids sans perte} (codes MXFP4 en rANS à table par voie, échelles en écart à la médiane de ligne ; mesure F1 de l'arbitre) et prévoit une base de \textbf{2,6441 bits} (signe et quatre classes de magnitude) à \textbf{4,29\,\%} d'erreur quadratique relative sur les poids. L'étude 03 avait mesuré que, sachant l'échelle de leur bloc, les codes sont presque indépendants : le code voisin n'apporte que 0,005 bit. Stone, enfin, avait posé une idée (\fichier{idees/biomimetisme-genome-des-poids.md}) et une consigne, le 2026-10-16 : « le but est de concevoir un systeme fonctionnel ».
+\textbf{Ce chapitre établit} la question en bits ; le bloc MXFP4 au bit près, avec la loi de ses quinze valeurs ; la frontière à battre et ce qu'en dit une borne distorsion-débit calculée dans le domaine des poids, posée comme une \emph{borne supérieure} de $R(D)$ et démontrée telle ; l'état de l'art en douze familles, chacune passée à deux filtres (quelle dépendance exploite-t-elle ? quelle erreur mesure-t-elle ?) ; la case que personne n'avait remplie sur un modèle né en 4 bits ; et ce que la lecture prédit, que les quatre chapitres suivants mesurent.
+\textbf{Il reste} les mesures elles-mêmes : l'éclaireur (\cref{t3ecl:ch}), la recette (\cref{t3gen:ch}), la duplication (\cref{t3dup:ch}), le codage prédictif et l'élagage (\cref{t3pre:ch}), puis la synthèse de la ronde (\cref{t3syn:ch}).
+Sources : \fichier{genome/00-etat-de-l-art.md} ; \fichier{genome/etat-de-l-art-pour-le-memoire.md} ; \fichier{genome/01-eclaireur.md} §\,3 ; \fichier{mesures/genome/etat-de-l-art/journaux/borne-rd.json}, \fichier{borne-rd-passe1.json}, \fichier{zero-canonique.json}, \fichier{zero-temoin-sans-drapeau.json} ; \fichier{mesures/genome/etat-de-l-art/sources.csv}, \fichier{recherches.csv} ; Tome~I, chapitre 3 (le toit).
+\end{origine}
+
+\begin{enbref}
+Un modèle de langage est un très long texte de nombres : 19 milliards de poids d'experts pour gpt-oss-20b, 115 milliards pour le 120b. L'idée de Stone tient dans une image : le vivant ne stocke pas un organisme, il stocke un génome, quelques milliards de lettres d'où l'organisme se construit. Peut-on, de même, stocker une \emph{recette} des poids plutôt que les poids ? L'image est une analogie, pas une preuve, et ce chapitre la traduit en une question que la machine peut juger : combien de bits faut-il lire sur le disque par poids, et à quelle erreur ? La réponse de la théorie de l'information est sévère : si les poids, vus d'eux-mêmes, se comportent comme des tirages indépendants, aucune recette ne les décrit plus court que leur codage entropique. La lecture de la littérature dit donc d'abord où chaque idée « génomique » parie sur une dépendance, puis où la seule marge restante se trouve : non dans les poids, mais dans l'erreur qu'on choisit de mesurer.
+\end{enbref}
+
+\section{Le toit : ce qu'un jeton doit lire}\label{t3que:sec:toit}
+
+Le Tome~I l'a démontré (théorème du toit, chapitre 3) : sous la seule hypothèse qu'un étage de débit $W$ fait passer au plus $W\tau$ octets en un temps $\tau$, un jeton qui doit lire $O$ octets sur cet étage dure au moins $O/W$. Pour des poids lus une fois chacun, $O = N b / 8$ ($N$ poids lus par jeton, $b$ bits par poids), d'où
+\begin{equation}\label{t3que:eq:toit}
+\text{jetons/s} \;\le\; \frac{8\,W}{N\,b}, \qquad \frac{\partial \ln(\text{jetons/s})}{\partial \ln b} = -1 .
+\end{equation}
+Sur la machine de Stone, l'étage le plus lent est le disque : 2,82\,Go/s mesurés \mes~(\fichier{fondations/journaux/01-machine/debits-mesures.json}, cité par \fichier{genome/00-etat-de-l-art.md} §\,1). Diviser par deux les bits lus par poids double le toit ; retirer 3,56\,\% des octets d'experts lus le monte de $1/(1 - 0{,}0356) - 1 = 3{,}7\,\%$ \calc. Toute la quête du génome se juge donc en \textbf{bits lus par poids}, à une erreur donnée.
+
+Le calcul n'est pas le goulot. La carte a de l'ordre de 214 opérations libres par octet compressé lu (fondations/01), 926 au débit réel du disque du moteur selon la correction du Tome~II (m12) \calc. Un mécanisme dont la transcription coûte moins que ce budget est gratuit en temps : il ne se juge qu'à ses bits et à son erreur. Les chapitres de la ronde comptent ce coût chaque fois qu'il n'est pas nul (\cref{t3gen:sec:transcription}).
+
+\section{Le bloc MXFP4 au bit près}\label{t3que:sec:mxfp4}
+
+Les experts de gpt-oss sont publiés en MXFP4~\cite{openai2025gptoss}, le format à petite virgule flottante de la famille Microscaling~\cite{rouhani2023microscaling,ocpmx2023}. Un bloc porte 32 poids consécutifs d'une rangée dans 17 octets (\cref{fig:t3-ecl-bloc}) : un octet d'échelle E8M0, un exposant seul, et seize octets de codes, deux codes de 4 bits par octet.
+
+\begin{figure}[tbp]
+\centering
+\GrapheEclBloc
+\LegendeFigure{EclBloc}
+\label{fig:t3-ecl-bloc}
+\end{figure}
+
+\paragraph{Le code E2M1.} Un code $c$ de 4 bits se lit $c = (s, E_1E_0, M)$ : un bit de signe, deux bits d'exposant, un bit de mantisse. Sa valeur est
+\begin{equation}\label{t3que:eq:e2m1}
+\mathrm{E2M1}(c) = (-1)^{s} \times
+\begin{cases}
+M/2 & \text{si } E = 0 \quad(\text{sous-normal}),\\
+2^{E-1}\,(1 + M/2) & \text{si } E \in \{1, 2, 3\},
+\end{cases}
+\end{equation}
+ce qui donne les huit magnitudes $\{0;\ 0{,}5;\ 1;\ 1{,}5;\ 2;\ 3;\ 4;\ 6\}$ \calc. Seize motifs pour quinze valeurs : le code $0 = (0, 00, 0)$ et le code $8 = (1, 00, 0)$ valent tous deux zéro, l'un $+0$, l'autre $-0$. La figure le dit en légende : c'est le premier codon synonyme du tome, et le chapitre suivant en mesure le prix.
+
+\paragraph{La valeur d'un poids.} Le poids $i$ du bloc $b$ vaut $w_{32b+i} = 2^{\,e_b - 127}\,\mathrm{E2M1}(c_i)$, $e_b$ l'octet E8M0 du bloc. Les chapitres suivants écrivent souvent la forme équivalente des noyaux de llama.cpp et de \texttt{trc-reference}, à table doublée :
+\begin{equation}\label{t3que:eq:k}
+w = \pm K[m]\cdot 2^{\,e-128}, \qquad K = \{0, 1, 2, 3, 4, 6, 8, 12\},
+\end{equation}
+où $m$ est la magnitude sur 3 bits ; les deux écritures donnent les mêmes produits puisque $K[m] = 2\,|\mathrm{E2M1}(c)|$ et $2^{e-128} = 2^{e-127}/2$ \calc. Un bloc coûte $8 + 32 \times 4 = 136$ bits, soit 4,25 bits par poids avant tout codage \calc. Une rangée de 2\,880 poids compte 90 blocs ; une matrice d'expert de gpt-oss, $2\,880 \times 2\,880 = 8\,294\,400$ poids.
+
+\paragraph{La loi des valeurs.} Sur les 12 tenseurs de référence de la frontière (couches 0, 8, 16 et 23 de gpt-oss-20b, matrices gate, up et down, 3\,185\,049\,600 poids), les quinze valeurs ont la loi du \cref{t3que:tab:loi} \mes~(\fichier{mesures/genome/etat-de-l-art/journaux/borne-rd-passe1.json}, champ \texttt{loi\_v}). Elle est symétrique à $1{,}3\cdot 10^{-5}$ près, et le zéro y est la valeur la plus fréquente : 13,69\,\% des poids. Son entropie vaut $H(V) = 3{,}7228$ bits, contre $H(C) = 3{,}8598$ pour les seize codes des mêmes tenseurs (\fichier{genome/01-eclaireur.md} §\,2.1) : l'écart, 0,137 bit, est le prix du signe des zéros.
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabular}{l *{8}{r}}
+\toprule
+$|K|$ (unités doublées) & 0 & 1 & 2 & 3 & 4 & 6 & 8 & 12 \\
+$|\mathrm{E2M1}|$ & 0 & 0,5 & 1 & 1,5 & 2 & 3 & 4 & 6 \\
+\midrule
+$P(V = +|K|)$ (\%) & \multirow{2}{*}{13,694} & 8,601 & 10,152 & 5,461 & 7,883 & 5,595 & 3,998 & 1,462 \\
+$P(V = -|K|)$ (\%) & & 8,602 & 10,153 & 5,460 & 7,882 & 5,595 & 3,998 & 1,462 \\
+\bottomrule
+\end{tabular}
+\caption[La loi des quinze valeurs MXFP4]{La loi des quinze valeurs MXFP4 sur les 12 tenseurs de référence de gpt-oss-20b, $\pm0$ fusionnés \mes. Données : \fichier{mesures/genome/etat-de-l-art/journaux/borne-rd-passe1.json} (\texttt{loi\_v}, en unités doublées $K$) ; $E[V^2] = 17{,}847$ dans ces unités. La loi est symétrique : seul l'écart à la médiane de ligne de l'échelle (le contexte $\kappa$ du format) et la classe de magnitude portent de l'information au-delà de cette table.}
+\label{t3que:tab:loi}
+\end{table}
+
+\section{La frontière, et la borne distorsion-débit}\label{t3que:sec:frontiere}
+
+\subsection{Ce que coûte un poids aujourd'hui}
+
+Deux points forment la frontière que la ronde devait battre (\fichier{genome/00-etat-de-l-art.md}, En bref, point 1 ; mesure F1 de l'arbitre, rapportée au Tome~II, chapitre 2) :
+\begin{itemize}
+\item \textbf{sans perte} : 3,8431 bits par poids (A\_ctx : codes en rANS à table par voie et par contexte d'échelle, échelles E8M0 en écart à la médiane de ligne, tables et en-têtes comptés), chaque flux décodé exactement \mes ;
+\item \textbf{avec perte}, la \emph{base} du mode rapide : le signe et quatre classes contiguës de magnitude, $\{0;\,0{,}5\}$, $\{1;\,1{,}5;\,2\}$, $\{3;\,4\}$, $\{6\}$ en unités E2M1, chacune reconstruite par son centre de gravité pondéré par $s^2$ (0,237\,166 ; 1,424\,298 ; 3,418\,577 ; 6 ; \fichier{mesures/genome/genome/frontiere.json}), à \textbf{2,6441 bits} lus pour une erreur quadratique relative sur les poids $D = \sum s^2 (v - \hat v)^2 / \sum s^2 v^2 = $ \textbf{4,2920\,\%} \mes.
+\end{itemize}
+La base est une \emph{fonction du code} : le code exact se retrouve derrière elle par un complément sans perte, ce que le format réserve pour sa version à deux niveaux. C'est sa force (elle s'emboîte) et sa contrainte (elle est scalaire et fixée d'avance) ; la borne qui suit dit combien coûte cette contrainte.
+
+\subsection{La borne d'un codeur sans mémoire, dans le domaine des poids}
+
+\paragraph{Le modèle.} On écrit $w = s\,v$, $v$ tiré i.i.d. selon la loi du \cref{t3que:tab:loi} ($\pm0$ fusionnés), $s = 2^{e-128}$ connue du décodeur. La distorsion est l'erreur relative poolée $D = \sum s^2 (v-\hat y)^2 / \sum s^2 v^2$. Un quantificateur unique pour tous les blocs (une seule pente, dite allocation \emph{uniforme}) est exactement la contrainte de la base frontière. La fonction distorsion-débit de la source discrète $V$ sous $d(v, \hat y) = (v - \hat y)^2$ est
+\begin{equation}\label{t3que:eq:rd}
+R(D) = \min_{Q(\hat y \mid v)\,:\ \E\, d(V, \hat Y) \le D}\ I(V ; \hat Y),
+\end{equation}
+et le théorème de codage de source avec critère de fidélité~\cite{shannon1959} dit que tout débit au-dessus de $R(D)$ est atteignable par des codes assez longs, aucun en dessous.
+
+\paragraph{L'algorithme de Blahut-Arimoto.} Pour une pente $\beta > 0$ (bits par unité de distorsion), on itère jusqu'au point fixe~\cite{blahut1972}
+\begin{equation}\label{t3que:eq:ba}
+Q(\hat y \mid v) = \frac{q(\hat y)\, 2^{-\beta (v - \hat y)^2}}{\sum_{y'} q(y')\, 2^{-\beta (v - y')^2}}, \qquad q(\hat y) = \sum_v p(v)\, Q(\hat y \mid v),
+\end{equation}
+puis on lit $R = \sum_{v, \hat y} p(v) Q(\hat y\mid v) \log_2 \frac{Q(\hat y\mid v)}{q(\hat y)}$ et $D = \sum p(v) Q(\hat y\mid v)(v - \hat y)^2$. Aux pentes faibles, le nombre d'itérations nécessaire croît comme $1/\beta$ ; c'est là que l'outil a peiné.
+
+\paragraph{L'histoire des passes, telle qu'elle est.} La passe 1 de \texttt{borne\_rd.py} a fait tomber son propre témoin B1 au bout bas de la courbe (à $\beta = 10^{-6}$, le point n'était pas convergé), tandis que B2 tenait (une gaussienne suit $2^{-2R}$ à $10^{-5}$ bit) et que sa cassure tombait. La passe 2, avec la correction déclarée après la chute (un point de distorsion supérieure à $\E[v^2]$ est remplacé par le point de débit nul), a fait tenir B1bis et B2, mais 243 points sur 1\,619 seulement ont convergé, et la courbe à allocation optimale entre exposants se lisait hors de son domaine : elle n'est pas publiée. La passe 3 n'a calculé que l'allocation uniforme. Dans la zone de 1,8 à 3,2 bits, Blahut-Arimoto n'a pas atteint la tolérance déclarée ($10^{-11}$) en 200\,000 itérations ; par la règle déclarée avant la passe 3, aucun nombre \emph{convergé} n'est donc publié à 2,64 bits ni à 4,29\,\%. Ce qui reste vrai sans convergence, et qui a été lu \emph{après} la passe 3 (la lecture est dite telle, \fichier{genome/01-eclaireur.md} §\,3), est le lemme suivant.
+
+\begin{lemme}[Chaque itéré est un point atteignable]\label{t3que:lem:ba}
+Pour tout canal de test $Q(\hat y \mid v)$ et toute loi $q$ sur les reproductions,
+\begin{equation}\label{t3que:eq:ba-borne}
+\sum_{v, \hat y} p(v)\, Q(\hat y\mid v) \log_2 \frac{Q(\hat y\mid v)}{q(\hat y)} \;\ge\; I(V ; \hat Y) \;\ge\; R\bigl(\E\, d(V, \hat Y)\bigr),
+\end{equation}
+avec égalité à gauche si et seulement si $q$ est la marge $m(\hat y) = \sum_v p(v) Q(\hat y \mid v)$. Le point $(D, R)$ lu à n'importe quelle itération de Blahut-Arimoto est donc au-dessus de la courbe : $R(D) \le R$.
+\end{lemme}
+
+\begin{proof}
+On écrit $\log_2 \frac{Q}{q} = \log_2 \frac{Q}{m} + \log_2 \frac{m}{q}$ sous la somme. Le premier terme donne $\sum p(v) Q(\hat y\mid v) \log_2 \frac{Q(\hat y\mid v)}{m(\hat y)} = I(V ; \hat Y)$, par définition de l'information mutuelle du couple $(V, \hat Y)$ de loi $p(v) Q(\hat y \mid v)$. Le second ne dépend que de $\hat y$ : $\sum_{\hat y} \bigl(\sum_v p(v) Q(\hat y\mid v)\bigr) \log_2 \frac{m(\hat y)}{q(\hat y)} = \sum_{\hat y} m(\hat y) \log_2 \frac{m(\hat y)}{q(\hat y)} = D(m \,\|\, q)$, divergence de Kullback-Leibler~\cite{kullback1951}, positive ou nulle et nulle si et seulement si $q = m$ (inégalité de Gibbs, \cite{cover2006}, §\,2.6). D'où la première inégalité. La seconde est la définition~\eqref{t3que:eq:rd} : $Q$ est un canal admissible pour la distorsion $D = \E\, d(V, \hat Y)$ qu'il réalise, donc $R(D)$, minimum sur ces canaux, est au plus $I(V ; \hat Y)$.
+\end{proof}
+
+Deux conséquences rendent la figure lisible. D'abord, la courbe tracée par les itérés, convergés ou non, est une \textbf{borne supérieure} de $R(D)$, jamais une estimation par en dessous. Ensuite, $R(D)$ est convexe ; tout segment entre deux points atteignables est atteignable par partage du temps (coder une fraction $\theta$ des blocs avec le premier code, le reste avec le second donne $(\theta D_1 + (1-\theta) D_2,\ \theta R_1 + (1-\theta) R_2)$), et l'enveloppe convexe inférieure des itérés reste une borne supérieure. C'est elle qu'on lit à l'erreur et au débit de la frontière.
+
+\begin{figure}[tbp]
+\centering
+\GrapheEclBorne
+\LegendeFigure{EclBorne}
+\label{fig:t3-ecl-borne}
+\end{figure}
+
+\paragraph{Ce que la borne dit.} Les 40 itérés de l'allocation uniforme, dont 25 convergés, sont tracés en \cref{fig:t3-ecl-borne} \mes~\calc~(\fichier{memoire/figures/tome3/donnees/eclaireur-nombres.csv}, tiré de \fichier{borne-rd.json}). Le \cref{t3que:tab:borne} en garde les quatre points que l'éclaireur a publiés. À l'erreur de la frontière, la corde entre deux itérés donne $R(4{,}29\,\%) \le 2{,}168$ bits, \textbf{0,476 bit sous la frontière} ; à son débit (2,6441 bits), la distorsion vaut au plus 1,84\,\%, \textbf{0,43 fois son erreur} \calc. L'éclaireur écrivait « environ 0,47 bit de moins » et « moins de la moitié de son erreur » (\fichier{genome/01-eclaireur.md} §\,3) ; le juge des figures a refait la corde par l'enveloppe convexe des 40 itérés et trouvé les mêmes nombres (\fichier{memoire/tome3/JUGEMENT-figures2-ronde.md}, M12).
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabular}{r r l}
+\toprule
+Débit (bits par poids) & Distorsion relative $D$ & Lecture \\
+\midrule
+2,1284 & 4,55\,\% & à peu près l'erreur de la frontière, 0,51 bit de moins \\
+2,2631 & 3,67\,\% & sous la frontière en débit \emph{et} en erreur \\
+2,5091 & 2,38\,\% & \\
+2,6095 & 1,96\,\% & au débit de la frontière, moins de la moitié de son erreur \\
+\bottomrule
+\end{tabular}
+\caption[Quatre points de la borne distorsion-débit]{Quatre points de la passe 3 (allocation uniforme, un seul quantificateur pour tous les blocs), chacun une borne supérieure de $R(D)$ par le \cref{t3que:lem:ba} \mes. Données : \fichier{mesures/genome/etat-de-l-art/journaux/borne-rd.json} (\texttt{uniforme\_precis}) ; \fichier{genome/01-eclaireur.md} §\,3.}
+\label{t3que:tab:borne}
+\end{table}
+
+\paragraph{Une précaution de comptabilité.} La borne est celle de codes \emph{qui connaissent l'échelle} : les échelles n'y sont pas comptées, alors que les 2,6441 bits de la frontière les comptent (avec son contexte $\kappa$). Sur les 16 experts du protocole de l'éclaireur où la frontière a été refaite à l'estimateur d'entropie, les échelles coûtent 0,0375 bit par poids et les symboles seuls $H_0 = 2{,}6415$ bits ; contre ce $H_0$, l'écart vaut 0,473 bit au lieu de 0,476 \calc~(\fichier{eclaireur-nombres.csv}, d'après \fichier{passes/frontiere-lam0-damp0.01-e0\_8\_16\_24.json}). La conclusion ne change pas.
+
+\paragraph{Où est l'écart.} Il n'est pas dans une structure des poids : le modèle de la borne les suppose indépendants sachant l'échelle, ce que l'étude 03 a mesuré vrai à 0,005 bit près. Il est dans \textbf{la forme du quantificateur}. La frontière est scalaire et contrainte d'être une fonction du code ; la borne est atteinte par des codes longs et libres. L'écart se partage entre deux gains connus. Le premier est celui d'un quantificateur scalaire à contrainte d'entropie, qui choisit ses cellules pour leur coût en bits et non pour leur nombre. Le second est le gain de pavage d'un code vectoriel ou en treillis : à haut débit, une cellule de quantification sphérique en grande dimension a, à volume égal, un moment d'inertie plus petit que le cube d'un quantificateur scalaire uniforme d'un facteur $\pi e / 6$, soit au plus
+\begin{equation}\label{t3que:eq:pavage}
+10 \log_{10} \frac{\pi e}{6} = 1{,}53\ \text{dB}, \qquad \frac12 \log_2 \frac{\pi e}{6} = 0{,}2546\ \text{bit par poids}
+\end{equation}
+à erreur égale \calc~\cite{gish1968,marcellin1990}. Un générateur de poids (graine, automate, dictionnaire) n'a pas d'autre structure à exploiter que celle-là : il ne peut que viser la même borne. Le chapitre de la recette (\cref{t3gen:ch}) retrouve exactement ce partage, mesuré.
+
+\section{L'état de l'art, en douze familles}\label{t3que:sec:familles}
+
+\subsection{Deux filtres}
+
+\paragraph{Premier filtre : quelle dépendance ?} Une source i.i.d. n'a pas d'autre structure que sa loi. Sa description la plus courte, en moyenne, est son codage entropique~\cite{shannon1948} ; le théorème vaut pour toute description, programme générateur compris, au sens de la complexité de Kolmogorov, dont l'espérance par symbole tend vers l'entropie pour une source i.i.d.~\cite[chapitre 14]{cover2006}. Une idée « génomique » ne peut donc gagner sans perte que la dépendance qu'elle exploite, et il faut que cette dépendance existe dans nos poids. Sur les 72 tenseurs d'experts de gpt-oss-20b, l'étude 03 et la mesure F1 avaient donné \mes~(\fichier{genome/00-etat-de-l-art.md} §\,1) : $H(\text{code})$ d'ordre 0 de 3,860 bits sur 4 ; un apport du code précédent de 0,005 bit ; un apport du contexte d'échelle d'environ 0,035 bit (2,642 $\to$ 2,607 pour la base) ; les échelles E8M0 sachant la médiane de ligne à 1,01 bit pour 32 poids, soit 0,032 bit par poids.
+
+\paragraph{Second filtre : quelle erreur ?} Avec perte, ce qui compte n'est pas $\|\Delta W\|$ mais ce que l'erreur change à la sortie. Pour une matrice $W$ et ses entrées $x$, de matrice de seconds moments $H = \E[x x^\top]$,
+\begin{equation}\label{t3que:eq:sortie}
+\E\,\|\Delta W x\|^2 = \E\bigl[x^\top \Delta W^\top \Delta W x\bigr] = \E\,\mathrm{tr}\bigl(\Delta W x x^\top \Delta W^\top\bigr) = \mathrm{tr}\bigl(\Delta W\, H\, \Delta W^\top\bigr),
+\end{equation}
+par la cyclicité de la trace et la linéarité de l'espérance \calc. Si $H$ était proportionnelle à l'identité, l'erreur de sortie serait l'erreur sur les poids ; elle ne l'est pas : les activations des modèles de langage ont des canaux dominants, et protéger le centième des poids qui les lisent réduit beaucoup l'erreur~\cite{lin2023awq} \litt. Toute la marge d'un mécanisme avec perte est dans~\eqref{t3que:eq:sortie}.
+
+\subsection{Les familles}
+
+Le \cref{t3que:tab:familles} range les douze familles lues par l'éclaireur, à la source primaire (le résumé de chaque article, par l'API d'arXiv ou de Crossref, le 2026-10-16 ; la formulation publiée pour les travaux dont le mécanisme compte : GPTQ, OBC, QMoE, MatGPTQ, SeedLM, Tied Trit-Planes ; \fichier{mesures/genome/etat-de-l-art/sources.csv}). Les chiffres des auteurs sont des chiffres d'éditeur, non reproduits ici \litt. Pour chacune : ce qu'elle pose, ce qui nous manque pour l'employer sur des poids nés en MXFP4.
+
+\begin{table}[p]
+\centering\scriptsize
+\renewcommand{\arraystretch}{1.15}
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.3cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+Famille & Ce qu'elle pose (littérature, non reproduit) & Ce qui nous manque \\
+\midrule
+1. Recette à graine & SeedLM~\cite{shafipour2024seedlm} : un bloc approché par quelques colonnes pseudo-aléatoires d'un LFSR, graine et coefficients stockés ; PRANC~\cite{nooralinejad2022pranc}, NOLA~\cite{koohpayegani2023nola}, dimension intrinsèque~\cite{li2018intrinsic} & PRANC, NOLA et la dimension intrinsèque entraînent \emph{dans} le sous-espace ; SeedLM travaille après coup mais avec perte, sur BF16 ; un sous-espace aléatoire de dimension $k$ garde en moyenne $k/C$ de l'énergie d'un bloc \\
+2. Réseaux générateurs & HyperNetworks~\cite{ha2016hypernetworks}, HyperNEAT~\cite{stanley2009hyperneat}, automates cellulaires neuronaux~\cite{mordvintsev2020nca}, HyperNCA~\cite{najarro2022hypernca} & tous génèrent des poids \emph{entraînés à être générables} ; aucun ne décrit après coup un modèle entraîné librement \\
+3. Parenté et fusion d'experts & MC-SMoE~\cite{li2023mcsmoe}, Merging Experts into One~\cite{he2023meo}, HC-SMoE~\cite{chen2024hcsmoe}, Sub-MoE~\cite{li2025submoe}, D$^2$-MoE~\cite{gu2025d2moe}, MoBE~\cite{chen2025mobe}, OMP-MoE~\cite{li2026ompmoe} & tous partent du BF16 et mesurent une précision de tâches ; aucun ne mesure la parenté en bits sur des codes de 4 bits \\
+4. Codage différentiel & BitDelta~\cite{liu2024bitdelta} (le delta d'un affinage en 1 bit), Delta-CoMe~\cite{ping2024deltacome} & un parent : un affinage en a un, un expert n'en a pas, sauf s'il est né par copie \\
+5. Prédictif et entropique sans perte & cortex prédictif~\cite{rao1999}, DeepCABAC~\cite{wiedemann2019deepcabac}, ZipNN~\cite{hershcovitch2024zipnn}, DFloat11~\cite{zhang2025dfloat11}, Huff-LLM~\cite{yubeaton2025huffllm}, TRACE~\cite{xie2025trace} & tous gagnent sur l'exposant BF16, très redondant ; un code MXFP4 n'a plus d'exposant par poids, il reste 0,14 bit de redondance par code ($4 - 3{,}86$) et 0,14 sur les échelles, déjà pris \\
+6. Élagage & densité synaptique~\cite{huttenlocher1979}, OBD~\cite{lecun1989obd}, OBS~\cite{hassibi1992obs}, Deep Compression~\cite{han2015deepcompression}, experts retirés~\cite{lu2024notallexperts,martin2026ests} & la sensibilité se lit dans la sortie, pas dans les poids ; OBS est le premier « report d'erreur » \\
+7. Dictionnaires et codes vectoriels & codage parcimonieux~\cite{olshausen1996}, AQLM~\cite{aqlm2024}, QuIP\#~\cite{quipsharp2024}, QTIP~\cite{genome-qtip}, HyperQuant~\cite{domb2026hyperquant}, MASA~\cite{zhussip2025masa} & ils \emph{remplacent} la grille et partent du BF16 ; sur une source i.i.d., ils ne gagnent que le pavage~\eqref{t3que:eq:pavage} \\
+8. Rétroaction d'erreur & OBC~\cite{frantar2022obc}, GPTQ~\cite{frantar2022gptq}, QMoE~\cite{frantar2023qmoe}, AWQ~\cite{lin2023awq}, MoEQuant~\cite{hu2025moequant}, EAQuant~\cite{fu2025eaquant}, neurone sigma-delta~\cite{yoon2017sigmadelta} & un point de départ né en 4 bits, une grille imposée et emboîtée, le coût en débit ; et la contrainte qu'un complément sans perte rende le code exact derrière la base \\
+9. Formats emboîtés, modèles nés en 4 bits & Matryoshka~\cite{nair2025matquant}, Any-Precision~\cite{park2024anyprecision}, MatGPTQ~\cite{kleinegger2026matgptq}, MX~\cite{rouhani2023microscaling}, entraînement MXFP4~\cite{tseng2025mxfp4}, gpt-oss~\cite{openai2025gptoss}, Scale-QLoRA~\cite{li2026scaleqlora}, Tied Trit-Planes~\cite{tiedtrit2026}, BitNet~\cite{bitnet2024} & MatGPTQ, le plus proche, part du BF16 et tronque les bits forts d'un entier ; Tied Trit-Planes requantifie des experts MXFP4 lus sur SSD, mais à 4,06 bits et sans emboîtement \\
+10. L'ADN au sens propre & calcul~\cite{adleman1994}, stockage~\cite{church2012dna,goldman2013dna,erlich2017fountain}, code génétique correcteur~\cite{freeland1998}, biais d'usage des codons~\cite{sharp1987cai} & la densité de l'ADN est physique, pas informationnelle ; ce qui transpose est l'agencement d'un code pour que l'erreur tombe là où le phénotype ne la voit pas \\
+11. L'évolution des codes & EvoPress~\cite{sieberling2024evopress}, HyperNEAT & un optimiseur, pas une représentation : il ne crée pas d'information \\
+12. Mémoires réparties et index & représentations holographiques~\cite{plate1995hrr}, index de l'hippocampe~\cite{teyler1986} & un index ne rappelle qu'un souvenir déjà stocké : c'est un cache, déjà construit au Tome~II \\
+\bottomrule
+\end{tabularx}
+\caption[Les douze familles de l'état de l'art]{Les douze familles « génomiques » de l'état de l'art, lues à la source primaire \litt. Synthèse de \fichier{genome/00-etat-de-l-art.md} §\,2 ; adresses, dates de publication et de consultation : \fichier{mesures/genome/etat-de-l-art/sources.csv} et \fichier{memoire/sources/genome-etat-de-l-art.bib}.}
+\label{t3que:tab:familles}
+\end{table}
+
+\paragraph{Deux calculs qui jugent la graine avant toute mesure.} SeedLM approche un bloc de $C$ poids par $k$ colonnes d'une matrice pseudo-aléatoire. Si $V$ est un sous-espace aléatoire uniforme de dimension $k$ et $w$ un vecteur fixé, $\E\,\|P_V w\|^2 = \frac{k}{C}\|w\|^2$ : par invariance par rotation, $P_V$ a la même loi que $O^\top P_0 O$ pour $O$ uniforme et $P_0$ le projecteur sur les $k$ premières coordonnées, et $\E\,[O^\top P_0 O] = \frac{\mathrm{tr}\,P_0}{C} I = \frac{k}{C} I$ \calc. Un bloc de poids presque i.i.d. laisse donc un résidu d'énergie relative voisin de $1 - k/C$. SeedLM le rachète en choisissant la meilleure graine parmi $2^{16}$ ; mais on ne peut pas gagner plus d'information que l'index qu'on stocke : 16 bits par bloc au plus \calc. Le \cref{t3gen:sec:graine} en tire la loi exacte (le meilleur de $N$ sous-espaces suit une loi Bêta) et la confronte aux vrais poids.
+
+\section{Ce qui n'a jamais été tenté sur un modèle né en 4 bits}\label{t3que:sec:case}
+
+L'éclaireur a interrogé l'API d'arXiv le 2026-10-16, requêtes consignées avec leur nombre de réponses (\fichier{mesures/genome/etat-de-l-art/recherches.csv}) : « MXFP4 ET gpt-oss », « lossless ET MXFP4 », « gpt-oss ET compression », « Matryoshka ET quantization », « any-precision ET LLM », « DNA ET neural network ET weight compression » (0 réponse), « cellular automata ET weights ET compress » (0), « dictionary learning ET large language model ET weight ET compression », « genetic code ET error ET quantization » (0). Le \cref{t3que:tab:case} croise les gestes et leur application à un modèle né en 4 bits.
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+Geste & Fait ailleurs & Sur un modèle né en 4 bits ? \\
+\midrule
+sans perte sur les codes et les échelles MX & ZipNN, DFloat11, TRACE : sur BF16 & troncons (03, F1 : 3,84 bits) ; rien d'autre trouvé \\
+base emboîtée dans le code natif, complément exact & Matryoshka, Any-Precision, MatGPTQ : sur entiers, depuis le BF16 & troncons (07, F1 : base fonction du code) \\
+requantifier les experts MXFP4 publiés & Tied Trit-Planes (4,06 bits, SSD), ESTS (après élagage et réaffinage) & jamais \emph{sous} 4 bits avec un complément exact \\
+rétroaction d'erreur sur les entrées réelles & OBC, GPTQ, QMoE, MatGPTQ : depuis le BF16 & \textbf{jamais} pour choisir une base emboîtée dans un code MXFP4 \\
+contrainte d'entropie dans la rétroaction & QMoE code l'entropie après coup ; HyperQuant code par Rice & \textbf{jamais} dans le choix des symboles d'une base native \\
+graine, hyperréseau, automate, dictionnaire après coup & SeedLM, MoBE, Sub-MoE, D$^2$-MoE (BF16) & non trouvé ; \cref{t3gen:ch,t3dup:ch} \\
+\bottomrule
+\end{tabularx}
+\caption[La case vide]{Ce qui a été fait ailleurs et ce qui ne l'a pas été sur un modèle né en 4 bits \litt. « Jamais » veut dire « non trouvé par les requêtes consignées », pas « inexistant ». Source : \fichier{genome/00-etat-de-l-art.md} §\,3.}
+\label{t3que:tab:case}
+\end{table}
+
+\paragraph{La case prise.} Les lignes 4 et 5 réunies, dans le cadre des lignes 2 et 3 : \emph{choisir les symboles de la base emboîtée par rétroaction d'erreur sur les entrées réelles, sous contrainte d'entropie, sans toucher au décodeur ni au code exact}. La raison du choix est un nombre : c'est le seul geste de la liste qui ne parie pas sur une dépendance entre poids, que 03 a mesurée absente (0,005 bit) ; il parie sur une dépendance entre \emph{entrées}, que le moteur peut mesurer. Le vivant a le même geste, et l'éclaireur l'a pris pour guide, comme analogie : le code génétique est rangé pour que les erreurs ponctuelles probables tombent sur des acides aminés semblables, au point qu'il est « un sur un million » parmi les codes possibles~\cite{freeland1998} ; le neurone code un signal continu en impulsions en reportant son erreur sur la suite, à la manière d'un modulateur sigma-delta~\cite{yoon2017sigmadelta}. Le \cref{t3ecl:ch} construit ce mécanisme, la « mutation synonyme », et le mesure.
+
+\section{Ce que la lecture prédit}\label{t3que:sec:prediction}
+
+Le \cref{t3que:tab:pronostic} est le pronostic écrit le 2026-10-16, avant toute mesure de la ronde (\fichier{genome/00-etat-de-l-art.md} §\,4). Il dit, pour chaque famille, la dépendance qu'elle exploite et la mesure de troncons qui la juge. Les \crefrange{t3ecl:ch}{t3pre:ch} le confrontent aux nombres ; le \cref{t3syn:ch} fait le bilan. Ce chapitre n'annonce aucun résultat : il fixe ce qui aurait pu les démentir.
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.6cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+Famille & Dépendance exploitée & Mesure qui la juge & Pronostic \\
+\midrule
+graine, hyperréseau, automate & régularité des poids & 0,005 bit pour le voisin (03) & aucun gain sans perte ; avec perte, au mieux la borne $R(D)$ des poids \\
+parenté d'experts, delta & corrélation entre experts & information mutuelle entre experts (\cref{t3dup:ch}) & gain si et seulement si l'information mutuelle est grande \\
+prédictif sans perte & dépendance séquentielle & 0,005 bit (03) & au plus 0,005 bit \\
+élagage & poids inutiles & sensibilité mesurée (\cref{t3pre:ch}) & dépend de la sortie, pas des poids \\
+code vectoriel, dictionnaire & forme de la loi & gain de pavage, au plus 0,2546 bit & au plus 0,25 bit, décodeur neuf \\
+\textbf{mutation synonyme} & \textbf{corrélation des entrées} & $H = \E[g^2 x x^\top]$ sur les entrées réelles (\cref{t3ecl:ch}) & \textbf{le seul qui puisse dépasser la borne des poids} \\
+\bottomrule
+\end{tabularx}
+\caption[Le pronostic de la lecture]{Le pronostic de la lecture, déclaré avant les mesures de la ronde \calc~\litt. Source : \fichier{genome/00-etat-de-l-art.md} §\,4.}
+\label{t3que:tab:pronostic}
+\end{table}
+
+La dernière ligne demande une précision, que la suite du tome rend nécessaire : « dépasser la borne des poids » ne veut pas dire descendre sous $R(D)$ de la \cref{fig:t3-ecl-borne}, ce qui est impossible dans sa métrique. Cela veut dire \emph{changer de métrique} : une base dont l'erreur sur les poids \emph{monte} peut faire moins d'erreur à la sortie~\eqref{t3que:eq:sortie}, et c'est la seule voie par laquelle un mécanisme avec perte gagne quelque chose que la borne des poids ne lui interdit pas. Les chapitres suivants montreront aussi qu'il faut aller plus loin encore, jusqu'à la divergence de Kullback-Leibler sur le texte, parce que l'erreur de sortie d'un expert trompe à son tour.
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{Seuls des résumés ont été lus}, plus les formulations publiées des six méthodes clés : un chiffre de résumé est un chiffre d'éditeur, jamais reproduit. Un article peut contenir une expérience sur un modèle MXFP4 que son résumé ne dit pas : « jamais tenté » veut dire « non trouvé par les requêtes consignées ».
+\item \textbf{Les recherches n'ont porté que sur arXiv et Crossref} : des actes de conférence non déposés sur arXiv peuvent manquer.
+\item \textbf{La quasi-indépendance des codes} vient de 03 (ordre 1, voisin dans la ligne, contexte d'échelle). Une dépendance d'ordre plus élevé, à longue portée ou entre experts n'y est pas mesurée ; les \cref{t3dup:ch,t3pre:ch} la mesurent.
+\item \textbf{L'argument de Kolmogorov est en moyenne sur la source} : un tenseur particulier peut avoir une description courte (la graine qui l'a initialisé, par exemple) ; après l'entraînement, rien ne l'indique, et cette graine n'est pas publiée.
+\item \textbf{La borne de la \cref{fig:t3-ecl-borne}} suppose les codes indépendants sachant l'échelle ; une dépendance non mesurée la ferait baisser encore. Elle est une borne supérieure par le \cref{t3que:lem:ba} ; la lecture des itérés non convergés comme bornes a été posée \emph{après} la passe 3, et la règle déclarée avant ne publiait que des points convergés. Elle ne compte pas les échelles (0,0375 bit).
+\item \textbf{Le gain de pavage} (0,2546 bit) est une borne asymptotique à haut débit ; à 2 ou 3 bits il est plus petit, ce qui renforce le pronostic.
+\item \textbf{La métrique de la borne} est l'erreur poolée sur les poids, dominée par une petite part des blocs (\cref{t3ecl:sec:bruit}) : elle situe la frontière, elle ne juge aucun mécanisme.
+\end{itemize}
+\end{faux}

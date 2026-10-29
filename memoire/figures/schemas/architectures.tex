@@ -1,0 +1,120 @@
+% Schémas TikZ du chapitre « Architecture : les candidates, la décision, ce qui vient ».
+% Les débits inscrits sont ceux de fondations/07-ce-qui-manque.md § 1.3 (journaux des études 01 à
+% 04), les tailles celles de fondations/journaux/07-synthese/inventaire-gptoss.json.
+% Les styles « etage », « flux » et « debit » viennent de schemas/machine.tex.
+
+% Le chemin des octets de l'architecture candidate A.
+\newcommand{\SchemaCheminA}{%
+\begin{tikzpicture}[font=\sffamily\small, node distance=1.38cm]
+  \node[etage=Disque, text width=2.5cm, minimum height=2.5cm] (d) {\textbf{\EF{Disk}{Disque}} (C:, BitLocker)\\[2pt] {\scriptsize \EF{coded experts (rANS, $r = 1.1026$); one expert matrix = one contiguous 4.2\,MiB block}{experts codés (rANS, $r = 1{,}1026$) ; une matrice d'expert = un bloc contigu de 4,2\,Mio}}};
+  \node[etage=Ram, text width=2.6cm, minimum height=2.5cm, right=of d] (r) {\textbf{\EF{Pinned RAM}{RAM épinglée}}\\[2pt] {\scriptsize \EF{arrival buffers (misses of one token, double-buffered) + warm cache of coded experts ($M$ GB)}{tampons d'arrivée (défauts d'un jeton, en double) + cache tiède d'experts codés ($M$ Go)}}};
+  \node[etage=Vram, text width=2.8cm, minimum height=2.5cm, right=of r] (v) {\textbf{VRAM}\\[2pt] {\scriptsize \EF{rANS v4 decoder $\to$ cache of decoded experts; $B_t = 1.69$\,GB resident}{décodeur rANS v4 $\to$ cache d'experts décodés ; $B_t = 1{,}69$\,Go résidents}}};
+  \node[etage=Calcul, text width=1.7cm, minimum height=2.5cm, right=of v] (c) {\textbf{\EF{Compute}{Calcul}}\\[2pt] {\scriptsize \EF{MXFP4 GEMV, raw}{GEMV MXFP4 brute}}};
+  \draw[flux=1pt] (d) -- node[debit, above] {\textbf{\num{2.58}}} node[debit, below, text width=1.3cm] {\EF{4\,MiB reads}{lectures de 4\,Mio}} (r);
+  \draw[flux=1.6pt] (r) -- node[debit, above] {\textbf{\num{12.2}}} node[debit, below, text width=1.3cm] {\EF{coded DMA}{DMA codée}} (v);
+  \draw[flux=3pt] (v) -- node[debit, above] {\textbf{209}} (c);
+  \node[debit, below=0.35cm of v] {\EF{decoder: 70 (41.6 with three class streams)}{décodeur : 70 (41,6 à trois flux de classe)}};
+  \node[draw=black!35, fill=Fond, rounded corners=1pt, font=\sffamily\scriptsize, align=center, below=1.1cm of r, text width=7.5cm] (cpu)
+    {\EF{The CPU reads the disk (IOCP) and keeps the queues; it decodes nothing and computes no expert.}{Le processeur lit le disque (IOCP) et tient les files ; il ne décode rien et ne calcule aucun expert.}};
+  \draw[black!35, densely dotted] (cpu.north) -- (r.south);
+  \node[debit, anchor=north west, text width=14cm, align=left] at ([yshift=-0.25cm]cpu.south -| d.west)
+    {\EF{Measured throughputs on the machine, GB/s (on mains power). The disk holds the maximum of the token equation (\cref{prop:elasticites}).}%
+        {Débits mesurés sur la machine, en Go/s (sur secteur). Le disque tient le maximum de l'équation du jeton (\cref{prop:elasticites}).}};
+\end{tikzpicture}}
+
+% Chronogramme d'un jeton dans A : le disque toujours occupé, la carte qui l'attend.
+\newcommand{\SchemaChronoA}{%
+\begin{tikzpicture}[x=0.9cm, y=1cm, font=\sffamily\scriptsize]
+  \foreach \yy/\nom/\coul in {2/\EF{disk}{disque}/Disque, 1/PCIe/Pcie, 0/\EF{GPU}{carte}/Calcul}{
+    \node[anchor=east, font=\sffamily\small] at (-0.2,\yy) {\nom};
+    \draw[black!15] (0,\yy) -- (14.2,\yy);
+  }
+  % Disque : défauts de la couche l+1 lus pendant la couche l, sans trou.
+  \foreach \i/\lab in {0/\ell{+}1, 1/\ell{+}2, 2/\ell{+}3}{
+    \pgfmathsetmacro{\xa}{0.2 + 4.4*\i}
+    \fill[Disque!45, draw=Disque!80!black] (\xa,1.75) rectangle ++(4.4,0.5);
+    \node at (\xa+2.2,2) {\EF{misses of layer}{défauts de la couche} $\lab$};
+  }
+  % PCIe : les mêmes octets, codés, plus vite.
+  \foreach \i/\lab in {0/\ell{+}1, 1/\ell{+}2, 2/\ell{+}3}{
+    \pgfmathsetmacro{\xa}{2.6 + 4.4*\i}
+    \fill[Pcie!45, draw=Pcie!80!black] (\xa,0.75) rectangle ++(1.6,0.5);
+    \node at (\xa+0.8,1) {$\lab$};
+  }
+  % Carte : attention, routeur, décodage, GEMV des experts, puis attente du disque.
+  \foreach \i/\lab in {0/\ell, 1/\ell{+}1, 2/\ell{+}2}{
+    \pgfmathsetmacro{\xa}{0.2 + 4.4*\i}
+    \fill[Calcul!25, draw=Calcul!80!black] (\xa,-0.25) rectangle ++(0.35,0.5);
+    \fill[Accent!30, draw=Accent!80!black] (\xa+0.35,-0.25) rectangle ++(0.2,0.5);
+    \fill[Vram!35, draw=Vram!80!black] (\xa+0.55,-0.25) rectangle ++(0.25,0.5);
+    \fill[Calcul!45, draw=Calcul!80!black] (\xa+0.8,-0.25) rectangle ++(0.3,0.5);
+    \fill[pattern=north east lines, pattern color=black!25] (\xa+1.1,-0.25) rectangle (\xa+4.4,0.25);
+    \node[fill=white, inner sep=1pt] at (\xa+2.75,0) {\EF{layer}{couche} $\lab$\EF{, then waits}{, puis attente}};
+  }
+  \draw[-{Latex}] (0,-0.8) -- (14.4,-0.8) node[right] {$t$};
+  \draw[black!50] (0.2,-0.7) -- (0.2,-0.9) (4.6,-0.7) -- (4.6,-0.9);
+  \draw[decorate, decoration={brace, mirror, amplitude=4pt}, black!60] (0.2,-1.0) -- (4.6,-1.0) node[midway, below=4pt] {\EF{$\approx 4.4$\,ms of disk per layer (0.94 miss $\times$ 3 matrices)}{$\approx 4{,}4$\,ms de disque par couche (0,94 défaut $\times$ 3 matrices)}};
+  \node[anchor=north west, text width=12.6cm, align=left] at (0,-1.7)
+    {\EF{GPU blocks: attention, router (blue), decoding of the misses (green), expert GEMV. About 1\,ms of GPU per layer. The disk queue receives, during layer $\ell$, the misses predicted for $\ell{+}1$ by the router of $\ell{+}1$ applied to the residual of $\ell$ (96\,\% right one layer ahead \litt).}%
+        {Blocs de la carte : attention, routeur (bleu), décodage des défauts (vert), GEMV des experts. Environ 1\,ms de carte par couche. La file du disque reçoit, pendant la couche $\ell$, les défauts prédits pour $\ell{+}1$ par le routeur de $\ell{+}1$ appliqué au résidu de $\ell$ (96\,\% juste une couche d'avance \litt).}};
+\end{tikzpicture}}
+
+% La base et le complément d'un code E2M1 (mécanisme de l'architecture candidate B).
+\newcommand{\SchemaBaseComplement}{%
+\begin{tikzpicture}[x=1.72cm, y=1cm, font=\sffamily\small]
+  % Les huit magnitudes E2M1 sur une droite, à l'échelle.
+  \draw[-{Latex}, black!60] (-0.2,0) -- (6.5,0) node[right] {$|w|/s$};
+  \foreach \m/\code in {0/000, 0.5/001, 1/010, 1.5/011, 2/100, 3/101, 4/110, 6/111}{
+    \fill[Encre] (\m,0) circle (2.2pt);
+    \node[below=3pt, font=\sffamily\scriptsize] at (\m,0) {\num{\m}};
+    \node[above=3pt, font=\ttfamily\scriptsize, text=black!60] at (\m,0) {\code};
+  }
+  % Les quatre classes de la meilleure partition.
+  \foreach \a/\b/\c/\coul/\cen/\nom in {-0.12/0.62/0/SerieA/0.237/0, 0.88/2.12/1/SerieC/1.424/1, 2.88/4.12/2/SerieD/3.419/2, 5.88/6.12/3/SerieB/6.0/3}{
+    \draw[\coul, line width=1.2pt, rounded corners=2pt] (\a,-0.75) rectangle (\b,0.75);
+    \node[\coul, font=\sffamily\scriptsize\bfseries] at ({(\a+\b)/2},1.05) {\EF{class}{classe} \nom};
+    \draw[\coul, line width=1pt] (\cen,-0.95) -- (\cen,-1.25);
+    \node[\coul, font=\sffamily\scriptsize, below] at (\cen,-1.25) {\num{\cen}};
+  }
+  \node[font=\sffamily\scriptsize, anchor=east, black!65] at (-0.25,-1.4) {\EF{class centres}{centres de classe}};
+  % Le code de 4 bits et sa découpe.
+  \begin{scope}[shift={(0.3,-3.1)}, x=0.9cm]
+    \foreach \i/\lab/\coul in {0/s/Signe, 1/e_1/Expo, 2/e_0/Expo, 3/m/Mant}{
+      \node[draw=\coul!80!black, fill=\coul!18, minimum width=0.9cm, minimum height=0.6cm] at (\i,0) {$\lab$};
+    }
+    \node[anchor=east, font=\sffamily\scriptsize] at (-0.6,0) {\EF{E2M1 code (4 bits)}{code E2M1 (4 bits)}};
+    \draw[-{Latex}, black!60] (3.7,0) -- (5.0,0.55);
+    \draw[-{Latex}, black!60] (3.7,0) -- (5.0,-0.55);
+    \node[draw=Accent, fill=Accent!10, rounded corners=1pt, anchor=west, align=left, font=\sffamily\scriptsize] at (5.1,0.6)
+      {\textbf{base} $b = (s,\ \mathrm{\EF{class}{classe}}(m))$\EF{:}{ :} 3 bits, $H = \num{2.642}$ bits\\ \EF{read alone at a miss: 4.29\,\% relative error}{lue seule au défaut : 4,29\,\% d'erreur relative}};
+    \node[draw=Mant, fill=Mant!10, rounded corners=1pt, anchor=west, align=left, font=\sffamily\scriptsize] at (5.1,-0.65)
+      {\textbf{\EF{complement}{complément}}\EF{:}{ :} \EF{position in the class}{position dans la classe}\\ 1 bit, 1 trit, 1 bit, \EF{nothing; }{rien ; }$H = \num{1.218}$ bits};
+  \end{scope}
+  \node[anchor=north west, font=\sffamily\scriptsize, text width=12cm, align=left] at (-0.2,-4.15)
+    {\EF{Since the base is a function of the code, $H(\text{code}) = H(\text{base}) + H(\text{complement}) = 3.860$ bits (\cref{prop:raffinement}): splitting costs nothing in entropy. Centres are weighted by the square of the E8M0 scale, hence optimal in the real domain.}%
+        {Comme la base est une fonction du code, $H(\text{code}) = H(\text{base}) + H(\text{complément}) = 3{,}860$ bits (\cref{prop:raffinement}) : découper ne coûte rien en entropie. Les centres sont pondérés par le carré de l'échelle E8M0, donc optimaux dans le domaine réel.}};
+\end{tikzpicture}}
+
+% Un tronçon du format .trc : un expert, ses niveaux de raffinement, tout préfixe décodable.
+\newcommand{\SchemaTroncon}{%
+\begin{tikzpicture}[x=1cm, y=1cm, font=\sffamily\scriptsize]
+  % v1.0 (J1) : un seul niveau.
+  \node[anchor=east, font=\sffamily\small] at (-0.2,1.3) {v1.0 (J1)};
+  \fill[Disque!8, draw=Disque] (0,1.0) rectangle (11.99,1.6);
+  \node at (6,1.3) {\EF{level 0: E8M0 scale deviations + codes (one rANS stream, table chosen per lane by the scale class)}{niveau 0 : écarts d'échelle E8M0 + codes (un flux rANS, table choisie par voie selon la classe d'échelle)}};
+  \draw[decorate, decoration={brace, amplitude=4pt}, black!60] (0,1.7) -- (11.99,1.7) node[midway, above=5pt] {\EF{one expert (gate, up, down + biases), $\approx 11.99$\,MB on the 20b, aligned on 4\,KiB}{un expert (gate, up, down + biais), $\approx 11{,}99$\,Mo sur le 20b, aligné sur 4\,Kio}};
+  % v1.1 (J2) : deux niveaux.
+  \node[anchor=east, font=\sffamily\small] at (-0.2,0) {v1.1 (J2)};
+  \fill[Accent!12, draw=Accent] (0,-0.3) rectangle (8.26,0.3);
+  \node at (4.13,0) {\EF{level 0: scales + base (sign, magnitude class)}{niveau 0 : échelles + base (signe, classe de magnitude)}};
+  \fill[Mant!12, draw=Mant] (8.26,-0.3) rectangle (12.04,0.3);
+  \node at (10.15,0) {\EF{level 1: complement}{niveau 1 : complément}};
+  \foreach \x in {0,8.26,12.04} \draw[black!45] (\x,-0.45) -- (\x,-0.3);
+  \node[below, black!65] at (8.26,-0.45) {\EF{4\,KiB boundary}{frontière de 4\,Kio}};
+  % Lectures.
+  \draw[{Latex}-{Latex}, Accent, line width=0.9pt] (0,-1.2) -- (8.26,-1.2) node[midway, below] {\EF{miss in B: read the prefix up to the end of level 0, serve the base}{défaut en B : lire le préfixe jusqu'à la fin du niveau 0, servir la base}};
+  \draw[{Latex}-{Latex}, Encre, line width=0.9pt] (0,-2.1) -- (12.04,-2.1) node[midway, below] {\EF{A, or B completing an expert entering the cache: read up to the end of level 1, exact}{A, ou B qui complète un expert admis au cache : lire jusqu'à la fin du niveau 1, exact}};
+  \node[anchor=north west, text width=12.5cm, align=left, black!70] at (0,-2.75)
+    {\EF{Reader, cache and scheduler only know ``read up to the end of level $j$''. Sizes of the arbiter's measurement F1 (pass 1, gpt-oss-20b): single level 11{,}990{,}368\,B on average; B: 8{,}261{,}120 + 3{,}780{,}864\,B.}%
+        {Le lecteur, le cache et l'ordonnanceur ne connaissent que « lire jusqu'à la fin du niveau $j$ ». Tailles de la mesure F1 de l'arbitre (passe 1, gpt-oss-20b) : niveau unique 11\,990\,368\,o en moyenne ; B : 8\,261\,120 + 3\,780\,864\,o.}};
+\end{tikzpicture}}

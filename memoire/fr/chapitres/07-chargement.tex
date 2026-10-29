@@ -1,0 +1,258 @@
+\chapter{Chargement à la demande}\label{ch:chargement}
+
+\begin{origine}
+\textbf{Au départ}, une question : quand un modèle ne tient pas en mémoire, où sont ses poids à l'instant où un calcul en a besoin, combien d'octets faut-il déplacer par jeton, par quel étage, et quelle part de ce déplacement se cache derrière le calcul ?
+\textbf{Ce chapitre établit} la revue de tout ce qui fait tourner un modèle plus gros que la mémoire, du « couche par couche » de 2022 aux moteurs de 2026 qui lisent les experts d'un MoE sur le disque, jugée par une seule règle (les octets par jeton divisés par le débit de chaque étage) ; la grandeur qui décide de tout pour un MoE, le taux de succès du cache ; le succès qu'implique toute mesure publiée ; et le juge refait avec le disque mesuré.
+\textbf{Il reste} une trace de routage réelle sur un MoE de 2026, une passe PCIe propre, et la politique de défaut qui réunit les quatre réponses possibles.
+Source : \fichier{fondations/04-chargement.md}, \fichier{fondations/journaux/04-chargement/}.
+\end{origine}
+
+\section{La loi du chargement}\label{sec:loi-chargement}
+
+Au décodage, chaque jeton lit chaque poids actif une fois. Le \cref{thm:toit} borne le débit entre deux régimes : étages parfaitement recouverts, $d \le 1/\max_i (O_i/W_i)$, et étages en série, $d = 1/\sum_i (O_i/W_i)$. Un système réel tombe entre les deux, et la place où il tombe se mesure :
+\begin{equation}\label{eq:part-cachee}
+\text{part cachée} = \frac{\sum_i t_i - t_{\text{mesuré}}}{\sum_i t_i - \max_i t_i}, \qquad t_i = O_i/W_i .
+\end{equation}
+Tous les systèmes lus disent que le décodage hors mémoire est un problème d'octets et non de calcul, et leurs chiffres le confirment : FlexGen passe plus de 99,5\,\% de son temps à transférer des poids ; HOBBIT mesure 80\,ms pour charger une couche de Mixtral contre 3\,ms pour la calculer sur une RTX 4090 \litt~\cite{flexgen2023,hobbit2024}. Le juge « octets sur débit » (\texttt{chargement\_juge.py}) borne chaque technique ; il a été validé sur cinq mesures publiées, dont aucune ne dépasse sa borne, et, débits divisés par 10, il tombe sur quatre des cinq : le témoin peut échouer.
+
+\section{Le mélange d'experts en trois grandeurs}\label{sec:moe-grandeurs}
+
+Pour un MoE de $L$ couches à experts, $E$ experts routés par couche, $k_e$ experts choisis par jeton, stocké à $b$ bits par poids, on pose (\cref{fig:moe}) :
+\begin{align}
+B_t &= \text{octets toujours lus (attention, experts partagés, routeurs, normes, tête)}, \nonumber\\
+e &= \frac{P_{\text{experts}}}{E\, L} \cdot \frac{b}{8} \quad \text{(octets d'un expert routé)}, \qquad
+B_e = k_e\, L\, e \quad \text{(octets routés par jeton)}. \label{eq:moe-grandeurs}
+\end{align}
+Une part $h_v$ des octets routés vient de la VRAM, $h_r$ de la RAM, $h_s = 1 - h_v - h_r$ du disque, qui doit livrer $h_s B_e$ octets par jeton. C'est presque toujours l'étage limitant, et \textbf{le taux de succès du cache $h = h_v + h_r$ est la grandeur qui décide de tout}.
+
+\begin{figure}[ht]
+\centering
+\SchemaMoE
+\caption[Une couche de mélange d'experts et sa hiérarchie de cache]{Une couche de mélange d'experts et la hiérarchie de cache qui sert ses experts. Les toujours-lus résident en VRAM ; parmi les $E$ experts de la couche, le routeur en choisit $k_e$ ; chacun est servi par la VRAM, la RAM ou le disque.}
+\label{fig:moe}
+\end{figure}
+
+À l'inverse, une mesure publiée de débit dit quelque chose de la localité qu'elle ne publie pas.
+
+\begin{lemme}[Le succès impliqué par une mesure]\label{lem:succes-implique}
+Si un système atteint $d$ jetons par seconde avec un disque de débit $W_{\mathrm{disque}}$ et $B_e$ octets routés par jeton, son cache sert au moins une part
+\begin{equation}\label{eq:succes-implique}
+h_{\min} = 1 - \frac{W_{\mathrm{disque}}}{d\, B_e}
+\end{equation}
+des octets routés.
+\end{lemme}
+
+\begin{proof}
+Par le \cref{thm:toit} appliqué à l'étage disque, $1/d \ge (1-h) B_e / W_{\mathrm{disque}}$, soit $1 - h \le W_{\mathrm{disque}}/(d B_e)$.
+\end{proof}
+
+\begin{table}[ht]
+\centering\small
+\caption[La localité lue dans des mesures publiées]{Le succès du cache impliqué par trois mesures publiées (\cref{lem:succes-implique}) \calc~sur \litt.}
+\label{tab:succes-implique}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+Mesure publiée & part du modèle en mémoire rapide & succès impliqué au moins \\
+\midrule
+Qwen3-235B à chaud, 0,441 jeton/s, disque 2,4\,Go/s~\cite{cacheable2026} & environ 25--30\,\% & 33\,\% \\
+GLM-5.2, 2,20 jetons/s, disque $\le$ 7,877\,Go/s~\cite{llamapr25294} & 79\,Go sur 254 (31\,\%) & 53\,\% (publié : 79\,\%) \\
+moe-stream, Qwen3.6-35B-A3B, 5,05 jetons/s, 6\,Go~\cite{moestream2026} & 6 sur 19,5\,Go d'experts (31\,\%) & 53\,\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Le cas GLM sert de témoin : la borne (53\,\%) est sous le succès publié (79\,\%). Le cas moe-stream montre, sans trace de routage, qu'un cache tenant 31\,\% des experts sert au moins 53\,\% des octets : \textbf{la localité vaut au moins un facteur 1,7 sur la capacité} pour ce modèle.
+
+\section{La granularité}\label{sec:granularite}
+
+Un étage n'atteint son débit qu'au-delà d'une taille de requête et d'une profondeur de file. Le disque de la machine en est l'exemple extrême : 0,22\,Go/s à 4\,Kio contre 2,4 à 2,8\,Go/s à 1--16\,Mio (\cref{fig:disque}), un facteur 11 à 13. La littérature dit la même chose ailleurs : le cache de pages du système livre 148\,Mo/s là où le même disque donne 1\,496\,Mo/s en lectures explicites à la taille d'un expert, avec 25\,000 à 50\,000 défauts de page par jeton~\cite{moestream2026} ; dans un fichier GGUF, les trois matrices d'un expert sont rangées dans trois tenseurs différents, d'où 6\,912 pages touchées par expert contre 192 après regroupement~\cite{llama27149} \litt. \textbf{Un expert doit être une seule lecture, contiguë, alignée sur 4\,Kio.} Sur la carte, un transfert synchrone coûte une latence fixe d'environ 33\,µs (64\,Kio passent à 1,5\,Go/s) \mes.
+
+\section{Les modèles denses}\label{sec:denses}
+
+\paragraph{Couche par couche (AirLLM~\cite{airllm2026}).} Le modèle est découpé en un fichier par couche ; à chaque passe, la couche $\ell$ est lue, copiée, calculée, libérée, et un fil prépare $\ell+1$. Ce système publie de la mémoire, pas de la vitesse (« 70B sur une carte de 4\,Go »). Le juge le chiffre : un 70B dense en FP16 lit 140\,Go par jeton ; au débit mesuré du disque, \textbf{49,6\,s par jeton} \calc. C'est exactement la lecture littérale de « sans RAM ni rien », et c'est pourquoi elle ne suffit pas : la mémoire de pointe est résolue, le débit ne l'est pas.
+
+\paragraph{FlexGen~\cite{flexgen2023} et ZeRO-Inference~\cite{zeroinference2022}.} FlexGen amortit la lecture des poids sur un grand bloc de lots, avec un modèle de coût par couche où cinq flux se recouvrent, $T = \max(\text{ctog}, \text{gtoc}, \text{dtoc}, \text{ctod}, \text{comp})$, et une politique de onze variables choisie par programmation linéaire. Il obtient 0,69 jeton/s sur OPT-175B, mais avec un lot effectif de 144 et des milliers de secondes de latence \litt : rien pour un usage interactif au lot de un.
+
+\paragraph{llama.cpp~\cite{llamacpp}.} Lu au commit \texttt{843e7dc} : projection du fichier en mémoire (\texttt{mmap}, avec \texttt{PrefetchVirtualMemory} sous Windows), le chargement à la demande le plus simple qui soit et le plus mal granulé ; \texttt{-ngl N} pour placer $N$ couches sur la carte, le reste étant calculé par le processeur, sans recouvrement entre couches ; \texttt{-ncmoe N} pour laisser les experts de $N$ couches au processeur ; \texttt{--load-mode dio} pour une lecture directe sans cache système ; lecture paresseuse des tenseurs de plus de 4\,Gio ; et \texttt{--moe-cache-mib}, expérimental, un cache en VRAM des experts gardés en RAM. La lecture des experts sur le disque avec un cache explicite est une demande de fusion ouverte~\cite{llamapr25294}.
+
+\paragraph{LLM in a flash~\cite{llminflash2024} et PowerInfer~\cite{powerinfer2024,powerinfer2_2024}.} Le premier prédit les neurones actifs du FFN, garde en DRAM ceux des derniers jetons (fenêtrage), et regroupe ligne et colonne d'un même neurone pour le lire d'un tenant : 20 à 25 fois mieux que le chargement naïf sur la carte. Le second place sur la carte les neurones « chauds » et calcule les « froids » sur le processeur. Tous deux reposent sur la parcimonie d'activation des fonctions ReLU ; sur les SwiGLU modernes elle est faible, et le \cref{ch:sparsite} la mesure.
+
+\section{Les mélanges d'experts}\label{sec:moe-systemes}
+
+\paragraph{Déchargement, prédiction, cache.} Mixtral-offloading~\cite{mixtraloffload2023} garde un cache LRU de quelques experts par couche en VRAM et applique le routeur de la couche $\ell+1$ à l'état caché de la couche $\ell$ (le résidu change peu) pour précharger : $\times 1{,}47$ sur une RTX 3060. Les systèmes qui suivent prédisent mieux (\cref{tab:prediction}) ; deux enseignements pèsent pour la suite. HOBBIT~\cite{hobbit2024} remplace un expert absent par sa copie basse précision pour au plus un point de perte. Edge0~\cite{edge0_2026} mesure que la prédiction ne supprime pas d'octets mais retire la latence du chemin critique, et que seule une avance d'un jeton entier paie dans un moteur réel.
+
+\begin{table}[ht]
+\centering\small
+\caption[Prédire et précharger les experts]{Prédire et précharger les experts : justesse et gain publiés \litt.}
+\label{tab:prediction}
+\begin{tabularx}{\linewidth}{@{}lXl@{}}
+\toprule
+Système & Prédiction et résultat publié & Machine \\
+\midrule
+Mixtral-offloading~\cite{mixtraloffload2023} & routeur $\ell{+}1$ sur l'état $\ell$ ; $\times1{,}47$ avec LRU & RTX 3060 \\
+ProMoE~\cite{promoe2024} & prédicteur appris, 84,7\,\% ; décodage $\times2{,}07$ & RTX 4090 \\
+HOBBIT~\cite{hobbit2024} & routeurs $\ell{+}1..\ell{+}3$, 96\,\% à $\ell{+}1$ ; jusqu'à $\times9{,}93$ & RTX 4090, Orin \\
+AdapMoE~\cite{adapmoe2024} & porte adaptative ($-25$\,\% d'experts) ; $\times1{,}35$ & bords \\
+ExpertFlow~\cite{expertflow2024} & prédicteur du chemin entier ; jusqu'à $\times10$ & une carte \\
+SeqMoE~\cite{seqmoe2026} & multi-pas, Belady probabiliste ; 96,97\,\% à 45\,\% de résidence & --- \\
+Edge0~\cite{edge0_2026} & prérouteur, un jeton d'avance ; +80 à +84\,\% au décodage & Mac mini M4 Pro \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Calculer l'expert là où il est.} Fiddler~\cite{fiddler2025} calcule sur le processeur un expert absent de la carte si c'est moins cher que de le transférer ; KTransformers~\cite{ktransformers2025} calcule les experts en RAM avec des noyaux AVX-512 et AMX et \emph{reporte} certains experts : leur sortie est ajoutée à la couche $\ell+2$ au lieu de $\ell+1$, ce qui laisse le processeur calculer pendant l'attention suivante, pour au plus deux points de perte. Sur la machine de Stone, l'étude avait chiffré qu'un expert de Qwen3-30B (2,86\,Mo en Q4\_K\_M) coûte 82\,µs à calculer sur le processeur (RAM supposée à 35\,Go/s) contre $33 + 448$\,µs à transférer à 6,4\,Go/s : \barre{transférer coûte 5,9 fois plus que calculer sur place}. Refait avec les débits mesurés au \cref{ch:machine} \calc : le calcul sur le processeur coûte $2{,}86/15{,}6 = 183$\,µs, le transfert $33 + 2{,}86/12{,}2 = 267$\,µs, soit \textbf{1,5 fois} seulement ; le calcul sur la carte depuis la VRAM, 11\,µs. Avec un seul canal de RAM, la règle de Fiddler reste vraie de justesse, et chaque expert gardé en VRAM vaut seize fois un expert gardé en RAM.
+
+\paragraph{Lire les experts sur le disque (2026).} La demande de fusion \#25294 de llama.cpp~\cite{llamapr25294} gère un cache d'emplacements en mémoire de la carte, lit les défauts par un pool de fils et obtient 2,20 jetons/s sur GLM-5.2 (254\,Go) avec 79\,\% de succès, contre 0,87 en mmap. moe-stream~\cite{moestream2026} tourne sous Windows, sur le processeur seul : Qwen3.6-35B-A3B passe de 0,82 jeton/s en mmap à 5,05 avec un cache explicite de 6\,Go. SSD-LLaMA~\cite{ssdllama2026} traite SSD, RAM et VRAM comme une seule hiérarchie et \textbf{compresse les experts} (trafic disque $-33{,}2$\,\%), sur une RTX 5090 avec PCIe 5.0. SmallThinker~\cite{smallthinker2025} prend le contre-pied : un modèle conçu pour le local, dont le routeur est placé avant l'attention pour que les experts se lisent pendant l'attention ; on peut acheter la localité à l'entraînement, pas sur un modèle existant \litt.
+
+\begin{table}[ht]
+\centering\small
+\caption[Les politiques de cache d'experts]{Les politiques de cache d'experts : succès publiés \litt.}
+\label{tab:caches}
+\begin{tabularx}{\linewidth}{@{}lXl@{}}
+\toprule
+Politique & Résultat publié & Source \\
+\midrule
+LRU & 65,9\,\% à 13,4\,\% du budget (Qwen3-30B, une couche) & \cite{cacheable2026} \\
+LFU & 60,1\,\% au même point & \cite{cacheable2026} \\
+Épinglage statique & 59,2\,\% au même point & \cite{cacheable2026} \\
+Belady (optimum hors ligne) & 79,1\,\% au même point & \cite{cacheable2026} \\
+« Least-Stale » & 88--92\,\% à 1\,\% de capacité & \cite{specmd2026} \\
+Appris (récence et fréquence) & +51\,\% de succès sur LRU et LFU & \cite{flashmoe2026} \\
+Routage conscient du cache & défauts de DeepSeek-V2 28\,\% $\to$ 7\,\%, perplexité +0,1 à 3\,\% & \cite{cachecond2024} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{La localité des experts d'un jeton au suivant}\label{sec:localite}
+
+\begin{table}[ht]
+\centering\small
+\caption[La localité mesurée des experts]{La réutilisation des experts d'un jeton au suivant \litt.}
+\label{tab:localite}
+\begin{tabularx}{\linewidth}{@{}lXl@{}}
+\toprule
+Modèle ($E$, $k_e$) & Réutilisation adjacente & « Au hasard » \\
+\midrule
+Mixtral-8x7B (8, 2)~\cite{mixtral2024} & premier choix répété 13,6--14,9\,\% (couche 0), 24,6--28,4\,\% (couche 15) & 12,5\,\% \\
+Qwen3-30B-A3B (128, 8)~\cite{cacheable2026} & 0,444 & 0,223 \\
+Qwen3.6-35B-A3B (256, 8)~\cite{edge0_2026} & « environ un quart » de l'ensemble d'une couche & 3,1\,\% \calc \\
+Qwen1.5-MoE, DeepSeek-V2, Mixtral~\cite{cachecond2024} & résidence moyenne en cache 26, 19, 5 jetons & --- \\
+Qwen3-30B (4 domaines)~\cite{cacheable2026} & 52,5\,\% des experts portent 95\,\% du trafic ; recouvrement code/autres 0,11--0,16 & --- \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+La localité existe et elle est faible (\cref{tab:localite}) : un jeton reprend environ un quart à 44\,\% des experts du jeton précédent, deux à huit fois le hasard ; elle est plus forte au milieu du réseau qu'aux extrémités ; la popularité compte autant que la récence ; et le domaine change l'ensemble chaud. L'optimum contre lequel se jugent toutes les politiques est celui de Belady.
+
+\begin{theoreme}[Belady~\cite{belady1966}]\label{thm:belady}
+Pour une suite de demandes connue d'avance et un cache de $C$ places, la politique qui, à chaque défaut, évince l'élément dont la prochaine demande est la plus lointaine minimise le nombre de défauts.
+\end{theoreme}
+
+\begin{proof}
+Par échange. Soit une politique optimale $\mathcal O$ qui diffère de celle de Belady $\mathcal B$ pour la première fois à l'instant $t$ : $\mathcal B$ évince $x$, dont la prochaine demande est la plus lointaine, et $\mathcal O$ évince $y \ne x$. Construisons $\mathcal O'$ qui évince $x$ à l'instant $t$ puis imite $\mathcal O$, avec $y$ à la place de $x$, jusqu'à la prochaine demande de $y$ (qui précède celle de $x$). À cette demande, $\mathcal O'$ a $y$ en cache quand $\mathcal O$ ne l'a pas : $\mathcal O$ paie un défaut que $\mathcal O'$ ne paie pas, ou bien $\mathcal O$ a évincé $x$ entre-temps, et les deux caches redeviennent égaux. Dans tous les cas $\mathcal O'$ ne paie pas plus de défauts que $\mathcal O$ et coïncide avec $\mathcal B$ un pas de plus ; par récurrence, $\mathcal B$ est optimale.
+\end{proof}
+
+L'outil \texttt{chargement\_localite.py} mesure, sur une trace de routage, la réutilisation adjacente, ses deux références de hasard, les distances de réutilisation et les succès de LRU, LFU, épinglage statique et Belady pour chaque budget. Ses témoins synthétiques tiennent : routage uniforme (réutilisation 0,0613 pour 0,0625 attendus, tolérance de 4 écarts-types, et LRU égal à $C/E$ à chaque budget), routage figé (succès 0,9998), routage « collant » de paramètre $\rho = 0{,}6$ (0,604 mesuré), Belady jamais dépassé (\cref{thm:belady}). L'ordre des jetons mélangé, la réutilisation du routage collant tombe à 0,0635 et le témoin échoue : l'instrument voit l'ordre. Deux erreurs de la première passe ont été trouvées par ces témoins et corrigées. La \cref{fig:localite} montre déjà la forme du problème sur le routage collant : l'écart entre LRU et Belady, 9 à 13 points, est la marge qu'une prédiction parfaite pourrait reprendre. \textbf{L'instrument est prêt ; la trace réelle manque.}
+
+\begin{figure}[ht]
+\centering
+\GrapheLocalite
+\caption[Succès des politiques de cache sur un routage synthétique]{Succès des politiques de cache sur le témoin synthétique de routage « collant » ($\rho = 0{,}6$, $E = 128$, $k_e = 8$) \calc. Belady borne toutes les politiques ; l'écart LRU--Belady est ce qu'une prédiction parfaite reprendrait.}
+\label{fig:localite}
+\sourcefig{\fichier{fondations/journaux/04-chargement/localite-temoins.json}, témoin T3.}
+\end{figure}
+
+\section{Les pipelines à double tampon}\label{sec:double-tampon}
+
+Avec deux tampons, la lecture du morceau $\ell+1$ se fait pendant le calcul du morceau $\ell$ ; le temps par morceau devient $\max(L_\ell, C_\ell)$ au lieu de $L_\ell + C_\ell$, plus un remplissage initial (\cref{lem:flowshop}). Pour masquer une latence $\lambda$, il faut une profondeur de préchargement $d \ge \lceil \lambda / C_{\text{couche}} \rceil$ couches.
+
+\begin{proposition}[Le double tampon cache la latence, jamais le volume]\label{prop:volume}
+Quel que soit le préchargement, le temps par jeton reste au moins $\max_i O_i/W_i$ (\cref{thm:toit}) ; un préchargement de profondeur suffisante n'élimine que les attentes dues à la latence des requêtes.
+\end{proposition}
+
+\begin{proof}
+Le préchargement change l'instant des transferts, pas leur volume : chaque étage doit toujours faire passer $O_i$ octets par jeton, et l'argument du \cref{thm:toit} ne dépend pas de l'ordre des transferts.
+\end{proof}
+
+Exemple \calc : pour Qwen3-235B à environ 1 jeton/s, une couche dure 10,6\,ms. L'étude avait chiffré la lecture d'un expert (10,76\,Mo) à 1,6\,ms en supposant un disque à 6,7\,Go/s ; au débit mesuré (2,82\,Go/s), elle dure 3,8\,ms, et huit experts manquants 30,5\,ms, trois fois la durée d'une couche. Une couche d'avance masque la latence d'un défaut ; aucune avance ne masque le volume de huit.
+
+\paragraph{Ce que la machine donne au pipeline} \mes. Une copie hôte vers carte se recouvre presque parfaitement avec un trafic VRAM sur un autre flux (part cachée 0,98 à 1,01, VRAM ralentie de 5,6\,\%) : les moteurs de copie sont libres pendant que la carte travaille. La mémoire épinglée vaut 21\,\% de débit de plus que la mémoire paginable. Et le lien n'atteint sa génération 4 que si la carte est en état de performance haut (\cref{fig:pcie-gen}) : \textbf{il faut que la carte calcule pendant qu'on copie}, ce qui tombe bien, c'est le but du recouvrement.
+
+\paragraph{Les chemins de Windows.} Lectures sans tampon par IOCP ou IoRing (l'équivalent d'io\_uring avec \texttt{O\_DIRECT}) ; DirectStorage, qui lit le NVMe vers une ressource Direct3D~12 et décompresse sur la carte (GDeflate depuis la version 1.1, Zstandard en préversion 1.4~\cite{microsoft2026directstorage14}) ; CUDA, dépaqueté sur la machine, pour les copies asynchrones et la mémoire épinglée. Aucun moteur d'inférence lu ne se sert de DirectStorage.
+
+\section{Le juge appliqué à la machine}\label{sec:juge}
+
+L'étude avait appliqué le juge avec des débits supposés (RAM 35\,Go/s, disque 6,7\,Go/s), puis avec la première lecture provisoire du disque (2,4\,Go/s), en barrant ses conclusions à chaque correction. On le relance ici, même outil, avec le débit mesuré et retenu par le \cref{ch:machine} (\texttt{--disque-go-s 2.82}) ; capacités supposées : 6,5\,Go de VRAM et 10\,Go de RAM pour des poids.
+
+\begin{figure}[ht]
+\centering
+\GrapheJuge
+\caption[Le succès du cache exigé, modèle par modèle]{Le succès du cache d'experts exigé pour 5 et 10 jetons/s, disque mesuré à 2,82\,Go/s, et la part du modèle qui tient en mémoire rapide (trait noir) \calc. Partout où la barre dépasse le trait, il faut de la localité, de la prédiction ou moins d'octets.}
+\label{fig:juge}
+\sourcefig{\fichier{memoire/figures/donnees/juge-stone-disque-2.82.json} (\fichier{outils/chargement\_juge.py}) et \fichier{fondations/journaux/04-chargement/juge-stone-disque-2.4.json}.}
+\end{figure}
+
+\begin{table}[ht]
+\centering\small
+\caption[Le juge sur la machine, disque à 2,4 puis 2,82\,Go/s]{Le juge sur la machine : borne sans localité et succès exigé, disque à 2,4\,Go/s (étude 04) puis 2,82\,Go/s (mesure retenue) \calc.}
+\label{tab:juge}
+\pgfplotstabletypeset[col sep=comma, fixed, precision=2, zerofill,
+  columns={modele,bpp,R_go,borne_24,borne_282,h5_282,h10_282,part_tenable},
+  columns/modele/.style={string type, column name=Modèle, column type={l}},
+  columns/bpp/.style={column name={bits/poids}, column type={r}},
+  columns/R_go/.style={column name={$B_e$ (Go)}, column type={r}},
+  columns/borne_24/.style={column name={borne, 2,4}, column type={r}},
+  columns/borne_282/.style={column name={borne, 2,82}, column type={r}},
+  columns/h5_282/.style={column name={$h$ pour 5}, column type={r}},
+  columns/h10_282/.style={column name={$h$ pour 10}, column type={r}},
+  columns/part_tenable/.style={column name={part qui tient}, column type={r}},
+  every head row/.style={before row=\toprule, after row=\midrule},
+  every last row/.style={after row=\bottomrule}]{\Donnees/charge-juge.csv}
+\end{table}
+
+Lecture (\cref{fig:juge,tab:juge}) :
+\begin{enumerate}
+\item \textbf{Les MoE à faible $B_e$ (au plus 1,5\,Go routés par jeton), trois à cinq fois plus gros que la mémoire, sont à portée} : Qwen3-Next-80B (4,6 jetons/s sans localité) et Qwen3.8-Flash-Next (2,4) demandent 38 à 80\,\% de succès pour 5 à 10 jetons/s.
+\item \textbf{Les gros MoE à experts épais ($B_e \ge 4{,}5$\,Go) exigent 88 à 93\,\% de succès pour 5 jetons/s}, avec 4 à 18\,\% du modèle en mémoire rapide. Le seul point publié comparable (LRU 65,9\,\%, Belady 79,1\,\% à 13,4\,\% de budget) dit que les politiques de cache seules n'y arrivent pas : il faut réduire $B_e$ (\cref{ch:quant}) ou changer le routage.
+\item \textbf{gpt-oss-120b} : 1,99 jeton/s sans localité, 70\,\% de succès pour 5 jetons/s. C'est le troisième chemin indépendant qui retrouve le toit d'environ 2 jetons/s (\cref{sec:toit}).
+\end{enumerate}
+
+\begin{figure}[ht]
+\centering
+\GrapheSensibiliteH
+\caption[Le plafond de gpt-oss-120b selon le succès du cache]{Plafond de gpt-oss-120b selon le succès $h$ du cache d'experts (modèle de coût de l'étude des modèles, $t = \max(B_t/256,\ hB_e/41{,}6,\ (1-h)B_e/W_{\mathrm{disque}})$) \calc. Au débit mesuré du disque, passer de 26\,\% (routage uniforme) à 80\,\% de succès multiplie le plafond par 3,7.}
+\label{fig:sensibilite-h}
+\sourcefig{\fichier{memoire/figures/donnees/charge-sensibilite-h.csv}, d'après \fichier{fondations/journaux/01-machine/debits-mesures.json}.}
+\end{figure}
+
+\section{Ce qui manque dans le monde}\label{sec:trous-chargement}
+
+\begin{enumerate}
+\item \textbf{Aucun moteur publié ne lit les experts sur le disque sous Windows jusqu'à la VRAM.} SSD-LLaMA (io\_uring), la demande \#25294 (Linux), Edge0 (MLX) et KTransformers (Linux) n'y sont pas ; moe-stream tourne sous Windows mais sur le processeur seul. Le coût dominant de l'ignorer : les moteurs existants lisent par le cache de pages ou en petits morceaux, et ce disque donne 11 à 13 fois moins en petits blocs.
+\item \textbf{L'état du lien PCIe d'un portable n'est dans aucune publication} (\cref{sec:pcie}).
+\item \textbf{Pas de courbe « succès selon le budget » pour les MoE de 2026 aux budgets d'un portable} (5 à 20\,\% des experts) ; un seul point exact est publié.
+\item \textbf{Le report d'expert n'a jamais servi à absorber un défaut de lecture.} KTransformers reporte des experts présents pour occuper le processeur ; Edge0 montre que la latence domine, pas le volume. Reporter d'une couche l'expert qui manque, au lieu d'attendre, retire cette latence du chemin critique sans prédiction et sans changer les octets.
+\item \textbf{Personne n'a réuni les quatre réponses à un défaut sous un budget de qualité mesuré} (\cref{fig:defaut}) : attendre, reporter, substituer une copie basse précision, re-router vers un expert présent.
+\item \textbf{La compression dans la boucle de lecture n'est publiée que sur une machine à PCIe 5.0 et RTX 5090.} Sur la machine de Stone, où le disque borne, chaque point de compression des experts est un point de débit si la décompression tient dans le temps du calcul (\cref{cor:sans-croisement}).
+\end{enumerate}
+
+\begin{figure}[ht]
+\centering
+\SchemaDefaut
+\caption[Les quatre réponses à un défaut de cache]{Les quatre réponses possibles à un défaut de cache d'experts, chacune publiée séparément, jamais réunies.}
+\label{fig:defaut}
+\end{figure}
+
+\paragraph{Une proposition d'assemblage, pour l'arbitre.} Ce que la revue et le juge suggèrent, sous forme d'hypothèses testables, chacune avec son témoin : attention, experts partagés, routeurs et cache d'experts chauds en VRAM ; RAM comme tampons de lecture épinglés et cache tiède ; disque contenant tous les experts, réécrits un expert par bloc contigu aligné, éventuellement codés sans perte ; lecture par IoRing sans tampon à profondeur de file d'au moins 16, ou par DirectStorage vers la VRAM ; prédiction d'un jeton d'avance ; politique de défaut choisie par le score de routage sous un budget de perplexité déclaré ; copies lancées pendant que la carte calcule ; mesure contre llama.cpp \texttt{-ncmoe} et \texttt{--moe-cache-mib} sur la même machine, en séries ABBA. Ce n'est pas une décision : c'est l'entrée du \cref{ch:avenir}.
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{Le juge suppose un recouvrement parfait} et ignore le cache KV, le préremplissage et la latence par requête : il borne, il ne prédit pas. Les mesures publiées tombent à 18 à 45\,\% de leur borne.
+\item \textbf{La capacité RAM du juge (10\,Go) et sa PCIe (6,4\,Go/s)} sont celles de l'étude d'origine ; seule la valeur du disque a été remplacée ici.
+\item \textbf{Les bits par poids moyens} appliquent la même précision aux experts et au reste, ce qui est faux en détail.
+\item \textbf{Plusieurs chiffres viennent de dépôts et de discussions communautaires}, non relus par des pairs ; deux articles se contredisent eux-mêmes. Ils sont étiquetés, pas écartés.
+\item \textbf{La réutilisation « 0,444 contre 0,223 »} dépend d'une définition du hasard que l'article ne donne pas.
+\item \textbf{Le report pour absorber un défaut n'a pas été mesuré}, et quelqu'un l'a peut-être fait sous un autre nom.
+\item \textbf{L'effet de l'état de performance sur le lien} est mesuré sur cette carte et ce pilote.
+\end{itemize}
+\end{faux}

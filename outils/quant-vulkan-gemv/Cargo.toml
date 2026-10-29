@@ -1,0 +1,18 @@
+[package]
+name = "quant-vulkan-gemv"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Coût du décodage d'un treillis à décalage 2 bits dans un shader de calcul (Vulkan et DirectX 12, par wgpu)."
+
+# Dépendances (mêmes versions que outils/banc, déjà dans le cache cargo) :
+# wgpu : MIT OU Apache-2.0. pollster : MIT OU Apache-2.0.
+[dependencies]
+wgpu = "30.0.1"
+pollster = "1.0.1"
+
+[profile.release]
+opt-level = 3
+debug = false
+codegen-units = 16
+lto = false

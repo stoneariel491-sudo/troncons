@@ -1,0 +1,196 @@
+{
+ "outil": "outils/genome/tome3/latents_etats.py",
+ "date": "2026-10-27",
+ "graine": 20261027,
+ "entrees": {
+  "h": "~/dev/essais/troncons/genome/eclaireur/calib/h-L23.f32",
+  "routage": "~/dev/essais/troncons/genome/eclaireur/calib/routage-L23.bin",
+  "gguf": "~/dev/modeles/gguf/gpt-oss-20b-MXFP4.gguf",
+  "routeur": "blk.23.ffn_gate_inp.weight, .bias (F32)",
+  "fenetres_calibration": "10 à 21 de wiki.test"
+ },
+ "couche": 23,
+ "etats": 6132,
+ "d_modele": 2880,
+ "temoin_W0_routeur": {
+  "ensembles_egaux": 6132,
+  "premiers_egaux": 6132,
+  "ecart_poids_max": 2.810741184244847e-08,
+  "tient": true,
+  "cassure_sans_biais_ensembles_egaux": 3482,
+  "cassure_tombe": true
+ },
+ "temoin_W1_fidelite": {
+  "acp_complete_T": 1.0,
+  "acp_complete_C": 1.0,
+  "tient": true,
+  "cassure_plan_permute_T": 0.5001616231777966,
+  "cassure_plan_permute_C": 0.4997589929904722,
+  "cassure_tombe": true
+ },
+ "acp_part_variance": [
+  0.13072625405800684,
+  0.07957994843308826,
+  0.028311613197779112,
+  0.026783574096587784,
+  0.022607751793469567,
+  0.017749413030651723,
+  0.016098370175680176,
+  0.013135342522683063,
+  0.012043322629908404,
+  0.01122111290750958
+ ],
+ "acp_part_variance_plan": 0.2103062024910951,
+ "k_fidelite": 10,
+ "paires_spearman": 200000,
+ "fidelite": {
+  "acp": {
+   "T": 0.7915133794044309,
+   "C": 0.9170744613089539,
+   "voisins_gardes": 0.02909328114807567,
+   "accord_premier_plan": 0.2865949119373777,
+   "spearman": 0.5885151396480125
+  },
+  "tsne": {
+   "T": 0.9467156519352522,
+   "C": 0.9586590206071085,
+   "voisins_gardes": 0.4723418134377039,
+   "accord_premier_plan": 0.4423679060665362,
+   "spearman": 0.41184234629695843
+  }
+ },
+ "accord_premier_espace_origine": 0.48096868884540117,
+ "accord_premier_hasard": 0.12156236423386518,
+ "seuil_declare": "t-SNE gardée si T(10) et C(10) ≥ ceux de l'ACP (même passe)",
+ "tsne_gardee": true,
+ "tsne_parametres": {
+  "perplexite": 30.0,
+  "voisins": 90,
+  "pas": 1000,
+  "exageration": 12.0,
+  "pas_exageration": 250,
+  "inertie": [
+   0.5,
+   0.8
+  ],
+  "apprentissage": "n/12",
+  "init": "ACP, écart-type 1e-4 sur l'axe 1",
+  "gains": [
+   0.2,
+   0.8,
+   0.01
+  ],
+  "fils_blas": 1
+ },
+ "tsne_journal": [
+  {
+   "pas": 0,
+   "kl": 5.035508629144868,
+   "exageration": 12.0
+  },
+  {
+   "pas": 100,
+   "kl": 4.6749217049599805,
+   "exageration": 12.0
+  },
+  {
+   "pas": 200,
+   "kl": 4.685397700696401,
+   "exageration": 12.0
+  },
+  {
+   "pas": 300,
+   "kl": 2.2951409829763705,
+   "exageration": 1.0
+  },
+  {
+   "pas": 400,
+   "kl": 1.791939698464192,
+   "exageration": 1.0
+  },
+  {
+   "pas": 500,
+   "kl": 1.6685876280123084,
+   "exageration": 1.0
+  },
+  {
+   "pas": 600,
+   "kl": 1.6105294075290768,
+   "exageration": 1.0
+  },
+  {
+   "pas": 700,
+   "kl": 1.5767362405204088,
+   "exageration": 1.0
+  },
+  {
+   "pas": 800,
+   "kl": 1.554567717495978,
+   "exageration": 1.0
+  },
+  {
+   "pas": 900,
+   "kl": 1.539341900945721,
+   "exageration": 1.0
+  },
+  {
+   "pas": 999,
+   "kl": 1.528215116841812,
+   "exageration": 1.0
+  }
+ ],
+ "marge45_quantiles": {
+  "0.0": 9.176342883554511e-06,
+  "0.1": 0.007180324443381481,
+  "0.25": 0.01985172469989705,
+  "0.5": 0.04795667141291915,
+  "0.75": 0.09614809807528774,
+  "0.9": 0.16461898663581392,
+  "1.0": 1.1786773022607469
+ },
+ "marge12_quantiles": {
+  "0.0": 6.047988643187452e-05,
+  "0.1": 0.015471404131169098,
+  "0.25": 0.040804340586916565,
+  "0.5": 0.09667360082386667,
+  "0.75": 0.19213332625446983,
+  "0.9": 0.33068581924284435,
+  "1.0": 1.8294874581111396
+ },
+ "comptes_premier": [
+  91,
+  2,
+  112,
+  0,
+  332,
+  0,
+  230,
+  2,
+  6,
+  0,
+  1,
+  146,
+  1349,
+  359,
+  12,
+  1,
+  42,
+  1,
+  257,
+  47,
+  0,
+  420,
+  5,
+  444,
+  1283,
+  0,
+  136,
+  271,
+  40,
+  43,
+  19,
+  481
+ ],
+ "experts_premiers_distincts": 27,
+ "duree_s": 1324.1840937137604
+}

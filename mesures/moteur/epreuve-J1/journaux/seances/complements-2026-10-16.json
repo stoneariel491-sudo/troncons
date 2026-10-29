@@ -1,0 +1,615 @@
+{
+ "seance": "complements-2026-10-16",
+ "ordre": [
+  "W120",
+  "Y20",
+  "XE2",
+  "XO3",
+  "XO3t",
+  "K120"
+ ],
+ "passes": {
+  "T120": [
+   "troncons",
+   [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "mesurer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-120b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--flux"
+   ]
+  ],
+  "L120": [
+   "llama",
+   [
+    "~/dev/modeles/llama.cpp-b11515/llama-completion.exe",
+    "-m",
+    "~/dev/modeles/gguf/gpt-oss-120b-MXFP4.gguf",
+    "-f",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--temp",
+    "0",
+    "--seed",
+    "1",
+    "-no-cnv",
+    "--no-display-prompt",
+    "--perf",
+    "--ignore-eos",
+    "-c",
+    "2048",
+    "-lv",
+    "4",
+    "-t",
+    "6"
+   ]
+  ],
+  "L120t10": [
+   "llama",
+   [
+    "~/dev/modeles/llama.cpp-b11515/llama-completion.exe",
+    "-m",
+    "~/dev/modeles/gguf/gpt-oss-120b-MXFP4.gguf",
+    "-f",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--temp",
+    "0",
+    "--seed",
+    "1",
+    "-no-cnv",
+    "--no-display-prompt",
+    "--perf",
+    "--ignore-eos",
+    "-c",
+    "2048",
+    "-lv",
+    "4",
+    "-t",
+    "10"
+   ]
+  ],
+  "T20": [
+   "troncons",
+   [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "mesurer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-20b.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-20b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--flux"
+   ]
+  ],
+  "T120tiede1": [
+   "troncons",
+   [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "mesurer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-120b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--flux",
+    "--ram-tiede",
+    "1"
+   ]
+  ],
+  "D120": [
+   "disque",
+   [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "disque",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--n",
+    "1500",
+    "--graine",
+    "20261016",
+    "--profondeur",
+    "4"
+   ]
+  ],
+  "E120c": [
+   "evaluer",
+   [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "evaluer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--base",
+    "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+    "--fenetres",
+    "10",
+    "--positions",
+    "512",
+    "--flux"
+   ]
+  ],
+  "E120b": [
+   "evaluer",
+   [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "evaluer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b-brut.trc",
+    "--base",
+    "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+    "--fenetres",
+    "10",
+    "--positions",
+    "512",
+    "--flux",
+    "--brut"
+   ]
+  ],
+  "W120": [
+   "commande",
+   [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "generer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-120b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "4",
+    "--flux",
+    "--temoin",
+    "--repos",
+    "0"
+   ]
+  ],
+  "XE2": [
+   "commande",
+   [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "generer",
+    "--modele",
+    "~/dev/modeles/trc/casse/gpt-oss-20b-casse-E2.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-20b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "32",
+    "--flux",
+    "--repos",
+    "0"
+   ]
+  ],
+  "XO3": [
+   "commande",
+   [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "generer",
+    "--modele",
+    "~/dev/modeles/trc/casse/gpt-oss-20b-casse-O3.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-20b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "32",
+    "--flux",
+    "--repos",
+    "0"
+   ]
+  ],
+  "XO3t": [
+   "commande",
+   [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "generer",
+    "--modele",
+    "~/dev/modeles/trc/casse/gpt-oss-20b-casse-O3.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-20b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "32",
+    "--flux",
+    "--temoin",
+    "--repos",
+    "0"
+   ]
+  ],
+  "Y20": [
+   "commande",
+   [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "generer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-20b.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-20b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "32",
+    "--flux",
+    "--repos",
+    "0"
+   ]
+  ],
+  "K120": [
+   "commande",
+   [
+    "~/dev/modeles/llama.cpp-b11515/llama-perplexity.exe",
+    "-m",
+    "~/dev/modeles/gguf/gpt-oss-120b-MXFP4.gguf",
+    "-ngl",
+    "99",
+    "--cpu-moe",
+    "-c",
+    "512",
+    "-b",
+    "512",
+    "-t",
+    "6",
+    "--seed",
+    "1",
+    "--chunks",
+    "1",
+    "-f",
+    "~/dev/essais/troncons/modeles/donnees/wiki.test.raw"
+   ]
+  ]
+ },
+ "passes_faites": [
+  {
+   "passe": "00-W120",
+   "nom": "W120",
+   "sorte": "commande",
+   "commande": [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "generer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-120b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "4",
+    "--flux",
+    "--temoin",
+    "--repos",
+    "0",
+    "--journal",
+    "~\\dev\\essais\\troncons\\epreuve-J1\\complements-2026-10-16\\00-W120.json",
+    "--sortie",
+    "~\\dev\\essais\\troncons\\epreuve-J1\\complements-2026-10-16\\00-W120.txt"
+   ],
+   "debut": "2026-10-16T04:18:19",
+   "alimentation_avant": "2",
+   "etrangers_avant": [],
+   "dispo_repos_mo": 10593.959936,
+   "vram_repos_mio": 348,
+   "mur_s": 92.29453420639038,
+   "code_retour": 0,
+   "memoire_os": {
+    "pointe_ensemble_travail": 412225536,
+    "pointe_engagee_privee": 6954311680,
+    "fautes_de_page": 11124364,
+    "ensemble_travail": 45056
+   },
+   "es_os": {
+    "lectures": 8110,
+    "octets_lus": 42533506152,
+    "octets_ecrits": 12984,
+    "autres_octets": 477074
+   },
+   "dispo_min_mo": 9943.052288,
+   "perte_machine_mo": 650.9076479999985,
+   "vram_pointe_mio": 6577,
+   "n_echantillons_vram": 293,
+   "alimentation_apres": "2",
+   "programme": {
+    "stderr_fin": "' (200005) attribute to USER_DEFINED (16), old attributes: 8\r\nload: setting token '<|start|>' (200006) attribute to USER_DEFINED (16), old attributes: 8\r\nload: printing all EOG tokens:\r\nload:   - 199999 ('<|endoftext|>')\r\nload:   - 200002 ('<|return|>')\r\nload:   - 200007 ('<|end|>')\r\nload:   - 200012 ('<|call|>')\r\nload: special_eog_ids contains both '<|return|>' and '<|call|>', or '<|calls|>' and '<|flush|>' tokens, removing '<|end|>' token from EOG list\r\nload: special tokens cache size = 21\r\nload: token to piece cache size = 1.3332 MB\r\nprint_info: arch                  = gpt-oss\r\nprint_info: vocab_only            = 1\r\nprint_info: no_alloc              = 0\r\nprint_info: vocab type            = BPE\r\nprint_info: n_vocab               = 201088\r\nprint_info: n_merges              = 446189\r\nprint_info: BOS token             = 199998 '<|startoftext|>'\r\nprint_info: EOS token             = 200002 '<|return|>'\r\nprint_info: EOT token             = 199999 '<|endoftext|>'\r\nprint_info: PAD token             = 199999 '<|endoftext|>'\r\nprint_info: LF token              = 198 'Ċ'\r\nprint_info: EOG token             = 199999 '<|endoftext|>'\r\nprint_info: EOG token             = 200002 '<|return|>'\r\nprint_info: EOG token             = 200012 '<|call|>'\r\nprint_info: max token length      = 256\r\nllama_model_load: vocab only - skipping tensors\r\ntroncons : 708 jetons d'invite en 78.2 s (9.05 j/s), 4 produits en 10.2 s (0.295 j/s) ; h = 0.028 ; mémoire de pointe 412.2 Mo ; VRAM de pointe Some(6577) Mio\n",
+    "texte_sha256": "38786ca4975dfac62049b4c23c03336780553c4829523dbc2a1b4f8db689afae",
+    "jetons_produits": 4,
+    "generation_jetons_s": 0.29475751070876144,
+    "experts_verifies": 3394,
+    "experts_decodes": 3394
+   },
+   "texte_sha256": "38786ca4975dfac62049b4c23c03336780553c4829523dbc2a1b4f8db689afae",
+   "fin": "2026-10-16T04:20:03"
+  },
+  {
+   "passe": "01-Y20",
+   "nom": "Y20",
+   "sorte": "commande",
+   "commande": [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "generer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-20b.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-20b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "32",
+    "--flux",
+    "--repos",
+    "0",
+    "--journal",
+    "~\\dev\\essais\\troncons\\epreuve-J1\\complements-2026-10-16\\01-Y20.json",
+    "--sortie",
+    "~\\dev\\essais\\troncons\\epreuve-J1\\complements-2026-10-16\\01-Y20.txt"
+   ],
+   "debut": "2026-10-16T04:20:03",
+   "alimentation_avant": "2",
+   "etrangers_avant": [],
+   "dispo_repos_mo": 10359.855104,
+   "vram_repos_mio": 348,
+   "mur_s": 16.29377007484436,
+   "code_retour": 0,
+   "memoire_os": {
+    "pointe_ensemble_travail": 381272064,
+    "pointe_engagee_privee": 6923370496,
+    "fautes_de_page": 142175,
+    "ensemble_travail": 49152
+   },
+   "es_os": {
+    "lectures": 5043,
+    "octets_lus": 12395021016,
+    "octets_ecrits": 13965,
+    "autres_octets": 137626
+   },
+   "dispo_min_mo": 9660.522496,
+   "perte_machine_mo": 699.3326080000006,
+   "vram_pointe_mio": 6571,
+   "n_echantillons_vram": 49,
+   "alimentation_apres": "2",
+   "programme": {
+    "stderr_fin": "(200005) attribute to USER_DEFINED (16), old attributes: 8\r\nload: setting token '<|start|>' (200006) attribute to USER_DEFINED (16), old attributes: 8\r\nload: printing all EOG tokens:\r\nload:   - 199999 ('<|endoftext|>')\r\nload:   - 200002 ('<|return|>')\r\nload:   - 200007 ('<|end|>')\r\nload:   - 200012 ('<|call|>')\r\nload: special_eog_ids contains both '<|return|>' and '<|call|>', or '<|calls|>' and '<|flush|>' tokens, removing '<|end|>' token from EOG list\r\nload: special tokens cache size = 21\r\nload: token to piece cache size = 1.3332 MB\r\nprint_info: arch                  = gpt-oss\r\nprint_info: vocab_only            = 1\r\nprint_info: no_alloc              = 0\r\nprint_info: vocab type            = BPE\r\nprint_info: n_vocab               = 201088\r\nprint_info: n_merges              = 446189\r\nprint_info: BOS token             = 199998 '<|startoftext|>'\r\nprint_info: EOS token             = 200002 '<|return|>'\r\nprint_info: EOT token             = 199999 '<|endoftext|>'\r\nprint_info: PAD token             = 199999 '<|endoftext|>'\r\nprint_info: LF token              = 198 'Ċ'\r\nprint_info: EOG token             = 199999 '<|endoftext|>'\r\nprint_info: EOG token             = 200002 '<|return|>'\r\nprint_info: EOG token             = 200012 '<|call|>'\r\nprint_info: max token length      = 256\r\nllama_model_load: vocab only - skipping tensors\r\ntroncons : 708 jetons d'invite en 10.4 s (68.10 j/s), 32 produits en 2.6 s (12.083 j/s) ; h = 0.747 ; mémoire de pointe 381.2 Mo ; VRAM de pointe Some(6571) Mio\n",
+    "texte_sha256": "48f70a4561e63ec6ec6c25b7f2dfd3180429d1a1f1184191a74cea2469a73aaa",
+    "jetons_produits": 32,
+    "generation_jetons_s": 12.082590822399206,
+    "experts_verifies": 0,
+    "experts_decodes": 920
+   },
+   "texte_sha256": "48f70a4561e63ec6ec6c25b7f2dfd3180429d1a1f1184191a74cea2469a73aaa",
+   "fin": "2026-10-16T04:20:31"
+  },
+  {
+   "passe": "02-XE2",
+   "nom": "XE2",
+   "sorte": "commande",
+   "commande": [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "generer",
+    "--modele",
+    "~/dev/modeles/trc/casse/gpt-oss-20b-casse-E2.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-20b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "32",
+    "--flux",
+    "--repos",
+    "0",
+    "--journal",
+    "~\\dev\\essais\\troncons\\epreuve-J1\\complements-2026-10-16\\02-XE2.json",
+    "--sortie",
+    "~\\dev\\essais\\troncons\\epreuve-J1\\complements-2026-10-16\\02-XE2.txt"
+   ],
+   "debut": "2026-10-16T04:20:31",
+   "alimentation_avant": "2",
+   "etrangers_avant": [],
+   "dispo_repos_mo": 10220.941312,
+   "vram_repos_mio": 348,
+   "mur_s": 517.656209230423,
+   "code_retour": 1,
+   "memoire_os": {
+    "pointe_ensemble_travail": 380608512,
+    "pointe_engagee_privee": 6913085440,
+    "fautes_de_page": 141491,
+    "ensemble_travail": 45056
+   },
+   "es_os": {
+    "lectures": 4100,
+    "octets_lus": 2492715471,
+    "octets_ecrits": 7076,
+    "autres_octets": 83446
+   },
+   "dispo_min_mo": 9682.509824,
+   "perte_machine_mo": 538.4314880000002,
+   "vram_pointe_mio": 6571,
+   "n_echantillons_vram": 1649,
+   "alimentation_apres": "2",
+   "programme": {
+    "stderr_fin": "\r\nload: setting token '<|channel|>' (200005) attribute to USER_DEFINED (16), old attributes: 8\r\nload: setting token '<|start|>' (200006) attribute to USER_DEFINED (16), old attributes: 8\r\nload: printing all EOG tokens:\r\nload:   - 199999 ('<|endoftext|>')\r\nload:   - 200002 ('<|return|>')\r\nload:   - 200007 ('<|end|>')\r\nload:   - 200012 ('<|call|>')\r\nload: special_eog_ids contains both '<|return|>' and '<|call|>', or '<|calls|>' and '<|flush|>' tokens, removing '<|end|>' token from EOG list\r\nload: special tokens cache size = 21\r\nload: token to piece cache size = 1.3332 MB\r\nprint_info: arch                  = gpt-oss\r\nprint_info: vocab_only            = 1\r\nprint_info: no_alloc              = 0\r\nprint_info: vocab type            = BPE\r\nprint_info: n_vocab               = 201088\r\nprint_info: n_merges              = 446189\r\nprint_info: BOS token             = 199998 '<|startoftext|>'\r\nprint_info: EOS token             = 200002 '<|return|>'\r\nprint_info: EOT token             = 199999 '<|endoftext|>'\r\nprint_info: PAD token             = 199999 '<|endoftext|>'\r\nprint_info: LF token              = 198 'Ċ'\r\nprint_info: EOG token             = 199999 '<|endoftext|>'\r\nprint_info: EOG token             = 200002 '<|return|>'\r\nprint_info: EOG token             = 200012 '<|call|>'\r\nprint_info: max token length      = 256\r\nllama_model_load: vocab only - skipping tensors\r\ntroncons : erreur : couche 2, expert 19 : décodage faux (32 voies hors de L, 0 erreurs de format, 1 pointeurs de tuile faux)\n"
+   },
+   "fin": "2026-10-16T04:29:20"
+  },
+  {
+   "passe": "03-XO3",
+   "nom": "XO3",
+   "sorte": "commande",
+   "commande": [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "generer",
+    "--modele",
+    "~/dev/modeles/trc/casse/gpt-oss-20b-casse-O3.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-20b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "32",
+    "--flux",
+    "--repos",
+    "0",
+    "--journal",
+    "~\\dev\\essais\\troncons\\epreuve-J1\\complements-2026-10-16\\03-XO3.json",
+    "--sortie",
+    "~\\dev\\essais\\troncons\\epreuve-J1\\complements-2026-10-16\\03-XO3.txt"
+   ],
+   "debut": "2026-10-16T04:29:20",
+   "alimentation_avant": "2",
+   "etrangers_avant": [],
+   "dispo_repos_mo": 10411.630592,
+   "vram_repos_mio": 348,
+   "mur_s": 16.207973957061768,
+   "code_retour": 0,
+   "memoire_os": {
+    "pointe_ensemble_travail": 381550592,
+    "pointe_engagee_privee": 6919118848,
+    "fautes_de_page": 141915,
+    "ensemble_travail": 45056
+   },
+   "es_os": {
+    "lectures": 5039,
+    "octets_lus": 12346929880,
+    "octets_ecrits": 14036,
+    "autres_octets": 137626
+   },
+   "dispo_min_mo": 10011.459584,
+   "perte_machine_mo": 400.17100799999935,
+   "vram_pointe_mio": 6571,
+   "n_echantillons_vram": 49,
+   "alimentation_apres": "2",
+   "programme": {
+    "stderr_fin": "(200005) attribute to USER_DEFINED (16), old attributes: 8\r\nload: setting token '<|start|>' (200006) attribute to USER_DEFINED (16), old attributes: 8\r\nload: printing all EOG tokens:\r\nload:   - 199999 ('<|endoftext|>')\r\nload:   - 200002 ('<|return|>')\r\nload:   - 200007 ('<|end|>')\r\nload:   - 200012 ('<|call|>')\r\nload: special_eog_ids contains both '<|return|>' and '<|call|>', or '<|calls|>' and '<|flush|>' tokens, removing '<|end|>' token from EOG list\r\nload: special tokens cache size = 21\r\nload: token to piece cache size = 1.3332 MB\r\nprint_info: arch                  = gpt-oss\r\nprint_info: vocab_only            = 1\r\nprint_info: no_alloc              = 0\r\nprint_info: vocab type            = BPE\r\nprint_info: n_vocab               = 201088\r\nprint_info: n_merges              = 446189\r\nprint_info: BOS token             = 199998 '<|startoftext|>'\r\nprint_info: EOS token             = 200002 '<|return|>'\r\nprint_info: EOT token             = 199999 '<|endoftext|>'\r\nprint_info: PAD token             = 199999 '<|endoftext|>'\r\nprint_info: LF token              = 198 'Ċ'\r\nprint_info: EOG token             = 199999 '<|endoftext|>'\r\nprint_info: EOG token             = 200002 '<|return|>'\r\nprint_info: EOG token             = 200012 '<|call|>'\r\nprint_info: max token length      = 256\r\nllama_model_load: vocab only - skipping tensors\r\ntroncons : 708 jetons d'invite en 10.4 s (68.32 j/s), 32 produits en 2.5 s (12.174 j/s) ; h = 0.748 ; mémoire de pointe 381.5 Mo ; VRAM de pointe Some(6571) Mio\n",
+    "texte_sha256": "48f70a4561e63ec6ec6c25b7f2dfd3180429d1a1f1184191a74cea2469a73aaa",
+    "jetons_produits": 32,
+    "generation_jetons_s": 12.173800081540898,
+    "experts_verifies": 0,
+    "experts_decodes": 916
+   },
+   "texte_sha256": "48f70a4561e63ec6ec6c25b7f2dfd3180429d1a1f1184191a74cea2469a73aaa",
+   "fin": "2026-10-16T04:29:48"
+  },
+  {
+   "passe": "04-XO3t",
+   "nom": "XO3t",
+   "sorte": "commande",
+   "commande": [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "generer",
+    "--modele",
+    "~/dev/modeles/trc/casse/gpt-oss-20b-casse-O3.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-20b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "32",
+    "--flux",
+    "--temoin",
+    "--repos",
+    "0",
+    "--journal",
+    "~\\dev\\essais\\troncons\\epreuve-J1\\complements-2026-10-16\\04-XO3t.json",
+    "--sortie",
+    "~\\dev\\essais\\troncons\\epreuve-J1\\complements-2026-10-16\\04-XO3t.txt"
+   ],
+   "debut": "2026-10-16T04:29:48",
+   "alimentation_avant": "2",
+   "etrangers_avant": [],
+   "dispo_repos_mo": 10501.287936,
+   "vram_repos_mio": 348,
+   "mur_s": 630.0856719017029,
+   "code_retour": 1,
+   "memoire_os": {
+    "pointe_ensemble_travail": 408403968,
+    "pointe_engagee_privee": 6940729344,
+    "fautes_de_page": 245526,
+    "ensemble_travail": 45056
+   },
+   "es_os": {
+    "lectures": 4034,
+    "octets_lus": 1723274360,
+    "octets_ecrits": 7057,
+    "autres_octets": 83446
+   },
+   "dispo_min_mo": 9984.3072,
+   "perte_machine_mo": 516.9807360000013,
+   "vram_pointe_mio": 6571,
+   "n_echantillons_vram": 2027,
+   "alimentation_apres": "2",
+   "programme": {
+    "stderr_fin": ", old attributes: 8\r\nload: setting token '<|channel|>' (200005) attribute to USER_DEFINED (16), old attributes: 8\r\nload: setting token '<|start|>' (200006) attribute to USER_DEFINED (16), old attributes: 8\r\nload: printing all EOG tokens:\r\nload:   - 199999 ('<|endoftext|>')\r\nload:   - 200002 ('<|return|>')\r\nload:   - 200007 ('<|end|>')\r\nload:   - 200012 ('<|call|>')\r\nload: special_eog_ids contains both '<|return|>' and '<|call|>', or '<|calls|>' and '<|flush|>' tokens, removing '<|end|>' token from EOG list\r\nload: special tokens cache size = 21\r\nload: token to piece cache size = 1.3332 MB\r\nprint_info: arch                  = gpt-oss\r\nprint_info: vocab_only            = 1\r\nprint_info: no_alloc              = 0\r\nprint_info: vocab type            = BPE\r\nprint_info: n_vocab               = 201088\r\nprint_info: n_merges              = 446189\r\nprint_info: BOS token             = 199998 '<|startoftext|>'\r\nprint_info: EOS token             = 200002 '<|return|>'\r\nprint_info: EOT token             = 199999 '<|endoftext|>'\r\nprint_info: PAD token             = 199999 '<|endoftext|>'\r\nprint_info: LF token              = 198 'Ċ'\r\nprint_info: EOG token             = 199999 '<|endoftext|>'\r\nprint_info: EOG token             = 200002 '<|return|>'\r\nprint_info: EOG token             = 200012 '<|call|>'\r\nprint_info: max token length      = 256\r\nllama_model_load: vocab only - skipping tensors\r\ntroncons : erreur : témoin : couche 0, expert 30 : empreinte 2e3544c45d76133b au lieu de c9f614cc627d7a84\n"
+   },
+   "fin": "2026-10-16T04:40:30"
+  },
+  {
+   "passe": "05-K120",
+   "nom": "K120",
+   "sorte": "commande",
+   "commande": [
+    "~/dev/modeles/llama.cpp-b11515/llama-perplexity.exe",
+    "-m",
+    "~/dev/modeles/gguf/gpt-oss-120b-MXFP4.gguf",
+    "-ngl",
+    "99",
+    "--cpu-moe",
+    "-c",
+    "512",
+    "-b",
+    "512",
+    "-t",
+    "6",
+    "--seed",
+    "1",
+    "--chunks",
+    "1",
+    "-f",
+    "~/dev/essais/troncons/modeles/donnees/wiki.test.raw",
+    "--kl-divergence-base",
+    "~\\dev\\essais\\troncons\\epreuve-J1\\complements-2026-10-16\\05-K120.kld"
+   ],
+   "debut": "2026-10-16T04:40:30",
+   "alimentation_avant": "2",
+   "etrangers_avant": [],
+   "dispo_repos_mo": 10493.70624,
+   "vram_repos_mio": 348,
+   "mur_s": 111.04453706741333,
+   "code_retour": 0,
+   "memoire_os": {
+    "pointe_ensemble_travail": 10693640192,
+    "pointe_engagee_privee": 3745869824,
+    "fautes_de_page": 11048100,
+    "ensemble_travail": 163840
+   },
+   "es_os": {
+    "lectures": 6679,
+    "octets_lus": 32468247,
+    "octets_ecrits": 102560633,
+    "autres_octets": 127758
+   },
+   "dispo_min_mo": 68.538368,
+   "perte_machine_mo": 10425.167872,
+   "vram_pointe_mio": 2721,
+   "n_echantillons_vram": 343,
+   "alimentation_apres": "2",
+   "programme": {
+    "stderr_fin": ".992.197 W load: setting token '<|message|>' (200008) attribute to USER_DEFINED (16), old attributes: 8\r\n0.01.998.201 W load: setting token '<|channel|>' (200005) attribute to USER_DEFINED (16), old attributes: 8\r\n0.01.998.209 W load: setting token '<|start|>' (200006) attribute to USER_DEFINED (16), old attributes: 8\r\n0.01.998.226 W load: special_eog_ids contains both '<|return|>' and '<|call|>', or '<|calls|>' and '<|flush|>' tokens, removing '<|end|>' token from EOG list\r\n0.02.054.791 W llama_model_loader: tensor overrides to CPU are used with mmap enabled - consider using --load-mode none for better performance\r\n0.08.427.016 I cmn          init: llama threadpool init, n_threads = 6\r\n0.15.189.686 I \r\n0.15.190.259 I system_info: n_threads = 6 (n_threads_batch = 6) / 16 | CUDA : ARCHS = 500,610,700,750,800,860,890,900 | USE_GRAPHS = 1 | FA_QUANTS = q4_0-q4_0,q8_0-q8_0,f16-f16,bf16-bf16 | CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX_VNNI = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | BMI2 = 1 | LLAMAFILE = 1 | OPENMP = 1 | REPACK = 1 | \r\n0.15.192.023 I perplexity: saving all logits to ~\\dev\\essais\\troncons\\epreuve-J1\\complements-2026-10-16\\05-K120.kld\r\n0.15.192.048 I perplexity: tokenizing the input ..\r\n0.15.985.948 I perplexity: tokenization took 793.887 ms\r\n0.15.986.701 I perplexity: calculating perplexity over 1 chunks, n_ctx=512, batch_size=512, n_seq=1\r\n1.47.903.694 I perplexity: 91.83 seconds per pass - ETA 1.48.116.302 I Final estimate: PPL = 629.0874 +/- 118.30736\r\n"
+   },
+   "fin": "2026-10-16T04:42:33"
+  }
+ ]
+}

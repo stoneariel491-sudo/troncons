@@ -1,0 +1,172 @@
+% Tome II, annexe A : les protocoles de mesure du moteur (intégrateur, 2026-10-16).
+% Sources lues : decisions/ARCHITECTURE.md § 6.5, § 7 et § 8 ; mesures/moteur/F/00-seuils-declares.md ;
+% mesures/moteur/epreuve-J1/seuils-declares.md ; mesures/moteur/O/corrections/seuils-declares.md ;
+% moteur/REPRISE-O.md (« Ronde de corrections : état final ») ; mesures/moteur/O/pilote_o4.py (verrou,
+% alimentation). Les tableaux de dates sont engendrés par memoire/outils/tome2_annexes.py.
+\chapter{Protocoles de mesure du moteur}\label{t2ann:protocoles}
+
+\begin{origine}
+\textbf{D'où l'on part.} Les règles de mesure du Tome~I (son annexe A, « Protocoles de mesure ») : l'étiquette de provenance de chaque nombre, le témoin et sa cassure, le seuil déclaré avant, les séries ABBA et la règle de décision, le second chemin, l'alimentation et la machine partagée, le juge de qualité. Elles valent toutes ici, telles quelles.
+\textbf{Ce que l'annexe établit.} Ce que la construction y a ajouté : un critère de fin pour chaque étape de chaque lot, avec son témoin, sa cassure et la dérivation de son seuil ; la preuve qu'un palindrome annule une dérive linéaire ; le verrou de la carte ; l'heure du commit comme preuve qu'un seuil précède sa passe ; le protocole de l'épreuve et celui de la ronde de corrections, bloc par bloc.
+\textbf{Ce qui reste.} Deux protocoles que la machine n'a pas encore permis : une série unique en palindrome qui contienne à la fois troncons gardé et la meilleure base, et une base au-delà de 16 fils et avec \texttt{--mlock} (\cref{ch:t2-discussion}).
+\end{origine}
+
+\section{Ce qui est hérité du Tome~I}\label{t2ann:sec:herite}
+
+Chaque nombre porte sa provenance (\mes, \calc, \litt). Chaque mesure a son témoin, un cas dont la réponse est connue d'avance, et tout témoin neuf doit pouvoir échouer : on force sa condition à faux, on relance, on vérifie que l'instrument tombe, puis on restaure. Un seuil dérive d'une grandeur mesurée que l'on nomme, et se déclare avant le lancement. Un coût ne se fonde jamais sur une seule passe. Tout chiffre publié dont on dépend est refait par un chemin indépendant. Seules les passes sur secteur sont des débits de référence. La règle de décision est celle de l'étude 06, § 7.5, rappelée en \cref{t2res-def:reel} : une configuration $B$ diffère réellement de $A$ si
+\begin{equation}\label{t2ann:eq:regle}
+\Bigl|\frac{\bar X_B}{\bar X_A} - 1\Bigr| \;>\; 2\,\max(\beta_A, \beta_B) + 3\,\%,
+\qquad \beta = \frac{|X_1 - X_2|}{\bar X},
+\end{equation}
+où $\beta$ est le bruit d'une configuration, l'écart de ses deux passes d'un même palindrome rapporté à leur moyenne.
+
+\section{Les critères de fin de chaque étape}\label{t2ann:sec:etapes}
+
+L'architecture a écrit, avant la première ligne de code, ce qui ferait tenir chaque étape (\fichier{decisions/ARCHITECTURE.md}, § 6.5). \Cref{t2ann:tab:etapes} les reprend, avec le chapitre où chacun est jugé. Le facteur $0{,}8$ revient partout ; il n'est pas une marge choisie au jugé : c'est $1 - 2 \times 10\,\%$, où $10\,\%$ est le bruit mesuré au Tome~I de la lecture de 4\,Mio en profondeur 4 (étude 01). Un débit mesuré au-dessus de $0{,}8$ fois sa référence ne peut donc pas être déclaré plus lent qu'elle par la seule faute du bruit des deux mesures.
+
+\begingroup\small
+\renewcommand{\arraystretch}{1.12}
+\begin{longtable}{@{}p{0.07\linewidth}p{0.26\linewidth}p{0.21\linewidth}p{0.26\linewidth}p{0.08\linewidth}@{}}
+\caption[Les critères de fin des étapes]{Les critères de fin des étapes des cinq lots, déclarés le 15 octobre 2026 avant la construction (\fichier{decisions/ARCHITECTURE.md}, § 6.5), et le chapitre qui les juge.}\label{t2ann:tab:etapes}\\
+\toprule
+Étape & Témoin & Cassure & Seuil (et sa source) & Jugé \\
+\midrule
+\endfirsthead
+\toprule
+Étape & Témoin & Cassure & Seuil (et sa source) & Jugé \\
+\midrule
+\endhead
+F1 & aller-retour écriture puis lecture identique ; décodeur processeur égal aux flux de l'arbitre & un octet d'en-tête faussé : refus ; une table faussée : décodage faux & 0 écart & \cref{t2fmt:ch} \\
+F2, F3 & C1 : tous les experts décodés par le processeur égaux à l'original (empreinte et octet à octet) ; taux à 0,1\,\% de F1 & une médiane faussée dans une copie : inexact détecté & 0 expert faux & \cref{t2fmt:sec:cun} \\
+E0 & (a) épingler 0,25, 1, 4 et 11\,Go ; (b) lecture sans tampon dans cette mémoire puis DMA, octets égaux ; (c) 36 synchronisations par jeton & un octet faussé dans la source & (b) DMA $\ge 11{,}0$\,Go/s ; (c) $\le 15{,}7$\,ms par jeton & \cref{ch:t2-chemin} \\
+E2 & C2 : empreinte de chaque expert du 20b, disque $\to$ VRAM décodé, égale au répertoire & un bit retourné dans une copie du fichier & $\ge 0{,}8 \times 2{,}58 \times r(\mathrm{F1})$\,Go/s d'experts servis & \cref{sec:t2c-e2} \\
+K1 & sortie égale à \texttt{trc-codec} sur les 108 tenseurs du 120b ; voies finies sur $L$ & une fente de table corrompue & $\ge 0{,}8 \times 41{,}6 = 33{,}28$\,Go/s (référence barrée ensuite pour 45,8) & \cref{sec:t2n-decodeur} \\
+K2 & GEMV MXFP4 exacte au bit sur entiers, $10^{-5}$ sur réels & référence décalée de 1\,\% & $\ge 0{,}8 \times 209{,}4 = 167{,}5$\,Go/s & \cref{sec:t2n-gemv} \\
+K3 & chaque noyau de la passe avant contre \texttt{trc-reference} & chaque témoin forcé à faux & seuils de l'interface des noyaux (§ 5.6) & \cref{sec:t2n-passe} \\
+R0 & plancher de l'instrument (même configuration deux fois) & un autre modèle : KL nette & publiés : $G_{\text{cfg}}$, $G_{\text{moteurs}}$ & \cref{ch:t2-reference} \\
+R1 & $\mathrm{KL}(\text{référence} \,\|\, \text{llama.cpp}) \le \max(G_{\text{moteurs}}, 7 \cdot 10^{-5})$ sur 10 fenêtres de 512 & YaRN sans son échelle & idem & \cref{sec:t2r-instrument} \\
+O1 & \texttt{rejouer} égal au simulateur de l'étude 04, à l'unité & politique faussée & 0 écart & \cref{sec:t2o-trc-cache} \\
+O3 & C3, C4 sur le 20b ; compte du cache égal à \texttt{rejouer} sur la trace du moteur & tronçon corrompu & critères du jalon & \cref{ch:t2-resultats} \\
+O4 & le jalon J1 & critères du jalon & critères du jalon & \cref{ch:t2-resultats} \\
+\bottomrule
+\end{longtable}
+\endgroup
+
+\paragraph{Les seuils, posés pas à pas.} Chacun se refait depuis des nombres nommés \calc :
+\begin{itemize}
+\item \textbf{E0\,(b)} : le DMA hôte $\to$ carte mesuré au Tome~I vaut 12,2\,Go/s ; moins son bruit de 10\,\%, $12{,}2 \times 0{,}9 = 10{,}98 \approx 11{,}0$\,Go/s.
+\item \textbf{E0\,(c)} : dans le scénario LRU calé du Tome~I, le disque prend 157\,ms par jeton du 120b ; une synchronisation qui en coûte au plus le dixième, $15{,}7$\,ms, ne change pas l'étage le plus lent.
+\item \textbf{E2} : 2,58\,Go/s est le débit du disque en lectures de 4\,Mio mesuré au Tome~I (étude 01) ; servis par des tronçons compressés au taux $r$, ces octets valent $2{,}58\,r$\,Go/s d'experts décodés ; le facteur $0{,}8$ couvre le bruit.
+\item \textbf{K1} : $0{,}8 \times 41{,}6 = 33{,}28$\,Go/s, où 41,6\,Go/s était le débit publié par l'étude 03 du chemin que K1 remplace. Ce chiffre était lui-même composé sous Vulkan ; refait sous CUDA il vaut 45,8\,Go/s, et le seuil corrigé $0{,}8 \times 45{,}8 = 36{,}6$\,Go/s. Le chapitre des noyaux barre le premier et juge contre les deux (\cref{sec:t2n-decodeur}).
+\item \textbf{K2} : $0{,}8 \times 209{,}4 = 167{,}5$\,Go/s, où 209,4\,Go/s est la GEMV MXFP4 brute de l'étude 03.
+\item \textbf{C5} : $0{,}8$ fois le plancher en série $t_{\text{série}}$ recalculé \emph{dans la même séance}, avec le $h$ compté par le moteur et les débits que la passe \texttt{troncons disque} vient de mesurer (\cref{t2res-sec:vitesse}).
+\item \textbf{C7} : 1,9\,Go est la RAM de pointe du mode A0 publiée par l'étude 07, que la fenêtre minimale (0,64\,Go) devait battre ; 0,5\,Mo est le répertoire, le seul terme que l'on croyait croître avec le modèle (le constat M4 de l'épreuve en a trouvé d'autres, \cref{t2arch:sec:fenetre}).
+\item \textbf{C10} : $8\,188 - 909 = 7\,279$\,Mio, la mémoire de la carte moins les 909\,Mio que l'affichage et les applications y tenaient au relevé du 15 octobre à 10 h 15, carte libre (\fichier{mesures/REPRISE-gpt-oss.md}).
+\end{itemize}
+
+\section{Le seuil précède sa passe : l'heure du commit fait foi}\label{t2ann:sec:heure}
+
+Un seuil déclaré « avant » ne prouve rien si rien ne date la déclaration. Chaque bloc de seuils est donc commité \emph{avant} la première passe qu'il juge, et c'est l'heure du commit, pas celle écrite dans le texte, qui fait foi. \Cref{t2ann:tab:seuils} donne, pour chaque fichier de seuils, le commit qui l'a créé et le nombre de commits qui l'ont touché ensuite (des blocs ajoutés, chacun avant sa passe ; jamais un seuil changé après la sienne).
+
+\begingroup
+\captionof{table}[Les fichiers de seuils et leur date]{Les fichiers de seuils déclarés et l'heure du commit qui les a créés (engendré par \fichier{memoire/outils/tome2_annexes.py} depuis \texttt{git log}).}\label{t2ann:tab:seuils}
+\input{\Racine/tome2/annexes/seuils-dates}
+\endgroup
+
+La règle a servi trois fois contre ses propres auteurs : les heures écrites à la main étaient fausses, et elles ont été barrées pour l'heure du commit. L'épreuve écrivait ses seuils déclarés à \barre{02 h 40}, le commit \texttt{4832184} est de 02 h 26 min 05 s ; le premier jeton de C12, à \barre{05 h 50}, le commit \texttt{549b38b} de 05 h 31 min 09 s ; le bloc 1 de la ronde, \barre{vers 06 h 25}, le commit \texttt{ca5d338} de 06 h 12 min 40 s (\fichier{mesures/moteur/epreuve-J1/seuils-declares.md}, \fichier{mesures/moteur/O/corrections/seuils-declares.md}). Les trois erreurs vont dans le même sens, celui qui aurait rendu la déclaration plus tardive qu'elle n'était : aucune n'a pu avantager un verdict.
+
+\section{Séries ABBA et palindromes}\label{t2ann:sec:palindromes}
+
+Les séances de ce tome ne sont pas des paires A~B mais des \emph{palindromes} : l'ordre des passes se lit de même dans les deux sens. La séance de l'épreuve commence par D120 T120 L120 L120t10 L120t10 L120 T120 D120 (troncons disque, troncons, llama.cpp à 6 puis à 10 fils) ; la base balayée de la ronde, après une passe d'échauffement jetée, par t6 t10 t12 t16 m m t16 t12 t10 t6 (\fichier{mesures/moteur/O/corrections/seuils-declares.md}, bloc 6). La raison est un lemme.
+
+\begin{lemme}[Un palindrome annule une dérive linéaire]\label{t2ann:lem:palindrome}
+Soit une séance de $n$ passes aux instants $1, \dots, n$, et $s_i$ la configuration de la passe $i$, avec $s_i = s_{n+1-i}$ pour tout $i$. On suppose que la passe $i$ mesure $X_i = \mu_{s_i} + a + b\,i + \varepsilon_i$, où $\mu_c$ est la vraie valeur de la configuration $c$, $a + b\,i$ une dérive linéaire de la machine (échauffement, charge étrangère qui monte ou descend) et $\varepsilon_i$ un bruit de moyenne nulle. Alors, pour deux configurations $c$ et $c'$, l'espérance de $\bar X_c - \bar X_{c'}$ vaut exactement $\mu_c - \mu_{c'}$ : la dérive disparaît, quelles que soient $a$ et $b$.
+\end{lemme}
+\begin{proof}
+Soit $I_c = \{\, i : s_i = c \,\}$, de cardinal $n_c$. Comme $s_i = s_{n+1-i}$, l'application $i \mapsto n+1-i$ envoie $I_c$ dans lui-même ; c'est une involution, donc une bijection de $I_c$. Alors
+\[
+\sum_{i \in I_c} i \;=\; \sum_{i \in I_c} (n+1-i) \quad\Longrightarrow\quad \frac{1}{n_c}\sum_{i \in I_c} i \;=\; \frac{n+1}{2}.
+\]
+L'espérance de $\bar X_c = \frac{1}{n_c}\sum_{i\in I_c} X_i$ vaut donc $\mu_c + a + b\,\frac{n+1}{2}$. Le terme de dérive, $a + b\,(n+1)/2$, est le même pour toutes les configurations, et s'annule dans la différence.
+\end{proof}
+
+\begin{remarque}
+Le lemme ne vaut que pour une dérive linéaire : une dérive courbe (un disque qui se refroidit vite puis lentement) laisse un terme du second ordre. Il ne vaut que pour la partie de la séance qui est un palindrome : les quatre dernières passes de l'épreuve (T20 T20 T120tiede1 T120) ne forment pas un palindrome avec le reste, et le rapport qui les compare au reste n'est protégé que par la règle~\eqref{t2ann:eq:regle}. Le bruit $\beta$ d'une configuration, lui, mesure l'écart de deux passes \emph{symétriques} : il contient la dérive entre elles, et la règle est donc plus sévère quand la machine dérive. C'est voulu.
+\end{remarque}
+
+La règle s'applique aux moyennes de chaque configuration, jamais à une passe isolée. Une passe d'échauffement est jetée quand elle précède la série. Le constat m1 de l'épreuve en donne la raison chiffrée : la première passe \texttt{troncons disque} de sa séance lisait à 0,725\,Go/s (90\textsuperscript{e} centile : 172\,ms par lecture), la seconde à 1,822\,Go/s, et la médiane des deux déplaçait le seuil de C5 de 25\,\% (1,12 au lieu de 1,47 jeton/s ; C5 tenait dans les deux cas) \mes~(\fichier{mesures/epreuve-J1.md}, m1). La ronde de corrections a depuis jeté une passe D d'échauffement avant sa série (bloc 3) ; la règle générale attend la décision de l'arbitre (\cref{ch:t2-epreuve}).
+
+\section{Le verrou de la carte et la machine partagée}\label{t2ann:sec:verrou}
+
+La carte est une ressource unique, et d'autres agents travaillaient sur la machine. Avant toute séance qui la mesure, le pilote attend que le fichier \fichier{~/dev/verrou-carte.txt} soit absent ou vieux de plus de deux heures, puis l'écrit à son nom (lot, date, outil, numéro de processus) et le rend à la fin (\fichier{mesures/moteur/O/pilote_o4.py}, et les pilotes des lots E et K). Avant \emph{chaque} passe, il relève et journalise l'alimentation (\texttt{Win32\_Battery.BatteryStatus}, 2 : secteur), les processus \texttt{llama-*} vivants et la VRAM occupée ; il s'arrête si la machine n'est pas sur secteur. Le verrou de la ronde de corrections a été pris à 06 h 41, renouvelé à 07 h 21, 08 h 13 et 09 h 14, et rendu à 10 h 06 (\fichier{moteur/REPRISE-O.md}) ; celui de l'épreuve, pris à 02 h 26 et rendu à 04 h 44 (\cref{t2e-sec:protocole}).
+
+Le verrou protège la carte, pas le reste. La charge étrangère du processeur et du disque est relevée et laissée, jamais tuée : on ne tue aucun processus que l'on n'a pas lancé (SOCLE). Les débits « au mieux » restent donc des bornes inférieures du repos, comme au Tome~I. Les outils du lot F, qui ne demandent pas la carte, se lancent en priorité « sous la normale » (\fichier{mesures/moteur/F/lancer.ps1}), et les constructions se font chacune dans sa propre cible, à quatre tâches (\texttt{-j 4}), parce que cinq lots compilaient en même temps.
+
+\section{Le témoin des témoins}\label{t2ann:sec:temoins}
+
+Un témoin qui ne peut pas tomber ne prouve rien. Chaque lot a donc écrit, à côté de ses témoins, un outil qui les casse un à un et vérifie qu'ils tombent, puis qu'ils tiennent une fois restaurés ; \cref{t2ann:tab:casseurs} les rassemble (leurs descriptions complètes sont à l'\cref{t2ann:outils}).
+
+\begin{table}[ht]
+\centering\small
+\caption[Les outils qui cassent les témoins]{Les outils qui cassent les témoins, par lot.}\label{t2ann:tab:casseurs}
+\begin{tabularx}{\linewidth}{@{}p{0.43\linewidth}X@{}}
+\toprule
+Outil & Ce qu'il casse \\
+\midrule
+\fichier{mesures/moteur/F/casser_temoins_f1.py} & les témoins de F1 (en-tête, table) \\
+\fichier{mesures/moteur/F/casser_copie.py} & C1 sur une vraie copie : une médiane faussée doit être détectée \\
+\fichier{mesures/moteur/F/casser_lecture.py} & la lecture sans tampon du codeur \\
+\fichier{mesures/moteur/E/temoins_des_temoins.py} & chaque témoin de \texttt{trc-cuda} et de \texttt{trc-es} \\
+\fichier{mesures/moteur/O/casser_mediane.py} & C3 : une seule médiane d'un seul expert change dans une copie du 20b \\
+\fichier{mesures/moteur/O/casser_tests.py} & chaque témoin unitaire de \texttt{trc-cache}, dans une copie jetable de la crate \\
+\fichier{mesures/moteur/O/corrections/temoin_garde.py} & la garde de production, par \texttt{--casser-garde} et \texttt{--sans-garde} \\
+\fichier{memoire/outils/tome2_reference_cache.py} & \texttt{--casser} : les chiffres refaits des chapitres de la référence et du cache \\
+\fichier{memoire/outils/tome2_annexes.py} & \texttt{--casser} : le témoin des options de l'\cref{t2ann:outils} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+La ronde de corrections a poussé la règle d'un cran : la cassure d'un témoin de correction, c'est \emph{l'ancien binaire}. Avant de corriger un constat, le lot O l'a rejoué sur une copie figée du programme d'avant (commit \texttt{7b288a6}) ; le témoin devait tomber sur l'ancien et tenir sur le nouveau (\cref{t2e-sec:ronde}).
+
+\section{L'épreuve indépendante}\label{t2ann:sec:epreuve}
+
+Le protocole est écrit au § 8 de l'architecture, avant toute construction, et suivi au \cref{ch:t2-epreuve}. Le juge n'a écrit ni la spécification ni le code ; il travaille depuis un clone propre (commit \texttt{527dff5}), sur secteur, carte libre, et ne lit que la spécification, le code et les journaux. Ses sept gestes : (1) un décodeur écrit depuis le seul § 4, sur 20 tronçons tirés au hasard (graine publiée) ; (2) chaque cassure rejouée ; (3) C3, C4, C5, C7, C8, C10 refaits en séries ABBA avec ses propres commandes, jugés par la règle~\eqref{t2ann:eq:regle} ; (4) la base relancée, et une autre configuration de son choix ; (5) la fenêtre : 1\,Gio de cache tiède doit apparaître dans la mémoire de pointe, entre 0,9 et 1,1 fois ; (6) le texte lu ; (7) le verdict, avec sa propre section « Ce qui pourrait être faux ». Ses seuils sont dans \fichier{mesures/moteur/epreuve-J1/seuils-declares.md}, commité avant sa première passe (\cref{t2ann:tab:seuils}).
+
+\section{La ronde de corrections, bloc par bloc}\label{t2ann:sec:ronde}
+
+Chaque constat de l'épreuve a reçu un bloc de seuils, commité avant la première passe qu'il juge (\fichier{mesures/moteur/O/corrections/seuils-declares.md}). \Cref{t2ann:tab:ronde} en donne le contenu et l'issue ; le détail est au \cref{t2e-sec:ronde}.
+
+\begingroup\small
+\renewcommand{\arraystretch}{1.12}
+\begin{longtable}{@{}p{0.11\linewidth}p{0.42\linewidth}p{0.41\linewidth}@{}}
+\caption[Les blocs de la ronde de corrections]{Les six blocs de seuils de la ronde de corrections (16 octobre 2026) et leur issue (\fichier{mesures/moteur/O/corrections/seuils-declares.md}, \fichier{moteur/REPRISE-O.md}).}\label{t2ann:tab:ronde}\\
+\toprule
+Bloc & Seuil déclaré & Issue \\
+\midrule
+\endfirsthead
+\toprule
+Bloc & Seuil déclaré & Issue \\
+\midrule
+\endhead
+1 : G1, G2 & sur l'ancien binaire, les trois cas (fichier absent, corrompu, processus tué) doivent tomber ; sur le nouveau, retour en moins de 30\,s, code 1, erreur écrite, et 0 enfant \texttt{nvidia-smi} vivant 2\,s après & tombe sur l'ancien (retour à 90\,s, un orphelin chacun) ; tient sur le nouveau (1,5, 4,9 et 4,9\,s, 0 orphelin), après deux défauts du témoin lui-même, dits et corrigés \\
+2 : m2 & avec et sans la recette \texttt{vcvars} du SOCLE, la construction de \texttt{trc-noyaux} réussit et les trois images \texttt{noyaux.fatbin} sont égales octet pour octet & tient : même SHA-256 (\texttt{aeae5bdc}…, \num{295864} octets) \\
+3 : M1 & la garde de production reste active par défaut si C5 tient avec elle ; son coût est réel selon la règle~\eqref{t2ann:eq:regle} ; prédiction \calc : non réel (au plus 2,4\,\%, déclarée avec 1,1\,Go/s et 460\,ms ; 2,5\,\% au débit le plus lent mesuré, 1,07\,Go/s, \cref{t2res-sec:garde}) & les témoins de justesse tiennent (G-XO3, G-T, G-L : erreur fatale nommée, et aucune avec \texttt{--sans-garde} ; G-= : même texte au bit avec et sans garde) ; coût non réel en série ABBA ($-12{,}3\,\%$ pour un seuil de 26,8\,\%), $-1{,}6\,\%$ à disque égal (\cref{t2res-sec:garde}) ; garde active par défaut \\
+4 : G1 sous charge & la passe figée de l'épreuve, rejouée sous la même charge, finit ou écrit son erreur en moins de 30\,min, jamais une attente muette & les deux binaires, nouveau et ancien, finissent ; 0 conflit d'arrivée observé : la cause première de G1 n'est pas établie \\
+5 : M5 & hypothèses H5a à H5c sur le cache KV en f32 (premier jeton de C12, accord de routage, KL) ; coût en série ABBA & mesuré : le KV en f32 rejoint la vérité au format près (\cref{sec:t2r-kv}) ; décision de la couture N laissée à l'arbitre ; défaut inchangé (f16) \\
+6 : M2 & base llama.cpp balayée en palindrome ; C6 recalculé contre la meilleure ; \barre{$\times 3{,}85$} barré partout & meilleure base \texttt{fit -t 16}, 0,884\,jeton/s ; C6 $\times 2{,}22$ garde comprise, tient (\cref{sec:t2o-c6}) \\
+\bottomrule
+\end{longtable}
+\endgroup
+
+\section{La reproduction des constructions}\label{t2ann:sec:construction}
+
+Un chiffre publié n'est reproductible que si le programme qui l'a produit se reconstruit. Trois règles l'assurent. \emph{Une cible par lot et par juge} : chaque construction écrit dans son propre dossier de sortie, hors du dépôt (\fichier{mesures/moteur/E/construire.bat}, \fichier{mesures/moteur/epreuve-J1/construire.bat}), pour que deux lots ne s'écrasent pas. \emph{Le juge part d'un clone propre}, au commit nommé (\texttt{527dff5}, construit en 21\,s). \emph{La recette de la machine est éprouvée par un témoin} : l'épreuve a trouvé que la recette du SOCLE (\texttt{vcvars64.bat} d'abord) cassait la construction des noyaux (constat m2) ; depuis la correction, le bloc 2 de la ronde exige que la construction avec et sans elle donne la même image des noyaux à l'octet près (\fichier{mesures/moteur/O/corrections/construire-avec-vcvars.bat}).
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{Le bruit de référence de 10\,\%} vient d'une mesure du Tome~I (lecture de 4\,Mio en profondeur 4) ; les tronçons du 120b, de 12\,Mo environ, sont lus d'une seule requête chacun. Le facteur $0{,}8$ en hérite sans avoir été remesuré pour cette longueur ; le \cref{ch:t2-chemin} montre que la longueur change le régime du disque.
+\item \textbf{Le lemme du palindrome suppose une dérive linéaire.} Le disque chiffré de la machine varie de 1,51 à 1,95\,Go/s d'une passe à l'autre dans une même séance (\cref{t2res-sec:garde}) : ce n'est pas une dérive, c'est une dispersion, que le palindrome ne retire pas et que seule la règle couvre.
+\item \textbf{Le verrou est une convention, pas un mécanisme du système} : un programme qui ne le lit pas peut prendre la carte. Les pilotes relèvent la VRAM avant chaque passe pour le voir, mais un usage bref entre deux relevés passerait inaperçu.
+\item \textbf{C6 est jugé à travers deux séances} (troncons gardé dans celle de la ronde, la base dans la suivante) ; le lemme ne protège pas une comparaison entre séances. La série unique est à faire (\cref{ch:t2-discussion}).
+\end{itemize}
+\end{faux}

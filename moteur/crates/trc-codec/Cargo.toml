@@ -1,0 +1,13 @@
+[package]
+name = "trc-codec"
+description = "Le rANS de troncons sur le processeur (codeur, décodeur, contextes) et la reconstruction exacte d'un expert (ARCHITECTURE.md § 4.9 à 4.11) : l'oracle du décodeur de la carte. Lot F."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+# Couture D (§ 2.4) : rayon 1.12.0 (MIT ou Apache-2.0), thiserror 2.0.21 (MIT ou Apache-2.0).
+[dependencies]
+trc-format = { path = "../trc-format" }
+rayon.workspace = true
+thiserror.workspace = true

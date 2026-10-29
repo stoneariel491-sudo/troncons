@@ -1,0 +1,60 @@
+# Témoins E1 (cargo test, profil dev), 2026-10-15T15:10:50-04:00, commit 4a99d30
+BatteryStatus=2
+7554 MiB, 8188 MiB, 7 %
+   Compiling trc-es v0.1.0 (~\dev\active\troncons\moteur\crates\trc-es)
+   Compiling trc-cuda v0.1.0 (~\dev\active\troncons\moteur\crates\trc-cuda)
+    Finished `test` profile [optimized + debuginfo] target(s) in 19.50s
+     Running unittests src\lib.rs (~/dev/cibles/troncons-E\debug\deps\trc_cuda-7eb54e5de9e2a433.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\carte.rs (~/dev/cibles/troncons-E\debug\deps\carte-786d89d9425c0efb.exe)
+
+running 6 tests
+test aller_retour_et_cassure ... ok
+test contexte_et_attributs ... carte NVIDIA GeForce RTX 4060 Laptop GPU 8.9, pilote 13010, VRAM 6808 / 8187 Mio, moteurs de copie 1, TCC 0
+ok
+test duree_de_vie_du_contexte ... ok
+test erreurs_nommees ... 
+thread 'erreurs_nommees' (35984) panicked at crates\trc-cuda\src\lib.rs:462:9:
+vue de VRAM [4000, +97) hors de l'allocation de 4096 octets
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+ok
+test evenements_et_ordre_entre_flux ... aller de 64 Mio : 6.778 ms, 9.90 Go/s (essai de justesse, pas une mesure)
+cassure : 66603928 octets faux sans l'attente
+ok
+test module_lancement_et_memoire_projetee ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.14s
+
+     Running unittests src\lib.rs (~/dev/cibles/troncons-E\debug\deps\trc_es-b5cc1330011aa1f6.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\lecture.rs (~/dev/cibles/troncons-E\debug\deps\lecture-cf0ec472a17e7360.exe)
+
+running 4 tests
+test abandon_en_vol ... ok
+test derniere_page_partielle_et_refus ... ok
+test lectures_alignees_profondeur_et_file ... ok
+test soumission_et_recolte_concurrentes ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.26s
+
+   Doc-tests trc_cuda
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests trc_es
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+code 0

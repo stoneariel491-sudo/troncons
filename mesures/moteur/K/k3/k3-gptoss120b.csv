@@ -1,0 +1,117 @@
+modele,couche,noyau,cas,mesure,seuil,exact,deterministe,tient,ms
+gpt-oss-120b-MXFP4.gguf,-1,ligne_q8_0,"64 lignes réelles (dont 0 et 201087)",0e0,0e0,true,true,true,0.0504
+gpt-oss-120b-MXFP4.gguf,0,rmsnorm,"attn_norm, 64 lignes, un appel",5.3868656933544426e-8,1e-6,false,true,true,0.0755
+gpt-oss-120b-MXFP4.gguf,0,rmsnorm,"attn_norm, en place, égal au bit à l'appel hors place",0e0,0e0,true,true,true,0.0000
+gpt-oss-120b-MXFP4.gguf,0,gemv_q8_0,"attn_q 4096 × 2880 + biais, 8 positions",8.720932991842071e-8,1e-5,false,true,true,0.1464
+gpt-oss-120b-MXFP4.gguf,0,gemv_q8_0,"attn_k 512 × 2880 + biais, 8 positions",1.2845137625053427e-7,1e-5,false,true,true,0.0738
+gpt-oss-120b-MXFP4.gguf,0,gemv_q8_0,"attn_v 512 × 2880 + biais, 8 positions",1.4033415899892695e-7,1e-5,false,true,true,0.0847
+gpt-oss-120b-MXFP4.gguf,0,rope_yarn,"q et k, 10 positions de 0 à 131071, OpenAI",4.1335871181242626e-8,1e-6,false,true,true,0.0928
+gpt-oss-120b-MXFP4.gguf,0,rope_yarn,"q et k, 10 positions de 0 à 131071, llama.cpp",4.6237999453647695e-8,1e-6,false,true,true,0.1213
+gpt-oss-120b-MXFP4.gguf,0,ecrire_kv,"256 positions, cases pleines",0e0,0e0,true,true,true,0.1246
+gpt-oss-120b-MXFP4.gguf,0,ecrire_kv,"256 positions, anneau de 128",0e0,0e0,true,true,true,0.1298
+gpt-oss-120b-MXFP4.gguf,0,attention,"1 positions [0, 1), anneau 128",2.948267157812781e-6,1e-5,false,true,true,0.0643
+gpt-oss-120b-MXFP4.gguf,0,gemv_q8_0,"attn_output 2880 × 4096 + biais, position 0",5.7745587680950655e-8,1e-5,false,true,true,0.1116
+gpt-oss-120b-MXFP4.gguf,0,combiner,"x + (a Woᵀ + bo), n = 1, position 0",0e0,0e0,true,true,true,0.0836
+gpt-oss-120b-MXFP4.gguf,0,rmsnorm,"post_attention_norm, position 0",3.2526825574080085e-8,1e-6,false,true,true,0.0569
+gpt-oss-120b-MXFP4.gguf,0,gemv_f32,"routeur 128 × 2880 + biais, position 0",2.205210962887711e-7,1e-5,false,true,true,0.0412
+gpt-oss-120b-MXFP4.gguf,0,routeur_topk,"indices et boîte, logits réels, position 0",0e0,0e0,true,true,true,0.0582
+gpt-oss-120b-MXFP4.gguf,0,routeur_topk,"poids, logits réels, position 0",1.6197660364494382e-8,1e-6,false,true,true,0.0582
+gpt-oss-120b-MXFP4.gguf,0,gemv_mxfp4,"gate et up de 4 experts [12, 84, 127, 46] + biais, position 0",1.2929334442448693e-7,1e-5,false,true,true,0.1365
+gpt-oss-120b-MXFP4.gguf,0,swiglu_oai,"4 × 2880 paires en un appel, position 0",2.321648612951012e-8,1e-6,false,true,true,0.0692
+gpt-oss-120b-MXFP4.gguf,0,gemv_mxfp4,"down de 4 experts + biais, position 0",8.528728094537793e-8,1e-5,false,true,true,0.0882
+gpt-oss-120b-MXFP4.gguf,0,combiner,"x₁ + Σ g_j s_j, n = 4, position 0",0e0,0e0,true,true,true,0.0288
+gpt-oss-120b-MXFP4.gguf,0,attention,"127 positions [0, 127), anneau 128",2.5671946424244618e-6,1e-5,false,true,true,0.0576
+gpt-oss-120b-MXFP4.gguf,0,gemv_q8_0,"attn_output 2880 × 4096 + biais, position 126",7.340893009283575e-8,1e-5,false,true,true,0.1119
+gpt-oss-120b-MXFP4.gguf,0,combiner,"x + (a Woᵀ + bo), n = 1, position 126",0e0,0e0,true,true,true,0.0837
+gpt-oss-120b-MXFP4.gguf,0,rmsnorm,"post_attention_norm, position 126",3.302779123193918e-8,1e-6,false,true,true,0.0301
+gpt-oss-120b-MXFP4.gguf,0,gemv_f32,"routeur 128 × 2880 + biais, position 126",1.0065872545912306e-7,1e-5,false,true,true,0.0370
+gpt-oss-120b-MXFP4.gguf,0,routeur_topk,"indices et boîte, logits réels, position 126",0e0,0e0,true,true,true,0.0576
+gpt-oss-120b-MXFP4.gguf,0,routeur_topk,"poids, logits réels, position 126",2.7211623775820047e-8,1e-6,false,true,true,0.0576
+gpt-oss-120b-MXFP4.gguf,0,gemv_mxfp4,"gate et up de 4 experts [84, 16, 127, 76] + biais, position 126",1.517331615334614e-7,1e-5,false,true,true,0.1572
+gpt-oss-120b-MXFP4.gguf,0,swiglu_oai,"4 × 2880 paires en un appel, position 126",2.5452887484882694e-8,1e-6,false,true,true,0.0280
+gpt-oss-120b-MXFP4.gguf,0,gemv_mxfp4,"down de 4 experts + biais, position 126",1.4146981465188015e-7,1e-5,false,true,true,0.0931
+gpt-oss-120b-MXFP4.gguf,0,combiner,"x₁ + Σ g_j s_j, n = 4, position 126",0e0,0e0,true,true,true,0.0528
+gpt-oss-120b-MXFP4.gguf,0,attention,"128 positions [0, 128), anneau 128",3.928492992686575e-6,1e-5,false,true,true,0.0652
+gpt-oss-120b-MXFP4.gguf,0,gemv_q8_0,"attn_output 2880 × 4096 + biais, position 127",1.2393439236287023e-7,1e-5,false,true,true,0.0948
+gpt-oss-120b-MXFP4.gguf,0,combiner,"x + (a Woᵀ + bo), n = 1, position 127",0e0,0e0,true,true,true,0.0662
+gpt-oss-120b-MXFP4.gguf,0,rmsnorm,"post_attention_norm, position 127",2.968512624081929e-8,1e-6,false,true,true,0.0553
+gpt-oss-120b-MXFP4.gguf,0,gemv_f32,"routeur 128 × 2880 + biais, position 127",9.810179132041414e-8,1e-5,false,true,true,0.0300
+gpt-oss-120b-MXFP4.gguf,0,routeur_topk,"indices et boîte, logits réels, position 127",0e0,0e0,true,true,true,0.0629
+gpt-oss-120b-MXFP4.gguf,0,routeur_topk,"poids, logits réels, position 127",2.8462348388644966e-8,1e-6,false,true,true,0.0629
+gpt-oss-120b-MXFP4.gguf,0,gemv_mxfp4,"gate et up de 4 experts [28, 54, 126, 12] + biais, position 127",1.0966081562608435e-7,1e-5,false,true,true,0.1336
+gpt-oss-120b-MXFP4.gguf,0,swiglu_oai,"4 × 2880 paires en un appel, position 127",3.469807276575358e-8,1e-6,false,true,true,0.0299
+gpt-oss-120b-MXFP4.gguf,0,gemv_mxfp4,"down de 4 experts + biais, position 127",1.315287337247515e-7,1e-5,false,true,true,0.1061
+gpt-oss-120b-MXFP4.gguf,0,combiner,"x₁ + Σ g_j s_j, n = 4, position 127",0e0,0e0,true,true,true,0.0365
+gpt-oss-120b-MXFP4.gguf,0,attention,"128 positions [1, 129), anneau 128",2.435293325409028e-6,1e-5,false,true,true,0.0833
+gpt-oss-120b-MXFP4.gguf,0,gemv_q8_0,"attn_output 2880 × 4096 + biais, position 128",8.857203125080884e-8,1e-5,false,true,true,0.1506
+gpt-oss-120b-MXFP4.gguf,0,combiner,"x + (a Woᵀ + bo), n = 1, position 128",0e0,0e0,true,true,true,0.1097
+gpt-oss-120b-MXFP4.gguf,0,rmsnorm,"post_attention_norm, position 128",3.4276903467899804e-8,1e-6,false,true,true,0.0255
+gpt-oss-120b-MXFP4.gguf,0,gemv_f32,"routeur 128 × 2880 + biais, position 128",6.862895205824348e-8,1e-5,false,true,true,0.0418
+gpt-oss-120b-MXFP4.gguf,0,routeur_topk,"indices et boîte, logits réels, position 128",0e0,0e0,true,true,true,0.0660
+gpt-oss-120b-MXFP4.gguf,0,routeur_topk,"poids, logits réels, position 128",3.247583662193168e-8,1e-6,false,true,true,0.0660
+gpt-oss-120b-MXFP4.gguf,0,gemv_mxfp4,"gate et up de 4 experts [83, 33, 48, 70] + biais, position 128",1.0147964906452908e-7,1e-5,false,true,true,0.1780
+gpt-oss-120b-MXFP4.gguf,0,swiglu_oai,"4 × 2880 paires en un appel, position 128",3.480605393937852e-8,1e-6,false,true,true,0.0506
+gpt-oss-120b-MXFP4.gguf,0,gemv_mxfp4,"down de 4 experts + biais, position 128",1.3044554016651948e-7,1e-5,false,true,true,0.0846
+gpt-oss-120b-MXFP4.gguf,0,combiner,"x₁ + Σ g_j s_j, n = 4, position 128",0e0,0e0,true,true,true,0.0670
+gpt-oss-120b-MXFP4.gguf,0,attention,"128 positions [172, 300), anneau 128",3.1043571703434123e-6,1e-5,false,true,true,0.0629
+gpt-oss-120b-MXFP4.gguf,0,gemv_q8_0,"attn_output 2880 × 4096 + biais, position 299",4.661624995720495e-8,1e-5,false,true,true,0.0820
+gpt-oss-120b-MXFP4.gguf,0,combiner,"x + (a Woᵀ + bo), n = 1, position 299",0e0,0e0,true,true,true,0.0611
+gpt-oss-120b-MXFP4.gguf,0,rmsnorm,"post_attention_norm, position 299",3.399559751778671e-8,1e-6,false,true,true,0.0437
+gpt-oss-120b-MXFP4.gguf,0,gemv_f32,"routeur 128 × 2880 + biais, position 299",8.323574157540592e-8,1e-5,false,true,true,0.0275
+gpt-oss-120b-MXFP4.gguf,0,routeur_topk,"indices et boîte, logits réels, position 299",0e0,0e0,true,true,true,0.0743
+gpt-oss-120b-MXFP4.gguf,0,routeur_topk,"poids, logits réels, position 299",4.9721605606654655e-8,1e-6,false,true,true,0.0743
+gpt-oss-120b-MXFP4.gguf,0,gemv_mxfp4,"gate et up de 4 experts [99, 76, 16, 113] + biais, position 299",8.995426359362711e-8,1e-5,false,true,true,0.1439
+gpt-oss-120b-MXFP4.gguf,0,swiglu_oai,"4 × 2880 paires en un appel, position 299",3.389483298864967e-8,1e-6,false,true,true,0.0723
+gpt-oss-120b-MXFP4.gguf,0,gemv_mxfp4,"down de 4 experts + biais, position 299",6.315493659039969e-8,1e-5,false,true,true,0.1902
+gpt-oss-120b-MXFP4.gguf,0,combiner,"x₁ + Σ g_j s_j, n = 4, position 299",0e0,0e0,true,true,true,0.0355
+gpt-oss-120b-MXFP4.gguf,1,rmsnorm,"attn_norm, 64 lignes, un appel",5.604846680635306e-8,1e-6,false,true,true,0.1072
+gpt-oss-120b-MXFP4.gguf,1,rmsnorm,"attn_norm, en place, égal au bit à l'appel hors place",0e0,0e0,true,true,true,0.0000
+gpt-oss-120b-MXFP4.gguf,1,gemv_q8_0,"attn_q 4096 × 2880 + biais, 8 positions",1.265062840519306e-7,1e-5,false,true,true,0.2351
+gpt-oss-120b-MXFP4.gguf,1,gemv_q8_0,"attn_k 512 × 2880 + biais, 8 positions",1.155313142894367e-7,1e-5,false,true,true,0.1494
+gpt-oss-120b-MXFP4.gguf,1,gemv_q8_0,"attn_v 512 × 2880 + biais, 8 positions",1.452079385741788e-7,1e-5,false,true,true,0.1100
+gpt-oss-120b-MXFP4.gguf,1,rope_yarn,"q et k, 10 positions de 0 à 131071, OpenAI",3.855975191331228e-8,1e-6,false,true,true,0.1349
+gpt-oss-120b-MXFP4.gguf,1,rope_yarn,"q et k, 10 positions de 0 à 131071, llama.cpp",3.855975191331228e-8,1e-6,false,true,true,0.0497
+gpt-oss-120b-MXFP4.gguf,1,ecrire_kv,"256 positions, cases pleines",0e0,0e0,true,true,true,0.1252
+gpt-oss-120b-MXFP4.gguf,1,ecrire_kv,"256 positions, anneau de 128",0e0,0e0,true,true,true,0.1258
+gpt-oss-120b-MXFP4.gguf,1,attention,"1 positions [0, 1)",4.5875044729201057e-7,1e-5,false,true,true,0.1122
+gpt-oss-120b-MXFP4.gguf,1,gemv_q8_0,"attn_output 2880 × 4096 + biais, position 0",2.507062820553802e-7,1e-5,false,true,true,0.0689
+gpt-oss-120b-MXFP4.gguf,1,combiner,"x + (a Woᵀ + bo), n = 1, position 0",0e0,0e0,true,true,true,0.1217
+gpt-oss-120b-MXFP4.gguf,1,rmsnorm,"post_attention_norm, position 0",4.742538415012219e-8,1e-6,false,true,true,0.0354
+gpt-oss-120b-MXFP4.gguf,1,gemv_f32,"routeur 128 × 2880 + biais, position 0",1.8314446038655827e-7,1e-5,false,true,true,0.0275
+gpt-oss-120b-MXFP4.gguf,1,routeur_topk,"indices et boîte, logits réels, position 0",0e0,0e0,true,true,true,0.0519
+gpt-oss-120b-MXFP4.gguf,1,routeur_topk,"poids, logits réels, position 0",4.3777664495372775e-8,1e-6,false,true,true,0.0519
+gpt-oss-120b-MXFP4.gguf,1,gemv_mxfp4,"gate et up de 4 experts [108, 93, 64, 81] + biais, position 0",1.3412671054518778e-7,1e-5,false,true,true,0.1232
+gpt-oss-120b-MXFP4.gguf,1,swiglu_oai,"4 × 2880 paires en un appel, position 0",1.7744673911741718e-8,1e-6,false,true,true,0.0371
+gpt-oss-120b-MXFP4.gguf,1,gemv_mxfp4,"down de 4 experts + biais, position 0",1.5282277128877472e-7,1e-5,false,true,true,0.0889
+gpt-oss-120b-MXFP4.gguf,1,combiner,"x₁ + Σ g_j s_j, n = 4, position 0",0e0,0e0,true,true,true,0.0751
+gpt-oss-120b-MXFP4.gguf,1,attention,"300 positions [0, 300)",6.79732462558202e-7,1e-5,false,true,true,0.0702
+gpt-oss-120b-MXFP4.gguf,1,gemv_q8_0,"attn_output 2880 × 4096 + biais, position 299",1.9338616415328403e-7,1e-5,false,true,true,0.1111
+gpt-oss-120b-MXFP4.gguf,1,combiner,"x + (a Woᵀ + bo), n = 1, position 299",0e0,0e0,true,true,true,0.0782
+gpt-oss-120b-MXFP4.gguf,1,rmsnorm,"post_attention_norm, position 299",2.995932532474843e-8,1e-6,false,true,true,0.0590
+gpt-oss-120b-MXFP4.gguf,1,gemv_f32,"routeur 128 × 2880 + biais, position 299",8.438496776495183e-8,1e-5,false,true,true,0.1359
+gpt-oss-120b-MXFP4.gguf,1,routeur_topk,"indices et boîte, logits réels, position 299",0e0,0e0,true,true,true,0.0782
+gpt-oss-120b-MXFP4.gguf,1,routeur_topk,"poids, logits réels, position 299",8.457265519128083e-9,1e-6,false,true,true,0.0782
+gpt-oss-120b-MXFP4.gguf,1,gemv_mxfp4,"gate et up de 4 experts [12, 125, 26, 99] + biais, position 299",1.1772567415678463e-7,1e-5,false,true,true,0.1239
+gpt-oss-120b-MXFP4.gguf,1,swiglu_oai,"4 × 2880 paires en un appel, position 299",3.215358677775454e-8,1e-6,false,true,true,0.0236
+gpt-oss-120b-MXFP4.gguf,1,gemv_mxfp4,"down de 4 experts + biais, position 299",1.6083523474814706e-7,1e-5,false,true,true,0.1008
+gpt-oss-120b-MXFP4.gguf,1,combiner,"x₁ + Σ g_j s_j, n = 4, position 299",0e0,0e0,true,true,true,0.0658
+gpt-oss-120b-MXFP4.gguf,1,attention,"4096 positions [0, 4096)",1.5383338043427053e-6,1e-5,false,true,true,0.2928
+gpt-oss-120b-MXFP4.gguf,1,gemv_q8_0,"attn_output 2880 × 4096 + biais, position 4095",2.423510122533807e-7,1e-5,false,true,true,0.1465
+gpt-oss-120b-MXFP4.gguf,1,combiner,"x + (a Woᵀ + bo), n = 1, position 4095",0e0,0e0,true,true,true,0.0909
+gpt-oss-120b-MXFP4.gguf,1,rmsnorm,"post_attention_norm, position 4095",3.227126960395851e-8,1e-6,false,true,true,0.0289
+gpt-oss-120b-MXFP4.gguf,1,gemv_f32,"routeur 128 × 2880 + biais, position 4095",1.2654684561887257e-7,1e-5,false,true,true,0.0353
+gpt-oss-120b-MXFP4.gguf,1,routeur_topk,"indices et boîte, logits réels, position 4095",0e0,0e0,true,true,true,0.0628
+gpt-oss-120b-MXFP4.gguf,1,routeur_topk,"poids, logits réels, position 4095",1.1139904316440976e-8,1e-6,false,true,true,0.0628
+gpt-oss-120b-MXFP4.gguf,1,gemv_mxfp4,"gate et up de 4 experts [71, 37, 0, 43] + biais, position 4095",1.09299275032355e-7,1e-5,false,true,true,0.1763
+gpt-oss-120b-MXFP4.gguf,1,swiglu_oai,"4 × 2880 paires en un appel, position 4095",2.489283139449719e-8,1e-6,false,true,true,0.0542
+gpt-oss-120b-MXFP4.gguf,1,gemv_mxfp4,"down de 4 experts + biais, position 4095",1.1258041060708867e-7,1e-5,false,true,true,0.1120
+gpt-oss-120b-MXFP4.gguf,1,combiner,"x₁ + Σ g_j s_j, n = 4, position 4095",0e0,0e0,true,true,true,0.0345
+gpt-oss-120b-MXFP4.gguf,-2,rmsnorm,"output_norm, état 0",3.758965151900427e-8,1e-6,false,true,true,0.1294
+gpt-oss-120b-MXFP4.gguf,-2,gemv_q8_0,"output 201088 × 2880, état 0",1.264036435081468e-7,1e-5,false,true,true,2.4917
+gpt-oss-120b-MXFP4.gguf,-2,argmax,"logits réels 201088, état 0 (f64 : 111064, carte : 111064)",0e0,0e0,true,true,true,0.1200
+gpt-oss-120b-MXFP4.gguf,-2,rmsnorm,"output_norm, état 1",3.9213542908556506e-8,1e-6,false,true,true,0.0263
+gpt-oss-120b-MXFP4.gguf,-2,gemv_q8_0,"output 201088 × 2880, état 1",1.5188841307720883e-7,1e-5,false,true,true,2.5161
+gpt-oss-120b-MXFP4.gguf,-2,argmax,"logits réels 201088, état 1 (f64 : 14635, carte : 14635)",0e0,0e0,true,true,true,0.1113
+gpt-oss-120b-MXFP4.gguf,-2,rmsnorm,"output_norm, état 2",3.947068172295617e-8,1e-6,false,true,true,0.0338
+gpt-oss-120b-MXFP4.gguf,-2,gemv_q8_0,"output 201088 × 2880, état 2",1.483063506008064e-7,1e-5,false,true,true,2.8508
+gpt-oss-120b-MXFP4.gguf,-2,argmax,"logits réels 201088, état 2 (f64 : 173558, carte : 173558)",0e0,0e0,true,true,true,0.1315

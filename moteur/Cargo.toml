@@ -1,0 +1,43 @@
+# L'espace de travail du moteur troncons (ARCHITECTURE.md § 5.0 ; propriétaire : lot O).
+#
+# Membres par motif : chaque lot ajoute sa crate sous crates/ ou bins/ sans toucher à ce fichier.
+# RÈGLE pour les autres lots : écrire le Cargo.toml d'une crate AVANT tout autre fichier de son
+# dossier. Cargo refuse l'espace de travail entier tant qu'un dossier qui répond au motif n'a pas de
+# Cargo.toml (mesuré le 2026-10-15 avec cargo 1.98.1 : « failed to load manifest for workspace
+# member »), et un motif qui ne répond à rien est lu comme un chemin littéral (même erreur). Les
+# deux motifs répondent toujours : crates/trc-cache et bins/troncons sont au lot O.
+[workspace]
+resolver = "3"
+members = ["crates/*", "bins/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+
+# Couture D (§ 2.4) : les seules dépendances admises, à la version exacte du cache cargo de la
+# machine (construction --offline). Chaque membre les reprend par `x.workspace = true` et choisit
+# ses fonctions (features) lui-même. Aucune autre dépendance sans décision écrite.
+# Les versions marquées « (cache) » au § 2.4 sont fixées ici sur la seule version présente
+# (libloading 0.8.9, serde 1.0.229, anyhow 1.0.104) ou sur la plus récente du cache
+# (thiserror 2.0.21 ; 1.0.69 et 2.0.20 y sont aussi) : réponse par délégation du 2026-10-15,
+# réversible ; raison : la plus récente, sans rien télécharger.
+[workspace.dependencies]
+rayon = "=1.12.0"
+sha2 = "=0.10.9"
+windows-sys = "=0.61.2"
+half = "=2.7.1"
+libloading = "=0.8.9"
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.151"
+anyhow = "=1.0.104"
+thiserror = "=2.0.21"
+
+[profile.release]
+opt-level = 3
+debug = "line-tables-only"   # piles lisibles dans les journaux de panique, sans coût de vitesse
+codegen-units = 16
+incremental = true
+
+[profile.dev]
+opt-level = 1                # les témoins rejouent des centaines de milliers d'accès

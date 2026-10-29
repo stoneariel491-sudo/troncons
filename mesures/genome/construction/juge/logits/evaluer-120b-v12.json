@@ -1,0 +1,148 @@
+{
+  "alimentation": {
+    "ACLineStatus": 1,
+    "BatteryFlag": 1,
+    "BatteryLifePercent": 80,
+    "secteur": true
+  },
+  "base": "~/dev/essais/troncons/genome/juge/base-juge-20b.kld",
+  "commande": "evaluer --flux --modele ~/dev/modeles/trc/gpt-oss-120b-v12.trc --base ~/dev/essais/troncons/genome/juge/base-juge-20b.kld --fenetres 10 --sortie ~/dev/essais/troncons/genome/juge/moteur-120b-v12.kld --empreintes ~/dev/active/troncons/outils/genome/construction/juge/../../../../mesures/genome/construction/juge/logits/evaluer-120b-v12.csv --journal ~/dev/active/troncons/outils/genome/construction/juge/../../../../mesures/genome/construction/juge/logits/evaluer-120b-v12.json",
+  "compteurs": {
+    "acces": 32381,
+    "defauts_disque": 32381,
+    "emplacements": 326,
+    "evictions": 32055,
+    "experts_decodes": 32381,
+    "experts_verifies": 0,
+    "flux_conflits_evites": 0,
+    "garde_attente_s": 24.640003800000002,
+    "garde_lignes": 5120,
+    "garde_octets": 376543793008,
+    "garde_octets_ouverture": 615333888,
+    "garde_troncons": 32381,
+    "h_vram": 0.0,
+    "lectures_enchassement": 5120,
+    "lectures_troncons": 32381,
+    "ms_copie_carte": 0.0,
+    "ms_decodage_carte": 0.0,
+    "octets_copies_cache": 376610496512,
+    "octets_disque_cache": 376610496512,
+    "octets_dma": 376610496512,
+    "octets_lus": 378953449472,
+    "octets_lus_enchassement": 41943040,
+    "octets_lus_troncons": 376610496512,
+    "pas": 0,
+    "pf_emis": 0,
+    "pf_octets": 0,
+    "pf_utiles": 0,
+    "s_attente_routeur": 0.0,
+    "s_fin_jeton": 0.0,
+    "s_lectures": 0.0,
+    "s_pas": 591.7930153,
+    "succes_ram": 0,
+    "succes_vram": 0,
+    "tiedes": 0
+  },
+  "date_utc": "2026-10-22T09:07:23Z",
+  "disque": {
+    "octets_comptes_moteur": {
+      "dont_chargement_residents": 1685676032,
+      "lecteur": 378953449472,
+      "ouverture_tamponnee": 13565650,
+      "total": 378967015122
+    },
+    "processus": {
+      "lectures": 37656,
+      "octets_ecrits": 1025797194,
+      "octets_lus": 378972089043,
+      "octets_lus_depuis_le_depart": 378976317496
+    }
+  },
+  "empreinte_csv_sha256": "7a935649738521e5ab330030fd77ecb5ef2705530d60842a03d33ce4164a52e4",
+  "fenetres": 10,
+  "flux": true,
+  "flux_experts": 32381,
+  "flux_positions": 5120,
+  "moteur": {
+    "arrivees": 12,
+    "brut": false,
+    "carte": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "casser_garde": null,
+    "chargement": {
+      "empreintes_verifiees": 470,
+      "lectures": 101,
+      "octets_lus": 1685676032,
+      "octets_tenseurs": 1685668608,
+      "secondes": 1.8817036,
+      "tenseurs": 470
+    },
+    "contexte": 4096,
+    "couches": 36,
+    "couches_d_avance": 3,
+    "emplacements": 326,
+    "enchassement_en_ram": false,
+    "etapes_memoire": [
+      {
+        "ensemble_travail": 5795840,
+        "etape": "avant"
+      },
+      {
+        "ensemble_travail": 19529728,
+        "etape": "fichier"
+      },
+      {
+        "ensemble_travail": 130273280,
+        "etape": "contexte_flux"
+      },
+      {
+        "ensemble_travail": 131469312,
+        "etape": "noyaux"
+      },
+      {
+        "ensemble_travail": 132808704,
+        "etape": "modele"
+      },
+      {
+        "ensemble_travail": 133029888,
+        "etape": "luts"
+      },
+      {
+        "ensemble_travail": 279465984,
+        "etape": "fenetre_et_tampons"
+      },
+      {
+        "ensemble_travail": 280018944,
+        "etape": "emplacements_cache_evenements"
+      }
+    ],
+    "experts": 128,
+    "fichier": "~/dev/modeles/trc/gpt-oss-120b-v12.trc",
+    "garde": true,
+    "k": 4,
+    "kv_f32": false,
+    "longueur_arrivee": 11878400,
+    "longueur_lecture": null,
+    "octets_emplacement": 13254144,
+    "octets_epingles": 143368192,
+    "octets_vram_moteur": 6312830768,
+    "ouverture_s": 3.2731584,
+    "prechargement": false,
+    "profondeur_es": 4,
+    "ram_tiede_go": 0.0,
+    "rapide": false,
+    "temoin": false,
+    "tiedes": 0,
+    "vocab": 201088,
+    "vram_plafond_mio": 7179
+  },
+  "n_ctx": 512,
+  "outil": "troncons evaluer",
+  "pas": 0,
+  "pas_s": 0.0,
+  "positions_notees": 2550,
+  "positions_par_fenetre": 512,
+  "ppl_positions_notees": 395.10233995821653,
+  "secondes": 595.6784106,
+  "sortie": "~/dev/essais/troncons/genome/juge/moteur-120b-v12.kld",
+  "version": "0.1.0"
+}

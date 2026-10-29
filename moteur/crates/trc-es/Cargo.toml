@@ -1,0 +1,20 @@
+[package]
+name = "trc-es"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+description = "Lectures sans tampon du disque par port de complétion (IOCP), à la taille d'un tronçon, directement dans la mémoire que lit la DMA (ARCHITECTURE.md § 5.5)."
+
+# Dépendance : windows-sys 0.61.2 (MIT ou Apache-2.0), couture D (§ 2.4).
+[dependencies]
+windows-sys = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_Storage_FileSystem",
+    "Win32_System_IO",
+    "Win32_System_Threading",
+] }
+
+[dev-dependencies]
+windows-sys = { workspace = true, features = ["Win32_System_Memory"] }

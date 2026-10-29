@@ -1,0 +1,21 @@
+[package]
+name = "rans-troncons"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Codage rANS entrelacé par sous-groupe des codes Q4_K, décodé sur le processeur et sur la carte (Vulkan, wgpu)."
+
+# Dépendances, toutes dans le cache cargo de la machine (construction --offline) :
+# wgpu 30.0.1 : MIT OU Apache-2.0. pollster : MIT OU Apache-2.0.
+# bytemuck : Zlib OU Apache-2.0 OU MIT. rayon : MIT OU Apache-2.0.
+[dependencies]
+wgpu = "30.0.1"
+pollster = "1.0.1"
+bytemuck = "1.25.2"
+rayon = "1.12.0"
+
+[profile.release]
+opt-level = 3
+debug = false
+codegen-units = 1
+lto = "thin"

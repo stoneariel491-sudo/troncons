@@ -1,0 +1,261 @@
+\chapter{Problem formulation}\label{ch:formulation}
+
+\begin{origine}
+\textbf{Where we start}: one theorem and four levers, each measured on its own: the throughput bound of a chain of stages (\cref{thm:toit}), then quantization, loading, speculation and the target models (\cref{ch:quant,ch:chargement,ch:sparsite,ch:modeles}).
+\textbf{This chapter establishes} a single equation that contains them all, the time of one token of a mixture of experts served by the GPU, term by term; a one-constant locality model with its three scenarios fitted on the literature; the optimization problem troncons must solve, with its memory and quality constraints; the elasticity of the ceiling to each quantity, proven, which says which ones matter and which ones are ornament on this machine; a worked example; the term that was missing from the condition for speculation; and the witnesses that make the equation fall when it is falsified.
+\textbf{What remains} is to replace the locality model by the measured curve of gpt-oss-120b, and the estimated baseline by the measured one (\cref{ch:avenir}).
+Source: \fichier{fondations/07-ce-qui-manque.md} (§ 1 and appendix A), tool \fichier{outils/07-synthese/plafonds.py}, log \fichier{fondations/journaux/07-synthese/plafonds.json}.
+\end{origine}
+
+\section{The token as a chain of stages}\label{sec:jeton-chaine}
+
+A decoding token, at batch size one, applies every active weight once. Its bytes cross the chain of \cref{fig:chemin}: disk, RAM, PCIe link, VRAM, compute units. \Cref{thm:toit} bounds its time by the largest stage time, and \cref{cor:permanent} says that this maximum is reached up to a fill penalty. Three terms are still missing to describe a real engine; the studies met them one at a time.
+
+\begin{definition}[Token equation]\label{def:equation-jeton}
+The time of one produced token is
+\begin{equation}\label{eq:jeton}
+t \;=\; \frac{1}{\mathcal E}\,\Bigl[\max\bigl(T_{\mathrm{D}},\,T_{\mathrm{P}},\,T_{\mathrm{G}}\bigr) + t_{\mathrm{lat}}\Bigr] \;+\; t_0 ,
+\end{equation}
+where $T_{\mathrm{D}}$, $T_{\mathrm{P}}$, $T_{\mathrm{G}}$ are the busy times of the disk, the link and the GPU (\cref{sec:termes-moe}), and:
+\begin{itemize}
+\item $t_0$ is the fixed cost of a token (kernel launches, synchronizations, recurrent layers);
+\item $t_{\mathrm{lat}} \ge 0$ is the read latency that prefetching did not hide; it is zero if the disk queue never runs dry;
+\item $\mathcal E \ge 1$ is the mean number of tokens returned by one read of the weights (\cref{thm:amortissement}); $\mathcal E = 1$ without speculation.
+\end{itemize}
+\end{definition}
+
+\paragraph{Where each term comes from.} $t_0 \approx \SI{3.5}{\milli\second}$ \calc{} from a measurement of the quantization study: Qwen3.5-4B Q4\_K\_M fully in VRAM returns 68.9 to 69.9 tokens/s depending on the ABBA series, i.e.\ 14.3 to 14.5\,ms per token, whereas its 2.73\,GB read at 251\,GB/s only need 10.9 (\fichier{fondations/journaux/02-quantification/vitesse-4B-3.json}, field \texttt{reference\_jetons\_s}). The term $t_{\mathrm{lat}}$ is the gap between the ceiling (the maximum) and the floor (the sum) of \cref{thm:toit}; it can dominate: in Edge0, the time blocked on reads ranges from 101.9 to 575\,ms per step while the disk works at most 12\,\% of the step \litt{} (\cref{ch:chargement}). The factor $\mathcal E$ is that of \cref{ch:sparsite}; for a mixture of experts, the read of a verification pass grows with the number of verified tokens, which \cref{sec:spec-rho} handles.
+
+\section{The terms for a mixture of experts served by the GPU}\label{sec:termes-moe}
+
+We take the quantities of \cref{ch:chargement}: $B_t$ always-read bytes (attention, routers, norms, head), resident in VRAM; $B_e$ routed-expert bytes read per token; $E_{\mathrm{tot}}$ bytes of all experts. A share $h_v$ of the expert bytes is served by the VRAM, $h_r$ by the RAM, $h_s = 1 - h_v - h_r$ by the disk. The bytes that cross the disk and the link are compressed by factors $r_d$ and $r_p$ (bytes served over bytes carried). The GPU decodes at $W_{\mathrm{dec}}$ (bytes served produced per second) and computes the matrix-vector product at $W_g$ on decoded weights. Finally $\delta = \max(0, B_t - V)$ is the share of the always-read bytes that does not fit in the usable VRAM $V$.
+
+\begin{proposition}[Stage times of a MoE whose GPU decodes everything]\label{prop:termes}
+If the GPU computes every layer and decodes on arrival everything that does not come from its own memory, the stage times of \cref{eq:jeton} are
+\begin{align}
+T_{\mathrm{D}} &= \frac{h_s\,B_e}{r_d\,W_{\mathrm{D}}}, \label{eq:td}\\
+T_{\mathrm{P}} &= \frac{1}{W_{\mathrm{P}}}\Bigl(\frac{h_r\,B_e}{r_p} + \frac{h_s\,B_e}{r_d} + \delta\Bigr), \label{eq:tp}\\
+T_{\mathrm{G}} &= \frac{(1-h_v)\,B_e}{W_{\mathrm{dec}}} + \frac{B_t + B_e}{W_g}. \label{eq:tg}
+\end{align}
+\end{proposition}
+
+\begin{proof}
+The disk only reads the expert bytes absent from VRAM and RAM, that is $h_s B_e$ bytes served, carried as $h_s B_e/r_d$ bytes; hence \cref{eq:td} by \cref{hyp:etage}. The link carries everything that enters the GPU: the experts coming from RAM (compressed by $r_p$), those coming from disk (compressed by $r_d$, since they are only decoded on arrival) and the overflow of always-read bytes. The GPU decodes everything that was not already decoded in its memory, $(1-h_v)B_e$ bytes served, then reads each active weight once, $B_t + B_e$ bytes, for the product. Decoder and product occupy the same multiprocessors: their times add instead of overlapping.
+\end{proof}
+
+\begin{remarque}[Three meanings of the word ``architecture'']
+In \cref{sec:toit}, architecture A is the one where the CPU decompresses, architecture B the one where the GPU decompresses; \cref{cor:sans-croisement} settled for B there. \Cref{prop:termes} is written for that architecture B. The three \emph{candidates} A, B and C of \cref{ch:avenir} are all built on it and differ along another axis: the precision served at each stage. We keep the names used by the studies so as not to break their cross-references.
+\end{remarque}
+
+The disk and the link overlap with the GPU: their copy engines are free during compute, and the measured hidden share (\cref{eq:part-cachee}) is 0.98 to 1.01 \mes{} (\fichier{fondations/journaux/04-chargement/}). This is what licenses the maximum in \cref{eq:jeton}.
+
+\section{Locality, in one constant}\label{sec:localite-beta}
+
+The shares $h_v$ and $h_r$ depend on the capacity of each stage and on how successive tokens reuse their experts. Lacking a measurement on the target model, we posit a model with a single constant.
+
+\begin{hypothese}[Power-law hit rate]\label{hyp:beta}
+If a stage holds a share $c$ of the expert bytes, it serves a share $h(c) = c^{\beta}$ of the requested bytes, with $0 < \beta \le 1$. For two nested stages (VRAM of capacity $c_v$, RAM of capacity $c_r$), $h_v = h(c_v)$ and $h_v + h_r = h(c_v + c_r)$.
+\end{hypothese}
+
+$\beta = 1$ is uniform routing, with no reuse at all: the worst case, the one of the model study. The two other values are fitted on the only usable published point, a cache on one layer of Qwen3-30B-A3B (128 experts, 8 active): at 13.4\,\% of the budget, an LRU serves 65.9\,\% of the requests and Belady's oracle 79.1\,\% \litt{} (\cref{ch:chargement}). One constant puts one curve through one point:
+\begin{align}
+\beta_{\mathrm{LRU}} &= \frac{\ln 0.659}{\ln 0.134} = \frac{-0.4170}{-2.0099} = 0.2075, \label{eq:beta-lru}\\
+\beta_{\mathrm{Belady}} &= \frac{\ln 0.791}{\ln 0.134} = \frac{-0.2345}{-2.0099} = 0.1167 \quad \calc. \label{eq:beta-belady}
+\end{align}
+A second point, as a check: moe-stream implies at least 53\,\% hits at 31\,\% of the budget (\cref{lem:succes-implique}); the LRU scenario gives $0.31^{0.2075} = 0.784 \ge 0.53$ there: consistent. \Cref{fig:localite-hypotheses} shows the three curves.
+
+\begin{figure}[ht]
+\centering
+\GrapheLocaliteHypotheses
+\caption[The three locality scenarios]{The three locality scenarios $h(c) = c^\beta$ \calc. Each $\beta$ puts its curve through the corresponding published point (LRU, Belady; Qwen3-30B-A3B, one layer); uniform routing ($\beta = 1$) is the worst case. These are assumptions, not measurements of the target model: the first measurement on gpt-oss is in \cref{ch:avenir}.}
+\label{fig:localite-hypotheses}
+\sourcefig{\fichier{fondations/journaux/07-synthese/plafonds.json} (field \texttt{betas}), extracted by \fichier{memoire/outils/donnees_figures.py}.}
+\end{figure}
+
+\textbf{This model is a stated assumption, not a law.} It assumes that the shape of the Qwen3-30B curve (8 active out of 128) holds for gpt-oss-120b (4 active out of 128), and it extrapolates a single point. Every ceiling of the candidate architectures depends on it by a factor of 5; this is why the three scenarios are always given together.
+
+\section{The numbers of the machine}\label{sec:chiffres-machine}
+
+\begin{table}[ht]
+\centering\small
+\caption[The quantities of the token equation]{The quantities of the token equation on Stone's machine, on mains power. Throughputs are those of the measurement chapters; each row names its log.}
+\label{tab:grandeurs}
+\begin{tabular}{@{}p{0.40\linewidth}rlp{0.25\linewidth}@{}}
+\toprule
+Quantity & Value & & Log \\
+\midrule
+$W_{\mathrm{D}}$, disk, 4\,MiB reads at QD 4 (size of one expert matrix) & 2.58\,GB/s & \mes & \fichier{01-machine/disque-analyse.md} \\
+$W_{\mathrm{D}}$, disk, 16\,MiB reads at QD 1 & 2.82\,GB/s & \mes & \fichier{01-machine/debits-mesures.json} \\
+disk, 4\,KiB random (page faults) & 0.22\,GB/s & \mes & \fichier{01-machine/disque-balayage.csv} \\
+$W_{\mathrm{P}}$, host $\to$ device DMA from pinned RAM & 12.2\,GB/s & \mes & \fichier{01-machine/carte-complement.jsonl} \\
+VRAM read by a shader & 251.3\,GB/s & \mes & \fichier{01-machine/carte.jsonl} \\
+$W_g$, raw MXFP4 matrix-vector product, Vulkan & 209.4\,GB/s & \mes & \fichier{03-entropie/} \\
+$W_{\mathrm{dec}}$, rANS v4 decoder, Vulkan & 70\,GB/s & \mes & \fichier{03-entropie/} \\
+decoder plus reassembly of the three class streams & 41.6\,GB/s & \mes & \fichier{03-entropie/} \\
+$r$, lossless coding of gpt-oss-120b (three classes) & 1.1026 & \mes & \fichier{03-entropie/} \\
+$V$, $M$: VRAM and RAM usable for weights & 6.5 and 11\,GB & assum. & study 06 \\
+$t_0$, fixed cost of a token & 3.5\,ms & \calc & \fichier{02-quantification/vitesse-4B-3.json} \\
+$B_t$, $B_e$, $E_{\mathrm{tot}}$ of gpt-oss-120b & 1.686; 1.909; 61.07\,GB & \mes & \fichier{07-synthese/inventaire-gptoss.json} \\
+\bottomrule
+\end{tabular}
+\sourcefig{Paths relative to \fichier{fondations/journaux/}.}
+\end{table}
+
+Two caveats hold for everything that follows. \textbf{The machine was shared}: every measurement ran alongside other agents, and the ``best'' throughputs are lower bounds of the idle machine (\cref{ch:machine}). \textbf{On battery} it is another machine: the GPU drops to 52.6\,W, the link to Gen 3, everything that goes through the CPU loses a factor of 4 to 6; DMA holds at 11.8\,GB/s, the decoder falls to 26.8\,GB/s (\cref{sec:batterie}). The numbers of this chapter are those on mains power.
+
+\section{The problem, stated}\label{sec:probleme}
+
+What Stone asks now reads as a constrained optimization problem. Let $\theta$ be the set of decisions of an engine: the weight format (bits per weight, coding, hence $B_t$, $B_e$, $r_d$, $r_p$), the placement and cache policy (hence $c_v$, $c_r$ and, through \cref{hyp:beta}, $h_v$, $h_r$, $h_s$), the scheduling of reads (hence $t_{\mathrm{lat}}$), speculation (hence $\mathcal E$), and the miss policy (serve exact, wait, serve a less precise version, re-route).
+
+\begin{definition}[The troncons problem]\label{def:probleme}
+For a given model and Stone's machine, find
+\begin{equation}\label{eq:probleme}
+\theta^\star \in \argmax_{\theta}\; \frac{1}{t(\theta)}
+\quad\text{subject to}\quad
+\begin{cases}
+\mathrm{VRAM}_{\max}(\theta) \le \SI{8188}{\mebi\byte}, \\
+\mathrm{RAM}_{\max}(\theta) \le M_{\text{window}} \quad \text{(independent of the model size, \cref{def:fenetre})}, \\
+\mathrm{KL}\bigl(p_\theta \,\|\, p_{\text{exact}}\bigr) \le \kappa, \quad \text{same top choice} \ge \pi_0 ,
+\end{cases}
+\end{equation}
+where $t(\theta)$ is given by \cref{eq:jeton}, $p_\theta$ is the next-token distribution returned by the engine, $p_{\text{exact}}$ the one returned by the original weights, and $(\kappa, \pi_0)$ a quality budget declared before the measurement.
+\end{definition}
+
+The chosen budget is derived from a measured quantity, not set by eye: $\kappa = 0.0055$ and $\pi_0 = 95.96\,\%$, the measured gap between two correct engines reading the same weights (\cref{sec:protocole-jugement}). The reason: a loss smaller than the gap between two correct implementations cannot be told apart from a change of engine. An exact solution ($\mathrm{KL} = 0$ by construction) meets the third constraint whatever $\kappa$.
+
+\paragraph{What makes the problem hard.} The constraints couple what the studies measured separately. Lossy compression shrinks $B_e$ but spends the budget $\kappa$. Lossless compression raises $r_d$ but loads the decoder ($T_{\mathrm{G}}$). A large RAM cache raises $h_r$ but breaks the window if $M_{\text{window}}$ is small. Speculation raises $\mathcal E$ but makes the engine read the union of the experts of several tokens. The next section says which of these couplings matters on this machine.
+
+\section{What holds the maximum: the elasticities}\label{sec:elasticites}
+
+\begin{proposition}[Elasticities of the ceiling]\label{prop:elasticites}
+Let $d = 1/t$ be the ceiling given by \cref{eq:jeton} with $\mathcal E = 1$, $t_{\mathrm{lat}} = 0$, and assume the disk strictly holds the maximum: $T_{\mathrm{D}} > \max(T_{\mathrm{P}}, T_{\mathrm{G}})$. Let $\eta = T_{\mathrm{D}} / (T_{\mathrm{D}} + t_0)$. Then
+\begin{equation}\label{eq:elasticites}
+\frac{\partial \ln d}{\partial \ln W_{\mathrm{D}}} = \frac{\partial \ln d}{\partial \ln r_d} = +\eta, \qquad
+\frac{\partial \ln d}{\partial \ln h_s} = \frac{\partial \ln d}{\partial \ln B_e} = -\eta, \qquad
+\frac{\partial \ln d}{\partial \ln x} = 0 \;\; \text{for } x \in \{W_{\mathrm{P}}, W_{\mathrm{dec}}, W_g, r_p\},
+\end{equation}
+and $\partial \ln d / \partial \ln t_0 = -(1 - \eta)$.
+\end{proposition}
+
+\begin{proof}
+Under the strict assumption, the maximum equals $T_{\mathrm{D}}$ in a neighbourhood of the point (the three functions are continuous), so $t = T_{\mathrm{D}} + t_0$ is differentiable there and depends neither on $W_{\mathrm{P}}$, nor on $W_{\mathrm{dec}}$, nor on $W_g$, nor on $r_p$: their elasticities are zero. For $x \in \{W_{\mathrm{D}}, r_d, h_s, B_e\}$, \cref{eq:td} gives $\partial \ln T_{\mathrm{D}} / \partial \ln x = \mp 1$, and
+\[
+\frac{\partial \ln d}{\partial \ln x} = -\frac{\partial \ln t}{\partial \ln x} = -\frac{T_{\mathrm{D}}}{T_{\mathrm{D}} + t_0}\,\frac{\partial \ln T_{\mathrm{D}}}{\partial \ln x} = \pm \eta .
+\]
+$B_e$ also appears in $T_{\mathrm{P}}$ and $T_{\mathrm{G}}$, which are not the maximum: its derivative only goes through $T_{\mathrm{D}}$. Finally $\partial \ln t / \partial \ln t_0 = t_0 / (T_{\mathrm{D}} + t_0) = 1 - \eta$.
+\end{proof}
+
+For gpt-oss-120b in the fitted-LRU scenario (\cref{sec:exemple-pose}), $T_{\mathrm{D}} = 157$\,ms, $T_{\mathrm{P}} = 58$\,ms, $T_{\mathrm{G}} = 36$\,ms: the disk holds the maximum with a margin of 2.7 over the link, and $\eta = 157/160.5 = 0.978$ \calc. \Cref{tab:elasticites} derives what each gain is worth.
+
+\begin{table}[ht]
+\centering\small
+\caption[What each quantity is worth]{Elasticity of the ceiling of gpt-oss-120b, candidate architecture A, fitted-LRU scenario \calc{} (\cref{prop:elasticites}, $\eta = 0.978$).}
+\label{tab:elasticites}
+\begin{tabular}{@{}lrrp{0.36\linewidth}@{}}
+\toprule
+Quantity & Elasticity & 10\,\% gained is worth & Remark \\
+\midrule
+$W_{\mathrm{D}}$ (disk throughput) & $+0.98$ & $+9.8\,\%$ & BitLocker and VMD take 53\,\% of it (\cref{ch:machine}) \\
+$r_d$ (compression of bytes read) & $+0.98$ & $+9.8\,\%$ & lossless: 1.10 reached; lossy: quantization \\
+$B_e$ (bits per active weight) & $-0.98$ & $+10.8\,\%$ & the slope of quantization (\cref{ch:quant}) \\
+$h_s$ (share read from disk) & $-0.98$ & $+10.8\,\%$ & one hit point gained is worth $+4.4\,\%$ at $h_s = 0.234$ (160.5 to 153.8\,ms) \\
+$W_{\mathrm{P}}$, $W_{\mathrm{dec}}$, $W_g$ & 0 & 0 & as long as they do not hold the maximum \\
+$t_0$ & $-0.02$ & $+0.2\,\%$ & 3.5\,ms out of 160 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{corollaire}[GPU kernels are ornament in the disk regime]\label{cor:ornement}
+As long as the disk holds the maximum, making the GPU kernels faster (decoder, matrix-vector product, fixed cost) returns less than 2\,\% on gpt-oss-120b.
+\end{corollaire}
+
+\begin{proof}
+By \cref{prop:elasticites}, only $t_0$ (elasticity $-0.022$) and the zero-elasticity quantities depend on the kernels. Removing $t_0$ entirely would take $t$ from 160.5 to 157\,ms, i.e.\ $+2.2\,\%$ at most; any partial gain returns less. (The 2\,\% figure is rounded from $1 - \eta = 0.022$.)
+\end{proof}
+
+This is an idea killed by the number, for this regime: work on the speed of the VRAM kernels only becomes a lever again once the disk stops limiting, for instance on an unencrypted volume where the link takes over (\cref{ch:avenir}). \Cref{fig:plafond-hs} shows both regimes on one curve.
+
+\begin{figure}[ht]
+\centering
+\GraphePlafondHs
+\caption[The ceiling against the share read from disk]{Ceiling of gpt-oss-120b against the share $h_s$ of the expert bytes read from disk, candidate architecture A \calc. On the right, the disk holds the maximum and the curve has slope $-1$ on a log scale (\cref{prop:elasticites}); on the left, below $h_s \approx 0.1$, the link and the GPU take the maximum back and the curve flattens. Lossless coding shifts the whole disk regime by a factor $r = 1.1026$.}
+\label{fig:plafond-hs}
+\sourcefig{\fichier{fondations/journaux/07-synthese/csv/plafond-gptoss120b-contre-hs.csv} (tool \fichier{outils/07-synthese/plafonds.py}).}
+\end{figure}
+
+\section{A worked example}\label{sec:exemple-pose}
+
+gpt-oss-120b MXFP4, three-class lossless coding ($r_d = r_p = 1.1026$), candidate architecture A, fitted-LRU scenario, $V = 6.5$\,GB, 11\,GB warm cache in RAM (\fichier{fondations/07-ce-qui-manque.md}, appendix A.3) \calc.
+\begin{enumerate}
+\item VRAM capacity for experts: $c_v = (6.5 - 1.686)/61.07 = 0.0788$, hence $h_v = 0.0788^{0.2075} = 0.590$.
+\item RAM capacity: the warm cache keeps coded experts, so 11\,GB hold $11 \times 1.1026 = 12.13$\,GB served: $c_r = 12.13/61.07 = 0.1986$. Then $h_v + h_r = 0.2774^{0.2075} = 0.766$, hence $h_r = 0.176$ and $h_s = 0.234$.
+\item Disk: $T_{\mathrm{D}} = 0.234 \times 1.909 / 1.1026 / 2.58 = \SI{0.157}{\second}$.
+\item Link: $T_{\mathrm{P}} = (0.176 + 0.234) \times 1.909 / 1.1026 / 12.2 = \SI{0.058}{\second}$ (the always-read bytes fit in VRAM: $\delta = 0$).
+\item GPU: $T_{\mathrm{G}} = 0.410 \times 1.909 / 41.6 + (1.686 + 1.909)/209.4 = 0.0188 + 0.0172 = \SI{0.036}{\second}$ (three-class-stream decoder, 41.6\,GB/s).
+\item Ceiling: $t = 0.157 + 0.0035 = 0.161$\,s, i.e.\ \textbf{6.24 tokens/s}; serial floor: $t = 0.157 + 0.058 + 0.036 + 0.0035 = 0.254$\,s, i.e.\ \textbf{3.93 tokens/s}.
+\end{enumerate}
+The same six lines, redone by the tool, give 6.2414 and 3.9322 (\fichier{fondations/journaux/07-synthese/csv/architectures-gptoss120b.csv}, row \texttt{lru\_cale, A\_sans\_perte}).
+
+\section{The working window, in numbers}\label{sec:fenetre-chiffree}
+
+\Cref{def:fenetre} asks for a peak memory that does not depend on the model size. In \cref{eq:jeton}, RAM only appears through $c_r$, the capacity of the warm cache: a setting, not a consequence of the model. The rest of the peak RAM comes from the arrival buffers (the misses of one token, double-buffered) and from the engine's structures.
+
+\begin{figure}[ht]
+\centering
+\GraphePlafondRam
+\caption[The working window: ceiling against RAM]{Ceiling of gpt-oss-120b (63.4\,GB) against the warm cache in RAM, candidate architecture A \calc. The first column is A0: with no RAM cache at all, 1.9\,GB of peak RAM and a ceiling of 3.6 tokens/s in the fitted-LRU scenario. Each GB of cache adds about 0.24 token/s in this scenario; peak RAM goes from 1.9\,GB (no cache) to 12.3\,GB (11\,GB of cache).}
+\label{fig:plafond-ram}
+\sourcefig{\fichier{fondations/journaux/07-synthese/csv/plafond-gptoss120b-contre-ram.csv}.}
+\end{figure}
+
+This is the answer, in numbers, to ``without RAM or anything'' (\cref{fig:plafond-ram}): RAM does not vanish, it stops depending on the model. The advocate of A has since tightened the window: with buffers of a few layers instead of two whole tokens, A0 goes down to 0.64\,GB of peak RAM (1.26\,GB if the embedding table stays in RAM) \calc{} (\fichier{decisions/partisan-A.md}, § 0, item 7). From this follows the direct witness of \cref{def:fenetre}: gpt-oss-20b and gpt-oss-120b have the same expert size (13.25\,MB), the same number of active experts and the same embedding table, so their peak RAM in A0 must agree within 0.5\,MB, while their files are 12.1 and 63.4\,GB.
+
+\section{The term that was missing from speculation}\label{sec:spec-rho}
+
+\Cref{cor:jamais} concludes that speculation never pays on fine-grained \emph{independent} experts. But two neighbouring tokens reuse part of their experts; a single number is enough to account for it.
+
+\begin{proposition}[Speculation under expert reuse]\label{prop:spec-rho}
+Let $\rho \in [0, 1]$ be the mean share of the experts of a token that were already among those of the previous token, in the same layer. A verification pass of one drafted token ($k = 1$) reduces the expert bytes read per produced token if and only if
+\begin{equation}\label{eq:spec-rho}
+\alpha \;>\; 1 - \rho .
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+Without speculation, each token reads $k_e$ experts per layer. The verification pass covers two positions; the second token brings $k_e(1-\rho)$ new experts on average, so the pass reads $U(2) = k_e(2-\rho)$ experts per layer. It returns $\mathcal E(\alpha,1) = 1 + \alpha$ tokens (\cref{thm:amortissement}). Bytes per produced token decrease if and only if $k_e(2-\rho)/(1+\alpha) < k_e$, i.e.\ $\alpha > 1 - \rho$.
+\end{proof}
+
+Under independence, $\rho = k_e/E$ and we recover \cref{cor:jamais}: $\alpha > 1 - 4/128 = 0.969$ for gpt-oss-120b. With the published reuse rates, the condition drops to $\alpha > 0.556$ for Qwen3-30B-A3B ($\rho = 0.444$) and $\alpha > 0.75$ for Qwen3.6-35B-A3B ($\rho \approx 0.25$) \calc{} on \litt{} (\fichier{fondations/journaux/07-synthese/plafonds.json}, field \texttt{moe\_speculation\_condition\_k1}). If $\rho$ were 0.44 on the target model, a draft at $\alpha = 0.8$ would return 1.8 tokens for 1.56 times the experts of one token: $+16\,\%$ throughput, where \cref{ch:sparsite} concluded to a loss. \textbf{The conclusion ``optimal $k = 0$'' therefore depends on a number nobody publishes for gpt-oss-120b}; the routing trace that gives $h(c)$ also gives $\rho$.
+
+\section{The witnesses of the equation}\label{sec:temoins-equation}
+
+An equation that cannot be made to fall proves nothing. The tool \texttt{plafonds.py} redoes three numbers published by other studies, with the threshold declared before the run: 1\,\% deviation on each value.
+
+\begin{table}[ht]
+\centering\small
+\caption[The witnesses of the token equation]{The witnesses of the token equation \calc. The break replaces the measured disk throughput by the link ceiling: the witness that depends on it falls, the other two hold.}
+\label{tab:temoins-equation}
+\begin{tabular}{@{}p{0.5\linewidth}rrcc@{}}
+\toprule
+Witness & Expected & Obtained & Holds & Broken \\
+\midrule
+T1: gpt-oss-120b, placement of \cref{sec:toit}, $r = 1$, overlapped & 1.98 & 1.994 & yes & \textbf{falls} (5.569) \\
+T2: Qwen3.5-9B entirely on disk, $r = 16$, the GPU decodes & 8.85 & 8.847 & yes & holds \\
+T3: the placement of T1 at link throughput (7.877\,GB/s), number of study 06 & 5.6 & 5.569 & yes & holds \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{fondations/journaux/07-synthese/plafonds.json} and \fichier{plafonds-casse.json}.}
+\end{table}
+
+\paragraph{A gap corrected along the way.} The entropy study put the effect of the lossless rate (1.1026) on the cache capacity at $+14.4\,\%$, assuming the whole cache coded, VRAM included. Yet its own measurement says that the product fused with the decoder is 3.7 times slower than the raw product: the GPU must keep its experts decoded, and only RAM grows. The effect is then $+13.1\,\%$ \calc{} (field \texttt{gain\_taux\_sur\_cache\_uniforme} of \fichier{plafonds.json}).
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{The model $h(c) = c^\beta$ extrapolates one point.} It comes from an LRU on one layer of Qwen3-30B-A3B, on one domain; the curve of gpt-oss-120b may be flatter or steeper. The three scenarios bracket a belief; they do not bound reality.
+\item \textbf{The ceiling assumes perfect overlap} and a disk queue that never runs dry ($t_{\mathrm{lat}} = 0$). The serial floor is closer to what published engines achieve, which land between 18 and 45\,\% of their bound (\cref{ch:chargement}).
+\item \textbf{$t_0 = 3.5$\,ms comes from another model}, under CUDA; a Vulkan engine that synchronizes after each router (36 times per token) may have a larger fixed cost, and the elasticity of $t_0$ would grow with it.
+\item \textbf{11\,GB of pinned RAM}: the Windows display driver model may limit the host memory visible to the GPU; if the warm cache has to live in pageable memory, every RAM hit goes through a CPU copy. Not verified.
+\item \textbf{The condition $\alpha > 1 - \rho$} assumes a constant $\alpha$ and a $\rho$ independent of position; it says nothing about $k > 1$, where the union of $n$ tokens decreases more slowly than a one-parameter model.
+\item \textbf{The quality budget $\kappa$} comes from a hybrid model (Qwen3.5-4B); the gap between two correct engines on gpt-oss may differ and must be remeasured on it.
+\end{itemize}
+\end{faux}

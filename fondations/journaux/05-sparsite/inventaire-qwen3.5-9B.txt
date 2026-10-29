@@ -1,0 +1,96 @@
+fichier : ~/dev/modeles/gguf/Qwen3.5-9B-Q4_K_M.gguf
+version GGUF : 3 ; tenseurs : 427 ; octets : 5680522464
+entete + metadonnees : 10968288 octets
+
+# Metadonnees (hors tokeniseur)
+general.architecture = qwen35
+general.type = model
+general.name = Qwen3.5-9B
+general.basename = Qwen3.5-9B
+general.quantized_by = Unsloth
+general.size_label = 9B
+general.license = apache-2.0
+general.license.link = https://huggingface.co/Qwen/Qwen3.5-9B/blob/main/LICENSE
+general.repo_url = https://huggingface.co/unsloth
+general.base_model.count = 1
+general.base_model.0.name = Qwen3.5 9B
+general.base_model.0.organization = Qwen
+general.base_model.0.repo_url = https://huggingface.co/Qwen/Qwen3.5-9B
+general.tags = ['unsloth', 'image-text-to-text']
+qwen35.block_count = 32
+qwen35.context_length = 262144
+qwen35.embedding_length = 4096
+qwen35.feed_forward_length = 12288
+qwen35.attention.head_count = 16
+qwen35.attention.head_count_kv = 4
+qwen35.rope.dimension_sections = [11, 11, 10, 0]
+qwen35.rope.freq_base = 10000000.0
+qwen35.attention.layer_norm_rms_epsilon = 9.999999974752427e-07
+qwen35.attention.key_length = 256
+qwen35.attention.value_length = 256
+qwen35.ssm.conv_kernel = 4
+qwen35.ssm.state_size = 128
+qwen35.ssm.group_count = 16
+qwen35.ssm.time_step_rank = 32
+qwen35.ssm.inner_size = 4096
+qwen35.full_attention_interval = 4
+qwen35.rope.dimension_count = 64
+general.quantization_version = 2
+general.file_type = 15
+quantize.imatrix.file = Qwen3.5-9B-GGUF/imatrix_unsloth.gguf
+quantize.imatrix.dataset = unsloth_calibration_Qwen3.5-9B.txt
+quantize.imatrix.entries_count = 248
+quantize.imatrix.chunks_count = 80
+
+# Octets par famille (bits/poids = 8*octets/elements)
+FFN dense : ffn_down                                        1062.0 Mio   19.6 %   5.53 b/poids    32 tenseurs  types [12, 14]
+FFN dense : ffn_gate                                         864.0 Mio   16.0 %   4.50 b/poids    32 tenseurs  types [12]
+FFN dense : ffn_up                                           864.0 Mio   16.0 %   4.50 b/poids    32 tenseurs  types [12]
+tete de sortie                                               795.7 Mio   14.7 %   6.56 b/poids     1 tenseurs  types [14]
+plongement (lu par ligne : 1 ligne par jeton)                545.6 Mio   10.1 %   4.50 b/poids     1 tenseurs  types [12]
+melangeur de sequence : attn_qkv                             528.0 Mio    9.8 %   5.50 b/poids    24 tenseurs  types [13]
+melangeur de sequence : ssm_out                              264.0 Mio    4.9 %   5.50 b/poids    24 tenseurs  types [13]
+melangeur de sequence : attn_gate                            216.0 Mio    4.0 %   4.50 b/poids    24 tenseurs  types [12]
+melangeur de sequence : attn_q                               144.0 Mio    2.7 %   4.50 b/poids     8 tenseurs  types [12]
+melangeur de sequence : attn_output                           72.0 Mio    1.3 %   4.50 b/poids     8 tenseurs  types [12]
+melangeur de sequence : attn_v                                23.2 Mio    0.4 %   5.79 b/poids     8 tenseurs  types [12, 14]
+melangeur de sequence : attn_k                                18.0 Mio    0.3 %   4.50 b/poids     8 tenseurs  types [12]
+melangeur de sequence : ssm_alpha                              3.2 Mio    0.1 %   8.50 b/poids    24 tenseurs  types [8]
+melangeur de sequence : ssm_beta                               3.2 Mio    0.1 %   8.50 b/poids    24 tenseurs  types [8]
+melangeur de sequence : ssm_conv1d                             3.0 Mio    0.1 %  32.00 b/poids    24 tenseurs  types [0]
+normes                                                         1.0 Mio    0.0 %  32.00 b/poids   105 tenseurs  types [0]
+melangeur de sequence : ssm_a                                  0.0 Mio    0.0 %  32.00 b/poids    24 tenseurs  types [0]
+melangeur de sequence : ssm_dt                                 0.0 Mio    0.0 %  32.00 b/poids    24 tenseurs  types [0]
+TOTAL                                                       5406.9 Mio
+
+# Couches : 32 ; min 112.5 Mio ; max 135.8 Mio
+
+# Tenseurs de la couche 0 et de la derniere couche
+  output.weight                            dims [4096, 248320] type 14   795.70 Mio
+  output_norm.weight                       dims [4096] type 0     0.02 Mio
+  token_embd.weight                        dims [4096, 248320] type 12   545.62 Mio
+  blk.0.attn_gate.weight                   dims [4096, 4096] type 12     9.00 Mio
+  blk.0.attn_norm.weight                   dims [4096] type 0     0.02 Mio
+  blk.0.attn_qkv.weight                    dims [4096, 8192] type 13    22.00 Mio
+  blk.0.ffn_down.weight                    dims [12288, 4096] type 14    39.38 Mio
+  blk.0.ffn_gate.weight                    dims [4096, 12288] type 12    27.00 Mio
+  blk.0.ffn_up.weight                      dims [4096, 12288] type 12    27.00 Mio
+  blk.0.post_attention_norm.weight         dims [4096] type 0     0.02 Mio
+  blk.0.ssm_a                              dims [32] type 0     0.00 Mio
+  blk.0.ssm_alpha.weight                   dims [4096, 32] type 8     0.13 Mio
+  blk.0.ssm_beta.weight                    dims [4096, 32] type 8     0.13 Mio
+  blk.0.ssm_conv1d.weight                  dims [4, 8192] type 0     0.12 Mio
+  blk.0.ssm_dt.bias                        dims [32] type 0     0.00 Mio
+  blk.0.ssm_norm.weight                    dims [128] type 0     0.00 Mio
+  blk.0.ssm_out.weight                     dims [4096, 4096] type 13    11.00 Mio
+  blk.31.attn_k.weight                     dims [4096, 1024] type 12     2.25 Mio
+  blk.31.attn_k_norm.weight                dims [256] type 0     0.00 Mio
+  blk.31.attn_norm.weight                  dims [4096] type 0     0.02 Mio
+  blk.31.attn_output.weight                dims [4096, 4096] type 12     9.00 Mio
+  blk.31.attn_q.weight                     dims [4096, 8192] type 12    18.00 Mio
+  blk.31.attn_q_norm.weight                dims [256] type 0     0.00 Mio
+  blk.31.attn_v.weight                     dims [4096, 1024] type 12     2.25 Mio
+  blk.31.ffn_down.weight                   dims [12288, 4096] type 14    39.38 Mio
+  blk.31.ffn_gate.weight                   dims [4096, 12288] type 12    27.00 Mio
+  blk.31.ffn_up.weight                     dims [4096, 12288] type 12    27.00 Mio
+  blk.31.post_attention_norm.weight        dims [4096] type 0     0.02 Mio

@@ -1,0 +1,19 @@
+[package]
+name = "zero-synonyme"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Fourche de la mesure F1 : le codon synonyme du zéro (−0 ramené à +0 avant le codage rANS)."
+
+# Hors de tout espace de travail.
+[workspace]
+
+# rayon 1.12.0 (MIT OU Apache-2.0), déjà dans le cache cargo.
+[dependencies]
+rayon = "1.12.0"
+
+[profile.release]
+opt-level = 3
+debug = false
+codegen-units = 1
+lto = "thin"

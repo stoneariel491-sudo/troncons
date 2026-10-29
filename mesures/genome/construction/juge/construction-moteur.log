@@ -1,0 +1,113 @@
+'vswhere.exe' n'est pas reconnu en tant que commande interne
+ou externe, un programme ex‚cutable ou un fichier de commandes.
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\bin\Hostx64\x64\cl.exe
+~\dev\outils\cuda-13.1.2\bin\nvcc.exe
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.26
+   Compiling quote v1.0.47
+   Compiling version_check v0.9.5
+   Compiling windows-link v0.2.1
+   Compiling generic-array v0.14.7
+   Compiling cfg-if v1.0.5
+   Compiling typenum v1.20.1
+   Compiling crossbeam-utils v0.8.23
+   Compiling crossbeam-epoch v0.9.21
+   Compiling anyhow v1.0.104
+   Compiling crossbeam-deque v0.8.8
+   Compiling syn v3.0.6
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling windows-sys v0.61.2
+   Compiling thiserror v2.0.21
+   Compiling serde_core v1.0.229
+   Compiling rayon-core v1.13.0
+   Compiling digest v0.10.7
+   Compiling cpufeatures v0.2.17
+   Compiling zmij v1.0.23
+   Compiling sha2 v0.10.9
+   Compiling thiserror-impl v2.0.21
+   Compiling syn v2.0.119
+   Compiling zerocopy v0.8.62
+   Compiling either v1.19.0
+   Compiling serde_json v1.0.151
+   Compiling rayon v1.12.0
+   Compiling trc-format v0.1.0 (~\dev\active\troncons\moteur\crates\trc-format)
+   Compiling memchr v2.8.3
+   Compiling zerocopy-derive v0.8.62
+   Compiling itoa v1.0.18
+   Compiling trc-noyaux v0.1.0 (~\dev\active\troncons\moteur\crates\trc-noyaux)
+   Compiling trc-cuda v0.1.0 (~\dev\active\troncons\moteur\crates\trc-cuda)
+   Compiling serde v1.0.229
+   Compiling serde_derive v1.0.229
+   Compiling trc-es v0.1.0 (~\dev\active\troncons\moteur\crates\trc-es)
+   Compiling libloading v0.8.9
+   Compiling half v2.7.1
+   Compiling trc-jetons v0.1.0 (~\dev\active\troncons\moteur\crates\trc-jetons)
+   Compiling trc-cache v0.1.0 (~\dev\active\troncons\moteur\crates\trc-cache)
+   Compiling trc-reference v0.1.0 (~\dev\active\troncons\moteur\crates\trc-reference)
+   Compiling trc-modele v0.1.0 (~\dev\active\troncons\moteur\crates\trc-modele)
+   Compiling trc-juge v0.1.0 (~\dev\active\troncons\moteur\crates\trc-juge)
+   Compiling banc-chemin v0.1.0 (~\dev\active\troncons\moteur\bins\banc-chemin)
+   Compiling trc-ordo v0.1.0 (~\dev\active\troncons\moteur\crates\trc-ordo)
+   Compiling trc-codec v0.1.0 (~\dev\active\troncons\moteur\crates\trc-codec)
+   Compiling trc-codeur v0.1.0 (~\dev\active\troncons\moteur\bins\trc-codeur)
+   Compiling troncons v0.1.0 (~\dev\active\troncons\moteur\bins\troncons)
+    Finished `release` profile [optimized + debuginfo] target(s) in 58.26s
+   Compiling crossbeam-utils v0.8.23
+   Compiling windows-link v0.2.1
+   Compiling anyhow v1.0.104
+   Compiling zerocopy v0.8.62
+   Compiling serde_core v1.0.229
+   Compiling crossbeam-epoch v0.9.21
+   Compiling syn v3.0.6
+   Compiling crossbeam-deque v0.8.8
+   Compiling rayon-core v1.13.0
+   Compiling either v1.19.0
+   Compiling cfg-if v1.0.5
+   Compiling rayon v1.12.0
+   Compiling serde_derive v1.0.229
+   Compiling half v2.7.1
+   Compiling libloading v0.8.9
+   Compiling zmij v1.0.23
+   Compiling itoa v1.0.18
+   Compiling memchr v2.8.3
+   Compiling trc-jetons v0.1.0 (~\dev\active\troncons\moteur\crates\trc-jetons)
+   Compiling serde_json v1.0.151
+   Compiling trc-reference v0.1.0 (~\dev\active\troncons\moteur\crates\trc-reference)
+   Compiling windows-sys v0.61.2
+   Compiling serde v1.0.229
+   Compiling trc-juge v0.1.0 (~\dev\active\troncons\moteur\crates\trc-juge)
+   Compiling genome-capture v0.1.0 (~\dev\active\troncons\outils\genome\eclaireur\capture)
+warning: fields `variante`, `cache_k`, and `cache_v` are never read
+   --> src\modele.rs:121:9
+    |
+117 | pub struct Reference {
+    |            --------- fields in this struct
+...
+121 |     pub variante: VarianteYarn,
+    |         ^^^^^^^^
+...
+137 |     cache_k: Vec<Vec<f64>>,
+    |     ^^^^^^^
+138 |     cache_v: Vec<Vec<f64>>,
+    |     ^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: methods `reinitialiser`, `pas`, and `attention_une` are never used
+   --> src\modele.rs:540:12
+    |
+171 | impl Reference {
+    | -------------- methods in this implementation
+...
+540 |     pub fn reinitialiser(&mut self) {
+    |            ^^^^^^^^^^^^^
+...
+548 |     pub fn pas(&mut self, jeton: u32, position: u32) -> Result<Vec<f64>> {
+    |            ^^^
+...
+574 |     fn attention_une(&self, l: usize, q: &[f64], debut: usize, fin: usize) -> Vec<f64> {
+    |        ^^^^^^^^^^^^^
+
+warning: `genome-capture` (bin "genome-capture") generated 2 warnings
+    Finished `release` profile [optimized + debuginfo] target(s) in 22.40s

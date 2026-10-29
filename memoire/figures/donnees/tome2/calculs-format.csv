@@ -1,0 +1,33 @@
+grandeur,valeur,formule
+blocs_par_matrice,259200,R·B = 2880·90
+P_delta,259200,⌈R·B/128⌉·128
+P_codes,4147200,⌈16·R·B/128⌉·128
+macro_pas_codes,32400,P/128
+T_delta,8,⌈(P/128)/256⌉
+T_codes,127,⌈(P/128)/256⌉
+entete_fixe_delta,1072,16 + 4T + 128T
+entete_fixe_codes,16780,16 + 4T + 128T
+entete_partie,256,64 + 12·16
+origine_par_expert,13253760,3·(17·R·B + 4R)
+emplacement_par_matrice,4418048,al256(al256(16RB)+RB)+4R arrondi à 256
+mots_moyens_codes_20b,1968528,"(octets moyens − en-tête fixe)/2, bourrage ≤ 15 o compris"
+part_entete_codes_20b,0.004244,en-tête fixe / octets moyens du flux
+mots_moyens_delta_20b,17242,"(octets moyens − en-tête fixe)/2, bourrage ≤ 15 o compris"
+part_entete_delta_20b,0.030149,en-tête fixe / octets moyens du flux
+utiles_moyens_20b,12011635,3·Σ flux moyens + 64 + 192 (bourrage à 16 des flux bruts : 0)
+troncon_moyen_20b,12013664.0,verifier-*.json
+bourrage_moyen_20b,2029,tronçon moyen − utiles moyens
+bpp_codes_20b,3.813500,verifier-*.json
+bpp_total_03_20b,3.850572,verifier-*.json
+r_03_20b,1.103732,verifier-*.json
+mots_moyens_codes_120b,1971986,"(octets moyens − en-tête fixe)/2, bourrage ≤ 15 o compris"
+part_entete_codes_120b,0.004237,en-tête fixe / octets moyens du flux
+mots_moyens_delta_120b,15850,"(octets moyens − en-tête fixe)/2, bourrage ≤ 15 o compris"
+part_entete_delta_120b,0.032711,en-tête fixe / octets moyens du flux
+utiles_moyens_120b,12024025,3·Σ flux moyens + 64 + 192 (bourrage à 16 des flux bruts : 0)
+troncon_moyen_120b,12026060.4,verifier-*.json
+bourrage_moyen_120b,2036,tronçon moyen − utiles moyens
+bpp_codes_120b,3.820169,verifier-*.json
+bpp_total_03_120b,3.854555,verifier-*.json
+r_03_120b,1.102592,verifier-*.json
+borne_collision_120b,2.498e-16,4608·2^-64

@@ -1,0 +1,337 @@
+% Tome~III, chapitre 4 : la duplication de gènes (version française).
+% Rédacteur A, 2026-10-29. Plan et réserves : memoire/tome3/PLAN-redaction.md § 04.
+% Chaque nombre vient d'un fichier commité, nommé à côté de lui : genome/duplication.md,
+% genome/duplication-derivations.md, genome/duplication-pour-le-memoire.md, mesures/genome/duplication/
+% (00-seuils-declares.md, csv/, *.json), memoire/figures/tome3/donnees/duplication-nombres.csv.
+% Une phrase des sources est barrée ici : « substituer n'est jamais meilleur que retirer l'expert »
+% (duplication.md § 0.6, 05-synthese.md § 3.2) ; refait par le rédacteur depuis csv/paralogues.csv
+% (moyennes par couche et comptes par expert), voir § 7.
+% Figures (jugées, non modifiées) : III-4.2 \GrapheDupParente, III-4.8 \GrapheDupArbre.
+\chapter{La duplication de gènes}\label{t3dup:ch}
+
+\begin{origine}
+\textbf{Au départ}, l'hypothèse de Stone (\fichier{idees/biomimetisme-genome-des-poids.md} §\,5 bis) : « les experts d'une couche (ou de couches voisines) sont parents : stocker un expert parent et, pour chaque descendant, une petite mutation coûte moins de bits que l'expert entier ». La frontière : 3,8431 bits sans perte, 2,6441 bits pour la base à 4,2920\,\% d'erreur. L'état de l'art (\cref{t3que:tab:familles}, famille 3) : des fusions d'experts sur BF16, jugées en précision de tâches, jamais en bits sur des codes de 4 bits ; et la carte du modèle ne dit pas si les experts de gpt-oss sont nés par copie~\cite{openai2025gptoss}.
+\textbf{Ce chapitre établit} la parenté des experts de gpt-oss-20b, mesurée sur les codes MXFP4 et sur les poids, à une permutation des neurones près (la seule symétrie d'un expert, démontrée), dans la même couche et dans la couche voisine ; son coût exact en bits (une information mutuelle conditionnelle, coûts ajoutés comptés) ; l'arbre de codage le plus économe ; l'erreur de sortie d'une mutation tronquée et d'un paralogue sur des entrées réelles. \textbf{La duplication ne bat pas la frontière} : elle existe, elle se mesure, et elle vaut un millième de bit. Une phrase des sources est corrigée ici, sur leurs propres données.
+\textbf{Il reste} la KL de la mutation tronquée (non mesurée, son erreur de sortie suffisant à l'écarter), le coût exact et les paralogues sur gpt-oss-120b, et l'écran sur les 24 couches.
+Sources : \fichier{genome/duplication.md} ; \fichier{genome/duplication-derivations.md} ; \fichier{genome/duplication-pour-le-memoire.md} ; \fichier{mesures/genome/duplication/00-seuils-declares.md}, \fichier{csv/}, journaux \texttt{*.json} ; outils sous \fichier{outils/genome/duplication/}.
+\end{origine}
+
+\begin{enbref}
+Dans le vivant, un gène se duplique parfois ; les deux copies dérivent ensuite, l'une gardant la fonction, l'autre en prenant une nouvelle, et la famille de gènes qui en naît garde longtemps la trace de sa copie commune~\cite{ohno1970}. L'image suggère une compression : si les 32 experts d'une couche sont nés d'une copie, stocker un parent et des mutations coûterait moins cher que 32 experts. L'image est une analogie, et la question se pose en bits : combien un expert apprend-il sur un autre, une fois leurs neurones remis dans le même ordre ? La réponse mesurée est : presque rien. Après le meilleur appariement, deux experts appariés se ressemblent autant que deux experts tirés au hasard ; ce qu'ils partagent appartient à toute la couche, à ses colonnes d'entrée, pas à une lignée. Les experts de gpt-oss ont été entraînés à être \emph{différents} : le routeur n'envoie à chacun que les jetons où il est utile.
+\end{enbref}
+
+\section{La question, posée en bits}\label{t3dup:sec:question}
+
+Un enfant $c$ codé sachant un parent $p$ déjà décodé coûte $H(c \mid p)$ au lieu de $H(c)$ ; le gain est l'information mutuelle $I(c ; p)$, moins ce qu'il faut stocker pour relier l'enfant au parent. Pour un réseau, une seule liberté rend deux experts comparables : permuter les neurones cachés, qui ne change pas la fonction (\cref{t3dup:prop:permutation}). La duplication de Stone devient
+\begin{equation}\label{t3dup:eq:question}
+\max_{p,\ \Pi}\ I(c ;\ \Pi p) \quad \text{contre} \quad 3{,}84 \text{ bits par poids.}
+\end{equation}
+Les notations sont celles du modèle : un expert de gpt-oss-20b à la couche $\ell$, indice $e$ ; $d = f = 2\,880$ ; $W_g, W_u \in \mathbb{R}^{f \times d}$ (gate, up), $W_d \in \mathbb{R}^{d \times f}$ (down), biais $b_g, b_u \in \mathbb{R}^f$, $b_d \in \mathbb{R}^d$. Les seuils sont déclarés dans \fichier{mesures/genome/duplication/00-seuils-declares.md}, avec un addendum et des corrections barrées, toutes antérieures à la lecture de l'échantillon.
+
+\section{La symétrie qui rend la parenté invisible}\label{t3dup:sec:symetrie}
+
+\begin{proposition}[Invariance par permutation des neurones]\label{t3dup:prop:permutation}
+Soit $\Pi \in \{0,1\}^{f \times f}$ une matrice de permutation. L'expert de poids
+\[ (\Pi W_g,\ \Pi W_u,\ W_d \Pi^\top,\ \Pi b_g,\ \Pi b_u,\ b_d) \]
+calcule la même fonction que $(W_g, W_u, W_d, b_g, b_u, b_d)$.
+\end{proposition}
+
+\begin{proof}
+L'expert calcule $y = W_d\, \sigma(W_g x + b_g,\, W_u x + b_u) + b_d$, où $\sigma$ agit composante par composante : $\sigma(g, u)_k = s(g_k, u_k)$ avec $s(g, u) = \min(g, 7)\cdot\mathrm{sigmo\ddot ide}(1{,}702\cdot\min(g, 7))\cdot(\mathrm{borne}(u, -7, 7) + 1)$ (la SwiGLU bornée de gpt-oss, \texttt{ops::swiglu\_oai} de \texttt{trc-reference}). Une fonction appliquée composante par composante commute avec toute permutation : $\sigma(\Pi a, \Pi b) = \Pi\,\sigma(a, b)$. Donc $W_d \Pi^\top \sigma(\Pi W_g x + \Pi b_g, \Pi W_u x + \Pi b_u) + b_d = W_d \Pi^\top \Pi\, \sigma(W_g x + b_g, W_u x + b_u) + b_d = y$, puisque $\Pi^\top \Pi = I$.
+\end{proof}
+
+\paragraph{Conséquences.} Deux experts nés d'une même copie puis entraînés peuvent avoir leurs neurones dans un ordre quelconque : comparer $W_g^A$ et $W_g^B$ rangée $i$ contre rangée $i$ ne voit rien. La parenté se juge après le meilleur appariement des neurones, comme on apparie ceux de deux réseaux pour les relier ou les fusionner~\cite{ainsworth2022rebasin,entezari2021permutation}. Il n'existe pas d'autre symétrie continue : $s$ n'est pas homogène (le seuil 7, la sigmoïde, le « $+1$ » sur $u$), donc aucune mise à l'échelle d'un neurone ne se compense par $W_d$. Un appariement par permutation est la seule liberté.
+
+\paragraph{Ce que la permutation fait aux blocs MXFP4.} Les blocs de 32 courent le long de l'entrée de chaque matrice. Pour $W_g$ et $W_u$ (entrée $d$), $\Pi$ permute des rangées entières : chaque bloc reste entier. Pour $W_d$ (entrée $f$), $W_d \Pi^\top$ permute les colonnes : les blocs sont traversés. Un code conditionnel position par position reste exact dans les deux cas (\cref{t3dup:sec:cout}).
+
+\section{La parenté brute : écran, appariement, famille}\label{t3dup:sec:parente}
+
+\subsection{Deux lemmes pour lire un cosinus}
+
+\begin{lemme}[Le gain gaussien d'un parent]\label{t3dup:lem:gauss}
+Soit une rangée enfant $x$ et un parent $p$, connus du décodeur pour le second, avec $x = \alpha p + z$, $z \perp p$, et $\rho = \cos(x, p)$. Pour une source gaussienne et une distorsion quadratique $D < \sigma_x^2 (1 - \rho^2)$, coder l'enfant sachant le parent économise
+\begin{equation}\label{t3dup:eq:gauss}
+g(\rho) = -\frac12 \log_2 (1 - \rho^2) \quad \text{bit par poids,}
+\end{equation}
+indépendamment de $D$.
+\end{lemme}
+
+\begin{proof}
+Par projection orthogonale, $\|x\|^2 = \|\alpha p\|^2 + \|z\|^2$ et $\|\alpha p\|^2 = \rho^2 \|x\|^2$, donc $\sigma_z^2 = \sigma_x^2 (1 - \rho^2)$. La fonction débit-distorsion d'une gaussienne de variance $\sigma^2$ vaut $R(D) = \frac12 \log_2(\sigma^2/D)$ pour $D < \sigma^2$~\cite{shannon1959}. L'enfant seul coûte $R_1 = \frac12\log_2(\sigma_x^2/D)$ ; sachant le parent, il reste à coder $z$, $R_2 = \frac12\log_2(\sigma_x^2(1-\rho^2)/D)$, valable tant que $D < \sigma_z^2$. La différence est~\eqref{t3dup:eq:gauss}.
+\end{proof}
+
+Valeurs \calc : $g(0{,}1) = 0{,}0072$ ; $g(0{,}2) = 0{,}0294$ ; $g(0{,}3) = 0{,}0680$ ; $g(0{,}5) = 0{,}2075$ ; $g(0{,}9) = 1{,}198$ bit. Un cosinus de 0,1 ne vaut qu'un centième de bit.
+
+\begin{lemme}[Le plancher du hasard]\label{t3dup:lem:hasard}
+Pour une cible fixée et $N$ vecteurs indépendants uniformes sur la sphère de $\mathbb{R}^n$, $n$ grand, le maximum des $N$ cosinus en valeur absolue vaut à peu près $\sqrt{2\ln(2N)/n}$.
+\end{lemme}
+
+\begin{proof}[Esquisse]
+Pour $u$ uniforme sur la sphère et $e$ fixé, $\sqrt n\,\cos(u, e)$ tend en loi vers une normale standard. Le maximum de $N$ valeurs $|Z|$, soit de $2N$ queues gaussiennes d'un seul côté, se place au premier ordre là où l'espérance du nombre de dépassements vaut 1 : $2N\,\Prob(Z > t) \approx 1$, et $\Prob(Z > t) \approx e^{-t^2/2}$ au premier ordre logarithmique, d'où $t \approx \sqrt{2\ln(2N)}$. On divise par $\sqrt n$. (Les corrections d'ordre suivant baissent légèrement ce niveau.)
+\end{proof}
+
+Pour le dictionnaire de l'écran ($N = 31 \times 2\,880 = 89\,280$ rangées, $n = 2\,880$) : $\sqrt{2\ln 178\,560 / 2\,880} = 0{,}0916$ \calc. Le témoin de hasard de l'écran rend 0,084 \mes, du même ordre, un peu dessous parce que les rangées du dictionnaire ne sont pas indépendantes. Tout $\rho$ trouvé au niveau de 0,08 à 0,09 n'est qu'un maximum de corrélations fortuites.
+
+\subsection{L'écran : une borne haute, sans bijection}
+
+\fichier{ecran\_parente.py} cherche, pour chaque rangée cible (un « gène »), le meilleur $|\cos|$ parmi toutes les rangées de même rôle des 31 autres experts de la couche (89\,280 candidats), sans exiger d'appariement un à un : c'est la borne haute d'une parenté gène par gène. Couches 0 à 4 (journal interrompu pour libérer la mémoire de la machine, \fichier{ecran-20b-interrompu-couches-0-4.log}) \mes : pour gate, $\bar\rho$ de 0,12 à 0,21 contre un témoin de hasard de 0,084 (gain gaussien de 0,010 à 0,039 bit) ; pour down, $\bar\rho$ de 0,32 à 0,44 contre 0,076 à 0,108 (0,09 à 0,18 bit). Le témoin planté ($\rho_0 = 0{,}9$, \fichier{ecran-temoin-planter-0.9.json}) est retrouvé à 0,900 et 1,198 bit, et le dictionnaire de hasard ne le voit pas (0,083).
+
+\subsection{L'appariement un à un : la vraie parenté d'expert à expert}
+
+\fichier{paires\_arbre.py} : coût $\sum_{\text{rôles}} \cos^2$ entre neurones, affectation par l'algorithme hongrois~\cite{kuhn1955hungarian} (l'implémentation de scipy~\cite{crouse2016assignment}), une seule permutation jointe sur les trois matrices (la fonction l'exige), score = moyenne de $-\frac12\log_2(1 - \cos^2)$ sur les neurones appariés. Couche 12, quatre experts (\cref{t3dup:tab:paires}).
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabular}{l r r r r}
+\toprule
+Paire & cos gate & cos up & cos down & score (bit par poids) \\
+\midrule
+(0, 2) & 0,044 & 0,034 & 0,108 & 0,0053 \\
+(0, 3) & 0,039 & 0,034 & 0,106 & 0,0050 \\
+(2, 3) & 0,049 & 0,034 & 0,107 & 0,0049 \\
+hasard & 0,040 & 0,041 & 0,039 & 0,0016 \\
+plantée, $\rho_0 = 0{,}5$ & 0,500 & 0,500 & 0,500 & 0,2077 (attendu 0,2075) \\
+\bottomrule
+\end{tabular}
+\caption[L'appariement hongrois, couche 12]{L'appariement hongrois de quatre experts de la couche 12, contre un parent de hasard et une copie plantée \mes. Données : \fichier{mesures/genome/duplication/paires-temoin-planter-0.5.json}. La permutation plantée est retrouvée à 100\,\%.}
+\label{t3dup:tab:paires}
+\end{table}
+
+Gate et up appariés sont au niveau du hasard ; seul down porte un peu de structure. Le témoin planté est retrouvé au millième de bit : l'instrument lit $g$.
+
+\subsection{Le meilleur parent de chaque enfant}
+
+L'échantillon déclaré : les enfants 0, 8, 16 et 24 des couches 0, 8, 16 et 23 (16 enfants, 48 matrices). Pour chacun, \fichier{mutation.py} cherche le meilleur parent parmi 63 candidats (31 de sa couche, 32 de la couche précédente ; \fichier{csv/scores-parente.csv}). La \cref{fig:t3-dup-parente} montre les 880 scores.
+
+\begin{figure}[tbp]
+\centering
+\GrapheDupParente
+\LegendeFigure{DupParente}
+\label{fig:t3-dup-parente}
+\end{figure}
+
+\paragraph{Ce que la figure montre.} Tous les scores tiennent entre 0,0018 et 0,0425 bit par poids \mes. Le plus haut, l'enfant (23, 0) et son parent (23, 22), vaut 27 fois le témoin de hasard de sa couche (0,0016, moyenne de 8 paires ; \fichier{arbre-c23.json}) et reste 4,9 fois sous une copie plantée à $\rho = 0{,}5$, que le même instrument retrouve. Le meilleur parent sort à peine du lot : son score dépasse la médiane des candidats de 0,0008 à 0,038 bit (\fichier{genome/duplication.md} §\,2.3). Douze parents sur seize sont dans la même couche, quatre dans la précédente, dont un seul au même indice : (7, 24) pour (8, 24), à 0,0147 bit, la seule trace d'une filiation par indice, et elle est minuscule. Le même indice une couche plus bas n'est pas privilégié : son score est, selon l'enfant, au-dessous ou au-dessus de la médiane des 32 candidats de la couche précédente.
+
+\paragraph{La couche 0, un plancher commun.} Dans la couche 0, les quatre enfants choisissent le même parent, (0, 9) : un \emph{moyeu}, pas une lignée. Les 124 candidats de même couche y ont tous un score de 0,0153 à 0,0341, avec un cosinus des matrices down de 0,23 à 0,31 (médiane 0,11 aux autres couches) \mes : une statistique partagée par toutes les colonnes de la couche, pas une parenté. La légende le dit, et dit aussi qu'aucun témoin du hasard n'a été mesuré à cette couche ; le coût exact du \cref{t3dup:sec:cout} le mesure par un autre chemin.
+
+\subsection{La famille : un sous-espace commun}
+
+\fichier{spectre\_famille.py} calcule, pour la couche 12, le débit de Shannon d'une gaussienne de même spectre à $\varepsilon = 4{,}29\,\%$ par remplissage inverse (\fichier{spectre-c12.json}) \mes : une base commune de la couche (la transformée de Karhunen-Loève de la famille) rendrait 0,06 à 0,07 bit de plus qu'une base diagonale, nets du témoin (gate 0,072, up 0,056, down 0,070). Mais elle coûte $n^2 = 8{,}3\cdot10^6$ nombres par couche et par rôle, soit 0,5 bit par poids en f16 répartis sur 32 experts \calc : sept fois son gain. Le gain diagonal de down (0,187 bit) est déjà pris par les échelles E8M0, qui suivent la norme de chaque rangée de down.
+
+\section{Le coût exact d'un expert codé comme mutation}\label{t3dup:sec:cout}
+
+\subsection{Les énoncés}
+
+\begin{proposition}[Le gain sans perte est une information mutuelle conditionnelle]\label{t3dup:prop:im}
+Soit $C$ le code E2M1 (16 symboles) d'un poids de l'enfant, $\kappa$ sa classe d'échelle (la classe du format : signe de $e$ moins la médiane haute de la rangée, 3 classes) et $P$ le code du parent à la position appariée. Un codeur entropique à une table par contexte $\kappa$ dépense $H(C \mid \kappa)$ bits par poids ; à une table par $(\kappa, P)$, $H(C \mid \kappa, P)$. Le gain est
+\begin{equation}\label{t3dup:eq:im}
+H(C \mid \kappa) - H(C \mid \kappa, P) = I(C ; P \mid \kappa) \;\ge\; 0,
+\end{equation}
+nul si et seulement si $C$ et $P$ sont indépendants sachant $\kappa$.
+\end{proposition}
+
+\begin{proof}
+C'est la définition de l'information mutuelle conditionnelle, $I(C;P\mid\kappa) = H(C\mid\kappa) - H(C\mid\kappa,P)$ ; sa positivité et le cas d'égalité sont ceux de~\cite[th. 2.6.5 et 2.5.2]{cover2006} : elle est une moyenne de divergences de Kullback-Leibler entre $p(c, p'\mid\kappa)$ et $p(c\mid\kappa)p(p'\mid\kappa)$, nulle si et seulement si ces lois coïncident.
+\end{proof}
+
+\paragraph{Le biais de l'estimateur.} $H$ est estimée par comptes exacts (« plug-in »). Son biais vers le bas vaut, au premier ordre, $(K-1)/(2N\ln 2)$ pour $K$ cases non vides et $N$ échantillons~\cite{miller1955bias}. Pour $H(C\mid\kappa,P)$ : $K \le 3 \times 16 \times 16 = 768$ et $N = 8\,294\,400$, d'où un biais d'au plus $767/(2 \times 8\,294\,400 \times \ln 2) = 6{,}7\cdot10^{-5}$ bit \calc. L'information mutuelle estimée est gonflée d'au plus ce montant : tout gain sous $10^{-4}$ bit est indiscernable de zéro.
+
+\paragraph{Les informations ajoutées, comptées} \calc.
+\begin{itemize}
+\item \emph{La permutation} : $\log_2(f!)$ bits par expert, partagés par ses trois matrices.
+\[ \log_2(2\,880!) = \frac{\mathrm{lgamma}(2\,881)}{\ln 2} = 28\,948{,}6 \text{ bits} ; \qquad \text{par poids, } \frac{28\,948{,}6}{3 \times 2\,880^2} = 1{,}163\cdot10^{-3}. \]
+Second chemin, par Stirling :
+\[ f\log_2 f - f\log_2 e + \tfrac12\log_2(2\pi f) = 33\,096{,}5 - 4\,155{,}0 + 7{,}1 = 28\,948{,}6. \]
+\item \emph{Les tables} : 768 comptes de 16 bits par matrice pour D1, soit $768 \times 16 / 8\,294\,400 = 1{,}48\cdot10^{-3}$ bit par poids ; 192 comptes pour D2b ($\kappa \times 8$ symboles de base $\times 8$), $3{,}70\cdot10^{-4}$.
+\item Un parent n'est donc utile que si $I(C;P\mid\kappa)$ dépasse $2{,}64\cdot10^{-3}$ bit par poids pour D1, $1{,}53\cdot10^{-3}$ pour D2b.
+\end{itemize}
+
+\paragraph{Le parent de hasard n'est pas un zéro.} Apparier l'enfant à son parent par une permutation tirée au hasard laisse en place les colonnes (pour gate et up, la dimension d'entrée $j$ reste $j$) : toute structure commune à \emph{tous} les experts selon la colonne survit. Le témoin de hasard mesure cette part commune ; la part propre à la parenté est la différence $I(C;P\mid\kappa) - I(C;P_{\text{hasard}}\mid\kappa)$.
+
+\begin{proposition}[Le gain à reconstruction identique]\label{t3dup:prop:identique}
+Si la reconstruction de l'enfant est fixée (la base de B, ou un ECSQ seul), d'indices $Q$, et qu'un contexte parent $P'$ (le symbole de base du parent, ou sa prédiction quantifiée) entre dans le codeur, l'erreur sur les poids et sur la sortie ne change pas d'un bit, et le débit passe de $H(Q\mid\mathrm{ctx})$ à $H(Q\mid\mathrm{ctx}, P')$ : le gain est $I(Q;P'\mid\mathrm{ctx})$, avec les mêmes biais et les mêmes coûts qu'à la \cref{t3dup:prop:im}.
+\end{proposition}
+
+\begin{proof}
+La reconstruction est une fonction de $Q$ seul ; ajouter un contexte au codeur entropique ne change que la loi selon laquelle $Q$ est codé, donc que le débit, et la \cref{t3dup:prop:im} s'applique à $Q$ au lieu de $C$.
+\end{proof}
+
+C'est la seule manière de créditer la parenté sans la confondre avec un changement de quantificateur.
+
+\begin{remarque}[Pourquoi la prédiction soustraite perd sur une grille discrète]\label{t3dup:rem:grille}
+Les poids de l'enfant vivent sur une grille discrète (16 valeurs par bloc). Un quantificateur uniforme dont le pas $\Delta$ tombe sur la grille ($\Delta$ multiple de $2^{e-128}$) rend une erreur \emph{nulle} sur une partie des poids. Le résidu $x - \alpha p$ n'est plus sur la grille : son erreur de quantification vaut environ $\Delta^2/12$ partout. À débit égal, l'ECSQ du résidu perd ce que la grille donnait gratuitement, et ce que le parent rend, $g(\rho)$ du \cref{t3dup:lem:gauss}, est plus petit dès que $\rho$ est petit.
+\end{remarque}
+
+\subsection{Les mesures}
+
+Tableaux par matrice : \fichier{csv/d1-sans-perte.csv}, \fichier{csv/d2-avec-perte.csv}, \fichier{csv/d2b-base.csv} ; verdicts : \fichier{verdicts.json} (outil \fichier{synthese.py}, dont le témoin \texttt{--casser} fait « marcher » D1 partout et tient ; \fichier{verdicts-casse.json}). Le \cref{t3dup:tab:cout} en donne les moyennes par couche et par rôle.
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{@{}l l >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X@{}}
+\toprule
+couche & rôle & $H(C\mid\kappa)$ & D1 parent & D1 hasard & D2b parent & D2b hasard & ECSQ seule & soustraite & ECSQ + parent \\
+\midrule
+0 & gate & 3,7686 & 0,0082 & 0,0072 & 0,0064 & 0,0056 & 1,564 & 1,882 & 1,562 \\
+0 & up & 3,7855 & 0,0064 & 0,0060 & 0,0050 & 0,0047 & 1,559 & 1,929 & 1,558 \\
+0 & down & 3,8185 & 0,0002 & 0,0001 & 0,0002 & 0,0000 & 1,049 & 1,283 & 1,043 \\
+8 & gate & 3,8208 & 0,0045 & 0,0004 & 0,0040 & 0,0003 & 1,538 & 2,049 & 1,533 \\
+8 & up & 3,8005 & 0,0008 & 0,0004 & 0,0006 & 0,0003 & 1,655 & 2,119 & 1,653 \\
+8 & down & 3,7984 & 0,0017 & 0,0001 & 0,0013 & 0,0000 & 1,626 & 2,168 & 1,619 \\
+16 & gate & 3,8099 & 0,0033 & 0,0004 & 0,0029 & 0,0002 & 1,490 & 1,999 & 1,485 \\
+16 & up & 3,8098 & 0,0007 & 0,0003 & 0,0005 & 0,0002 & 1,564 & 2,107 & 1,562 \\
+16 & down & 3,7988 & 0,0011 & 0,0001 & 0,0009 & 0,0000 & 1,568 & 2,177 & 1,564 \\
+23 & gate & 3,7978 & 0,0082 & 0,0019 & 0,0069 & 0,0013 & 1,449 & 2,091 & 1,439 \\
+23 & up & 3,7921 & 0,0041 & 0,0018 & 0,0031 & 0,0013 & 1,607 & 2,123 & 1,601 \\
+23 & down & 3,7892 & 0,0020 & 0,0001 & 0,0015 & 0,0000 & 1,584 & 2,121 & 1,579 \\
+\bottomrule
+\end{tabularx}
+\caption[Le coût exact d'un expert codé comme mutation]{Le coût exact d'un expert codé comme mutation, moyennes de 4 enfants par couche et par rôle, en bits par poids \mes. D1 : gain sans perte sur les codes ; D2b : gain à reconstruction identique à la base ; les trois dernières colonnes : débit à 4,29\,\% d'erreur de poids d'un ECSQ seul, de la mutation soustraite, et de l'ECSQ avec le parent en contexte (sans les échelles, 0,034 bit, ni $\alpha$, 0,0028). Données : \fichier{mesures/genome/duplication/csv/d1-sans-perte.csv}, \fichier{d2-avec-perte.csv}, \fichier{d2b-base.csv}.}
+\label{t3dup:tab:cout}
+\end{table}
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.6cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{2.2cm}}
+\toprule
+Mesure & Ce qu'elle exige (déclaré) & Résultat \mes & Verdict \\
+\midrule
+D1, sans perte & gain $> 2{,}64\cdot10^{-3}$ sur les 48 matrices & gain moyen 0,0034, hasard 0,0016, net 0,0019 ; 21 sur 48 & \textbf{ne marche pas} \\
+D2, mutation soustraite & sous 2,6441 et sous l'ECSQ seule de plus d'un écart-type du hasard ($3{,}0\cdot10^{-4}$) & $-0{,}486$ bit en moyenne : pire que sans parent & \textbf{ne marche pas} \\
+D2c, contexte parent, même reconstruction que l'ECSQ & idem & $+0{,}0016$ bit, $\alpha$ compris ; 43 sur 48 battent le hasard de plus d'un écart-type & gain réel, sans portée \\
+D2b, base + parent, même reconstruction que la base & gain $> 1{,}53\cdot10^{-3}$ et au-dessus du hasard sur les 48 & gain 0,0028, hasard 0,0012 ; 24 sur 48 ; frontière 2,6441 $\to$ 2,6429 & \textbf{ne marche pas} \\
+O, sortie & D2 au plus l'erreur de la base, 4 couches sur 4 & base 6,4\,\%, mutation 8,6\,\% ; 4 enfants sur 16 sous la base & \textbf{ne marche pas} \\
+\bottomrule
+\end{tabularx}
+\caption[Les verdicts de la duplication]{Les verdicts de la duplication contre les seuils déclarés \mes. Données : \fichier{mesures/genome/duplication/verdicts.json} ; \fichier{genome/duplication.md} §\,3.}
+\label{t3dup:tab:verdicts}
+\end{table}
+
+\paragraph{Lecture} (\cref{t3dup:tab:verdicts}). Sans perte, le parent rend en moyenne 0,0034 bit par poids sur les codes, dont 0,0016 se retrouvent avec un parent de hasard : la part propre à la parenté est 0,0019 bit, sous les $2{,}64\cdot10^{-3}$ de coûts ajoutés. Avec perte, à reconstruction identique, la frontière de 2,6441 bits descendrait au mieux à 2,6429. La mutation soustraite \emph{perd} 0,49 bit, comme la \cref{t3dup:rem:grille} l'annonçait. Le plus grand gain d'une seule matrice est 0,0170 bit (gate de (0, 16)), dont 0,0145 se retrouvent au parent de hasard ; le plus grand gain net est 0,0109 bit (gate de (23, 0), parent (23, 22)), puis 0,0098 (gate de (23, 16), parent (22, 13)). Rien n'approche le dixième de bit.
+
+\section{La mutation tronquée et la sortie de l'expert}\label{t3dup:sec:sortie}
+
+Entrées : les états normés réellement routés vers chaque enfant (capture de l'éclaireur, 12 fenêtres de 511 jetons, empreintes SHA-256 dans chaque \fichier{mutation-cL.json}), au plus 2\,048 jetons par enfant ; sortie de l'expert en f64, biais compris ; témoin : les poids exacts rendent une erreur nulle (\fichier{csv/t-o-sortie.csv}, colonne \texttt{temoin\_exact}) \mes.
+
+\begin{table}[tbp]
+\centering\footnotesize
+\begin{tabular}{l l r r r r r r}
+\toprule
+enfant & parent & jetons & base de B & mutation & ECSQ seule & mutation tronquée & parent brut \\
+& & & poids / sortie & à $\varepsilon \approx 4{,}29\,\%$ & à $\varepsilon \approx 4{,}29\,\%$ & poids / sortie & sortie \\
+\midrule
+(0, 0) & (0, 9) & 762 & 4,3 / 6,6 & 4,7 / 7,1 & 4,8 / 7,0 & 94,3 / 97,4 & 217,0 \\
+(0, 8) & (0, 9) & 698 & 4,3 / 6,3 & 4,6 / 6,5 & 4,7 / 6,7 & 95,3 / 100,3 & 222,1 \\
+(0, 16) & (0, 9) & 1\,334 & 4,6 / 4,5 & 5,4 / 5,5 & 4,6 / 5,1 & 93,4 / 103,6 & 95,9 \\
+(0, 24) & (0, 9) & 914 & 4,5 / 4,8 & 4,5 / 5,2 & 4,5 / 4,3 & 91,3 / 94,0 & 101,0 \\
+(8, 0) & (8, 31) & 1\,329 & 4,7 / 8,3 & 3,9 / 18,5 & 5,1 / 29,3 & 92,5 / 120,3 & 168,3 \\
+(8, 8) & (7, 30) & 1\,761 & 4,5 / 7,2 & 4,1 / 11,4 & 4,1 / 11,3 & 93,7 / 106,1 & 121,0 \\
+(8, 16) & (7, 11) & 300 & 4,2 / 7,0 & 3,9 / 22,9 & 3,9 / 31,5 & 94,9 / 105,6 & 144,4 \\
+(8, 24) & (7, 24) & 928 & 5,4 / 20,3 & 4,5 / 12,5 & 4,2 / 12,8 & 93,2 / 121,5 & 255,4 \\
+(16, 0) & (16, 17) & 330 & 4,5 / 6,1 & 4,0 / 11,1 & 3,9 / 11,4 & 95,0 / 77,8 & 113,0 \\
+(16, 8) & (16, 24) & 240 & 4,0 / 3,1 & 3,8 / 2,9 & 3,8 / 3,1 & 98,3 / 64,8 & 113,0 \\
+(16, 16) & (16, 6) & 147 & 4,1 / 5,2 & 4,1 / 8,2 & 3,8 / 11,1 & 98,5 / 83,3 & 135,0 \\
+(16, 24) & (16, 11) & 1\,237 & 4,2 / 5,5 & 4,6 / 7,0 & 4,2 / 7,1 & 97,6 / 82,9 & 207,5 \\
+(23, 0) & (23, 22) & 303 & 4,7 / 6,2 & 4,8 / 8,3 & 3,6 / 6,5 & 95,5 / 90,0 & 54,9 \\
+(23, 8) & (23, 16) & 56 & 4,5 / 3,3 & 3,8 / 2,3 & 3,8 / 2,7 & 96,1 / 80,0 & 56,2 \\
+(23, 16) & (22, 13) & 239 & 4,7 / 4,4 & 3,9 / 5,5 & 4,5 / 5,9 & 96,2 / 107,1 & 176,2 \\
+(23, 24) & (23, 11) & 2\,048 & 3,9 / 3,6 & 3,8 / 3,5 & 3,7 / 4,6 & 99,0 / 24,2 & 28,6 \\
+\midrule
+\textbf{moyenne} & & & — / \textbf{6,4} & — / \textbf{8,6} & — / \textbf{10,0} & \textbf{95,3 / 91,2} & \\
+\bottomrule
+\end{tabular}
+\caption[La sortie des enfants, sur des entrées réelles]{Erreurs relatives en \%, poids puis sortie de l'expert, sur les entrées réelles routées vers chaque enfant \mes. Données : \fichier{mesures/genome/duplication/csv/t-o-sortie.csv} ; \fichier{genome/duplication.md} §\,4.}
+\label{t3dup:tab:sortie}
+\end{table}
+
+\paragraph{Lecture} (\cref{t3dup:tab:sortie}).
+\begin{itemize}
+\item \textbf{La mutation tronquée} (l'enfant servi par $\alpha \odot$ parent, résidu jeté) garde de 1 à 9\,\% de l'énergie des poids (4,7\,\% en moyenne) et rend de 24 à 121\,\% d'erreur sur la sortie. Les valeurs sous 100\,\% des couches 16 et 23 viennent des biais : ils restent exacts et portent une grande part de la sortie des experts profonds (pour (23, 24), le parent brut lui-même ne fait que 28,6\,\%). C'est l'erreur qu'on aurait en ne servant que les biais : la mutation tronquée n'apporte rien.
+\item \textbf{Même erreur de poids, erreur de sortie très différente.} L'ECSQ seule et la mutation tombent à 3,6 à 5,4\,\% d'erreur de poids, comme la base ; mais l'erreur de sortie de l'ECSQ seule va de 0,63 à 4,5 fois celle de la base : le pas commun efface les blocs de petite échelle, que la base garde. Le \cref{t3pre:ch} le voit de son côté, par un autre chemin.
+\item (8, 24) est l'exception où la base elle-même rend 20,3\,\% : son erreur de sortie n'est pas uniforme non plus. C'est l'expert aberrant de l'éclaireur (\cref{t3ecl:sec:mutation}), vu ici sur d'autres entrées.
+\item Le pas de quantification pour O est celui du balayage le plus proche de 4,29\,\% (pas d'interpolation possible sur une reconstruction) : d'où les erreurs de poids de 3,6 à 5,4\,\%.
+\end{itemize}
+
+\section{L'arbre le plus économe}\label{t3dup:sec:arbre}
+
+\begin{proposition}[L'ordre de codage optimal est un arbre couvrant de poids maximal]\label{t3dup:prop:arbre}
+Si chaque expert se code seul ($B$ bits) ou comme mutation d'un parent déjà décodé ($B - s$ bits, $s \ge 0$ le gain de l'arête, symétrique), le coût minimal d'un ordre de décodage valide de $E$ experts est $B\,E - \max_T \sum_{(i,j) \in T} s_{ij}$, le maximum portant sur les arbres couvrants $T$ du graphe complet des experts, et l'algorithme de Kruskal~\cite{kruskal1956} le trouve.
+\end{proposition}
+
+\begin{proof}
+Un ordre de décodage valide donne à chaque expert sauf un (la racine) un parent décodé avant lui : les arêtes « enfant, parent » forment un arbre couvrant orienté depuis la racine, et le coût est $BE - \sum_T s$. Réciproquement, tout arbre couvrant, enraciné en un expert quelconque et parcouru en largeur, donne un ordre valide de même coût, puisque $s$ est symétrique. Minimiser le coût revient donc à maximiser $\sum_T s$. Le choix glouton de Kruskal (prendre l'arête la plus lourde qui ne ferme pas de cycle) est optimal par la propriété de coupe : pour toute coupe du graphe, une arête de poids maximal qui la traverse appartient à un arbre couvrant de poids maximal. (Pour des gains non symétriques, il faudrait l'arborescence de poids maximal de Chu-Liu et Edmonds ; nos scores sont symétriques par construction, $\cos^2$ et appariement.)
+\end{proof}
+
+Le gain par poids de la couche vaut $\sum_T s / E$, et il ne dépasse pas $\frac{E-1}{E}\max s$. \fichier{paires\_arbre.py --couche 23} apparie une à une les 496 paires de la couche la plus « parente » de l'échantillon, puis trace l'arbre (\fichier{arbre-c23.json}) \mes : scores des paires, 10\,\% / médiane / 90\,\% / 99\,\% : 0,0031 / 0,0038 / 0,0138 / 0,0689 bit ; témoin de hasard (8 paires) : 0,0016 ; arêtes de l'arbre, min / médiane / max : 0,0037 / 0,0101 / 0,0892. \textbf{Gain de la couche codée par son arbre : 0,0212 bit par poids}, en borne gaussienne.
+
+\begin{figure}[tbp]
+\centering
+\GrapheDupArbre
+\LegendeFigure{DupArbre}
+\label{fig:t3-dup-arbre}
+\end{figure}
+
+\paragraph{Ce que la figure montre.} La \cref{fig:t3-dup-arbre} dessine l'arbre par sa propre structure, pas par une projection : une étoile autour de l'expert 31, qui porte les quatre arêtes les plus lourdes, (17, 31) à 0,089, (5, 31) à 0,089, (15, 31) à 0,077, (25, 31) à 0,069, puis des branches minces ; 16 experts sur 32 sont des feuilles. L'expert 31 est un moyeu, la seule trace d'une famille dans toutes les mesures. L'encart est l'ombre des mêmes experts par une MDS classique sur $d_{ij} = \log_2(s_{\max}/s_{ij})$ ; sa fidélité est dite dans la légende et doit l'être dans le texte : le plan garde 30,9\,\% de la variance des distances, et la corrélation de rangs entre distances du plan et distances vraies vaut 0,61, contre 0,11 pour des distances permutées (\fichier{phylogenie-c23.json}) \mes. Deux voisins sur cette ombre sont souvent, pas toujours, voisins dans les données. Le juge des figures a noté qu'en \cref{fig:t3-dup-arbre} quatre valeurs d'arête sur dix sont plus près d'une autre arête que de la leur (\fichier{memoire/tome3/JUGEMENT-figures3.md}, M4, réserve sur une figure qui tient) : la valeur d'une arête se lit dans le CSV, pas à l'œil. Et surtout, la figure n'est pas une généalogie : aucune arête n'est une copie, l'arbre est l'ordre de codage le moins cher, pas une histoire.
+
+\paragraph{L'arête la plus lourde, en vrais bits.} \fichier{mutation.py --couche 23 --enfants 17 --parent 23,31} (\fichier{mutation-arete-max-c23-e17-p31.json}) \mes : D1 parent 0,0222 / 0,0136 / 0,0149 bit (gate, up, down), D1 hasard 0,0003 / 0,0004 / 0,0001, D2b 0,0199 / 0,0108 / 0,0117 ; erreur de poids de la mutation tronquée 83,9 / 91,4 / 91,4\,\%. Sortie de l'expert 17 : base 10,4\,\%, mutation à $\varepsilon \approx 4{,}29\,\%$ 15,3\,\%, mutation tronquée 109,9\,\%. C'est le meilleur cas trouvé dans le modèle : 0,017 bit de moyenne, 0,014 net des coûts ajoutés, soit 3,84 $\to$ 3,83. Le rapport entre le gain réel sur les codes et le score gaussien vaut ici $0{,}017/0{,}089 = 0{,}19$, et $0{,}0076/0{,}0425 = 0{,}18$ pour (23, 0) ; appliqué à l'arbre, il donne environ \textbf{0,004 bit par poids pour la couche 23 entière} \calc, avant les coûts ajoutés ($2{,}6\cdot10^{-3}$) : un gain net de l'ordre du millième.
+
+\paragraph{Sur gpt-oss-120b.} \fichier{paires\_arbre.py --modele 120b --couche 18 --experts 8} (28 paires, \fichier{paires-120b-c18-8experts.json}) \mes : scores de 0,0030 à 0,0054 bit (hasard 0,0016) ; cosinus appariés 0,038 (gate), 0,032 (up), 0,094 (down) contre 0,040 au hasard. Le même tableau que sur le 20b. Le livrable du sujet le dit en barrant sa propre phrase : « \barre{gpt-oss-120b n'est pas mesuré} » ; il l'est sur une couche et 8 experts sur 128, et le coût exact (D1, D2b) et les paralogues n'y sont pas refaits.
+
+\section{Les paralogues : servir un expert absent par un autre}\label{t3dup:sec:paralogues}
+
+Un défaut de cache pourrait se servir sans lire un octet, par un expert déjà résident : un paralogue, au sens de l'analogie. Le vivant tire de ses familles de gènes une robustesse : un gène retiré est souvent compensé par un paralogue~\cite{gu2003duplicate}. Le routage conscient du cache~\cite{skliar2024cacheconditional} favorise la réutilisation d'experts déjà en mémoire et se juge en précision de tâches et en vitesse ; on mesure ici la borne fonctionnelle de toute substitution.
+
+\begin{lemme}[L'erreur d'un paralogue]\label{t3dup:lem:paralogue}
+Soit $y_c$ la sortie de l'expert manquant et $y_s$ celle d'un expert résident, sur les entrées routées vers $c$. Avec un gain scalaire $\beta$ choisi aux moindres carrés,
+\begin{equation}\label{t3dup:eq:paralogue}
+\varepsilon(c, s) = \min_\beta \frac{\sum\|y_c - \beta y_s\|^2}{\sum\|y_c\|^2} = 1 - \rho_f^2, \qquad \rho_f = \frac{\langle y_c, y_s\rangle}{\|y_c\|\,\|y_s\|},\quad \beta^\ast = \frac{\langle y_c, y_s\rangle}{\|y_s\|^2},
+\end{equation}
+le produit scalaire portant sur tous les jetons et toutes les composantes.
+\end{lemme}
+
+\begin{proof}
+$\|y_c - \beta y_s\|^2 = \|y_c\|^2 - 2\beta\langle y_c, y_s\rangle + \beta^2\|y_s\|^2$ est un trinôme en $\beta$, minimal en $\beta^\ast$, où il vaut $\|y_c\|^2 - \langle y_c, y_s\rangle^2/\|y_s\|^2 = \|y_c\|^2(1 - \rho_f^2)$.
+\end{proof}
+
+Pour la sortie de la couche, l'expert $c$ intervient avec son poids de routage $g_c \in (0, 1)$ : l'erreur relative de la couche est environ $\sum g_c^2\|y_c - y_s\|^2 / \sum\|\sum_j g_j y_j\|^2$, plus petite que $\varepsilon$ d'un facteur que la mesure donne. Le paralogue ne lit aucun octet : il bat toute compression en débit. Il ne vaut que si son erreur est au niveau de celle de la base.
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabular}{r r r r r r r}
+\toprule
+couche & $\varepsilon$ meilleur paralogue & $\varepsilon$, $\beta = 1$ & $\varepsilon$ hasard & $\varepsilon$, 5\textsuperscript{e} choix & couche : substitué & couche : retiré \\
+\midrule
+0 & 0,792 & 1,401 & 0,945 & 1,215 & 0,167 & 0,133 \\
+8 & 0,842 & 1,439 & 0,936 & 1,239 & 0,139 & 0,092 \\
+16 & 0,658 & 0,749 & 0,721 & 0,924 & 0,071 & 0,076 \\
+23 & 0,335 & 0,435 & 0,467 & 0,564 & 0,037 & 0,037 \\
+\bottomrule
+\end{tabular}
+\caption[Les paralogues, par profondeur]{L'erreur relative d'un expert servi par un autre, moyenne sur les experts de chaque couche (32, 32, 31, 31), au plus 96 jetons routés par expert \mes. Routage recalculé depuis le routeur F32 du GGUF, égal au routage capturé à 100\,\% (témoin). Les deux dernières colonnes : erreur relative de la sortie de la \emph{couche} quand l'expert est substitué par son meilleur paralogue, ou retiré (routage renormalisé sur les trois autres). Données : \fichier{mesures/genome/duplication/csv/paralogues.csv}, \fichier{paralogues-c*.json}.}
+\label{t3dup:tab:paralogues}
+\end{table}
+
+\paragraph{Lecture} (\cref{t3dup:tab:paralogues}). Les sorties des experts se ressemblent davantage en profondeur, mais par une composante \emph{commune à tous} : le témoin de hasard tombe avec elles (0,47 à la couche 23), et ce qui est propre au meilleur paralogue n'est que 0,13 au-dessus du hasard. Un défaut de cache se sert bien mieux par la base de B (erreur d'expert de 5 à 8\,\%, \cref{t3dup:tab:sortie}) que par le meilleur voisin (33 à 84\,\%).
+
+\paragraph{Une phrase des sources, corrigée.} Le livrable du sujet et la synthèse de la ronde écrivent : « dans la sortie de la couche, \barre{substituer n'est jamais meilleur que retirer l'expert} (16,7 contre 13,3\,\% ; 13,9 contre 9,2 ; 7,1 contre 7,6 ; 3,7 contre 3,7\,\%) » (\fichier{genome/duplication.md} §\,0, point 6 ; \fichier{genome/05-synthese.md} §\,3.2). Les nombres entre parenthèses la démentent : à la couche 16, la moyenne de l'erreur substituée (0,071) est \emph{sous} celle de l'erreur retirée (0,076). Refait ici depuis \fichier{csv/paralogues.csv} \calc~sur \mes : substituer est meilleur que retirer pour 4 experts sur 32 à la couche 0, 5 sur 32 à la couche 8, \textbf{25 sur 31 à la couche 16} et \textbf{21 sur 31 à la couche 23}, où les deux moyennes sont égales à $10^{-3}$ près. La phrase juste est donc : \emph{retirer l'expert vaut mieux que le substituer aux couches 0 et 8 ; aux couches 16 et 23, le meilleur paralogue fait un peu mieux que le retrait pour la majorité des experts, mais d'au plus un demi-point d'erreur de couche en moyenne}. La conclusion du chapitre ne change pas : la barre d'un paralogue n'est pas l'expert absent mais le retrait de l'expert, et le meilleur paralogue ne s'en écarte que de quelques millièmes, loin de ce que rend la base.
+
+\section{Pourquoi l'idée échoue, et où chercher}\label{t3dup:sec:pourquoi}
+
+\paragraph{Le pourquoi, chiffré.} Un gène dupliqué garde sa ressemblance tant que la sélection ne l'en éloigne pas. Les experts de gpt-oss, eux, ont été entraînés pour être \emph{différents} : le routeur n'envoie à un expert que les jetons où il est utile, et deux experts qui se ressembleraient se partageraient les mêmes jetons. La mesure le confirme : après la meilleure permutation, l'information mutuelle entre un enfant et son meilleur parent est de l'ordre de $10^{-3}$ bit par poids sur 3,84, et ce qui en reste est pour moitié ou davantage une propriété de la couche entière (les colonnes d'entrée, l'espace de sortie de down), pas de la paire. Tronquer la mutation, c'est perdre l'expert : 96\,\% de son énergie est à lui. \emph{Ils posent le problème ainsi} (Git Re-Basin, Entezari et al., MC-SMoE~\cite{li2023mcsmoe}) : apparier les neurones de deux réseaux ou de deux experts pour les fusionner, jugés en précision de tâches. \emph{Le terme qui nous manquait} : le débit, en bits par poids lus, d'un expert codé sachant un autre. \emph{Celui qu'ils n'ont pas} : la mesure sur des codes de 4 bits, où l'information mutuelle se compte exactement, et la séparation entre la parenté propre et la structure commune à la couche, par le témoin du parent de hasard.
+
+\paragraph{Où est le bruit, où est la structure.} (a) Une part de la structure entre experts est \textbf{commune à la couche}, pas propre à une paire : le parent de hasard (mêmes colonnes d'entrée, neurones dans un ordre quelconque) reprend 46\,\% du gain en moyenne, et 88 à 94\,\% dans la couche 0, où l'état caché porte des canaux aberrants. Ce sont des statistiques par colonne d'entrée partagées par les 32 experts ; le \cref{t3pre:ch} les prend comme contexte de colonne, et c'est le seul contexte qui passe son seuil. (b) La parenté propre croît avec la profondeur (couche 23 : D1 gate 0,0082 contre 0,0019 au hasard ; un moyeu, l'expert 31) mais reste sous le centième de bit. (c) Le reste est du bruit pour toute duplication : le meilleur parent explique 1 à 9\,\% de l'énergie des poids d'un enfant (au plus 16\,\% pour une seule matrice).
+
+\paragraph{Ce que la mesure a vu en passant.} L'ECSQ seule (pas commun, contexte d'exposant) tombe à 0,89 à 1,78 bit (1,52 en moyenne, sans les 0,034 bit d'échelles) à 4,29\,\% d'erreur de \emph{poids}, loin sous la frontière ; mais son erreur de \emph{sortie} varie de 0,63 à 4,5 fois celle de la base. Le levier n'est pas la parenté, une propriété des poids entre eux, mais l'\emph{usage}, une propriété des poids devant leurs entrées : un poids vaut ce que ses entrées réelles le font peser. Le sujet en a tiré son orientation pour la suite (réponse par délégation du 2026-10-17, réversible : c'est le seul mécanisme mesuré ici dont le gain se compte en dixièmes de bit et non en millièmes) ; le \cref{t3pre:ch} mesure cette allocation par l'usage, et le \cref{t3syn:ch} dira ce que la KL en a laissé.
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{Le parent est choisi par un score gaussien sur les poids}, pas par le gain sur les codes. Un autre parent pourrait rendre un peu plus de D1. Le meilleur score de toute la liste (0,043) borne le gain gaussien de tout parent ; le D1 réel est toujours sous le score.
+\item \textbf{Une seule permutation par paire, jointe sur les trois rôles.} Des permutations par rôle seraient plus libres mais ne décriraient plus le même expert (la fonction exige la même $\Pi$). L'écran sans bijection borne ce que toute liberté de plus pourrait rendre.
+\item \textbf{L'échantillon} : 16 enfants sur 768, quatre profondeurs. La couche 23 montre une parenté plus forte que les autres ; les couches 17 à 22 ne sont pas mesurées. L'écran a été interrompu à la couche 4.
+\item \textbf{Les entrées réelles} viennent de 12 fenêtres d'un seul corpus ; au plus 2\,048 jetons par enfant, 78 à 96 pour les paralogues.
+\item \textbf{L'estimateur d'entropie} est biaisé vers le bas d'au plus $6{,}7\cdot10^{-5}$ bit : négligeable devant les gains rapportés, mais du même ordre que les plus petits.
+\item \textbf{Le \cref{t3dup:lem:hasard}} est une asymptote ; le témoin mesuré (0,084) est un peu sous elle (0,092).
+\item \textbf{La phrase corrigée au \cref{t3dup:sec:paralogues}} l'est sur des moyennes de 31 et 32 experts à 96 jetons au plus ; l'écart entre substituer et retirer aux couches 16 et 23 est de quelques millièmes, sans incertitude publiée.
+\item \textbf{La machine était partagée et chargée} (mémoire libre de 0,7 à 2,6\,Go) : les durées des journaux ne mesurent rien, et aucun chiffre de débit n'est rapporté.
+\end{itemize}
+\end{faux}

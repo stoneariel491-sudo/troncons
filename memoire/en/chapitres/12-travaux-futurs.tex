@@ -1,0 +1,87 @@
+\chapter{Future work}\label{ch:futurs}
+
+\begin{origine}
+\textbf{Where we start}: the fragilities of \cref{ch:discussion} and the milestones of \cref{sec:decision}.
+\textbf{This chapter establishes} the order of the coming work, each step with the measurement that judges it; the open research questions, each quantified by the token equation; the only gesture that falls to Stone; and the downloads that could help, none of them needed for the first program.
+\textbf{What remains} is to do it.
+\end{origine}
+
+\section{The deciding measurements, first}\label{sec:mesures-decident}
+
+\begin{enumerate}
+\item \textbf{The curve $h(c)$ and the reuse $\rho$ of gpt-oss-120b}, on its own routing traces. They replace \cref{hyp:beta} in every ceiling; the 20b measurement (\cref{fig:localite-mesuree}) already says the assumed shape is wrong. Witness: the replica of llama.cpp's cache replayed on the traces, which must give back the numbers of its log.
+\item \textbf{The llama.cpp baseline of gpt-oss-120b in ABBA series}, on mains power, following the protocol of \cref{sec:protocole-jugement}: this is the first measurement that can kill A (the $\times 2.5$ to $\times 17$ ratio of study 07 rests on an estimated baseline).
+\item \textbf{The Q0 bench}: the quality of B without an engine, by static MXFP4 files (base snapped onto existing E2M1 values) judged by llama.cpp, and the frontier of uniform requantizations. This is the measurement that decides J2.
+\item \textbf{The gap between two correct engines on gpt-oss}, which recalibrates the quality budget $\kappa$ of \cref{def:probleme}.
+\end{enumerate}
+
+\section{Milestone J1: building A}\label{sec:construire-j1}
+
+The arbiter splits the work into five work packages with disjoint files, each closed by a witness, its break and a declared threshold (\fichier{decisions/ARCHITECTURE.md}, § 6):
+\begin{description}
+\item[F, format and coder]: rewriting the original GGUF into a \texttt{.trc} v1.0 file; witness: every decoded chunk equals the original, byte for byte.
+\item[E, byte path]: IOCP reader at expert size into pinned memory, DMA; witness: end-to-end throughput exceeds no stage, and bytes arrive exact.
+\item[K, kernels]: per-lane-table rANS decoder, MXFP4 product, gpt-oss forward pass; witness: the already measured WGSL kernels, on the same bytes (second path).
+\item[R, reference and judge]: a double-precision CPU reference, the quality judge, the Q0 bench.
+\item[O, cache, scheduler, engine]: expert cache in VRAM, miss queue, modes A0 and A; witness: bit-identical logits between the coded path and the raw path.
+\end{description}
+The milestone is judged on gpt-oss-120b: tokens/s, peak RAM and VRAM, bytes read according to the system counter, and physical efficiency, i.e.\ measured throughput over the ceiling of \cref{eq:jeton} recomputed with the hit rate counted by the engine. Then J1+ adds one-layer-ahead prefetching and an SLRU cache, and is judged against the best measured llama.cpp baseline.
+
+\section{The research questions}\label{sec:questions-recherche}
+
+\begin{table}[ht]
+\centering\small
+\caption[The open research questions]{The open research questions, and what each is worth according to the token equation \calc{} (\fichier{fondations/07-ce-qui-manque.md}, § 3.2, and \cref{sec:correction-b1}).}
+\label{tab:recherche}
+\begin{tabular}{@{}p{0.06\linewidth}p{0.36\linewidth}p{0.5\linewidth}@{}}
+\toprule
+& Question & What it is worth, and what is missing \\
+\midrule
+R1 & Exact refinement of a native 4-bit format, tied to the stage (B) & in throughput: B3, $\times 1.74$ at the cost of 48.5\,\% of uses served by the base; in latency: B1, floor $+23\,\%$. Missing: quality (Q0) \\
+R2 & Joint allocation of bits and stage & with the machine's throughputs, a resident matrix deserves $\tfrac12 \log_2(209/2.58) = 3.2$ more bits than a matrix read from disk; no tool applies it \\
+R3 & A miss policy under a quality budget & wait, defer, serve the base, re-route, miss by miss; the gain lives between floor and ceiling (A, LRU: 3.93 $\to$ 6.24, $\times 1.59$) \\
+R4 & Speculation under real reuse & condition $\alpha > 1 - \rho$ (\cref{prop:spec-rho}); $\rho = 0.577$ on gpt-oss-20b; to be measured on the 120b, and for $k > 1$ \\
+R5 & A second-generation 2-bit code decodable without CUDA & trellis decoder written and measured at 124\,GB/s, encoder missing; $B_e$ divided by 1.9 (4.25 $\to$ 2.25 bits); quality unknown on a model trained in 4 bits \\
+R6 & Verification trees for delta-rule hybrids & 48\,MiB of state per kept node, 12\,GiB for 256 nodes; blocks C on the Qwen models \\
+R7 & A constant-time-decodable code for the resident regime & at best $+10\,\%$ VRAM capacity, $+2\,\%$ ceiling; low priority \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{The gesture that falls to Stone}\label{sec:geste-stone}
+
+The largest lever of the machine is not software (\cref{sec:bilan}). An unencrypted \texttt{D:} volume, created by a script already written that Stone would run himself as administrator (\fichier{outils/creer-disque-modeles.ps1}), would raise the ceiling of A from 6.24 to \textbf{14.1 tokens/s} in the fitted-LRU scenario if the disk reached its rated 6.0\,GB/s there \calc{} (\fichier{fondations/journaux/07-synthese/csv/architectures-gptoss120b.csv}, row \texttt{A\_sans\_perte\_disque\_non\_chiffre\_6}). This is an upper bound: Intel RST VMD stays on the path, and its share of the 53\,\% lost is not separated. Beyond that, the link takes over (58\,ms against 67 for the disk): keeping the link at Gen 4 and VRAM capacity become levers again.
+
+\section{Possible downloads}\label{sec:telechargements-futurs}
+
+None is needed to build and judge A and B on gpt-oss-120b, already on the machine. Any download over 500\,MB requires Stone's agreement, with name, source, size and licence (\cref{tab:telechargements-futurs}).
+
+\begin{table}[ht]
+\centering\small
+\caption[Downloads that could help]{Downloads that could help, sorted by need \litt{} (sizes read through the Hugging Face or NuGet API, \fichier{fondations/07-ce-qui-manque.md}, § 5).}
+\label{tab:telechargements-futurs}
+\begin{tabular}{@{}rp{0.34\linewidth}rp{0.15\linewidth}p{0.27\linewidth}@{}}
+\toprule
+Rank & Name & Size & Licence & For \\
+\midrule
+1 & DirectStorage 1.4 (preview) & 3.99\,MB & Microsoft & comparing the disk $\to$ GPU path \\
+2 & Qwen3.6-35B-A3B UD-Q4\_K\_M & 22.13\,GB & Apache-2.0 & second fine-grained MoE, trace and $\rho$ \\
+3 & OLMoE-1B-7B Q4\_K\_M & $\approx 4.2$\,GB & Apache-2.0 & quick routing trace \\
+4 & Llama-3.3-70B IQ3\_XXS + Llama-3.2-1B Q4\_K\_M & 28.28\,GB & Llama 3.3 / 3.2 & architecture C \\
+5 & Qwen3.8-Flash-Next UD-Q2\_K\_XL & 78.87\,GB & qwen-community-1.0 & second model for B \\
+6 & Qwen3.5-9B-MTP Q4\_K\_M & 5.87\,GB & Apache-2.0 & acceptance of native MTP \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{The thesis itself}\label{sec:memoire-suite}
+
+Two chapters will be added to the third part, before the discussion: \textbf{implementation} (the modules of troncons, the \texttt{.trc} format to the bit, the kernels and their witnesses) and \textbf{results} (each series of milestone J1 as a figure, with error bars, witness and declared threshold). \barre{The entropy study, which this thesis quotes without giving it a chapter because it was being completed by another agent, will get its own} (it has: \cref{ch:entropie}), and the gpt-oss measurement, once delivered, will replace the provisional figures of \cref{sec:premieres-mesures}.
+
+\begin{faux}
+\begin{itemize}
+\item The proposed order assumes the measured llama.cpp baseline does not exceed the ceiling of A; if it did, A would have to be rethought before being built.
+\item The gains of \cref{tab:recherche} are ceilings computed under \cref{hyp:beta}; they will move with the measured curve.
+\item The gain of the unencrypted volume is an upper bound based on a manufacturer's rating, not on a measurement.
+\end{itemize}
+\end{faux}

@@ -1,0 +1,404 @@
+% Tome~II, chapter "Results of milestone J1" (writer "results").
+% Numbers: memoire/figures/tome2/donnees/res-chiffres.json (recomputed by
+% memoire/outils/tome2_resultats.py from the committed CSV files and logs of the lots, the trial and
+% the round of corrections); every table names its source file.
+\ifdefined\GrapheResVitesse\else\input{\Racine/figures/tome2/resultats-figures}\fi
+
+\chapter{Results of milestone J1}\label{ch:t2-resultats}
+
+\begin{origine}
+\textbf{Where we start}: a program built by five lots, each proved on its own by its control case, and twelve criteria declared on 15 October 2026 before the first line of code (\fichier{decisions/ARCHITECTURE.md}, § 7). Volume~I had predicted what such a program could do; it had never seen it run.
+\textbf{This chapter establishes} what troncons really does on Stone's machine with gpt-oss-120b: logits identical to the bit between the coded and the raw file over \num{5120} steps; \SI{384}{\Mo} of peak memory for a \SI{63.4}{\Go} model, the same to within \SI{3.7}{\Mo} as for a model five times smaller; \num{2.18} tokens per second in generation, \num{2.22} times the best llama.cpp baseline measured once the integrity guard is counted; and, with an f32 KV cache, outputs equal to the exact mathematics of the model up to the file format. Every number that a later measurement contradicted is struck out where it stood, with what replaced it.
+\textbf{What remains}: the decisions the round of corrections handed to the arbiter (default KV cache, criteria C4, C7 and C8), and what the trial could not redo (\cref{ch:t2-epreuve}).
+Sources: \fichier{moteur/O-pour-le-memoire.md} (parts II and III), \fichier{moteur/REPRISE-O.md}, \fichier{mesures/epreuve-J1.md}, \fichier{mesures/gpt-oss.md}, and the CSV files and logs under \fichier{mesures/moteur/O/} and \fichier{mesures/moteur/epreuve-J1/}.
+\end{origine}
+
+\section{What is measured, and how}\label{t2res-sec:protocole}
+
+\paragraph{The model and the task.} OpenAI's gpt-oss-120b in its native MXFP4 format: a GGUF file of \num{63387346208} bytes, 36 layers, 128 experts per layer of which 4 serve each token, \SI{13.25}{\Mo} per expert; 4\,608 experts in all, \SI{61.07}{\Go}, and \SI{1.69}{\Go} of weights read at every token (attention, routers, output head) \mes~(\fichier{mesures/gpt-oss.md}, § 1). Its development twin, gpt-oss-20b (\num{12109566624} bytes, 24 layers, 32 experts), is already larger than the graphics card. The speed task has been fixed since Volume~I: the 708-token wikitext prompt (SHA-256 \texttt{eadbe87e}…), then 256 greedy tokens, in mode A0 (no expert cache in RAM: every miss is read from disk).
+
+\paragraph{The sessions.} Six sessions produced the numbers of this chapter; all on mains power, checked before and after every pass (\texttt{Win32\_Battery}, status 2), with a free card and the card lock held (\cref{t2res-tab:seances}).
+
+\begin{table}[ht]
+\centering\small
+\caption[The measurement sessions of milestone J1]{The measurement sessions of milestone J1, of the trial and of the round of corrections.}
+\label{t2res-tab:seances}
+\begin{tabularx}{\linewidth}{@{}p{0.2\linewidth}p{0.17\linewidth}X@{}}
+\toprule
+Session & Date & Content and file \\
+\midrule
+O4 \texttt{s1} (lot O) & 15 Oct., 22:40--23:03 & A120 D Y20 Y20 D A120: C5, C7, C8, C10; \fichier{mesures/moteur/O/csv/o4-2026-10-15-s1-passes.csv} \\
+O3 120b (lot O) & 15--16 Oct., 23:03--00:53 & C3, C11, cache count over the 10 windows \\
+J1+ \texttt{s2}, \texttt{s3} (lot O) & 16 Oct., 00:54--02:08 & stream prefill, prefetch, 12\,MiB reads; \fichier{csv/o-jetons-s.csv} \\
+trial \texttt{s1} & 16 Oct., from 02:27 & 12 passes in a palindrome: troncons, baseline at 6 and 10 threads, 20b, warm cache; \fichier{mesures/moteur/epreuve-J1/csv/s1-2026-10-16-passes.csv} \\
+round, speed & 16 Oct., 06:41--07:19 & guard, no guard, f32 KV, in ABBA; \fichier{mesures/moteur/O/corrections/csv/vitesse-2026-10-16-passes.csv} \\
+round, baseline & 16 Oct., 08:13--10:06 & llama.cpp swept: 5 configurations in a palindrome; \fichier{corrections/csv/base-2026-10-16-passes.csv} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{The decision rule.} It is Volume~I's, declared before any measurement (study 06, § 7.5) and taken over unchanged by the architecture (§ 7.2).
+
+\begin{definition}[Noise, real difference]\label{t2res-def:reel}
+Let a configuration be measured by two passes $X_1, X_2$ of one palindrome. Its \emph{noise} is $\beta = |X_1 - X_2| / \bar X$; when a configuration has several pairs, its noise is the largest noise of a pair. A configuration $B$ differs \emph{really} from a configuration $A$ if
+\[
+\Bigl|\frac{\bar X_B}{\bar X_A} - 1\Bigr| \;>\; 2\,\max(\beta_A, \beta_B) + 3\,\%.
+\]
+\end{definition}
+
+The noise of a program against itself is the yardstick: a difference smaller than twice a program's distance to itself is not a difference. The 3\,\% margin protects against a series too short to see its own noise. The trial wrote it as ``twice the noise and 3\,\%''; the verdicts of the round apply it in the additive form above, which is stricter. No verdict of this chapter changes from one reading to the other \calc~(\fichier{memoire/outils/tome2\_resultats.py}).
+
+\paragraph{A second path for every number.} The numbers of this chapter are not copied from the reports: a committed tool (\fichier{memoire/outils/tome2\_resultats.py}) rereads the passes themselves, recomputes means, noises, ratios, intervals and floors, compares them with the verdicts the lots published, and stops with an error at the first discrepancy. It found one, which was not a mistake of the lots but an ambiguity of reading (the cost of the guard, \cref{t2res-sec:garde}).
+
+\section{The criteria at a glance}\label{t2res-sec:criteres}
+
+\Cref{t2res-tab:criteres} follows every criterion of J1 through the three successive judges: the lot that measured it, the independent trial that redid it, and the round of corrections that answered the trial.
+
+\begin{table}[p]
+\centering\small
+\caption[Milestone J1, criterion by criterion]{Milestone J1, criterion by criterion (gpt-oss-120b unless stated). The thresholds are the architecture's, § 7.1, declared on 15 October before any construction.}
+\label{t2res-tab:criteres}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.11\linewidth}>{\raggedright\arraybackslash}p{0.17\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.12\linewidth}@{}}
+\toprule
+Criterion & Threshold & Lot (15 Oct.) & Trial and round (16 Oct.) & Verdict \\
+\midrule
+C1 format & 0 wrong out of 4\,608 & 0 wrong (lot F, two paths) & 40 drawn chunks + 13 named, 0 wrong, by a 3rd decoder & \textbf{holds} \\
+C2 transport & 0 mismatch; 100\,\% of corruptions seen & 0 out of 4\,608 (lot E) & 3\,394 decodes equal to the digest; in production, raw streams unguarded (M1), then guard built & \textbf{holds} (guard) \\
+C3 exact & 0 bit over \num{5120} steps & 0 (20b and 120b) & 0, other build, stream = loop byte for byte & \textbf{holds} \\
+C4 correct & KL and top choice $\ge$ llama.cpp & 20b: \num{0.00368} vs \num{0.0226} & 120b: \num{0.00308} vs \num{0.0607}; f32 KV: at the floor of the format & \textbf{holds} \\
+C5 speed & $\ge 0.8 \times$ serial floor & \num{2.186} and \num{2.182} $\ge$ \num{1.505} & \numrange{1.70}{2.18} $\ge$ \numrange{1.43}{1.52}, guard included & \textbf{holds} \\
+C6 (J1+) & $> 2\beta + 3\,\%$ over the best baseline & \barre{$\times 3.85$} & \barre{$\times 2.79$}; $\times 2.22$ against \mbox{\texttt{fit -t 16}} & \textbf{holds} \\
+C7 ceiling & $\le \SI{1.9}{\Go}$ & \SI{384.2}{\Mo} & \SI{384.4}{\Mo}; \SI{386.8}{\Mo} guard included & \textbf{holds} \\
+C7 gap & $\le 2\beta + \SI{0.5}{\Mo}$ & \SI{3.70}{\Mo} & \SI{2.94}{\Mo}; bound with named terms \SI{2.05}{\Mo} & \textbf{fails} \\
+C8 bytes & PDH $\le$ idle $\times$ duration + \SI{100}{\Mo} & fails on 1 pass of 4 & PDH fails; process counters: constant \SI{19.92}{\Mo} & instrument to change \\
+C9 efficiency (J1+) & published, not judged & not computed & \num{0.84} (J1); \numrange{0.64}{0.82} (round), computed by the reprise of the judgement & published \\
+C10 VRAM & $\le \SI{7279}{\Mio}$ & \numrange{6520}{6537} & \num{6574}; \num{6811} (round) & \textbf{holds} \\
+C11 lossless & equal PPL & \num{422.20558522791305} & the same, coded and raw & \textbf{holds} \\
+C12 text & 256 equal tokens & \texttt{e4c6dbac}… over 17 passes & the same; but 1st token $\ne$ f64 truth (f16 KV) & \textbf{holds} \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{moteur/O-pour-le-memoire.md} § 8 and § 14, \fichier{mesures/epreuve-J1.md} § 3.1, \fichier{mesures/moteur/O/corrections/journaux/verdicts-*-2026-10-16.json}.}
+\end{table}
+
+\begin{enbref}
+\barre{Ten criteria out of twelve hold}: these were ten rows out of twelve, C7 counting twice and C9 missing. Of the twelve declared criteria, eleven are judged and nine hold entirely; C9, the physical efficiency, is published without being judged (0.84 for J1, \cref{t2res-sec:c9}). C7 holds on its ceiling, with a margin of five, but its tolerance term (\SI{0.5}{\Mo}) was ill posed: the engine's memory grows by \SIrange{2.9}{3.7}{\Mo} when the model grows by \SI{51}{\Go}, and the bound that names every term explains only \SI{2.05}{\Mo} of it. C8 measured the machine rather than the engine; the process instrument shows that the engine counts its bytes to within \SI{20}{\Mo}. Both criteria await a decision of the arbiter. Neither failure touches the thesis: memory does not follow the size of the model.
+\end{enbref}
+
+\section{Exactness: coded equals raw, to the bit, over 5\,120 steps}\label{t2res-sec:exactitude}
+
+\paragraph{What is compared.} Lot F writes two files of the same model: the \emph{coded} \texttt{.trc}, whose every expert is compressed losslessly by the rANS coder with per-lane tables, and the \emph{raw} \texttt{.trc}, with the same expert bytes copied as they are. The engine reads the first by decoding on the card, the second by copying. If the coding is truly lossless and the engine deterministic, both must return the same logits, to the bit; the smallest difference would be a fault.
+
+\begin{proposition}[C3 by construction; the cache does not enter the computation]\label{t2res-prop:c3}
+If the coded and raw files give, for every expert, a VRAM slot equal byte for byte, the engine returns the same logits to the bit on every token sequence, whatever the number of slots, the cache policy and the arrival order of reads.
+\end{proposition}
+\begin{proof}
+The products of an expert read its slot and the activation $h_2$. When they read, the slot holds the decoded bytes of that expert: the order of the card's three streams guarantees it (lemma~4 of lot O, \fichier{moteur/O-pour-le-memoire.md} § 6.1), and those bytes are equal in both files by hypothesis (C1 for the coded file, a copy for the raw one, C2 for the transport). The cache only chooses \emph{where} an expert sits, never \emph{which bytes} it holds; the weighted sum of the $k$ experts runs in the router's order $i = 0, \dots, k-1$, not in the slots' order. The other inputs (resident weights, KV cache) do not depend on the expert file. Every kernel being a deterministic function of the bytes it reads (no floating-point atomic addition, fixed-tree reductions), the logits are equal.
+\end{proof}
+
+\paragraph{How to compare \num{5120} distributions without keeping them.} An output distribution has \num{201088} f32 logits: keeping them for the 10 windows of 512 positions would take $\num{5120} \times \num{201088} \times 4 = \SI{4.12}{\Go}$ \calc. The engine keeps instead the 64-bit digest (prefix of SHA-256) of the logits of each step, \num{40960} bytes in all; two steps equal to the bit have the same digest, two different steps a different one except for a collision, of probability $2^{-64}$ per pair. A second path, independent of the digest, compares the \texttt{.kld} files written by both passes byte for byte.
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[C3 and C11: coded against raw]{C3 and C11: the coded file against the raw file, over the 10 windows of 512 tokens (\num{5120} steps) \mes.}
+\label{t2res-tab:c3}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.25\linewidth}l>{\raggedright\arraybackslash}Xll@{}}
+\toprule
+& Steps differing & \texttt{.kld} & PPL of scored positions & Slots \\
+\midrule
+20b, lot O & 0 / \num{5120} & equal byte for byte & \num{461.978277060145} (both) & 362 and 361 \\
+120b, lot O (step loop) & 0 / \num{5120} & SHA-256 \texttt{5b212fe9}… (both) & \num{422.20558522791305} (both) & 326 and 325 \\
+120b, trial (stream, other build) & 0 / \num{5120} & \texttt{5b212fe9}…, $=$ lot O & \num{422.20558522791305} & --- \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{mesures/moteur/O/journaux/o3/}, \fichier{mesures/moteur/epreuve-J1/journaux/c3-120b-10fenetres.json}.}
+\end{table}
+
+Three facts make this equality stronger than a mere ``0 mismatch''. (i) The coded and raw passes did not have the same number of slots (362 and 361 on the 20b, 326 and 325 on the 120b, because the raw file's arrival buffers are larger): they did not serve the same misses in the same order, and the ``whatever the cache'' part of \cref{t2res-prop:c3} is observed, not only deduced. (ii) The trial redid both passes from a clean clone, with its own build, through stream prefill (one layer at a time for all positions) instead of the step loop (one token at a time through all layers): its \texttt{.kld} files equal those of lot O byte for byte. Two builds, two orders of computation, two days, one result to the bit. (iii) The greedy 256-token text (C12) has the same digest, \texttt{e4c6dbacb63a}…, over the 17 passes of lot O (coded, raw, stream, 12\,MiB reads, prefetch), over the four passes of the trial and over the six f16-KV passes of the round, with or without the guard.
+
+\section{Memory: 384 MB for 63 GB}\label{t2res-sec:memoire}
+
+\paragraph{The number and its slope.} In mode A0, the peak working set of the process (pinned memory included, read by the system on the handle after exit) is \SI{384.19}{\Mo} for gpt-oss-120b and \SI{380.50}{\Mo} for gpt-oss-20b \mes~(\fichier{o4-2026-10-15-s1-passes.csv}). llama.cpp, in its best published configuration, holds \SI{10.93}{\Go} and \SI{9.42}{\Go} \mes~(\fichier{mesures/base-gpt-oss/*/resume.csv}). On the 120b, C6's baseline, \texttt{fit -t 16}, swept by the round, holds more: \num{11355} and \num{11483}\,MB, \SI{11.42}{\Go} on average \mes~(\fichier{base-2026-10-16-passes.csv}, column \texttt{pointe\_et\_mo}). The slopes below keep the published baseline, measured on both models; it is the most favourable to llama.cpp. \Cref{t2res-fig:memoire} draws both lines.
+
+\begin{figure}[ht]
+\centering
+\GrapheResMemoire
+\caption[Peak memory against model size]{Peak memory against the size of the model file (logarithmic scale). troncons gains \SI{3.7}{\Mo} when the model gains \SI{51.3}{\Go}; llama.cpp gains \SI{1.5}{\Go} and approaches the machine's RAM. The declared ceiling of J1 (C7) is dashed.}
+\label{t2res-fig:memoire}
+\sourcefig{\fichier{memoire/figures/tome2/donnees/res-memoire.csv}, drawn from \fichier{o4-2026-10-15-s1-passes.csv} and \fichier{mesures/base-gpt-oss/\{20b,120b\}/resume.csv}.}
+\end{figure}
+
+The slopes, step by step \calc:
+\begin{align*}
+\frac{\Delta M_{\text{troncons}}}{\Delta P} &= \frac{\num{384192512} - \num{380502016}}{\num{63387346208} - \num{12109566624}} = \frac{\num{3690496}}{\num{51277779584}} \approx \num{7.2e-5},\\[2pt]
+\frac{\Delta M_{\text{llama}}}{\Delta P} &= \frac{(\num{10.9328} - \num{9.4185}) \times 10^{9}}{\num{51277779584}} \approx \num{0.0295}.
+\end{align*}
+One more byte in the model costs troncons \num{7.2e-5} byte of memory, llama.cpp \num{0.03}, four hundred times more. The 120b model is \num{165} times larger than troncons's window, and llama.cpp holds \num{28.5} times more memory to serve it (\num{29.7} times in C6's configuration). This is, measured, the reading of ``without RAM or anything'' that Volume~I retained: \emph{the memory in use no longer depends on the size of the model}.
+
+\paragraph{What the window is made of.} Proposition A.1 of A's advocate wrote the engine's host memory as
+\[
+M = M_{\text{fixed}} + d \cdot k \cdot \ell_{\max} + M_{\text{warm}} + M_{\text{directory}},
+\]
+with $d \cdot k = 12$ pinned arrival buffers of the size $\ell_{\max}$ of the largest chunk, $M_{\text{warm}} = 0$ in mode A0, and only the directory growing with the model. Lot O's diagnostic, which records the working set after every step of opening, showed that the proposition forgot terms (\cref{t2res-tab:termes}).
+
+\begin{table}[ht]
+\centering\small
+\caption[The terms of the window that grow with the model]{The terms of the engine's memory that grow with the model: counts of the 120b minus those of the 20b, and measured unit costs \calc~on \mes.}
+\label{t2res-tab:termes}
+\begin{tabular}{@{}p{0.42\linewidth}lr@{}}
+\toprule
+Term & $\Delta$ count $\times$ unit cost & $\Delta$ bytes \\
+\midrule
+window: $d \cdot k$ buffers of the size of the largest chunk & $12 \times (\num{12251136} - \num{12144640})$ & \num{1277952} \\
+timed events (4 per possible miss, 2 per layer) & $216 \times {}$\SIrange{657}{660}{\octet} & $\approx \num{142000}$ \\
+card allocations (residents, KV caches) & $180 \times {\le}\,\SI{290}{\octet}$ & $\le \num{52000}$ \\
+directory held twice (file, cache sizes) & $2 \times \num{3840} \times \SI{56}{\octet}$ & \num{430080} \\
+table of residents, rANS tables & $156 \times 88$; $144 \times {\approx}\,560$ & $\approx \num{94000}$ \\
+routing trace (256 steps) & \SI{96}{\octet} per step & $\le \num{49000}$ \\
+\midrule
+sum of named terms & & $\approx \SI{2.05}{\Mo}$ \\
+measured (trial; lot O) & & \SI{2.94}{\Mo}; \SIrange{3.30}{3.70}{\Mo} \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{moteur/O-pour-le-memoire.md} § 13.6, \fichier{mesures/moteur/O/corrections/journaux/m4-couts-unitaires.jsonl}.}
+\end{table}
+
+The first term disappears if the window has a fixed size: with reads of \num{12582912} bytes for both models, the 120b $-$ 20b gap drops from \SI{3.30}{\Mo} to \SI{0.99}{\Mo} \mes. The others are proportional to the number of experts $L \cdot E$ and stay under \SI{1}{\Mo} up to about \num{10000} experts \calc. There remain \SI{0.9}{\Mo} these terms do not explain (page granularity of small allocations, heap): the bound with named terms is not closed, and even with it, $2.05 + 2 \times 0.14 + 0.5 = \SI{2.83}{\Mo}$ leaves the trial's measurement failing by \SI{0.11}{\Mo}. The verdict of C7-gap therefore stays ``fails''; what was wrong is the tolerance term the architecture posed, not the property it meant to judge.
+
+\paragraph{What the machine loses, and committed memory.} Two new measurements of the trial complete C7 (\cref{t2e-fig:seance} in the next chapter). The available physical memory of the \emph{whole} machine drops by \SIrange{0.46}{0.73}{\Go} during a troncons pass, against \SIrange{6.3}{11.6}{\Go} during a llama.cpp pass \mes. On the other hand, troncons's private \emph{committed} memory is \SI{6.93}{\Go}: the order of its VRAM allocations and pinned memory, reserved against Windows's commit limit (RAM plus page file) without occupying physical RAM. It is not judged; it is published (finding m3).
+
+\paragraph{The window is visible.} Giving the engine \SI{1}{\Go} of warm cache raises its peak by \SI{994.2}{\Mo} \mes: the instrument does see the window, and C7 is not measuring a floor it could not leave.
+
+\paragraph{VRAM (C10).} The peak read by \texttt{nvidia-smi} every \SI{250}{\milli\second} is \numrange{6520}{6537}\,MiB at lot O, \num{6574} in the trial, \num{6811} in the round's session (same occupation by the engine, \num{6317303600} bytes; the difference is elsewhere on the card), always under the threshold of \num{7279}\,MiB ($8\,188 - 909$, the VRAM minus what the display and Stone's applications occupy at rest).
+
+\section{Speed}\label{t2res-sec:vitesse}
+
+\subsection{The serial floor (C5)}\label{t2res-sec:c5}
+
+\paragraph{The formula.} A token served \emph{without any overlap} would pay every stage of its path one after the other. Its time is then the sum
+\[
+t_{\text{serial}} = t_{\text{disk}} + t_{\text{PCIe}} + t_{\text{dec}} + t_{\text{GEMV}} + T_0,
+\]
+with $t_{\text{disk}}$ the chunk bytes read per token (engine counter) divided by the throughput of a disk-only pass in the same session, $t_{\text{PCIe}}$ and $t_{\text{dec}}$ the card times of the copies and decodes per token (the engine's CUDA events), $t_{\text{GEMV}} = (A + R)/\SI{235}{\Go\per\second}$ with $A$ the resident weights read and $R = k \cdot L$ expert slots, and $T_0 = \SI{3.5}{\milli\second}$ Volume~I's fixed cost. C5 requires at least $0.8 / t_{\text{serial}}$ tokens per second; $0.8 = 1 - 2 \times 10\,\%$, the noise of a 4\,MiB read at queue depth 4 measured in Volume~I.
+
+\paragraph{The calculation, step by step} (session O4, pass 1, \mes~for every term):
+\begin{align*}
+t_{\text{disk}} &= \frac{\SI{0.7073}{\Go}}{\SI{1.848}{\Go\per\second}} = \SI{382.7}{\milli\second}, &
+t_{\text{PCIe}} &= 59 \text{ misses} \times \SI{1.28}{\milli\second} = \SI{75.8}{\milli\second}, \\
+t_{\text{dec}} &= 59 \times \SI{0.92}{\milli\second} = \SI{54.2}{\milli\second}, &
+t_{\text{GEMV}} &= \frac{\SI{1.686}{\Go} + 144 \times \SI{13.25}{\Mo}}{\SI{235}{\Go\per\second}} = \SI{15.3}{\milli\second},
+\end{align*}
+hence $t_{\text{serial}} = 382.7 + 75.8 + 54.2 + 15.3 + 3.5 = \SI{531.5}{\milli\second}$, a floor of \num{1.881} token/s and a threshold of \num{1.505}. The engine measures \SI{457}{\milli\second} per token, \textbf{\num{2.186} tokens/s}: it goes \emph{under} the sum, because the copies and decodes of a layer overlap the reads of the following misses of the same layer. \Cref{t2res-fig:plancher} redoes this calculation for every pass of the round.
+
+\begin{figure}[ht]
+\centering
+\GrapheResPlancher
+\caption[The serial floor, stage by stage]{The serial floor, stage by stage (stacked bars), against the measured time per token (diamonds), gpt-oss-120b in mode A0 \calc~on \mes. The disk takes \SIrange{68}{72}{\percent} of the sum. The diamond goes under the bar as soon as the disk queue overlaps the card; pass 02 of the round, above it, is the slowest of the session (\num{1.70} token/s), guard included.}
+\label{t2res-fig:plancher}
+\sourcefig{\fichier{memoire/figures/tome2/donnees/res-plancher.csv}, drawn from \fichier{o4-2026-10-15-s1-passes.csv} and \fichier{vitesse-2026-10-16-passes.csv}; every recomputed floor equals the log's to within $10^{-6}$.}
+\end{figure}
+
+\paragraph{The physical efficiency (C9).}\label{t2res-sec:c9} The architecture (§\,7.2) declared a criterion published and not judged: the measured throughput divided by the ceiling computed at the measured $h$. Neither lot O nor the trial had computed it; the reprise of the judgement does it here, on the terms of the floor \calc~from \mes. The ceiling is Volume~I's token equation with no speculation and no remaining latency ($\mathcal E = 1$, $t_{\text{lat}} = 0$), every stage overlapped:
+\[
+t_{\text{ceiling}} = \max\big(t_{\text{disk}},\ t_{\text{PCIe}},\ t_{\text{dec}} + t_{\text{GEMV}}\big) + T_0 .
+\]
+Pass 1 of J1: $\max(382.7;\ 75.8;\ 54.2 + 15.3) + 3.5 = \SI{386.2}{\milli\second}$, a ceiling of \num{2.589} tokens/s; measured \SI{457.4}{\milli\second}, hence an efficiency of $386.2 / 457.4 = \mathbf{0.84}$ (pass 6: 0.84). Over the round's six f16-KV passes, from \num{0.64} (pass 02, the slowest) to \num{0.82} (pass 03). The engine thus holds 84\,\% of the throughput it would have if the link and the card hid entirely behind the disk; the missing 16\,\% are the $t_{\text{lat}}$ term of the equation, the latency that the disk's short queue lets show, the one prefetching aimed at (\cref{t2res-sec:j1plus}). Redone by \fichier{memoire/outils/tome2\_reprise.py} from \fichier{res-plancher.csv}.
+
+\paragraph{What limits J1, and what Volume~I had predicted.} The disk reads on average \num{1.6} chunks per layer (59 misses over 36 layers): the queue seldom has its four requests in flight, and the engine draws only \SI{1.55}{\Go\per\second} of useful bytes from the disk where a disk-only pass at depth 4 draws \num{1.85} \mes. The timeline of one layer shows it: four reads submitted at \numlist{1.28;1.96;2.68;3.18}\,ms finish at \numlist{6.86;9.81;16.14;21.17}\,ms, served one after the other (\fichier{mesures/moteur/O/csv/chronogramme-120b.csv}). Volume~I had fitted an ``LRU'' locality scenario on a single published point; it predicted there, for a \SI{4.8}{\Go} VRAM cache, a hit rate $h_v = 0.590$ and, in mode A0, a speed marker of \num{2.15} tokens/s (the 326 slots of J1 make \SI{4.3}{\Go}). The engine counts $h = 0.591$ over its 326 slots and measures \num{2.18} \mes. The agreement is to be taken for what it is: a scenario fitted on one point, whose shape the 20b locality measurement had already contradicted, lands right at J1's operating point.
+
+\subsection{The baseline, and the history of its numbers}\label{t2res-sec:base}
+
+C6 compares troncons with the \emph{best} measured configuration of llama.cpp on the same model, the same prompt and the same 256 tokens. The baseline number changed twice; the first two ratios are struck out where they were written, and gathered here.
+
+\begin{enumerate}
+\item \textbf{15 October} (\fichier{mesures/gpt-oss.md}, § 3.2): three configurations, all at 6 threads; the best, \texttt{fit}, does \num{0.568} token/s. Against lot O's J1: \barre{$\times 3.85$}.
+\item \textbf{16 October, trial}: the judge adds a configuration of his choice, \texttt{fit -t 10}, by an argument declared in advance (under \texttt{mmap}, every thread in a page fault is a read in flight): \num{0.702} against \num{0.627} at 6 threads in the same session, a real difference. Against troncons: \barre{$\times 2.79$ to $2.89$}.
+\item \textbf{16 October, round}: the baseline is swept (\cref{t2res-tab:base}). The best is \texttt{fit -t 16}, \textbf{\num{0.884} token/s}, \num{54}\,\% above the published baseline.
+\end{enumerate}
+
+\begin{table}[ht]
+\centering\small
+\caption[The swept llama.cpp baseline]{The llama.cpp b11515 baseline swept by the round (gpt-oss-120b, 256 greedy tokens; palindrome t6 t10 t12 t16 m m t16 t12 t10 t6 after a discarded warm-up pass) \mes. ``m'': \texttt{-ngl 99 --n-cpu-moe 34 --fit off -t 10}.}
+\label{t2res-tab:base}
+\begin{tabular}{@{}lllrrl@{}}
+\toprule
+Configuration & Passes (tok/s) & Mean & Noise $\beta$ & Gap of \texttt{t16} & Real? (threshold) \\
+\midrule
+\texttt{fit -t 6} (published) & \num{0.575}; \num{0.573} & \num{0.574} & \SI{0.4}{\percent} & $+54.0\,\%$ & yes (\SI{10.4}{\percent}) \\
+\texttt{fit -t 10} (trial) & \num{0.675}; \num{0.654} & \num{0.665} & \SI{3.2}{\percent} & $+33.0\,\%$ & yes (\SI{10.4}{\percent}) \\
+m (\texttt{--n-cpu-moe 34}) & \num{0.642}; \num{0.638} & \num{0.640} & \SI{0.6}{\percent} & $+38.2\,\%$ & yes (\SI{10.4}{\percent}) \\
+\texttt{fit -t 12} & \num{0.913}; \num{0.760} & \num{0.836} & \SI{18.3}{\percent} & $+5.7\,\%$ & no (\SI{39.6}{\percent}) \\
+\textbf{\mbox{\texttt{fit -t 16}}} & \num{0.900}; \num{0.867} & \textbf{\num{0.884}} & \SI{3.7}{\percent} & --- & --- \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/moteur/O/corrections/csv/base-2026-10-16-passes.csv}, \fichier{journaux/verdicts-base-2026-10-16.json}; recomputed by \fichier{tome2\_resultats.py}.}
+\end{table}
+
+\paragraph{Why the number of threads changes everything.} llama.cpp maps the file into memory (\texttt{mmap}); an expert missing from the page cache is read through page faults, and a faulting thread waits for its page before continuing. With $n$ compute threads there are thus at most $n$ reads in flight. Little's law \cite{little1961} ties the throughput $X$ of a system to its mean number of requests in flight $N$ and their residence time $R$: $X = N/R$. As long as the disk is not saturated, $R$ varies little and throughput grows with $N$; Volume~I measured this growth of disk throughput with queue depth. From 6 to 16 threads the baseline gains \num{54}\,\%; from 12 to 16, nothing discernible: the plateau begins. This reading is a hypothesis consistent with the measurement, not a measurement of the queue depth itself.
+
+\subsection{C6 redone: guard included}\label{t2res-sec:c6}
+
+The round added an integrity guard to the engine (\cref{t2e-sec:garde}), active by default. The honest number for C6 is therefore that of the guarded engine against the best baseline \calc~on \mes:
+\[
+\frac{\bar X_{\text{guard}}}{\bar X_{\texttt{t16}}} = \frac{(1.703 + 1.900 + 2.126 + 2.131)/4}{(0.900 + 0.867)/2} = \frac{1.965}{0.884} = \mathbf{2.22}.
+\]
+The noise of troncons, by \cref{t2res-def:reel}, is the largest noise of a pair: \SI{10.97}{\percent} (passes 02 and 05); the threshold is $2 \times 10.97 + 3 = \SI{24.9}{\percent}$ and the gap, $+122\,\%$, exceeds it by far. A stricter reading of the noise, the range of the four guarded passes (\SI{21.8}{\percent}), brings the threshold to \SI{46.6}{\percent}: C6 still holds. Without the guard, the ratio would be $2.054 / 0.884 = 2.32$. \Cref{t2res-fig:vitesse} gathers all the series.
+
+\begin{figure}[ht]
+\centering
+\GrapheResVitesse
+\caption[Generation: troncons against llama.cpp]{Generation on gpt-oss-120b (mean, and range of the passes as an error bar): troncons in mode A0 in four sessions, llama.cpp in its published baseline and in the five configurations of the round's sweep \mes. The dashed line is the best baseline measured (\texttt{fit -t 16}). The published baseline was the slowest of the swept configurations.}
+\label{t2res-fig:vitesse}
+\sourcefig{\fichier{memoire/figures/tome2/donnees/res-vitesse-120b.csv}, drawn from \fichier{o4-2026-10-15-s1-passes.csv}, \fichier{s1-2026-10-16-passes.csv}, \fichier{vitesse-2026-10-16-passes.csv}, \fichier{base-2026-10-16-passes.csv} and \fichier{mesures/base-gpt-oss/120b/resume.csv}.}
+\end{figure}
+
+\begin{remarque}[Two sessions, not one]
+The troncons passes and those of the swept baseline come from two distinct sessions of the same morning (speed between 06:41 and 07:19, baseline from 08:13 to 10:06), and the disk of this machine varies from one session to the next (from \SIrange{1.51}{1.95}{\Go\per\second} within the speed session alone; \SI{20}{\percent} slower in session 2 than in session 1 at lot O, cause not measured). The $\times 2.22$ ratio therefore carries a between-session noise the rule does not see. Two safeguards bound it: the trial measured troncons and llama.cpp in the same session, and found $\times 2.89$ against \texttt{fit -t 10} (\num{2.03} against \num{0.702}); and the gap (122\,\%) far exceeds any disk variation observed. A single series, troncons and \texttt{fit -t 16} in one palindrome, remains to be run; it is in the future work.
+\end{remarque}
+
+\subsection{Stream prefill}\label{t2res-sec:flux}
+
+\paragraph{The cost, posed.} In the step loop, a prompt of $P$ positions reads, layer by layer, the missing experts of every position:
+\[
+B_{\text{loop}} = \sum_{p=1}^{P}\sum_{\ell=1}^{L} (1 - h_{p,\ell}) \, k \, t,
+\]
+with $t \approx \SI{12.03}{\Mo}$ per chunk. By stream, each layer reads once every expert requested by at least one position: $B_{\text{stream}} = \sum_\ell |U_\ell \setminus V_\ell| \, t$, where $U_\ell$ is the set of chosen experts and $V_\ell$ those already in VRAM. Under uniform routing, $\E|U_\ell| = E\,(1 - (1 - k/E)^P)$; for $E = 128$, $k = 4$, $P = 708$: $(1 - 1/32)^{708} = e^{708 \ln 0.96875} = e^{-22.5}$, and $U_\ell$ is the whole set. Hence $B_{\text{stream}} \le 36 \times 128 \times \SI{12.03}{\Mo} = \SI{55.4}{\Go}$, against $B_{\text{loop}} \approx 708 \times 144 \times 0.55 \times \SI{12.03}{\Mo} \approx \SI{675}{\Go}$ \calc, a ratio of about 12.
+
+\paragraph{Measured.} \SI{26}{\second} instead of \SI{7}{\minute}\,\SI{36}{\second} for the 708 tokens, $\times 17.5$, the ratio of the mean throughputs of passes \texttt{s2-11} to \texttt{s2-14} (\num{27.15} against \num{1.554} tokens/s; per pass, \numrange{26.9}{27.4} against \numrange{1.46}{1.65}) \mes. Lot O's note wrote \barre{7\,min\,50\,s}, a duration that does not come from these passes: on top of the bytes, the loop pays one synchronisation per layer and per position, which the stream pays once per layer. llama.cpp prefills at \numrange{3.1}{4.0} tokens/s: troncons does it seven times faster. Exactness holds by the same \cref{t2res-prop:c3} and by control F (\num{5120} digests equal to the loop's on the 20b; equal \texttt{.kld} files on the 120b in the trial).
+
+\subsection{The cost of the integrity guard}\label{t2res-sec:garde}
+
+\paragraph{Predicted.} The guard hashes every chunk read (\SI{0.71}{\Go} per token) on four threads, at \num{1.07} to \SI{1.10}{\Go\per\second} per thread \mes, in parallel with the copy and the decode; the step waits for all its hashes before returning its token. The work, $0.71 / 1.07 \approx \SI{0.65}{\second}$ of core time per step, is spread over four threads (\SI{0.17}{\second} of wall time) under a step of \SI{0.46}{\second}; only the hash of the last chunk stays on the critical path, at most
+\[
+\SI{12.25}{\Mo} / \SI{1.07}{\Go\per\second} \approx \SI{11.4}{\milli\second},
+\]
+i.e.\ \SI{2.5}{\percent} of a \SI{457}{\milli\second} step \calc. The round's declared prediction wrote 2.4\,\%, with 1.1\,GB/s and 460\,ms (\fichier{mesures/moteur/O/corrections/seuils-declares.md}); at the slowest measured throughput, 1.07\,GB/s, it is 2.5\,\%.
+
+\paragraph{Measured.} The guard's wait is \SIrange{5.2}{5.4}{\milli\second} per token over the four guarded passes \mes. The declared ABBA series (passes 02 and 05 guarded, 03 and 04 unguarded) gives a gap of $-12.3\,\%$ for a threshold of \SI{26.8}{\percent}: \emph{not real}; the disk varied from \SIrange{1.51}{1.95}{\Go\per\second} from one pass to the next, and that is what the gap measures. At equal disk throughput (passes 05 and 04, \num{1.708} and \SI{1.715}{\Go\per\second}), the gap is $-1.6\,\%$ (published $-1.7\,\%$ on the rounded values \num{1.900} and \num{1.932}). The second-path tool first found $-4.3\,\%$ by counting the four guarded passes: passes 07 and 08 are guarded too, but belong to the f32-KV series; this is no fault of the lot, it is the number of another series. Opening costs \SI{0.95}{\second} more (the table of digests of the embedding rows: \SI{0.615}{\Go} read and hashed), and memory \SI{1.9}{\Mo}, the same for both models.
+
+\subsection{What J1+ kept, killed, left open}\label{t2res-sec:j1plus}
+
+\begin{description}
+\item[Kept: the stream] ($\times 17.5$ at prefill, \cref{t2res-sec:flux}).
+\item[Killed: prefetch by the next layer's router.] After the attention of $\ell$, the engine applies the norm and router of $\ell+1$ to the residual and reads the predicted chunks ahead. A right prediction removes a read from the critical path; a wrong one adds a read on a disk that already limits. With $p$ the share of predictions served and $f$ the share of a token's time that overlap can hide, the gain is about $f - \frac{1-p}{p}\,s_{\text{disk}}$; here $p = 0.692$, the bytes read rise by \num{34}\,\% (953 against 710\,MB per token) and $f \approx 80/460 = 0.17$: the loss dominates. Measured: $-11\,\%$ (noise \SI{1}{\percent}) \mes. The mechanism would come back with $p > 0.9$ or so, or a disk that does not limit.
+\item[Open: 12\,MiB reads.] Reading every chunk as one request of \num{12582912} bytes moves the read into the fast regime of the disk measured by lot E: $+30\,\%$ in median (\num{2.18} $\to$ \num{2.84} tokens/s), every B pass above every A pass, but a noise of \SI{16.2}{\percent} between the two B passes (\cref{t2res-def:reel}; \barre{21\,\%}, the gap divided by the mean of A): the threshold is $2 \times 16.2 + 3 = \SI{35.4}{\percent}$ against $+\SI{30.4}{\percent}$, the rule is not crossed in four passes. Neither established nor refuted.
+\item[One pass, to be confirmed: the warm cache.] \SI{1}{\Go} of warm cache divides stream prefill by \num{2.2} (\num{27.1} $\to$ \num{12.5} tokens/s) without giving anything to generation (\num{1.90}) \mes. Nobody had measured it; one pass does not make a series.
+\end{description}
+
+\section{Fidelity: how far from the exact mathematics of the model}\label{t2res-sec:fidelite}
+
+\subsection{The instrument}
+
+\paragraph{The divergence.} For a position, let $p$ be the next-token distribution of the truth (the model's forward pass in double precision, on the same weights) and $q$ that of an engine. We measure
+\[
+\mathrm{KL}(p \,\|\, q) = \sum_{i=1}^{V} p_i \,(\log p_i - \log q_i) \;\ge 0,
+\]
+the Kullback--Leibler divergence \cite{kullback1951}, in nats, over a vocabulary of $V = \num{201088}$ tokens, and the share of positions where the engine's top choice is the truth's, with its 95\,\% Wilson interval \cite{wilson1927}. For a small perturbation $\Delta z$ of the logits, $\mathrm{KL} \approx \tfrac12 \mathrm{Var}_p(\Delta z)$: the divergence is second order in the error.
+
+\paragraph{Why against the truth, and not against llama.cpp.} Two correct engines diverge: on Qwen3.5-4B, by \num{0.0055} (Volume~I); one engine cannot be the judge of another. The architecture therefore posed C4 against the exact mathematics: troncons must be at least as close to them as llama.cpp, both measured by the same instrument.
+
+\paragraph{The file format, and what it costs.} All engines write their logits in llama.cpp's \texttt{.kld} format: per position, $\log q$ quantized on 16 bits between a floor and the maximum, with a step of about $\num{2.44e-4}$ nat. Two consequences, proved in \cref{t2e-sec:numpy}: a computation identical to the truth departs from it by at most half a step per token above the floor; and the tokens under the floor receive excess mass, so that the KL of an exact computation is \emph{negative}, of the order of $-\num{4.8e-4}$. This bias is common to all files and sets the zero of the instrument.
+
+\subsection{C4 on both models}
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[C4 against the f64 truth]{C4: troncons and llama.cpp against the double-precision truth \mes. Window 0 has 255 scored positions. $\bar d$: paired mean of $\mathrm{KL}_{\text{troncons}} - \mathrm{KL}_{\text{llama}}$ per position, $\pm$ one standard error.}
+\label{t2res-tab:c4}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.2\linewidth}>{\raggedright\arraybackslash}p{0.15\linewidth}r>{\raggedright\arraybackslash}Xl@{}}
+\toprule
+Model, truth & Engine & Mean KL & Same top choice [Wilson 95\,\%] & $\bar d$ \\
+\midrule
+20b, lot R ref., 10 windows & troncons & \num{0.00368} & \SI{97.18}{\percent} [96.46; 97.75] & \\
+& llama.cpp GPU & \num{0.0226} & \SI{89.61}{\percent} [88.36; 90.73] & \\
+20b, numpy f64, window 0 & troncons & \num{0.00174} & 246/255 = \SI{96.5}{\percent} [93.4; 98.1] & $-\num{0.0243} \pm \num{0.0053}$ \\
+& llama.cpp GPU & \num{0.0261} & 222/255 = \SI{87.1}{\percent} [82.4; 90.6] & \\
+\textbf{120b, numpy f64, window 0} & \textbf{troncons} & \textbf{\num{0.00308}} & 244/255 = \SI{95.7}{\percent} [92.4; 97.6] & $-\num{0.0576} \pm \num{0.0120}$ \\
+& llama.cpp GPU & \num{0.0607} & 205/255 = \SI{80.4}{\percent} [75.1; 84.8] & \\
+120b, numpy f64, window 0 & troncons, \textbf{f32 KV} & $-\num{0.00048}$ & 255/255 = \SI{100}{\percent} & \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{mesures/moteur/O/journaux/o3/c4-20b-comparer.*}, \fichier{mesures/moteur/epreuve-J1/csv/c4-numpy-\{20b,120b\}-f0.csv}, \fichier{mesures/moteur/O/corrections/journaux/verdicts-kv-2026-10-16.json}; Wilson and $\bar d$ recomputed by \fichier{tome2\_resultats.py}.}
+\end{table}
+
+\paragraph{The paired test.} Comparing two KL means position by position removes the common variance of difficult positions: $d_i = \mathrm{KL}_{t,i} - \mathrm{KL}_{l,i}$, $\bar d \pm s_d/\sqrt n$. On the 120b, $\bar d = -\num{0.0576}$ for a standard error of \num{0.0120}: nearly five standard errors below zero, and the Wilson intervals of the top choices are disjoint. C4 holds on the 120b for the first time.
+
+\paragraph{``Six times closer'', requalified.} Lot O had written that troncons was ``six times closer'' to the truth than llama.cpp (\num{0.0037} against \num{0.0226} on the 20b). It is true, but the trial and lot R found its main reason: llama.cpp rounds the bounds of the YaRN ramp \cite{peng2023yarn}, where OpenAI's reference implementation \cite{openai2025gptossref} does not (\texttt{"truncate": false}). On window 0 of the 20b, the ramp alone explains \num{0.0143} of llama.cpp's \num{0.0261} (\SI{55}{\percent}); over the 10 windows, \num{0.0145} of \num{0.0226} (lot R). The gap thus comes mostly from a modelling choice, OpenAI's, validated by an independent computation; the precision of the kernels is not its main cause.
+
+\subsection{The f16 KV cache carried the whole gap}\label{t2res-sec:kv}
+
+\paragraph{What the trial saw.} Beyond the means, the first token of C12's text (position 707 of the prompt) differs: the truth picks token 1008 (``...'', $\log p = -1.46$), troncons token 313 (``am'', to which the truth gives only $\log p = -10.03$), after a cascade of routing flips over 20 layers out of 36, from layer 12 on. The truth recomputed with only the KV cache rounded to f16, and nothing else, picks 313 too, with the same cascade \mes~(\fichier{premier-jeton-kvf16-120b.json}). \Cref{t2res-fig:routage} shows routing agreement per layer: on the 120b it drops with depth, down to \num{0.81} beyond position 512; on the 20b it does not go below \num{0.96}.
+
+\begin{figure}[ht]
+\centering
+\GrapheResRoutage
+\caption[Routing agreement with the truth, per layer]{Share of identical top-4 router choices between troncons (f16 KV) and the f64 truth, per layer, on C12's prompt \mes. The 120b drops with depth, and more after position 512; the 20b does not. With an f32 KV cache, agreement is 1 over the 36 layers and the 708 positions.}
+\label{t2res-fig:routage}
+\sourcefig{\fichier{memoire/figures/tome2/donnees/res-routage.csv}, drawn from \fichier{mesures/moteur/epreuve-J1/csv/routage-par-couche-invite.csv}.}
+\end{figure}
+
+\paragraph{Why f16 rounding suffices, posed.} f16 has 11 bits of significand: rounding to nearest gives $\tilde k = k(1 + \delta)$ with $|\delta| \le u_{16} = 2^{-11} \approx \num{4.9e-4}$ (the binary16 format of IEEE~754). For an attention score $s = c \sum_{j=1}^{64} q_j k_j$ ($c = 1/8$),
+\[
+|\tilde s - s| \;\le\; c\, u_{16} \sum_j |q_j k_j| \;+\; \gamma_{64}\, c \sum_j |q_j \tilde k_j|,
+\qquad \gamma_{64} = \frac{64\, u_{32}}{1 - 64\, u_{32}} \approx \num{3.8e-6},
+\]
+to first order, the second term being the f32 dot product ($u_{32} = 2^{-24}$, \cite{higham2002}). The attention output inherits a relative error of the same order, through the softmax weights and through $\tilde v$. With an f32 cache, only the kernels' error remains, $u_{32}/u_{16} = 2^{-13} \approx 1/8\,192$ times smaller; \barre{the KL being second order, it would be divided by about $8\,192^2 \approx \num{6.7e7}$: from $\num{3.08e-3}$ towards $\num{5e-11}$, well under the step of the format. This order of magnitude assumes a linear error; routing flips are not linear, but they vanish with it.} This estimate of work package O is struck out by \cref{thm:t2r-amplification}: the no-switch term is divided by $8\,192^2 \approx \num{6.7e7}$, but the switch term, linear, only by \num{8192}; the KL in f32 is therefore at most of the order of $\num{3.08e-3}/\num{8192} \approx \num{3.8e-7}$\,nat \calc{} (\cref{sec:t2r-f32-theorie}), well under the step of the format ($\approx \num{2.4e-4}$\,nat). The measurement below remains the only judge. A router that picks 4 experts out of 128 turns a small continuous error into a discrete one when two scores are close: this is why the 120b, with 128 experts, flips more than the 20b, with 32.
+
+\paragraph{Measured.} The round added an option \texttt{--kv-f32} to the engine (kernels added, no existing kernel touched; control: equal to the bit to the f16 path on values representable in f16, and different on values that are not). \Cref{t2res-tab:kv} and \cref{t2res-fig:kl} give the result.
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[f16 against f32 KV cache]{f16 against f32 KV cache, against the f64 truth \mes. ``Steps'': quantization steps of the \texttt{.kld} format.}
+\label{t2res-tab:kv}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}Xrrrrl@{}}
+\toprule
+& Mean KL & Top choice & KL $> 0.1$ & KL p99 & Max.\ gap of $\log p$ \\
+\midrule
+120b, window 0, f16 & \num{0.00308} & \SI{95.7}{\percent} & \SI{0.39}{\percent} & \num{0.0747} & \SI{3.07}{nat} \\
+\textbf{120b, window 0, f32} & $-\num{0.00048}$ & \SI{100}{\percent} & 0 & \num{2.3e-6} & \num{0.69} steps \\
+20b, window 0, f16 & \num{0.00174} & \SI{96.5}{\percent} & \SI{0.39}{\percent} & \num{0.0529} & \SI{2.32}{nat} \\
+\textbf{20b, window 0, f32} & $-\num{0.00048}$ & \SI{100}{\percent} & 0 & $\approx 0$ & \num{2.04} steps \\
+120b, prompt, positions 512--706, f16 & \num{0.00963} & --- & \SI{2.05}{\percent} & \num{0.196} & --- \\
+\textbf{120b, prompt, positions 512--706, f32} & $-\num{0.00054}$ & --- & 0 & \num{3.6e-6} & --- \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{moteur/O-pour-le-memoire.md} § 13.3; \fichier{mesures/moteur/O/corrections/journaux/verdicts-kv-2026-10-16.json}, \fichier{m5-ecart-logp-*.json}; means recomputed from \fichier{kv-f16-f32-par-position.csv}.}
+\end{table}
+
+\begin{figure}[ht]
+\centering
+\GrapheResKL
+\caption[KL per position against the f64 truth]{KL per position against the f64 truth, logarithmic scale \mes. (a) Window 0 of the 120b: llama.cpp (red), troncons with f16 KV (blue), troncons with f32 KV (green). (b) C12's prompt beyond window 0: the f16 KL rises after position 512; f32 stays at the floor. A KL below $10^{-4}$, including every negative KL (bias of the format), is drawn on the dotted line: this is the case of 165 positions out of 255 for f16 in (a), 255 out of 255 for f32, 353 out of 353 in (b).}
+\label{t2res-fig:kl}
+\sourcefig{\fichier{memoire/figures/tome2/donnees/res-kl-120b-f0.csv} and \fichier{res-kl-invite.csv}, drawn from \fichier{c4-numpy-120b-f0.csv} and \fichier{kv-f16-f32-par-position.csv}.}
+\end{figure}
+
+On the 708-token prompt with f32 KV, the top choices equal the truth's at 708 positions out of 708 (687 with f16), routing is equal on all $36 \times 708$ (layer, position) pairs, and \textbf{the first token of C12 is 1008, the truth's}. The f16 rounding of the KV cache thus carried \emph{the whole} measurable gap between troncons and the exact mathematics of the model; the trial had bounded it from below (\SIrange{70}{77}{\percent} of routing flips).
+
+\paragraph{The price.} The KV cache of gpt-oss-120b at a context of \num{4096} has 18 full layers and 18 layers with a sliding window of 128 positions:
+\[
+18 \times (4\,096 + 128) \times 2 \times 512 \times \SI{2}{\octet} = \SI{155.7}{\Mo} \text{ in f16},
+\]
+twice as much in f32: $+\SI{155.7}{\Mo}$ of VRAM, i.e.\ $155.7 / 13.25 = 11.8$ expert slots \calc; measured: 326 $\to$ 314 slots. Replayed by the cache simulator on the prompt's trace, this loss moves $h$ from \num{0.459} to \num{0.442} and misses from \num{77.9} to \num{80.4} per token: $+3.2\,\%$ of bytes read, the order of the speed cost when the disk limits \calc~on a measured trace. The generation measured in f32 (\num{1.50} against \num{2.13} tokens/s) \emph{is not} that cost: the text changes (\texttt{72304d85}…, which starts with ``...'' like the truth, then simulates tool calls like llama.cpp's greedy output), and the loop of the f16 text raised its cache hit rate to \num{0.590} against \num{0.435}. Comparing two speeds on two different texts measures the texts. The default stays f16 until the arbiter decides seam N; the round proposes f32.
+
+\section{What the results say together}\label{t2res-sec:ensemble}
+
+\begin{enumerate}
+\item \textbf{Exact}: the coded path equals the raw path to the bit, over \num{5120} steps and from one build to another; Volume~I's lossless coding costs the output nothing.
+\item \textbf{Bounded}: \SI{384}{\Mo} for \SI{63.4}{\Go}, $+\SI{3.7}{\Mo}$ when the model takes \SI{51}{\Go} more; llama.cpp holds \num{28.5} times more memory (\num{29.7} times in C6's configuration).
+\item \textbf{Faster than the baseline}: \num{2.22} times the best baseline measured, guard included; seven times at prefill.
+\item \textbf{Correct}: closer to the truth than llama.cpp on both models; and, with an f32 KV cache, equal to the truth up to the format.
+\item \textbf{Limited by the disk}: \SIrange{68}{72}{\percent} of the serial floor; the next gain is in the disk queue (longer reads, or more reads in flight) and in the disk itself (\cref{ch:t2-discussion}).
+\end{enumerate}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{C6 crosses two sessions}: troncons and the swept baseline did not run in the same palindrome; the ratio carries a between-session noise the rule does not measure. The same session, in the trial, gave $\times 2.89$ against a weaker baseline.
+\item \textbf{The baseline may be better still}: neither more than 16 threads, nor \texttt{--mlock}, nor other values of \texttt{--n-cpu-moe} were swept. The $\times 2.22$ is a ratio to the best baseline \emph{measured}.
+\item \textbf{C4 on the 120b rests on one window} of 255 positions and on the prompt; one window is not ten. The numpy truth and lot R's reference read the same GGUF and the same reading of the model: a common convention error would pass (\cref{t2e-sec:faux}).
+\item \textbf{``f32 KV = truth''} is measured on one window of 512 tokens and one prompt of 708 (120b), one window of the 20b; not on the ten windows.
+\item \textbf{The cost of the guard} rests on one pair at equal disk ($-1.6\,\%$); the declared series says $-12.3\,\%$ under a threshold of \SI{26.8}{\percent} (noise \SI{11.9}{\percent}), not real either way.
+\item \textbf{The agreement with Volume~I} ($h = 0.591$ against \num{0.590} predicted) may be a coincidence of a scenario fitted on one point.
+\item \textbf{C12's text and the harmony conversation} are greedy: they show that the engine produces coherent text, not its quality; the judge is C4.
+\end{itemize}
+\end{faux}

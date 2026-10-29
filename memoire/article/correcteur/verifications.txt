@@ -1,0 +1,58 @@
+# Vérifications du correcteur de l'article, 2026-10-29 (outils du rédacteur et du juge, relancés tels quels)
+# bash memoire/article/construire-article.sh tout
+en : 14 pages ; paquet arXiv compilé seul (trois passes, sans bibtex) : 14 pages ; 0 erreur, 0 renvoi indéfini, 0 Rerun
+fr : 14 pages ; paquet arXiv compilé seul (trois passes, sans bibtex) : 14 pages ; 0 erreur, 0 renvoi indéfini, 0 Rerun
+en : boîtes trop pleines ou creuses : 0 ; BibTeX : warning$ -- 0
+fr : boîtes trop pleines ou creuses : 0 ; BibTeX : warning$ -- 0
+
+# parite_nombres.py
+nombres distincts : EN 287, FR 287 ; occurrences : EN 926, FR 926
+PARITÉ : tient
+code 0
+# parite_nombres.py --casser (témoin)
+  écart : 424242 — EN 0, FR 1
+PARITÉ : tombe (1 nombres)
+code 1
+
+# parite_structure.py (à lire en multiensemble : quatre écarts d'ordre des mots, les mêmes qu'au jugement)
+structure: EN 58, FR 58, suite égale : True
+citations: EN 33, FR 33, suite égale : True
+provenance: EN 32, FR 32, suite égale : True
+figures incluses: EN 5, FR 5, suite égale : True
+nombres dans l'ordre (hors fichiers et étiquettes) : EN 877, FR 877, suite égale : False
+    insert [] ['4060']
+    delete ['4060'] []
+    insert [] ['0.00308']
+    delete ['0.00308'] []
+    insert [] ['1.0']
+    delete ['1.0'] []
+    insert [] ['3.5']
+    delete ['3.5'] []
+\barre: EN 1, FR 1
+\textbf: EN 39, FR 39
+\emph: EN 10, FR 10
+PARITÉ : tombe
+code 1
+
+# refaire_chiffres.py (dernière ligne)
+156 chiffres sur 156 tiennent (présents dans EN et FR, égaux à leur recalcul).
+code 0
+
+# longueur_resume.py
+memoire/article/en/troncons-article.tex : LaTeX 1808, texte approché 1746, limite 1920 : sous la limite
+memoire/article/fr/troncons-article.tex : LaTeX 1875, texte approché 1805, limite 1920 : sous la limite
+
+# chemins_cites.py (les absents sont des noms courts relatifs au chemin cité juste avant, comme au jugement)
+ABSENT JUGEMENT.md  (trouvé sous : ['memoire\\tome2\\JUGEMENT.md', 'genome\\pistes\\spectres\\JUGEMENT.md', 'genome\\pistes\\tropicale\\JUGEMENT.md'])
+ABSENT j1-s2-verdicts.json  (trouvé sous : ['mesures\\genome\\construction\\codon\\j1-s2-verdicts.json'])
+ABSENT tables-octets.json  (trouvé sous : ['mesures\\genome\\construction\\codon\\tables-octets.json'])
+ABSENT tailles-par-tenseur.csv  (trouvé sous : ['mesures\\genome\\construction\\codon\\tailles-par-tenseur.csv'])
+absents : 4
+ABSENT JUGEMENT.md  (trouvé sous : ['memoire\\tome2\\JUGEMENT.md', 'genome\\pistes\\spectres\\JUGEMENT.md', 'genome\\pistes\\tropicale\\JUGEMENT.md'])
+ABSENT j1-s2-verdicts.json  (trouvé sous : ['mesures\\genome\\construction\\codon\\j1-s2-verdicts.json'])
+ABSENT tables-octets.json  (trouvé sous : ['mesures\\genome\\construction\\codon\\tables-octets.json'])
+ABSENT tailles-par-tenseur.csv  (trouvé sous : ['mesures\\genome\\construction\\codon\\tailles-par-tenseur.csv'])
+absents : 4
+
+# medianes_j1.py (témoin)
+code 0

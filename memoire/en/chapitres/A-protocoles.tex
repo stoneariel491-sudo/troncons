@@ -1,0 +1,47 @@
+\chapter{Measurement protocols}\label{ann:protocoles}
+
+This appendix gathers the rules that produced every \mes{} number of the thesis. They were written and committed \emph{before} the measurements they judge (\fichier{fondations/journaux/01-machine/00-seuils-declares.md}, committed at 01:35 on 2026-10-15, before the first run of the bench); none was adjusted afterwards.
+
+\section{The labels}
+
+Every number carries its provenance: \mes{} measured here, on Stone's machine, with a committed tool and log; \calc{} computed by a written formula and a committed tool; \litt{} literature (publisher's number, not reproduced). A number taken from a study keeps its label and its study number.
+
+\section{The witness, and its break}\label{sec:protocole-temoin}
+
+Every measurement has its witness: a case whose answer is known in advance. Every new witness must be able to fail: its condition is forced to false (option \texttt{--fausser} or \texttt{--casser} of the tool), the run is repeated, the instrument is checked to fall, then restored. Examples from the studies:
+\begin{itemize}
+\item \textbf{disk}: every 4\,KiB page carries its number; wrong pages must be zero, and all verified pages under \texttt{--fausser};
+\item \textbf{RAM}: the sum read must equal the known sum of the pattern; \texttt{--fausser} changes the expected value and must fail;
+\item \textbf{GPU}: host $\to$ device $\to$ host round trip byte for byte; matrix-vector product compared to a CPU reference (relative gap $\le 10^{-3}$ on 64 rows);
+\item \textbf{physical ceilings}: an unbuffered read above the NVMe link (7.877\,GB/s), a RAM read above one DDR5-5200 module (41.6\,GB/s) prove a read served by a cache, and make the instrument fall;
+\item \textbf{token equation}: three numbers published by other studies redone within 1\,\%; replacing the measured disk throughput by the link ceiling makes exactly the one that depends on it fall (\cref{tab:temoins-equation});
+\item \textbf{coders}: every stream decoded and compared byte for byte with the original; a falsified frequency table must make decoding inexact (\cref{sec:decision}).
+\end{itemize}
+
+\section{The threshold declared beforehand}
+
+A threshold is not set by eye: it derives from a named measured quantity, and it is declared before the run. Thus the quality budget $\kappa = 0.0055$ is the measured gap between two correct engines (\cref{def:probleme}); the threshold of measurement F1 (0.40\,\%) is the measured header cost of one more stream; the thermal throttling threshold (95\,\% of the initial throughput) is more than twice the expected noise of a repeated GEMV.
+
+\section{ABBA series and noise}\label{sec:protocole-abba}
+
+A cost is never based on a single pass. Every A/B comparison is measured in series A1 B1 B2 A2, repeated at least twice. The noise of a program against itself is $|A_1 - A_2|/\overline{A}$. A difference is declared real only if
+\[
+\frac{|\overline{A} - \overline{B}|}{\overline{A}} \;\ge\; 2 \max(\text{noise}_A, \text{noise}_B) \quad \text{and} \quad \ge 3\,\% .
+\]
+This rule declares ``within the noise'' the gap between IOCP and IoRing (\cref{ch:machine}) and between llama.cpp's expert cache and experts on the CPU for gpt-oss-20b (\cref{sec:premieres-mesures}).
+
+\section{The second path}
+
+Every published number we depend on is redone by an independent path. The disk throughput is redone by the cumulative system counter (\texttt{Win32\_PerfRawData\_PerfDisk\_PhysicalDisk}, sampled every 0.5\,s; unbuffered, the disk must have seen at least 90\,\% of the tool's bytes); the cost of BitLocker by the Windows cryptography API; the gpt-oss inventory by reading the local file header after the remote one; the architecture ceilings by an arbiter's tool that imports no one else's tool.
+
+\section{Power and the shared machine}\label{sec:protocole-alimentation}
+
+On battery, the machine changes regime (\cref{sec:batterie}). The power state is read at the start of each measurement with \texttt{Win32\_Battery.BatteryStatus} (2: mains; 1: battery) and logged; only measurements on mains power are retained as reference throughputs, the others are stated as such. Other agents were working on the same machine: each pass logs the foreign load (disk counters, \texttt{nvidia-smi}), and ``best'' throughputs are lower bounds of the idle machine.
+
+\section{The quality judge}\label{sec:protocole-qualite}
+
+The protocol of the model study (\cref{sec:protocole-jugement}): llama.cpp b11515 as is for the baseline; a fixed real text (the first 3{,}000 bytes of WikiText-2 test, SHA-256 recorded), 256 tokens, greedy decoding; tokens/s of prefill and generation, peak process memory (every 100\,ms), peak VRAM (every 250\,ms), bytes read from disk (integrated PDH counter, with 10\,s of rest to quantify the foreign load), checksum of the produced text. Quality is judged by the KL divergence against the baseline and the same-top-choice rate: instrument floor (same engine) 0.000055 at the 99.9th percentile; gap between two correct engines 0.0055 on average, 95.96\,\% same top choice.
+
+\section{The struck-out sentence}
+
+When a measurement contradicts a published number, even ours, the sentence is struck out in place (\barre{like this}) and what changed is stated; never a silent removal. \Cref{tab:barres} gathers those of the foundations.

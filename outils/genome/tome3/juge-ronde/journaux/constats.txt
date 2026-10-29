@@ -1,0 +1,79 @@
+== G1. III-7.1, règle appariée (égal si d ≤ 2σ ; meilleur si d + 2σ < 0)
+  mutation synonyme λ = 0, δ* = 1 : rapport 0.7266, d = -0.00985 ± 0.00334 (-2.95 σ) -> meilleur ; colonne verdict « gagne en KL ; +0,011 bit (ne bat pas au critère strict de débit) »
+  S* (10 fenêtres) : rapport 1.0176, d = +0.00036 ± 0.00186 (+0.20 σ) -> égal ; colonne verdict « égal en KL ; ne gagne pas »
+  partitions par κ, chaque tenseur à l'erreur de la base : rapport 1.1031, d = +0.00656 ± 0.00531 (+1.24 σ) -> égal ; colonne verdict « gagne : 0,911 × les bits, KL égale par la règle »
+  partitions par κ, erreur moyenne égale : rapport 1.2627, d = +0.01673 ± 0.00490 (+3.41 σ) -> tombe ; colonne verdict « tombe à la KL (+3,4 σ) »
+  hebbien (δ, ligne, colonne) : rapport 1.4287, d = +0.02729 ± 0.00395 (+6.91 σ) -> tombe ; colonne verdict « tombe à la KL »
+  hebbien par e (erreur d'expert égale à la base) : rapport 3.0588, d = +0.13102 ± 0.00720 (+18.19 σ) -> tombe ; colonne verdict « tombe à la KL (×3) »
+  hebbien (e, ligne, colonne) : rapport 3.0121, d = +0.12806 ± 0.00670 (+19.12 σ) -> tombe ; colonne verdict « tombe à la KL »
+  partitions par e (remplissage inverse des poids) : rapport 4.8543, pas de différence appariée ; colonne verdict « tombe à la KL (×5) »
+  élagage par activité de colonne (e, q) : rapport 4.2646, pas de différence appariée ; colonne verdict « tombe à la KL (×4) »
+== M1. III-3.4, rangées par point du balayage gaussien
+  l =  8 (2,1) fort  q =  8 Lloyd 0 : 64 rangées, 184320 poids
+  l = 10 (2,1) fort  q =  8 Lloyd 0 : 64 rangées, 184320 poids
+  l = 12 (2,1) fort  q =  8 Lloyd 0 : 64 rangées, 184320 poids
+  l = 14 (2,1) fort  q =  8 Lloyd 0 : 64 rangées, 184320 poids
+  l = 16 (2,1) fort  q =  8 Lloyd 0 : 64 rangées, 184320 poids
+  l = 12 (1,1) fort  q =  8 Lloyd 0 : 64 rangées, 184320 poids
+  l = 16 (1,1) fort  q =  8 Lloyd 0 : 32 rangées, 92160 poids
+  l = 12 (3,1) fort  q =  8 Lloyd 0 : 64 rangées, 184320 poids
+  l = 16 (3,1) fort  q =  8 Lloyd 0 : 32 rangées, 92160 poids
+  l = 12 (4,1) fort  q =  8 Lloyd 0 : 64 rangées, 184320 poids
+  l = 16 (4,1) fort  q =  8 Lloyd 0 : 32 rangées, 92160 poids
+  l = 12 (5,2) fort  q =  8 Lloyd 0 : 64 rangées, 184320 poids
+  l = 16 (5,2) fort  q =  8 Lloyd 0 : 32 rangées, 92160 poids
+  l = 12 (7,3) fort  q =  8 Lloyd 0 : 64 rangées, 184320 poids
+  l = 16 (7,3) fort  q =  8 Lloyd 0 : 32 rangées, 92160 poids
+  l = 12 (8,3) fort  q =  8 Lloyd 0 : 64 rangées, 184320 poids
+  l = 16 (8,3) fort  q =  8 Lloyd 0 : 32 rangées, 92160 poids
+  l = 12 (2,1) court q =  8 Lloyd 0 : 64 rangées, 184320 poids
+  l = 12 (2,1) fort  q =  8 Lloyd 3 : 64 rangées, 184320 poids
+  l = 12 (2,1) fort  q = 10 Lloyd 0 : 64 rangées, 184320 poids
+  l = 12 (2,1) fort  q =  6 Lloyd 0 : 64 rangées, 184320 poids
+== M3. III-4.2, scores et cos de down des candidats de même couche, par couche
+  couche  0 : 124 candidats, cos_down 0.232 / 0.249 / 0.305, score 0.0153 / 0.0180 / 0.0341 (min / médiane / max)
+  couche  8 : 124 candidats, cos_down 0.104 / 0.128 / 0.205, score 0.0041 / 0.0069 / 0.0251 (min / médiane / max)
+  couche 16 : 124 candidats, cos_down 0.088 / 0.109 / 0.189, score 0.0029 / 0.0042 / 0.0268 (min / médiane / max)
+  couche 23 : 124 candidats, cos_down 0.029 / 0.053 / 0.145, score 0.0026 / 0.0039 / 0.0425 (min / médiane / max)
+  témoin du hasard : couche 12, 2 paires, 0.001565 ; couche 23, 8 paires, 0.001559
+  score maximal 0.042503 : enfant (23, 0) parent (23, 22)
+== M4. III-4.8, degrés dans l'arbre de la couche 23
+  degré maximal 5 : experts [22, 29, 31] ; somme des arêtes : 22 0.1160, 29 0.0249, 31 0.3348
+  arête (17, 31) 0.08918 bit : longueur sur la page 0.46 cm (disques de 0,30 + 0,045 × degré cm)
+  arête (5, 31) 0.08874 bit : longueur sur la page 0.47 cm (disques de 0,30 + 0,045 × degré cm)
+  arête (15, 31) 0.07735 bit : longueur sur la page 0.82 cm (disques de 0,30 + 0,045 × degré cm)
+  arête (25, 31) 0.06866 bit : longueur sur la page 0.91 cm (disques de 0,30 + 0,045 × degré cm)
+== M5. III-7.1, experts de la passe λ = 1 et de P1
+  synonyme-lam1-damp1-e0_8_16_24.csv : 16 experts, par couche [(0, 4), (8, 4), (16, 4), (23, 4)], experts [0, 8, 16, 24]
+  synonyme-lam0-damp1.csv : 32 experts, par couche [(0, 8), (8, 8), (16, 8), (23, 8)], experts [0, 4, 8, 12, 16, 20, 24, 28]
+== M6. III-7.1, colonne contre codon en octets et contre demi-octets sans colonne
+  blk.0.ffn_gate_exps.weight   colonne − octet -0.141617 ; colonne − demi-octet -0.145400 ; demi-octet − octet +0.003783
+  blk.0.ffn_up_exps.weight     colonne − octet -0.123131 ; colonne − demi-octet -0.128135 ; demi-octet − octet +0.005004
+  blk.0.ffn_down_exps.weight   colonne − octet +0.004478 ; colonne − demi-octet +0.000614 ; demi-octet − octet +0.003864
+  blk.8.ffn_gate_exps.weight   colonne − octet -0.005048 ; colonne − demi-octet -0.009018 ; demi-octet − octet +0.003970
+  blk.8.ffn_up_exps.weight     colonne − octet -0.005094 ; colonne − demi-octet -0.008040 ; demi-octet − octet +0.002946
+  blk.8.ffn_down_exps.weight   colonne − octet +0.004355 ; colonne − demi-octet -0.000019 ; demi-octet − octet +0.004374
+  blk.16.ffn_gate_exps.weight  colonne − octet +0.003274 ; colonne − demi-octet -0.000591 ; demi-octet − octet +0.003865
+  blk.16.ffn_up_exps.weight    colonne − octet +0.003913 ; colonne − demi-octet -0.000608 ; demi-octet − octet +0.004521
+  blk.16.ffn_down_exps.weight  colonne − octet +0.003270 ; colonne − demi-octet -0.000224 ; demi-octet − octet +0.003494
+  blk.23.ffn_gate_exps.weight  colonne − octet -0.006058 ; colonne − demi-octet -0.010410 ; demi-octet − octet +0.004352
+  blk.23.ffn_up_exps.weight    colonne − octet -0.005872 ; colonne − demi-octet -0.008934 ; demi-octet − octet +0.003062
+  blk.23.ffn_down_exps.weight  colonne − octet +0.003744 ; colonne − demi-octet -0.000329 ; demi-octet − octet +0.004073
+== M9. III-7.3, la queue position par position
+  seuil 0.1 : base 151, synonyme 129, communes 89, base seule 62, synonyme seul 40
+  seuil 0.3 : base 53, synonyme 40, communes 17, base seule 36, synonyme seul 23
+  seuil 1.0 : base 9, synonyme 7, communes 6, base seule 3, synonyme seul 1
+  Spearman des 100 plus grandes (somme) -0.252 ; Spearman global +0.664
+  base > 0,3 : 53 positions, log10(syn/base) médiane -0.429, part sous la diagonale 0.962
+  synonyme > 0,3 : 40 positions, log10(syn/base) médiane +0.361, part sous la diagonale 0.375
+  base < 0,01 : 1376 positions, log10(syn/base) médiane -0.352, part sous la diagonale 0.791
+  base > 1 : 9 positions, log10(syn/base) médiane -0.031, part sous la diagonale 1.000
+  26 plus grandes de la base, par fenêtre : [(0, 1), (1, 5), (2, 1), (4, 1), (5, 8), (6, 3), (7, 4), (8, 2), (9, 1)]
+  part de la somme : 25 positions 0.3108, 26 positions 0.3162
+  26 plus grandes de la synonyme, par fenêtre : [(0, 6), (1, 3), (2, 4), (4, 1), (5, 7), (6, 2), (7, 2), (9, 1)]
+  part de la somme : 25 positions 0.3750, 26 positions 0.3812
+  KL < 1e-5 : base 0, synonyme 1 (dont négatives 1, min -6.877e-06)
+== M12. III-1.2, écart à la borne avec et sans le coût des échelles
+  corde (linéaire en D) 2.16831 bits ; interpolation en log D 2.16538 bits (le trait tracé)
+  rANS réel avec échelles 2.64411 -> écart 0.4758 ; H0 seul (05 § 1.1 : 2,6415) -> écart 0.4732
+== N2. III-4.8, témoin de la MDS : voir journaux/temoin-mds.csv (refaire.py)

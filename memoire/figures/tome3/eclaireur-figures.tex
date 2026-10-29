@@ -1,0 +1,230 @@
+% Figures des chapitres 1 et 2 du Tome III (la question du génome des poids ; l'éclaireur, où est le
+% bruit, où est la structure ; genome/00-etat-de-l-art.md, genome/01-eclaireur.md,
+% genome/etat-de-l-art-pour-le-memoire.md). Gardé par \ifdefined\GrapheEclBloc.
+% Données : \Racine/figures/tome3/donnees/eclaireur-*.csv, écrites par memoire/outils/tome3_eclaireur.py
+% depuis mesures/genome/etat-de-l-art/journaux/. Chaque nombre d'une légende ou d'une annotation se lit
+% dans eclaireur-nombres.csv par \eclNombre{cle} (aucun chiffre recopié à la main).
+% Styles préfixés « ecl ». Pour chaque figure <Nom> : \Graphe<Nom>, et par la convention du Tome III
+% (legende-tome3.tex) \Titre<Nom>, \Legende<Nom>, \Source<Nom> ; le chapitre écrit \LegendeFigure{<Nom>}.
+%
+% Second flux (2026-10-27) : couleurs du dictionnaire (palette-tome3.tex : le rouge ne dit que le signe ; la
+% base frontière en losange gris foncé) ; corps plancher \scriptsize ; D1, D2, D3, D4, D31 du juge de
+% design ; D3, D8, M12 du juge ronde. Les valeurs E2M1 de III-1.1 sont celles d'OCP ; la table doublée de
+% llama.cpp, que III-8.1 imprime, est écrite sous elles (D31) : les deux figures concordent.
+
+\ifdefined\GrapheEclBloc\else
+\input{\Racine/figures/tome3/legende-tome3}
+\newcommand{\EclDonnees}{\Racine/figures/tome3/donnees}
+
+% --- Les nombres des légendes, lus dans le CSV au chargement -----------------------------------------
+\pgfplotstableread[col sep=comma]{\EclDonnees/eclaireur-nombres.csv}\eclTableNombres
+\pgfplotstableforeachcolumnelement{cle}\of\eclTableNombres\as\eclCle{%
+  \pgfplotstablegetelem{\pgfplotstablerow}{valeur}\of\eclTableNombres
+  \expandafter\xdef\csname eclN@\eclCle\endcsname{\pgfplotsretval}}
+% \eclVal{cle} : la valeur brute (pour une coordonnée) ; \eclNombre[format]{cle} : imprimée à la langue.
+\newcommand{\eclVal}[1]{\ifcsname eclN@#1\endcsname\csname eclN@#1\endcsname\else
+  \PackageError{eclaireur-figures}{nombre inconnu : #1}{}0\fi}
+\NewDocumentCommand{\eclNombre}{O{}m}{\pgfmathprintnumber[#1]{\eclVal{#2}}}
+\NewDocumentCommand{\eclEntier}{m}{\pgfmathprintnumber[fixed, precision=0]{\eclVal{#1}}}
+
+\tikzset{
+  ecl octet/.style={draw=black!60, line width=0.4pt, minimum height=0.66cm, inner sep=0pt,
+    outer sep=0pt, anchor=south west},
+  ecl bit/.style={draw=black!55, line width=0.35pt, minimum width=0.55cm, minimum height=0.55cm,
+    inner sep=0pt, outer sep=0pt, anchor=south west, font=\sffamily\scriptsize},
+  ecl note/.style={t3 sans cesure, font=\sffamily\scriptsize, text=black!75, align=left},
+  ecl petit/.style={t3 sans cesure, font=\sffamily\scriptsize, text=black!60, inner sep=0.5pt},
+  ecl zoom/.style={draw=black!35, densely dotted, line width=0.5pt},
+  ecl accolade/.style={decorate, decoration={brace, amplitude=4pt}, draw=black!60, line width=0.5pt},
+  ecl code/.style={circle, draw=black!50, line width=0.4pt, fill=white, inner sep=0pt,
+    minimum size=0.42cm, font=\ttfamily\scriptsize},
+}
+
+% =====================================================================================================
+% III-1.1. Le bloc MXFP4 au bit près : 17 octets, l'échelle E8M0, 32 demi-octets E2M1.
+% Schéma (aucune mesure). Disposition lue dans llama.cpp (ggml-common.h, block_mxfp4 : d, qs[16]) et
+% dans la spécification OCP MX v1.0.
+\newcommand{\GrapheEclBloc}{%
+\begin{tikzpicture}[x=1cm, y=1cm]
+  % --- Rangée 1 : les 17 octets ---------------------------------------------------------------------
+  \node[ecl octet, minimum width=1.2cm, fill=Echelle!35] (e) at (0,0) {};
+  \node[font=\sffamily\scriptsize, align=center, inner sep=0pt] at (e.center) {$e$\\[-2pt]E8M0};
+  \foreach \j in {0,...,15}{%
+    \pgfmathsetmacro{\xo}{1.2+0.76*\j}%
+    \node[ecl octet, minimum width=0.76cm, fill=Code!14] (q\j) at (\xo,0) {};
+    \draw[black!35, line width=0.3pt] (\xo+0.38,0.06) -- (\xo+0.38,0.60);
+    \pgfmathtruncatemacro{\haut}{\j+16}%
+    \node[ecl petit, text=black!80] at (\xo+0.19,0.33) {\haut};
+    \node[ecl petit, text=black!80] at (\xo+0.57,0.33) {\j};
+    \pgfmathtruncatemacro{\no}{\j+1}%
+    \node[ecl petit, text=black!50, anchor=north] at (\xo+0.38,-0.02) {\no};
+  }
+  \node[ecl petit, text=black!50, anchor=north] at (0.6,-0.02) {\EF{byte}{octet} 0};
+  % Les deux accolades : l'étiquette de l'échelle au-dessus, celle des codes sur deux lignes, sans se
+  % toucher (D1 du juge de design, D3 du juge ronde).
+  \draw[ecl accolade] (0.02,0.76) -- (1.18,0.76) node[midway, above=5pt, ecl note, align=center]
+    {\EF{scale}{échelle}};
+  \draw[ecl accolade] (1.22,0.76) -- (13.34,0.76) node[midway, above=5pt, ecl note, align=center, text width=10.4cm]
+    {\texttt{qs[16]}\Dp{} \EF{32 E2M1 codes of 4 bits; byte $j$ holds code $j$ (low nibble) and code $j{+}16$ (high nibble)}%
+                          {32 codes E2M1 de 4 bits ; l'octet $j$ porte le code $j$ (demi-octet bas) et le code $j{+}16$ (demi-octet haut)}};
+  % --- Rangée 2, à gauche : l'octet d'échelle, bit à bit ---------------------------------------------
+  \begin{scope}[shift={(0,-1.95)}]
+    \foreach \b in {0,...,7}{%
+      \node[ecl bit, fill=Echelle!30] (eb\b) at (0.55*\b,0) {$e_{\the\numexpr7-\b\relax}$};}
+    \node[ecl note, anchor=north west] at (0,-0.08)
+      {\EF{exponent only, bias 127: $s = 2^{\,e-127}$}{exposant seul, biais 127 : $s = 2^{\,e-127}$}\\
+       \EF{$e = 255$: NaN (OCP MX); no sign, no mantissa}{$e = 255$ : NaN (OCP MX) ; ni signe, ni mantisse}};
+  \end{scope}
+  % Les traits du zoom partent sous les numéros d'octet (D2 du juge de design).
+  \draw[ecl zoom] (0,-0.36) -- (0,-1.40);
+  \draw[ecl zoom] (1.2,-0.36) -- (4.4,-1.40);
+  % --- Rangée 2, à droite : l'octet qs[9], bit à bit --------------------------------------------------
+  \begin{scope}[shift={(7.2,-1.95)}]
+    \foreach \b/\c/\t in {0/CouleurSigne/S,1/Expo/E_1,2/Expo/E_0,3/Mant/M,4/CouleurSigne/S,5/Expo/E_1,6/Expo/E_0,7/Mant/M}{%
+      \node[ecl bit, fill=\c!28] at (0.55*\b,0) {$\t$};
+      \node[ecl petit, text=black!45, anchor=south] at (0.55*\b+0.275,0.56) {\the\numexpr7-\b\relax};}
+    \draw[ecl accolade] (2.18,-0.06) -- (0.02,-0.06) node[midway, below=5pt, ecl note, align=center]
+      {$c_{25}$\\\EF{high nibble}{demi-octet haut}};
+    \draw[ecl accolade] (4.38,-0.06) -- (2.22,-0.06) node[midway, below=5pt, ecl note, align=center]
+      {$c_{9}$\\\EF{low nibble}{demi-octet bas}};
+  \end{scope}
+  \draw[ecl zoom] (8.04,-0.36) -- (7.2,-1.12);
+  \draw[ecl zoom] (8.80,-0.36) -- (11.6,-1.12);
+  \node[ecl note, anchor=west] at (11.75,-1.67) {\EF{byte}{octet} \texttt{qs[9]}};
+  % --- Rangée 3 : les seize codes E2M1 sur la droite des valeurs ------------------------------------
+  % Au-dessus de l'axe, les valeurs de la spécification OCP ; dessous, en gris, celles de la table doublée
+  % de llama.cpp (échelle divisée par deux, mêmes produits), que la roue de III-8.1 imprime.
+  \begin{scope}[shift={(6.68,-4.95)}, x=0.98cm]
+    \draw[black!60, line width=0.5pt, -{Stealth[length=2mm]}] (-6.5,0) -- (6.6,0);
+    % Les valeurs en décimales (une fraction en \scriptsize montait dans la rangée de llama.cpp).
+    \foreach \v/\c/\l/\g in {0.5/1/{\EF{0.5}{0{,}5}}/1,1/2/1/2,1.5/3/{\EF{1.5}{1{,}5}}/3,2/4/2/4,3/5/3/6,4/6/4/8,6/7/6/12}{%
+      \draw[black!60, line width=0.4pt] (\v,-0.08) -- (\v,0.08);
+      \draw[black!60, line width=0.4pt] (-\v,-0.08) -- (-\v,0.08);
+      \node[ecl petit, anchor=north, text=black!75] at (\v,-0.1) {$\l$};
+      \node[ecl petit, anchor=north, text=black!75] at (-\v,-0.1) {$-\l$};
+      \node[ecl petit, anchor=north, text=black!40] at (\v,-0.48) {$\g$};
+      \node[ecl petit, anchor=north, text=black!40] at (-\v,-0.48) {$-\g$};
+      \node[ecl code, fill=Code!12] at (\v,0.42) {\c};
+      \pgfmathtruncatemacro{\cm}{\c+8}%
+      \node[ecl code, fill=Code!12] at (-\v,0.42) {\ifcase\numexpr\cm-8\relax\or9\or A\or B\or C\or D\or E\or F\fi};
+    }
+    \draw[black!60, line width=0.4pt] (0,-0.08) -- (0,0.08);
+    \node[ecl petit, anchor=north, text=black!75] at (0,-0.1) {$0$};
+    \node[ecl petit, anchor=north, text=black!40] at (0,-0.48) {$0$};
+    \node[ecl petit, anchor=east, text=black!75] at (-6.55,-0.27) {OCP};
+    \node[ecl petit, anchor=east, text=black!40] at (-6.55,-0.65) {llama.cpp ${\times}2$};
+    \node[ecl code, fill=CouleurSigne!14, draw=CouleurSigne] (z0) at (0,0.42) {0};
+    \node[ecl code, fill=CouleurSigne!14, draw=CouleurSigne] (z8) at (0,0.90) {8};
+    \draw[CouleurSigne, line width=0.6pt, rounded corners=3pt] (-0.30,0.17) rectangle (0.30,1.15);
+    \node[t3 sans cesure, font=\sffamily\scriptsize, text=CouleurSigne!85!black, anchor=south, align=center] at (0,1.17)
+      {$+0$ \EF{and}{et} $-0$\Dp{} \EF{two codes, one value}{deux codes, une valeur}};
+    \node[ecl note, anchor=north west, text width=6.3cm] at (-6.5,-1.0)
+      {\EF{Code $c = S\,E_1E_0\,M$ (hexadecimal in the discs). Value: $(-1)^S\,2^{E-1}(1+M/2)$ if $E>0$, $(-1)^S\,M/2$ if $E = 0$; the step doubles with each binade.}%
+          {Code $c = S\,E_1E_0\,M$ (en hexadécimal dans les disques). Valeur : $(-1)^S\,2^{E-1}(1+M/2)$ si $E>0$, $(-1)^S\,M/2$ si $E = 0$ ; le pas double à chaque binade.}};
+    \node[ecl note, anchor=north west, text width=5.6cm] at (0.7,-1.0)
+      {$w_{32b+i} = 2^{\,e_b-127}\cdot \mathrm{E2M1}(c_i)$\\
+       \EF{$8 + 32 \times 4 = 136$ bits for 32 weights: $4.25$ bits per weight before any coding.}%
+          {$8 + 32 \times 4 = 136$ bits pour 32 poids : $4{,}25$ bits par poids avant tout codage.}};
+  \end{scope}
+\end{tikzpicture}}
+\Titre{EclBloc}{The MXFP4 block, bit by bit}{Le bloc MXFP4 au bit près}
+\Legende{EclBloc}{\schema}
+  {Thirty-two weights share one byte of scale; sixteen code patterns give fifteen values, because $+0$ and $-0$ are the same number.}
+  {Trente-deux poids partagent un octet d'échelle ; seize motifs de code donnent quinze valeurs, car $+0$ et $-0$ sont le même nombre.}
+  {The scale $e$ is an E8M0 byte (an exponent alone); sixteen bytes carry the codes, code $i$ in the low nibble of byte $i$ when $i < 16$, in the high nibble of byte $i-16$ otherwise. Each code is an E2M1 float: a sign, two exponent bits, one mantissa bit. Above the axis, the values of the OCP specification; below, in grey, those of the doubled table that llama.cpp uses ($\{0,1,2,3,4,6,8,12\}$ with the scale halved, the same products), which the wheel of codons in \cref{t3cod:ch} prints. The pair $+0$ (code 0), $-0$ (code 8) is the first synonym codon of \cref{t3cod:ch}. What the figure does not show: the order of the blocks in a tensor (row after row, 90 blocks per row of 2\,880 weights).}
+  {L'échelle $e$ est un octet E8M0 (un exposant seul) ; seize octets portent les codes, le code $i$ dans le demi-octet bas de l'octet $i$ si $i < 16$, dans le demi-octet haut de l'octet $i-16$ sinon. Chaque code est un flottant E2M1 : un signe, deux bits d'exposant, un bit de mantisse. Au-dessus de l'axe, les valeurs de la spécification OCP ; dessous, en gris, celles de la table doublée de llama.cpp ($\{0,1,2,3,4,6,8,12\}$, échelle divisée par deux, mêmes produits), que la roue des codons du \cref{t3cod:ch} imprime. La paire $+0$ (code 0), $-0$ (code 8) est le premier codon synonyme du \cref{t3cod:ch}. Ce que la figure ne montre pas : l'ordre des blocs dans un tenseur (rangée après rangée, 90 blocs par rangée de 2\,880 poids).}
+\Source{EclBloc}{\EF{OCP Microscaling Formats (MX) v1.0 specification; llama.cpp, \texttt{ggml-common.h} (\texttt{block\_mxfp4}).}%
+                {spécification OCP Microscaling Formats (MX) v1.0 ; llama.cpp, \texttt{ggml-common.h} (\texttt{block\_mxfp4}).}}
+
+% =====================================================================================================
+% III-1.2. La borne distorsion-débit d'un codeur sans mémoire dans le domaine des poids.
+\newcommand{\GrapheEclBorne}{%
+\begin{tikzpicture}
+\begin{axis}[t3 graphe, t3 points, width=0.94\linewidth, height=8.6cm, xmode=log, minor tick length=0pt,
+  xmin=1e-4, xmax=40, ymin=1.7, ymax=3.95,
+  xlabel={\EF{relative weight distortion $D$ (\%, log scale)}{distorsion relative des poids $D$ (\%, échelle log)}},
+  ylabel={\EF{bits per weight}{bits par poids}},
+  ytick={1.8,2.0,...,3.8}, t3 decimales y=1,
+  legend pos=south west]
+% L'asymptote : le débit sans perte de la source v (±0 fusionnés).
+\addplot[black!40, dashed, line width=0.6pt, domain=1e-4:40, samples=2, forget plot] {\eclVal{H-v}};
+\node[t3 etiquette, text=black!65, anchor=south west] at (axis cs:1.3e-4,\eclVal{H-v})
+  {$H(V) = \eclNombre[fixed, precision=4]{H-v}$ \EF{bits: lossless, $\pm0$ merged}{bits : sans perte, $\pm0$ fusionnés}};
+% La courbe et ses points (la borne : un calcul, à l'encre).
+\addplot[Encre!45, line width=0.8pt, forget plot] table[x=d_pct, y=bits] {\EclDonnees/eclaireur-borne-rd.csv};
+\addplot[only marks, mark=*, mark size=1.7pt, mark options={solid, fill=Encre, draw=Encre}]
+  table[x=d_pct, y=bits] {\EclDonnees/eclaireur-borne-converge.csv};
+\addlegendentry{\EF{Blahut--Arimoto, converged}{Blahut-Arimoto, convergé}}
+\addplot[only marks, mark=*, mark size=1.8pt, mark options={solid, fill=white, draw=Encre, line width=0.6pt}]
+  table[x=d_pct, y=bits] {\EclDonnees/eclaireur-borne-nonconv.csv};
+\addlegendentry{\EF{not converged (still an upper bound)}{non convergé (borne supérieure quand même)}}
+% Les deux écarts, par les cordes (partage du temps entre deux points atteignables).
+\coordinate (eclF) at (axis cs:\eclVal{frontiere-d-pct},\eclVal{frontiere-bits});
+\coordinate (eclB) at (axis cs:\eclVal{frontiere-d-pct},\eclVal{corde-bits-a-d});
+\coordinate (eclD) at (axis cs:\eclVal{corde-d-pct-a-r},\eclVal{frontiere-bits});
+\draw[-{Stealth[length=2.2mm]}, Encre, line width=0.7pt, shorten <=4pt, shorten >=1.5pt] (eclF) -- (eclB);
+\draw[-{Stealth[length=2.2mm]}, Encre, line width=0.7pt, shorten <=4pt, shorten >=1.5pt] (eclF) -- (eclD);
+\fill[Encre] (eclB) circle[radius=1.4pt];
+\fill[Encre] (eclD) circle[radius=1.4pt];
+\node[t3 etiquette, anchor=west, align=left] at (axis cs:5.2,2.33)
+  {$-\eclNombre[fixed, precision=2]{ecart-bits}$ bit\\\EF{at equal error}{à erreur égale}};
+\node[t3 etiquette, anchor=south west, align=left] at (axis cs:5.2,2.70)
+  {\EF{error}{erreur} $\times\,\eclNombre[fixed, precision=2]{part-erreur}$\\\EF{at equal rate}{à débit égal}};
+% La frontière et la même base sur code canonique (losange gris foncé : la base frontière).
+\addplot[only marks, t3 frontiere point, mark size=3.4pt] coordinates {(\eclVal{frontiere-d-pct},\eclVal{frontiere-bits})};
+\addlegendentry{\EF{frontier base (F1, real rANS)}{base frontière (F1, rANS réel)}}
+\addplot[only marks, mark=diamond*, mark size=3.4pt, mark options={solid, fill=white, draw=CouleurFrontiereMarque, line width=0.7pt}]
+  coordinates {(\eclVal{frontiere-d-pct},\eclVal{canonique-bits})};
+\addlegendentry{\EF{same base, canonical code}{même base, code canonique}}
+\end{axis}
+\end{tikzpicture}}
+\Titre{EclBorne}{The frontier base against the distortion--rate bound}{La base frontière contre la borne distorsion-débit}
+\Legende{EclBorne}{\calc}
+  {The gap between the frontier base and the distortion--rate bound of a memoryless coder lies in the shape of the quantiser, not in a structure of the weights.}
+  {L'écart de la base frontière à la borne distorsion-débit d'un codeur sans mémoire est dans la forme du quantificateur, pas dans une structure des poids.}
+  {The source is the 15-valued code $v$ (with $\pm0$ merged) scaled by its block's E8M0, one quantiser for every block (the frontier's own constraint). Each Blahut--Arimoto iterate is an achievable point, converged or not, because $\sum p\,Q\log(Q/q) = I(V;\hat Y) + D(\text{marginal}\,\|\,q) \ge R(D)$; the curve is therefore an upper bound on $R(D)$. This reading was set after the third pass; the rule declared before it published converged points only. Between $\eclNombre[fixed, precision=1]{nonconv-bits-min}$ and $\eclNombre[fixed, precision=1]{nonconv-bits-max}$ bits, \eclEntier{points-nonconverges} of the \eclEntier{points-uniformes} iterates did not reach the declared tolerance: hollow marks. The chords between two points are achievable by time sharing. At the frontier's error ($\eclNombre[fixed, precision=2]{frontiere-d-pct}$\EF{\%}{\,\%}), the bound is at most $\eclNombre[fixed, precision=2]{corde-bits-a-d}$ bits, $\eclNombre[fixed, precision=3]{ecart-bits}$ bit below the frontier ($\eclNombre[fixed, precision=4]{frontiere-bits}$ bits, real rANS); at its rate, the distortion is at most $\eclNombre[fixed, precision=2]{corde-d-pct-a-r}$\EF{\%}{\,\%}. The bound is that of codes \emph{knowing the scale}: the scales are not counted in it, while the frontier's bits count them (with its context $\kappa$). On the experts of the $\lambda = 1$ protocol (\eclEntier{h0-experts} experts), the scales cost $\eclNombre[fixed, precision=4]{echelles-bits}$ bit per weight and the symbols alone $H_0 = \eclNombre[fixed, precision=4]{h0-bits}$ bits; against that $H_0$, the gap is $\eclNombre[fixed, precision=3]{ecart-bits-h0}$ bit instead of $\eclNombre[fixed, precision=3]{ecart-bits}$, and the conclusion does not change. What the figure does not show: an allocation that gives more rate to the heavy blocks (computed outside its domain, not published), and any output or KL error: this metric is not a judge (\cref{t3syn:ch}).}
+  {La source est le code $v$ à 15 valeurs ($\pm0$ fusionnés) multiplié par l'E8M0 de son bloc, un seul quantificateur pour tous les blocs (la contrainte même de la frontière). Chaque itéré de Blahut-Arimoto est un point atteignable, convergé ou non, car $\sum p\,Q\log(Q/q) = I(V;\hat Y) + D(\text{marge}\,\|\,q) \ge R(D)$ : la courbe est donc une borne supérieure de $R(D)$. Cette lecture a été posée après la troisième passe ; la règle déclarée avant elle ne publiait que des points convergés. Entre $\eclNombre[fixed, precision=1]{nonconv-bits-min}$ et $\eclNombre[fixed, precision=1]{nonconv-bits-max}$ bits, \eclEntier{points-nonconverges} des \eclEntier{points-uniformes} itérés n'ont pas atteint la tolérance déclarée : marques creuses. Les cordes entre deux points sont atteignables par partage du temps. À l'erreur de la frontière ($\eclNombre[fixed, precision=2]{frontiere-d-pct}$\EF{\%}{\,\%}), la borne vaut au plus $\eclNombre[fixed, precision=2]{corde-bits-a-d}$ bits, $\eclNombre[fixed, precision=3]{ecart-bits}$ bit sous la frontière ($\eclNombre[fixed, precision=4]{frontiere-bits}$ bits, rANS réel) ; à son débit, la distorsion vaut au plus $\eclNombre[fixed, precision=2]{corde-d-pct-a-r}$\EF{\%}{\,\%}. La borne est celle des codes \emph{sachant l'échelle} : les échelles n'y sont pas comptées, alors que les bits de la frontière les comptent (avec son contexte $\kappa$). Sur les experts du protocole de $\lambda = 1$ (\eclEntier{h0-experts} experts), les échelles coûtent $\eclNombre[fixed, precision=4]{echelles-bits}$ bit par poids et les symboles seuls $H_0 = \eclNombre[fixed, precision=4]{h0-bits}$ bits ; contre ce $H_0$, l'écart vaut $\eclNombre[fixed, precision=3]{ecart-bits-h0}$ bit au lieu de $\eclNombre[fixed, precision=3]{ecart-bits}$, et la conclusion ne change pas. Ce que la figure ne montre pas : une allocation qui donne plus de débit aux blocs lourds (calculée hors de son domaine, non publiée), ni aucune erreur de sortie ou de KL : cette métrique n'est pas un juge (\cref{t3syn:ch}).}
+\Source{EclBorne}{\fichier{mesures/genome/etat-de-l-art/journaux/borne-rd.json} (\texttt{uniforme\_precis}), \fichier{zero-temoin-sans-drapeau.json}, \fichier{zero-canonique.json}, \fichier{mesures/genome/etat-de-l-art/passes/frontiere-lam0-damp0.01-e0_8_16_24.json}\Pv{} \EF{script}{script} \fichier{memoire/outils/tome3_eclaireur.py}.}
+
+% =====================================================================================================
+% III-2.1. Le signe des zéros, tenseur par tenseur : ce qu'il coûte, ce qu'il porte.
+% gate, up, down : trois gris (troisième passe, GD1 du juge de design : la figure dit « plat sauf la couche 0 »,
+% pas « gate contre down » ; le bleu de la catégorie A n'y désignait rien de plus). L'ordre des barres et la
+% clé les nomment ; l'encre, black!55 et black!30 se séparent en gris.
+\newcommand{\EclZeros}[4]{% #1 modèle (20b, 120b), #2 couche maximale, #3 largeur des barres, #4 lettre du panneau
+\nextgroupplot[xmin=-0.8, xmax=#2+0.8, ybar=0pt, bar width=#3, t3 barres, set layers,
+  title={(#4) gpt-oss-#1\Dp{} \eclEntier{#1-tenseurs} \EF{tensors}{tenseurs}, \eclEntier{#1-poids} \EF{weights}{poids}}]
+\addplot[fill=Encre, draw=none] table[x=couche, y=gate] {\EclDonnees/eclaireur-zeros-#1.csv};
+\addplot[fill=black!55, draw=none] table[x=couche, y=up] {\EclDonnees/eclaireur-zeros-#1.csv};
+\addplot[fill=black!30, draw=none] table[x=couche, y=down] {\EclDonnees/eclaireur-zeros-#1.csv};
+% La ligne du modèle entier est tracée sous les barres (calque de fond) : aucun sommet de barre n'est caché
+% (GJ1 du juge de la troisième passe : le halo blanc tracé par-dessus en cachait 37).
+\begin{pgfonlayer}{axis background}
+\draw[CouleurSeuil, dashed, line width=0.6pt] (axis cs:-0.8,\eclVal{#1-cout}) -- (axis cs:#2+0.8,\eclVal{#1-cout});
+\end{pgfonlayer}
+\path (axis cs:-0.8,\eclVal{#1-cout}) -- (axis cs:#2+0.8,\eclVal{#1-cout})
+  node[pos=0.99, above left, t3 etiquette]
+  {\EF{whole model}{tout le modèle}\Dp{} $\eclNombre[fixed, precision=4]{#1-cout}$ bit/\EF{weight}{poids}};
+\node[t3 note, anchor=north east, align=right] at (rel axis cs:0.99,0.97)
+  {$H(\text{\EF{sign}{signe}} \mid \text{\EF{zero}{zéro}}) \ge \eclNombre[fixed, precision=9]{#1-H-signe-min}$ bit \EF{in every tensor}{dans chaque tenseur}};
+}
+\newcommand{\GrapheEclZeros}{%
+\begin{tikzpicture}
+\begin{groupplot}[t3 graphe, group style={group size=1 by 2, vertical sep=2.0cm},
+  width=0.98\linewidth, height=5.0cm, ymin=0, ymax=0.27, ytick={0,0.05,...,0.25}, t3 decimales y=2,
+  ylabel={\EF{bit per weight}{bit par poids}}, xlabel={\EF{layer}{couche}},
+  enlarge x limits=false, grid=none, ymajorgrids,
+  legend style={at={(0.01,0.97)}, anchor=north west}, legend columns=3]
+\EclZeros{20b}{23}{2.6pt}{a}
+\legend{gate, up, down}
+\EclZeros{120b}{35}{1.7pt}{b}
+\end{groupplot}
+\end{tikzpicture}}
+\Titre{EclZeros}{The sign of the zeros, tensor by tensor}{Le signe des zéros, tenseur par tenseur}
+\Legende{EclZeros}{\mes}
+  {The sign of the zeros is a fair coin that costs an eighth of a bit.}
+  {Le signe des zéros est une pièce équilibrée qui coûte un huitième de bit.}
+  {For each expert tensor, the gap $H(\text{code}) - H(\text{value})$, from exact counts of $+0$ (code 0) and $-0$ (code 8): what a lossless coder pays to keep a sign that the computation never sees ($K[8] = -0 = K[0]$). Over gpt-oss-20b the zeros are $\eclNombre[fixed, fixed zerofill, precision=4]{20b-p-plus}$\EF{\%}{\,\%} $+0$ and $\eclNombre[fixed, fixed zerofill, precision=4]{20b-p-moins}$\EF{\%}{\,\%} $-0$ of the weights, and $H(\text{sign}\mid\text{zero}) = \eclNombre[fixed, precision=10]{20b-H-signe}$ bit; per tensor the gap goes from $\eclNombre[fixed, precision=3]{20b-cout-min}$ to $\eclNombre[fixed, precision=3]{20b-cout-max}$ bit (20b) and from $\eclNombre[fixed, precision=3]{120b-cout-min}$ to $\eclNombre[fixed, precision=3]{120b-cout-max}$ (120b), highest in layer 0. No block has its 32 codes at zero (\eclEntier{20b-blocs-nuls} of \eclEntier{20b-blocs}; \eclEntier{120b-blocs-nuls} of \eclEntier{120b-blocs}): the scale is never a synonym. What the figure does not show: the attention and router tensors (not MXFP4), and the coded rate once $-0$ is merged (\cref{t3cod:ch}).}
+  {Pour chaque tenseur d'experts, l'écart $H(\text{code}) - H(\text{valeur})$, tiré des comptes exacts des $+0$ (code 0) et des $-0$ (code 8) : ce qu'un codeur sans perte paie pour garder un signe que le calcul ne voit jamais ($K[8] = -0 = K[0]$). Sur gpt-oss-20b, les zéros font $\eclNombre[fixed, fixed zerofill, precision=4]{20b-p-plus}$\EF{\%}{\,\%} de $+0$ et $\eclNombre[fixed, fixed zerofill, precision=4]{20b-p-moins}$\EF{\%}{\,\%} de $-0$ parmi les poids, et $H(\text{signe}\mid\text{zéro}) = \eclNombre[fixed, precision=10]{20b-H-signe}$ bit ; par tenseur, l'écart va de $\eclNombre[fixed, precision=3]{20b-cout-min}$ à $\eclNombre[fixed, precision=3]{20b-cout-max}$ bit (20b) et de $\eclNombre[fixed, precision=3]{120b-cout-min}$ à $\eclNombre[fixed, precision=3]{120b-cout-max}$ (120b), au plus haut à la couche 0. Aucun bloc n'a ses 32 codes nuls (\eclEntier{20b-blocs-nuls} sur \eclEntier{20b-blocs} ; \eclEntier{120b-blocs-nuls} sur \eclEntier{120b-blocs}) : l'échelle n'est jamais un synonyme. Ce que la figure ne montre pas : les tenseurs d'attention et du routeur (hors MXFP4), ni le débit codé une fois $-0$ fondu (\cref{t3cod:ch}).}
+\Source{EclZeros}{\fichier{mesures/genome/etat-de-l-art/journaux/zero-compte-20b.json}, \fichier{zero-compte-120b.json} (\texttt{par\_tenseur})\Pv{} \EF{script}{script} \fichier{memoire/outils/tome3_eclaireur.py}.}
+\fi

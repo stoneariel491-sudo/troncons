@@ -1,0 +1,63 @@
+% Tome~II, introduction (rédacteur « résultats »). D'où l'on part : le Tome~I ; où l'on va.
+% Les chiffres du Tome~I viennent de son résumé et de ses chapitres (memoire/commun/resumes.tex,
+% memoire/fr/chapitres/) ; ceux du Tome~II, des chapitres 7 et 8 de ce tome.
+
+\chapter{Introduction : du calcul au programme}\label{ch:t2-intro}
+
+\begin{origine}
+\textbf{Au départ}, le Tome~I : une machine mesurée étage par étage, un toit démontré, quatre leviers mesurés, une équation du jeton, trois architectures calculées et une décision, construire d'abord l'architecture exacte dans un format qui prépare la contribution. Aucun programme ne tournait.
+\textbf{Ce tome établit} le programme, troncons, construit par une équipe de cinq lots ; son format, son chemin des octets, ses noyaux, sa référence, son cache et son moteur, chacun avec ses démonstrations et ses bancs ; les résultats de son premier jalon sur gpt-oss-120b ; l'épreuve qu'un juge indépendant lui a fait passer, et la ronde de corrections qui a suivi.
+\textbf{Il reste} la contribution de recherche (la découpe base + complément, jalon J2), le disque non chiffré, l'étude du génome des poids et la porte pour relais (\cref{ch:t2-discussion}).
+\end{origine}
+
+\section{La mission, et ce que Stone a demandé pour ce tome}\label{t2i-sec:mission}
+
+La mission a été écrite par Stone le 15 octobre 2026, et le Tome~I la cite en entier. Elle demande « une vrai solution pour prendre un modele ultra lourd quelcoque d'une ai le faire tourner proprement sans ram ni rien », puis : « je ne veux pas que des recherches déja existante je veux que tu fasse une vrai recherche de spécialiste puis tu implémente la solution fonctionnelle avec une team d'ingénieur ». Le Tome~I était la recherche ; ce tome est l'implémentation. Stone a demandé qu'elle soit écrite avec la même exigence :
+
+\begin{quote}\itshape
+pareil tout ce que l'équipe fera calcul et tout ça on fera un mémoire comme l'autre architectuew areucture genre vraiment comme un projet de recherche c'est dailleur le cas mais vraiment calcul theorie et tout
+\end{quote}
+
+et il avait fixé la barre le même jour : « des shemas des explications des commentaires he veux que ce soit légendaire ce projet ». Ce tome suit donc la forme du premier : chaque chapitre dit d'où il part, ce qu'il établit et ce qui reste ; chaque structure est donnée au bit près, chaque calcul posé pas à pas, chaque mesure tracée depuis ses données commitées ; chaque chapitre se ferme sur ce qui pourrait être faux.
+
+\section{D'où l'on part : le Tome~I}\label{t2i-sec:tome1}
+
+\paragraph{La machine.} Un portable ordinaire : processeur i7-13620H, \SI{16}{\Go} de RAM sur un seul module, carte RTX~4060 Laptop de \SI{8}{\Go}, disque NVMe de 1\,To chiffré par BitLocker. Le Tome~I en a mesuré chaque étage avec des outils écrits pour cela, chacun avec un témoin qu'on a forcé à échouer : le disque livre \SI{2.82}{\Go\per\second}, \SI{47}{\percent} de son annonce, parce que le volume est chiffré et passe par Intel RST VMD ; le lien hôte-carte \SI{12.2}{\Go\per\second} ; la mémoire de la carte \SI{251.3}{\Go\per\second}.
+
+\paragraph{Le toit.} De ces débits, le Tome~I a démontré la borne d'une chaîne d'étages : le temps d'un jeton est au moins $\max_i O_i / W_i$, où $W_i$ est le débit de l'étage $i$ et $O_i$ les octets qu'un jeton doit lui faire traverser. Si la carte décompresse, la compression ne devient jamais inutile ; si le processeur décompresse, elle l'est au-delà d'un facteur $r^\star = 4{,}33$.
+
+\paragraph{Les leviers.} La quantification extrême (un treillis à 2 bits à \num{90}\,\% du chemin entre le scalaire optimal et la borne de Shannon) ; le codage sans perte (les échelles du MXFP4 codées par la médiane de leur ligne, un taux de \num{1.1026} sur les experts de gpt-oss-120b, un décodeur rANS démontré exact à \SI{82}{\Go\per\second} sous CUDA) ; le chargement à la demande, où le succès du cache décide de tout ; la spéculation, qui ne paie que sous une réutilisation des experts que le routage indépendant ne donne pas.
+
+\paragraph{L'équation, et la décision.} Une seule équation, le temps d'un jeton d'un mélange d'experts servi par la carte, contient les quatre leviers ; ses élasticités démontrées disent que sur cette machine le disque tient le maximum, et que des noyaux plus rapides rapporteraient moins de \SI{2}{\percent}. Trois architectures y ont été calculées : A, exacte ; B, qui sert une base sans son complément là où l'octet est cher, mécanisme neuf ; C, qui lit moins souvent. Après le débat de deux partisans, l'arbitre a décidé de construire A d'abord, en Rust avec des noyaux CUDA, dans un format qui prépare B (\fichier{decisions/ARCHITECTURE.md}). C'est là que ce tome commence.
+
+\section{La question de ce tome}\label{t2i-sec:question}
+
+\begin{center}
+\begin{tcolorbox}[enhanced, width=0.92\linewidth, colback=Fond, colframe=Accent, boxrule=0.6pt, arc=1pt]
+\emph{Le programme fait-il ce que le calcul promettait : servir un modèle plusieurs fois plus gros que toute la mémoire de la machine, exactement, dans une fenêtre de mémoire qui ne dépend pas de sa taille, plus vite que la meilleure base mesurée ; et un juge qui ne l'a pas écrit le confirme-t-il ?}
+\end{tcolorbox}
+\end{center}
+
+La question se juge sur douze critères, déclarés le 15 octobre 2026 avant la première ligne de code, chacun avec un seuil dérivé d'une grandeur nommée (\fichier{decisions/ARCHITECTURE.md}, § 7). La réponse est au \cref{ch:t2-resultats} ; l'épreuve, au \cref{ch:t2-epreuve}.
+
+\section{Ce que ce tome apporte}\label{t2i-sec:apports}
+
+\begin{enumerate}
+\item \textbf{Un programme qui marche} : troncons fait tourner gpt-oss-120b (\SI{63.4}{\Go}, quatre fois la RAM et huit fois la mémoire de la carte) sur la machine de Stone, avec \SI{384}{\Mo} de mémoire de pointe, la même à \SI{3.7}{\Mo} près que pour un modèle cinq fois plus petit.
+\item \textbf{Un format autonome au bit près}, \texttt{.trc}, un tronçon par expert, des flux rangés par niveau de raffinement pour accueillir B sans rien coûter à A, et un troisième décodeur, écrit par le juge depuis la seule spécification, qui le redonne au bit près.
+\item \textbf{L'exactitude, démontrée et mesurée} : logits identiques au bit entre le fichier codé et le fichier brut sur \num{5120} pas, d'une construction et d'un ordre de calcul à l'autre.
+\item \textbf{La vitesse} : \num{1.965} jeton par seconde garde comprise, \num{2.22} fois la meilleure base llama.cpp mesurée, et un préremplissage par flux sept fois plus rapide ; deux rapports antérieurs, $\times 3{,}85$ puis $\times 2{,}79$, barrés à leur place parce que la base était mal réglée.
+\item \textbf{La justesse, contre les mathématiques exactes du modèle}, par une référence en double précision confirmée par un troisième calcul indépendant à l'arrondi près ; et la mesure que l'arrondi f16 du cache KV portait tout l'écart du moteur à la vérité.
+\item \textbf{Une garde d'intégrité de production} qui rend toute corruption d'un tronçon lu en erreur fatale nommée, démontrée, pour \SI{1.6}{\percent} de vitesse à disque égal.
+\item \textbf{Une épreuve indépendante et une ronde de corrections} : deux défauts graves et cinq moyens trouvés par un juge, corrigés ou mesurés en une matinée, chacun avec un témoin qui tombe sur l'ancien binaire.
+\end{enumerate}
+
+\section{La méthode}\label{t2i-sec:methode}
+
+Les règles sont celles du Tome~I : chaque mesure a son témoin, et tout témoin neuf doit pouvoir échouer ; un seuil dérive d'une grandeur nommée et se déclare avant la mesure, par un commit daté ; un coût se juge en séries ABBA, avec l'écart d'un programme à lui-même comme bruit ; tout chiffre dont on dépend se refait par un second chemin ; une phrase démentie par une mesure se barre, et l'on dit ce qui a changé. Ce tome en ajoute trois. \emph{Les coutures gelées} : les interfaces entre les lots sont fixées par écrit avant la construction, et ne changent que par une décision de l'arbitre. \emph{L'épreuve indépendante} : un agent qui n'a écrit ni la spécification ni le code refait les chiffres avec ses propres outils. \emph{Le second chemin des chiffres du mémoire} : les nombres des chapitres de résultats sont recalculés depuis les passes elles-mêmes par un outil commité (\fichier{memoire/outils/tome2\_resultats.py}), qui s'arrête en erreur au premier écart avec un chiffre publié.
+
+Chaque nombre porte sa provenance : \mes{} mesuré ici, par un outil et un journal commités ; \calc{} calculé à partir de nombres nommés ; \litt{} littérature, non reproduite.
+
+\section{Plan du tome}\label{t2i-sec:plan}
+
+Le tome suit le chemin d'un octet, du programme au résultat. \Cref{t2arch:ch} donne l'architecture et la structure du programme : les exigences, la langue et les noyaux, l'espace de travail, les lots et leurs coutures. \Cref{t2fmt:ch} donne le format \texttt{.trc} au bit près, section par section, et la reconstruction exacte d'un expert. \Cref{ch:t2-chemin} suit le chemin des octets, du disque à la mémoire de la carte, par la lecture sans tampon et la mémoire épinglée. \Cref{ch:t2-noyaux} décrit les noyaux sur la carte, le décodeur rANS à table par voie et la passe avant de gpt-oss, avec la preuve de leur exactitude et de leur déterminisme. \Cref{ch:t2-reference} pose la référence exacte en double précision et la théorie du juge. \Cref{ch:t2-cache} décrit le cache d'experts, l'ordonnanceur et le moteur, avec la théorie du cache. Les trois derniers chapitres jugent : \cref{ch:t2-resultats} donne les résultats du jalon J1, \cref{ch:t2-epreuve} l'épreuve indépendante et la ronde de corrections, \cref{ch:t2-discussion} la discussion, les limites et les travaux futurs, avant la conclusion.

@@ -1,0 +1,126 @@
+\chapter{State of the art}\label{ch:etat}
+
+\begin{origine}
+This chapter gathers, as of 15 October 2026, what the world knows how to do to run a model larger than memory. Each family is read at its primary source (paper, official repository at a named commit, release notes) and judged by the same rule: the bytes a token must read, divided by the throughput of the stage that serves them. Details, measurements and complete numbers are in the chapters of the second part; here we say what exists, what each family gains, what it costs, and what is missing for Stone's machine.
+\end{origine}
+
+\begin{figure}[ht]
+\centering
+\resizebox{\linewidth}{!}{\SchemaChronologie}
+\caption[Timeline of the works, by family]{The works cited in this chapter, by family and by date of first public version (date of the bibliography entry). Four families have matured in parallel since 2023; none targets a 16\,GB Windows laptop reading its weights from an encrypted disk. The theoretical roots are much older.}
+\label{fig:chronologie}
+\sourcefig{\fichier{memoire/sources/*.bib} (dates), \fichier{memoire/figures/schemas/etat.tex}.}
+\end{figure}
+
+\section{The memory wall, at batch size one}\label{sec:mur}
+
+A decoded token, at batch size one, multiplies each weight matrix by a single vector: each weight is read once and serves two operations. The arithmetic intensity, about two operations per weight read, is far below what the card can compute per byte (about 50 operations per byte of VRAM on the RTX~4060, \cref{sec:carte}): decoding is memory-bound. It is the classical reading of the roofline model of Williams, Waterman and Patterson~\cite{williams2009roofline}, which bounds performance by the minimum of compute and of intensity $\times$ throughput. This thesis extends the idea to a hierarchy of stages (disk, RAM, link, VRAM) crossed at every token (\cref{thm:toit}): when the model does not fit in VRAM, the bounding stage is no longer the VRAM but the link or the disk, 20 to 90 times slower.
+
+\section{The working window: an idea from 1968}\label{sec:etat-fenetre}
+
+Stone's picture, an AI that ``occupies space only when active'', has had a name in computer science for more than half a century. Denning~\cite{denning1968workingset} defines the \emph{working set} of a program at time $t$ as the set of pages it referenced in the window $(t - \tau, t]$,
+\[
+W(t, \tau) = \{\, \text{pages referenced between } t - \tau \text{ and } t \,\},
+\]
+and holds that the memory to give a program is that of its working set, the rest being free to sleep on disk. Two years earlier Belady~\cite{belady1966} had shown which replacement policy is optimal when the future is known: evict the page whose next use is farthest away. These two results bound everything \cref{ch:chargement} measures: the bounded-window execution of \cref{def:fenetre} is the working-set property applied to weights, with a window whose size does not depend on the model; and Belady's optimum is the ceiling of any expert cache.
+
+Video-game engines turned this idea into a rendering technique. Sparse virtual textures~\cite{barrett2008svt} cut a huge texture into tiles, send the card only the tiles the current frame needs, and translate the virtual address into a physical one in the shader, like a page table; DirectStorage~\cite{directstorage14} moves the reading and decompression of these data onto the card. This is exactly the Minecraft ``chunk'' Stone has in mind, and \cref{tab:analogie} lays out the correspondence term by term.
+
+\begin{table}[ht]
+\centering\small
+\caption[Three ways to occupy only what is used]{Three ways to occupy memory only for what is used: virtual memory, the virtual textures of game engines, and troncons. The last row is the difference that matters.}
+\label{tab:analogie}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright}p{2.1cm}>{\raggedright}X>{\raggedright}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+ & virtual memory & virtual textures & troncons \\
+\midrule
+unit & the page & the texture tile & the chunk: one expert matrix, 4.4\,MB in gpt-oss-120b \\
+who asks & the processor, on access & the shader, while rendering the frame & the router of each layer, at every token \\
+what predicts & temporal locality & the camera, which moves little from frame to frame & expert reuse between neighbouring tokens ($\rho$, \cref{ch:formulation}) \\
+the cache & the RAM & a physical texture in VRAM & the VRAM, then pinned RAM \\
+compression & none & decompression on the card & rANS decoded on the card (\cref{ch:entropie}) \\
+the miss & the program waits for the page & a coarser tile is shown meanwhile & the token waits for the expert: a wrong computation is not allowed \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The last row is the fundamental difference. A game engine may display a blurry tile until the right one arrives: the eye forgives. A language model cannot compute with an approximate expert without changing its output. The closest equivalent of the coarse tile is a progressive code whose base layer serves at once and whose complement then corrects it bit for bit: the exact refinement of \cref{prop:raffinement}, and the chapter that carries it (\cref{ch:avenir}) quantifies what it costs.
+
+\section{Running a model larger than memory}\label{sec:etat-dechargement}
+
+\paragraph{Weight offloading.} The first generation loads layers on demand: AirLLM~\cite{airllm2026} reads a layer, computes it, frees it, and solves peak memory while doing nothing for throughput; DeepSpeed ZeRO-Inference~\cite{zeroinference2022} and FlexGen~\cite{flexgen2023} amortize the read over large batches, at the price of latencies of thousands of seconds. llama.cpp~\cite{llamacpp} maps the file into memory and splits layers between the card and the processor; it is the project's baseline.
+
+\paragraph{Activation sparsity.} Deja Vu~\cite{dejavu2023}, PowerInfer~\cite{powerinfer2024,powerinfer2_2024} and LLM in a flash~\cite{llminflash2024} read only the active neurons of a token, predicted by small networks; they obtain factors of 2 to 25 on ReLU models, most of whose neurons are zero. Recent models use SwiGLU, where sparsity is weak (\cref{ch:sparsite}).
+
+\paragraph{Mixtures of experts.} An MoE activates only a small share of its parameters per token (3 to 10\,\% for 2026 models, \cref{fig:moe-inventaire}), which makes it the natural target: only the chosen experts need to be read. Mixtral-offloading~\cite{mixtraloffload2023} keeps an LRU cache of experts in VRAM and prefetches through the next layer's router; ProMoE~\cite{promoe2024}, HOBBIT~\cite{hobbit2024}, ExpertFlow~\cite{expertflow2024}, SeqMoE~\cite{seqmoe2026} and Edge0~\cite{edge0_2026} predict better; Fiddler~\cite{fiddler2025} and KTransformers~\cite{ktransformers2025} compute experts where they are. Since 2026, engines read experts from disk with an explicit cache: llama.cpp pull request \#25294~\cite{llamapr25294}, moe-stream~\cite{moestream2026} and SSD-LLaMA~\cite{ssdllama2026}, the latter compressing experts in the read loop. \Cref{ch:chargement} judges them.
+
+\section{Extreme quantization}\label{sec:etat-quant}
+
+Quantization reduces $b$, the bits per weight, and multiplies the ceiling by $16/b$. Four generations overlap (\cref{ch:quant}):
+\begin{itemize}
+\item \textbf{group-wise scalar quantizers}: llama.cpp K-quants, GPTQ, EfficientQAT~\cite{efficientqat2024}, HIGGS~\cite{higgs2024}; simple to decode, they lose a lot below 3 bits;
+\item \textbf{vector codes}: llama.cpp i-quants (grids drawn from the E8 lattice), QuIP\#~\cite{quipsharp2024}, AQLM~\cite{aqlm2024} and PV-tuning~\cite{pvtuning2024}, VPTQ~\cite{vptq2024};
+\item \textbf{trellis codes}: QTIP~\cite{qtip2024} and its simplified version EXL3, and since autumn 2026 CurveTQ~\cite{curvetq2026} (rotation-free), XOR-Trellis~\cite{xortrellis2026}, Tetra~\cite{tetra2026} (Leech lattice); at 2 bits on the Gaussian source, they close 90\,\% of the gap between the optimal scalar quantizer and the Shannon bound;
+\item \textbf{models born at low rate}: BitNet~\cite{bitnet2024}, ParetoQ~\cite{paretoq2025}, and the MXFP4 and NVFP4 formats~\cite{ocpmx2023,nvfp4pretrain2025} in which gpt-oss, Kimi K2.6 and K3, DeepSeek V4 publish their weights.
+\end{itemize}
+Rotations (QuaRot~\cite{quarot2024}, SpinQuant~\cite{spinquant2024}) make the source Gaussian and serve as a building block for the codes of the next two generations. The finding that weighs for this thesis: \textbf{the best codes decode only in CUDA}, and the best 2-bit format decodable under Vulkan (IQ2\_XXS) is worth, on the Gaussian source, exactly the optimal scalar quantizer.
+
+\section{Lossless compression}\label{sec:etat-sans-perte}
+
+After quantization, redundancy remains: codes are not uniform and block scales are highly predictable. Recent work exploits it through entropy coding. DFloat11~\cite{zhang2025dfloat11} Huffman-codes the exponent of BF16 weights and shrinks the model to about 70\,\% of its size losslessly; ZipNN~\cite{hershcovitch2024zipnn}, Huff-LLM~\cite{yubeaton2025huffllm}, ECF8~\cite{yang2025ecf8}, ZipServ~\cite{zipserv2026} and the work approaching the Shannon bound~\cite{shannonbound2026} follow the same path on other formats; EntroLLM~\cite{entrollm2025}, EntroPack~\cite{entropack2026}, EntQuant~\cite{putzky2026entquant}, WaterSIC~\cite{lifar2026watersic} and vram-compression~\cite{nuri2026vramcompression} combine quantization and entropy coding, the last with a CUDA kernel that fuses rANS decoding into the matrix--vector product.
+
+On the decoder side, asymmetric numeral systems (ANS)~\cite{duda2013ans} and their interleaving~\cite{giesen2014interleaved} have produced massively parallel GPU decoders~\cite{weissenberger2019multians,lin2023recoil}, libraries (nvCOMP~\cite{nvcomp2026}, DietGPU~\cite{dietgpu}) and, under Windows, GDeflate and Zstandard~\cite{zstd} decompression on the GPU through DirectStorage~\cite{directstorage14}. The project's entropy study (\cref{ch:entropie}) measures on the machine's models a lossless ceiling of 5.3\,\% for K-quants and a real rate of 1.1026 for the MXFP4 experts of gpt-oss-120b (9.3\,\% fewer bytes, decoded exactly), mostly in the scales, which nobody codes; and an rANS decoder at 70\,GB/s of codes produced under Vulkan, 82 under CUDA. It also shows, through an exact calculation, why the ``0.6 to 1 bit'' entropies published for int4 do not apply to small-group formats. The overall lesson is certain: \textbf{after a good quantization, lossless compression is worth a few per cent}; the compression lever is the representation, and lossless coding plays on the metadata.
+
+\section{Speculation}\label{sec:etat-spec}
+
+Speculative decoding~\cite{leviathan2023,chen2023spec} has a cheap draft propose several tokens and verifies them in one pass of the target, losslessly. Its variants change the draft (small model, Medusa heads~\cite{medusa2024}, EAGLE layer~\cite{eagle2_2024,eagle3_2025}, native MTP module~\cite{gloeckle2024,deepseekv3_2024}, DFlash block diffusion~\cite{dflash2026}, n-grams~\cite{lookahead2024}) or the shape (trees of SpecInfer~\cite{specinfer2023}, Sequoia~\cite{sequoia2024}, SpecExec~\cite{specexec2024}). Two works target the offloaded regime: SpecExec, which verifies trees of thousands of nodes when weights cross the link, and SubSpec~\cite{subspec2025}, which keeps a low-precision copy of the target in VRAM as the draft. For MoE models, Cascade~\cite{cascade2025} shows that speculation can slow things down, and MoE-Spec~\cite{moespec2026}, AcceptMoE~\cite{acceptmoe2026}, EcoSpec~\cite{ecospec2026} bound the expert set of the verification.
+
+\section{What each family changes in the roof}\label{sec:etat-leviers}
+
+All these families read in the same inequality, $\text{tokens/s} \le \min_i W_i / O_i$ (\cref{thm:toit}), multiplied by $\mathcal E$, the number of tokens produced per read of the weights. \Cref{tab:etat-leviers} says which term each one moves, and under which condition; this common reading is what allows \cref{ch:formulation} to combine them rather than juxtapose them.
+
+\begin{table}[ht]
+\centering\small
+\caption[What each family changes in the roof inequality]{What each family of techniques changes in $\mathcal E \cdot \min_i W_i/O_i$, and the condition under which the gain is real. $b$: bits per weight; $r$: lossless rate; $h$: cache hit rate; $\alpha$: acceptance rate.}
+\label{tab:etat-leviers}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright}p{2.7cm}>{\raggedright}p{3.4cm}>{\raggedright\arraybackslash}X@{}}
+\toprule
+family & term moved & condition, and what measures it here \\
+\midrule
+quantization & every $O_i$, by a factor $16/b$ & quality holds (perplexity, KL divergence, \cref{ch:quant}) and the kernel keeps up with VRAM \\
+lossless coding & the $O_i$ of the stages upstream of the decoder, by a factor $r$ & the decoder exceeds $r$ times the throughput of the relieved stage (\cref{cor:ent-gain}) \\
+decompression on the card & the stage that carries compressed bytes & beyond $r^\star$, only the card can decompress without becoming the bottleneck (\cref{sec:toit}) \\
+cache and prefetch & moves $h B_e$ to a faster stage & routing locality exists ($h$ measured, \cref{ch:chargement}) \\
+placement & $f_V, f_R, f_D$ & free VRAM and RAM, measured after the system \\
+activation sparsity & $O_i$, by a density factor & the model has sparse activations (ReLU); weak under SwiGLU (\cref{ch:sparsite}) \\
+speculation & multiplies by $\mathcal E(\alpha, k)$ & the verification pass reads barely more than a one-token pass; for an MoE, $\alpha > 1 - \rho$ (\cref{prop:spec-rho}) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Positioning}\label{sec:positionnement}
+
+\begin{table}[ht]
+\centering\small
+\caption[What existing systems cover of the troncons problem]{What existing systems cover of the troncons problem, according to their publication and code \litt. \enquote{Disk}: weights read from disk at every token; \enquote{16\,GB}: published or measured with less RAM than the model; \enquote{GPU decodes}: decompression on the card of the bytes coming over the link.}
+\label{tab:positionnement}
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+System & Windows & no CUDA & disk & 16\,GB & GPU decodes & trellis \\
+\midrule
+llama.cpp (\texttt{mmap}, \texttt{-ncmoe}) & yes & yes (Vulkan) & via mmap & yes & no & no \\
+llama.cpp \#25294 & no & no & yes & no (128\,GB) & no & no \\
+moe-stream & yes & CPU only & yes & yes & no & no \\
+SSD-LLaMA & no & no & yes & 16--32\,GB & after transfer & no \\
+KTransformers & no & no & no & no & no & no \\
+PowerInfer, LLM in a flash & partial & no & yes (flash) & yes & no & no \\
+SpecExec, SubSpec & no & no & no (RAM) & no & no & no \\
+EXL3, QTIP & no & no & no & --- & yes (in VRAM) & yes \\
+DirectStorage 1.4 & yes & yes & yes & --- & yes (textures) & no \\
+\midrule
+\textbf{troncons (target)} & \textbf{yes} & \textbf{yes} & \textbf{yes} & \textbf{yes} & \textbf{yes} & \textbf{yes} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\Cref{tab:positionnement} shows the shape of the gap. Every building block exists somewhere: reading experts from disk (Linux), decompression on the GPU (for textures, or from VRAM), codes close to the bound (in CUDA), speculation in the offloaded regime (with 128\,GB of RAM). \textbf{Nobody has assembled them on a 16\,GB Windows laptop without the CUDA toolkit}, and the chapters that follow show, with measured numbers, that this assembly is not a juxtaposition: the levers multiply (quantization manufactures the speculation draft, compression acts twice on an expert cache) or cancel out (speculation and fine-grained experts, sparsity and verification).

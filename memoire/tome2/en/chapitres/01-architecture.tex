@@ -1,0 +1,372 @@
+% Volume~II, chapter 1: architecture and structure of the program (English version).
+% Figures: memoire/figures/tome2/{schemas,graphes}/architecture.tex; data:
+% memoire/figures/donnees/tome2/caisses.csv (memoire/outils/tome2_format.py).
+\input{\Racine/figures/tome2/schemas/architecture}
+\input{\Racine/figures/tome2/graphes/architecture}
+\lstdefinelanguage{Rust}{morekeywords={pub,fn,struct,enum,impl,trait,use,mod,let,mut,const,
+  type,where,for,in,if,else,match,return,self,Self,dyn,unsafe,as,u8,u16,u32,u64,usize,f32,f64,
+  bool,Option,Result,Vec,Box,String,Some,None,Ok,Err,true,false,crate},
+  sensitive=true, morecomment=[l]{//}, morecomment=[s]{/*}{*/}, morestring=[b]"}
+
+\chapter{Architecture and structure of the program}\label{t2arch:ch}
+
+\begin{origine}
+\textbf{At the start}, Volume~I ended on a decision and a specification: build \textbf{troncons}, an engine of our own, in Rust with CUDA kernels, whose first milestone (J1) serves gpt-oss-120b (63.4\,GB) \emph{exactly}, experts losslessly coded, read from disk at the size of one expert, inside a memory window that does not depend on the size of the model. The specification (\fichier{decisions/ARCHITECTURE.md}, commit \texttt{f0b0fea}) fixed the modules, their interfaces and five lots of engineers with disjoint files; not one line of the program existed.
+\textbf{This chapter establishes} what was built: fourteen members of a Rust workspace (eleven libraries, three executables, 15{,}655 lines of code, 2{,}194 of tests, 2{,}151 of tools), twenty CUDA kernels loaded by the driver alone, six seams frozen between the lots and what became of them; it proves that the bit-for-bit equality of the logits between the coded and the raw file (criterion C3) is not luck but the consequence of four seam contracts (\cref{t2arch:thm:chaine}), and it says what the independent trial changed in the architecture (an integrity guard, an exit on error, an optional f32 KV cache).
+\textbf{What remains}: the arbiter's decisions that the correction round brought to him (seam N for the f32 KV cache; precisions of the format; criteria C7 and C8), the term of the window that grows with the model (0.9\,MB unexplained), and the root cause of the hang G1.
+Sources: \fichier{decisions/ARCHITECTURE.md} §\,0 to 6; \fichier{moteur/Cargo.toml} and the members' \fichier{Cargo.toml}; \fichier{moteur/O-pour-le-memoire.md} (parts II and III); \fichier{moteur/E-pour-le-memoire.md}; \fichier{moteur/K-pour-le-memoire.md}; \fichier{mesures/epreuve-J1.md}.
+\end{origine}
+
+\begin{enbref}
+A program that runs a model five times larger than the machine's memory is cut along \emph{who knows what}. The format knows where every byte is; the byte path knows how to carry it from disk to card without damage; the kernels know how to compute with it, always in the same order; the cache knows \emph{where} an expert is, never \emph{what it contains}; the judge knows how to measure without believing anyone. Each piece of knowledge is a lot, each boundary a seam written in advance. This cut is what makes exactness provable: one does not prove a program of twenty thousand lines, one proves that its boundaries carry equality across.
+\end{enbref}
+
+\section{The requirements, and the decision that follows}\label{t2arch:sec:exigences}
+
+Stone's words (SOCLE, 2026-10-15) ask for ``a real solution to take any ultra-heavy AI model and run it cleanly'' and ``not only research that already exists'' (our translation of his French). The arbiter drew three requirements from them that must hold together (\fichier{ARCHITECTURE.md} §\,1.1):
+\begin{description}
+\item[E1, a solution that works:] a program that serves a model much larger than memory, cleanly: correct output, bounded memory, speed above the known baseline;
+\item[E2, a contribution:] a mechanism or an assembly that does not yet exist, proven by measurement;
+\item[E3, a first working program soon,] without closing the door on E2.
+\end{description}
+The order chosen (delegated answer of 2026-10-15, reversible) is \textbf{exact A first} (J1), the quality of contribution B measured in parallel without an engine, then B inside the engine at milestone J2. Volume~I gives the figures; this chapter describes what A became.
+
+\subsection{Why Rust and CUDA, by the measurements}
+
+The choice of language is not a taste. The project's already measured building blocks (rANS coder, IOCP disk bench, GGUF reader) were in Rust; a program juggling aligned buffers, asynchronous I/O queues and device pointers gains from a compiler that refuses wrong lifetimes. The choice of CUDA over Vulkan is settled by measurements (\cref{t2arch:tab:cuda}): the overlap of disk, link and compute that the maximum of the token equation assumes had only been measured on this machine with CUDA streams.
+
+\begin{table}[ht]
+\centering\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{3.6cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+Question & Vulkan (wgpu 30) & CUDA 13.1 \\
+\midrule
+rANS v4 decoder, same stream, ABBA & 70.2 and 71.6\,GB/s & \textbf{80.8 and 82.1\,GB/s} (+14.9\,\%) \mes \\
+4-bit GEMV in VRAM & 249\,GB/s & 231 to 237\,GB/s (shared card): a tie \mes \\
+Copy--compute overlap & not measured & hidden share 0.98 to 1.01 \mes \\
+Pinned memory & driver buffer, 12.2\,GB/s & \texttt{cuMemHostAlloc}, +21\,\% over pageable \mes \\
+Reading the disk straight into the memory the DMA reads & impossible without host-memory import (absent from wgpu) & aligned pinned memory, handed as is to \texttt{ReadFile} \\
+Copy and compute on two queues & a single queue per device & streams and copy engine \\
+\bottomrule
+\end{tabularx}
+\caption[CUDA versus Vulkan: what decided]{CUDA versus Vulkan, the measurements that decided the kernels' language (\fichier{ARCHITECTURE.md} §\,2.3, after studies 01 to 04 of Volume~I). The price, stated with the decision: the program requires an NVIDIA card; the measured WGSL kernels remain the second path, and a Vulkan port opens after J2.}
+\label{t2arch:tab:cuda}
+\end{table}
+
+The kernels are compiled \emph{at build time} by \texttt{nvcc} and embedded in the executable; at run time the driver alone loads them (\cref{t2arch:fig:construction}). The driver API manual page (v13.4, updated 2026-10-12, consulted 2026-10-16) states that \texttt{cuModuleLoadData} accepts a cubin or fatbin image output by \texttt{nvcc}, or NULL-terminated PTX \cite{nvidia2026modulemgmt}: this is what allows shipping \emph{no} CUDA runtime DLL. The image holds the \texttt{sm\_89} cubin (Ada, the machine's RTX~4060) and the \texttt{compute\_89} PTX, which the driver can recompile for a newer card. No cuBLAS (no dense matrix multiplication in J1), no NVRTC.
+
+\begin{figure}[ht]
+\centering
+\TdArchConstruction
+\caption[The kernels' build chain]{The kernels' build chain. The \texttt{build.rs} of \texttt{trc-noyaux} (options \texttt{-O3 -std=c++17}, \emph{without} \texttt{--use\_fast\_math}, so that subnormal E8M0 scales stay exact and the binary computes what the bench measured) produces a fatbin; \texttt{include\_bytes!} puts it into the executable; \texttt{trc\_cuda::Module::charger} hands it to the driver. Source: \fichier{moteur/crates/trc-noyaux/build.rs}.}
+\label{t2arch:fig:construction}
+\end{figure}
+
+\subsection{The dependencies, and why so few}
+
+Seam D (\cref{t2arch:sec:coutures}) freezes the dependencies and their exact versions. \Cref{t2arch:tab:deps} lists them with their licence; all are in the machine's cargo cache, and the build is offline (\texttt{--offline}). A Cargo workspace shares one \texttt{Cargo.lock} and one output directory, and its members inherit versions from the \texttt{[workspace.dependencies]} table through \texttt{workspace = true} \cite{cargo2026workspaces}: a version is written in one place only.
+
+\begin{table}[ht]
+\centering\small
+\begin{tabularx}{\linewidth}{l l l >{\raggedright\arraybackslash}X}
+\toprule
+Crate & Version & Licence & Use \\
+\midrule
+\texttt{rayon} & 1.12.0 & MIT or Apache-2.0 & parallelism of the coder, the check, the reference \\
+\texttt{sha2} & 0.10.9 & MIT or Apache-2.0 & SHA-256 and fingerprint64 \\
+\texttt{windows-sys} & 0.61.2 & MIT or Apache-2.0 & IOCP, \texttt{VirtualAlloc}, PDH, process memory \\
+\texttt{half} & 2.7.1 & MIT or Apache-2.0 & f16 in the reference \\
+\texttt{libloading} & 0.8.9 & ISC & loading \texttt{llama.dll} (tokenisation) \\
+\texttt{serde}, \texttt{serde\_json} & 1.0.229, 1.0.151 & MIT or Apache-2.0 & logs \\
+\texttt{anyhow}, \texttt{thiserror} & 1.0.104, 2.0.21 & MIT or Apache-2.0 & errors \\
+\bottomrule
+\end{tabularx}
+\caption[The dependencies (seam D)]{The dependencies (seam D), versions read in \fichier{moteur/Cargo.toml}. No other without a written decision; no xxHash (absent from the cache): the SHA-256 prefix, accelerated by the processor's SHA instructions, is enough for a witness. \texttt{llama.dll} b11515 (MIT) serves only for tokenisation, through its public API, and as the comparison baseline.}
+\label{t2arch:tab:deps}
+\end{table}
+
+\section{The workspace: fourteen members, an acyclic graph}\label{t2arch:sec:caisses}
+
+The engine lives under \fichier{moteur/}, a Cargo workspace whose members are found by two patterns, \texttt{crates/*} and \texttt{bins/*}. A build rule came out of it, written by lot O at the head of \fichier{moteur/Cargo.toml} after measuring it with cargo 1.98.1: Cargo refuses the \emph{whole} workspace as long as one folder matching a pattern lacks a \texttt{Cargo.toml}; each lot therefore writes its crate's \texttt{Cargo.toml} before any other file. Lot F learnt it the hard way: as long as \texttt{crates/trc-noyaux/} had no manifest, it had to build through a scratch workspace outside the repository (\fichier{moteur/REPRISE-F.md}).
+
+\begin{figure}[p]
+\centering
+\TdArchCaisses
+\caption[The graph of internal dependencies]{The graph of the workspace's internal dependencies, read in the \texttt{Cargo.toml} files (\fichier{memoire/figures/donnees/tome2/caisses.csv}). Six leaves without internal dependency, five levels, no cycle. Two structural facts can be read in it. \textbf{The engine does not depend on the processor codec}: \texttt{trc-ordo} and \texttt{trc-modele} do not import \texttt{trc-codec}; the card's decoder (\texttt{trc-noyaux}) is a second decoder, written from the specification, and its equality with \texttt{trc-codec} is a witness, not a given. \textbf{The reference does not depend on the format}: \texttt{trc-reference} reads the original GGUF with its own reader, which makes it an independent path for judging the engine.}
+\label{t2arch:fig:caisses}
+\end{figure}
+
+\Cref{t2arch:tab:caisses} says what each member does and who owns it; \cref{t2arch:fig:lignes} gives its size. The count comes from a committed tool (\fichier{memoire/outils/tome2\_format.py}) that counts the lines of the \texttt{.rs}, \texttt{.cu} and \texttt{.cuh} files and sorts them into code, tests (\texttt{tests/} folder, \texttt{tests.rs} file) and tools (\texttt{banc/}, \texttt{examples/}, \texttt{src/bin/}): 15{,}655 lines of code, 2{,}194 of tests, 2{,}151 of tools, 20{,}000 in all \calc.
+
+\begin{table}[ht]
+\centering\small
+\begin{tabularx}{\linewidth}{l c >{\raggedright\arraybackslash}X r}
+\toprule
+Member & Lot & Role & Code \\
+\midrule
+\texttt{trc-format} & F & structures of the \texttt{.trc} file, checked reading, writing, fingerprints & 1{,}303 \\
+\texttt{trc-codec} & F & processor rANS (coder, context decoder), reconstruction of an expert: the oracle & 907 \\
+\texttt{trc-codeur} & F & executable: GGUF $\to$ \texttt{.trc}, \texttt{.vocab.gguf} companion, check C1 & 1{,}141 \\
+\texttt{trc-cuda} & E & the CUDA driver API, wrapped; the only crate that calls \texttt{nvcuda.dll} & 897 \\
+\texttt{trc-es} & E & unbuffered reads through a completion port (IOCP) & 314 \\
+\texttt{banc-chemin} & E & executable: trials E0, end-to-end bench E2 (disk $\to$ decoded VRAM) & 2{,}341 \\
+\texttt{trc-noyaux} & K & twenty CUDA kernels, their wrappers, their bench & 2{,}219 \\
+\texttt{trc-reference} & R & gpt-oss forward pass in f64 on the processor, read from the GGUF & 1{,}592 \\
+\texttt{trc-jetons} & R & tokenisation through \texttt{llama.dll} & 145 \\
+\texttt{trc-juge} & R & logits, KL, system counters, ABBA series & 874 \\
+\texttt{trc-cache} & O & expert cache, policies, \texttt{rejouer} simulator (same code) & 752 \\
+\texttt{trc-modele} & O & gpt-oss: hyperparameters, device buffers, layers & 737 \\
+\texttt{trc-ordo} & O & the engine: layer scheduler, prefill, guard & 1{,}750 \\
+\texttt{troncons} & O & executable: \texttt{generer}, \texttt{evaluer}, \texttt{mesurer}, \texttt{disque} & 683 \\
+\bottomrule
+\end{tabularx}
+\caption[The members of the workspace]{The fourteen members, their lot (\fichier{ARCHITECTURE.md} §\,6.1: each lot is the sole owner of its files) and their lines of code \calc. Tests and tools are in \cref{t2arch:fig:lignes}.}
+\label{t2arch:tab:caisses}
+\end{table}
+
+\begin{figure}[ht]
+\centering
+\TdArchGrapheLignes
+\caption[Lines of code, tests and tools per member]{Lines of code, tests and tools per workspace member \calc. \texttt{trc-noyaux} is the largest: its kernels, their wrappers, 780 lines of on-card tests and a 1{,}376-line bench. The crates without tests in their folder (\texttt{trc-modele}, \texttt{trc-ordo}, \texttt{trc-reference}) are judged by external witnesses (chain K3, criteria C3 and C4, witness O2), committed under \fichier{mesures/moteur/}. Data: \fichier{memoire/figures/donnees/tome2/caisses.csv}.}
+\label{t2arch:fig:lignes}
+\end{figure}
+
+\section{The overall picture}\label{t2arch:sec:ensemble}
+
+\Cref{t2arch:fig:ensemble} puts the members in their place in time and on the machine. \textbf{Offline}, once per model, \texttt{trc-codeur} rewrites the original GGUF into a self-contained \texttt{.trc} file (the next chapter describes it to the bit) and checks, expert by expert, that decoding gives back the original (C1). \textbf{Online}, at every token, \texttt{troncons} calls the engine of \texttt{trc-ordo}, which asks the cache where the four experts chosen by each layer's router are, reads the missing ones through \texttt{trc-es}, has them copied and decoded by \texttt{trc-cuda} and \texttt{trc-noyaux}, then launches the layer through \texttt{trc-modele}.
+
+\begin{figure}[ht]
+\centering
+\TdArchEnsemble
+\caption[The overall picture]{The overall picture: the coder offline, the engine online, and the machine underneath (dotted: which crate talks to which organ). A chunk read from disk lands in pinned RAM, which the disk writes and the card's copy engine reads: the same physical page, without any copy by the processor. The card has a single copy engine under WDDM (attribute \texttt{ASYNC\_ENGINE\_COUNT} = 1, recorded by lot E \mes): forward and backward copies form a single queue.}
+\label{t2arch:fig:ensemble}
+\end{figure}
+
+\paragraph{Three device streams and one host thread.} The engine orders the card through three CUDA streams: \emph{compute} (high priority), \emph{copy}, \emph{decode}. They meet only through events. The host waits once per layer for the ``router $\ell$'' event recorded right after the \texttt{routeur\_topk} kernel, reads the four indices from a mailbox in mapped memory (protocol of lot E's trial E0\,c: sequence number written last, after a system fence), queries the cache, submits the misses' reads and enqueues copies and decodes. The cost of this synchronisation is measured: 18.5\,µs per layer under load, 0.67\,ms per token of the 120b, 23 times below the declared threshold of 15.7\,ms \mes~(\fichier{moteur/E-pour-le-memoire.md}, D2\,bis).
+
+\begin{lemme}[The order of the three streams is safe]\label{t2arch:lem:ordre}
+Under the assumptions (H1) a stream executes its operations in order and without overlap; (H2) an event wait on a stream holds back everything enqueued after it until the end of what the event captured; (H3) the host decides layer $\ell$ only after seeing the ``router $\ell$'' event finished; (H4) an expert requested by layer $\ell$ stays pinned until \texttt{liberer}$(\ell)$, called after the end of the layer is enqueued, and an eviction victim is never pinned nor in flight; no expert slot is read by a GEMV while a decode writes it, and no arrival buffer is rewritten before the copy or decode reading it has finished.
+\end{lemme}
+
+\begin{proof}
+Let $s$ be a slot decoded for layer $\ell'$ and evicted by a request of layer $\ell$, later in the layer stream. By (H4), the eviction follows \texttt{liberer}$(\ell')$, hence the enqueuing of the end of layer $\ell'$ on the compute stream; the new decode into $s$ is enqueued after the decision of layer $\ell$, hence, by (H3), after the host has seen ``router $\ell$'' finished, itself enqueued after the end of $\ell'$ on the same stream: by (H1), all GEMVs that read $s$ are finished when the decode starts. Conversely, the GEMVs of layer $\ell$ that read $s$ are enqueued after waiting for the ``decoded'' event of $s$ (H2). For arrival buffers, each reuse follows a layer's decision, hence the end of the previous layers, which waited for their decodes, which waited for their copies; explicit waits (copy after the previous decode of the same buffer, read after the copy of the same pinned buffer) make it true even without (H3). Lot O's full proof: \fichier{moteur/O-pour-le-memoire.md} §\,6.1.
+\end{proof}
+
+The correction round found that this argument did not cover the \emph{streamed prefill} (J1+), where several reads of a packet are in flight at once: the buffer of the $s$-th read was $s \bmod 12$, and a slow read could still be writing its buffer when the twelfth one after it took it back. The corrected rule takes the next free buffer; it is proven (lot O's lemma 4\,bis), and the case did not occur in the pass replayed under the trial's load (0 conflicts) \mes. It is one of the two possible causes of hang G1; the root cause is not established (\cref{t2arch:sec:epreuve}).
+
+\section{The seams: what is frozen between the lots}\label{t2arch:sec:coutures}
+
+Five lots built troncons in parallel, each the owner of its files (\cref{t2arch:fig:lots}). What links them is written in advance, in the specification, and changes only by a dated decision of the arbiter: these are the \emph{seams} (\cref{t2arch:tab:coutures}). A seam may be \emph{extended} without a decision (a function added, a field added) if nothing existing changes; it never changes in a code commit.
+
+\begin{figure}[ht]
+\centering
+\TdArchLots
+\caption[The five lots and their seams]{The five lots and their frozen seams (version 1, 2026-10-15; \fichier{ARCHITECTURE.md} §\,6.2). Fallback foreseen by the specification: with four engineers, F and R merge; with three, \{F, R\}, \{E, O\}, \{K\}, lot K staying alone because the forward pass is the longest pole.}
+\label{t2arch:fig:lots}
+\end{figure}
+
+\begin{table}[ht]
+\centering\small
+\begin{tabularx}{\linewidth}{c l >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+& Between & What is frozen & What it became (as of 2026-10-16) \\
+\midrule
+F & F $\to$ E, K, O, R & the \texttt{.trc} format to the bit & no byte changed; nine precisions by lot F and three imprecisions found by the trial (m4), all compatible with the written files, awaiting the arbiter (next chapter) \\
+C & E $\to$ K, O & the API of \texttt{trc-cuda} & extended without changing anything (context with wait mode, attributes, \texttt{Flux::fini}, \texttt{Evenement::nouveau\_bloquant}, \texttt{MemoireCarte::remplir}, \texttt{HoteEpingle::\allowbreak lire\_volatil\_u32}, \texttt{copier\_carte\_carte}…) \\
+N & K $\to$ O & kernels' binary interface, buffer layout, determinism rule & held; the f32 KV cache (finding M5) is added \emph{outside the seam}, as an option (\texttt{--kv-f32}, two new kernels), without touching the f16 kernels; the decision is the arbiter's \\
+A & O $\leftrightarrow$ R & API of \texttt{trc-cache}, trace format & unchanged; the simulator is the cache's own code \\
+J & O, E $\to$ R & format of measurement logs & extended (process I/O counters, error log \texttt{<journal>.erreur.json}) \\
+D & all & dependencies and versions & unchanged (\cref{t2arch:tab:deps}) \\
+\bottomrule
+\end{tabularx}
+\caption[The seams and their history]{The six seams and what became of them. Sources: \fichier{ARCHITECTURE.md} §\,6.2; \fichier{moteur/REPRISE-F.md}; \fichier{moteur/E-pour-le-memoire.md} §\,2.3; \fichier{moteur/O-pour-le-memoire.md} §\,14; \fichier{mesures/epreuve-J1.md}, finding m4.}
+\label{t2arch:tab:coutures}
+\end{table}
+
+\subsection{The determinism rule, or why bit equality makes sense}
+
+Seam N contains a rule that is not an interface but a discipline: \emph{no kernel uses floating-point atomic addition; every reduction follows a fixed tree that depends only on the sizes}. Floating-point addition is not associative: $(a + b) + c$ and $a + (b + c)$ generally differ by one rounding. A reduction through atomics adds in the order in which threads arrive, which changes from one run to the next; two identical passes would yield different logits, and criterion C3 (``zero different bits'') would lose its meaning. With a fixed tree, each kernel is a \emph{function} of the bytes it reads. Lot K tested it down to the detail: the \texttt{combiner} kernel uses \texttt{\_\_fmul\_rn} and \texttt{\_\_fadd\_rn}, never contracted into an fma; an fma put back in its place breaks equality with the same sum on the host from element 649 onwards (\fichier{moteur/K-pour-le-memoire.md}, §\,7.3.6) \mes. One rounding fewer changes bits.
+
+\section{The interfaces, as they are}\label{t2arch:sec:interfaces}
+
+The following listings are excerpts of the committed code, shortened (comments summarised, bodies omitted; comments are kept in French, the language of the code); they show what a lot \emph{promises} to the others.
+
+\paragraph{The format (\texttt{trc-format}, lot F).} A \texttt{Fichier} opens by checking everything that can be checked without reading the chunks: header, section fingerprints, table sums, directory ranks, file size. The rest of the program never reads a byte of the \texttt{.trc} without going through its structures.
+
+\begin{lstlisting}[language=Rust, caption={[The interface of \texttt{trc-format}]The interface of \texttt{trc-format} (excerpt of \fichier{moteur/crates/trc-format/src/lib.rs}).}, label={t2arch:lst:format}]
+pub const MAGIE: [u8; 8] = *b"TRONCONS";
+pub const ALIGNEMENT: u64 = 4096;
+pub const VERSION_MAJEURE: u16 = 1;   // un lecteur 1.x lit toute 1.y, y <= 1
+pub const VERSION_MINEURE: u16 = 1;
+impl Fichier {
+    pub fn ouvrir(chemin: &Path) -> Result<Fichier, ErreurFormat>; // tout se vérifie
+    pub fn entete(&self) -> &Entete;
+    pub fn residents(&self) -> &[TenseurResident];
+    pub fn table(&self, couche: u16, matrice: u8, sorte: Sorte, contexte: u8) -> Option<&Table>;
+    pub fn entree(&self, couche: u16, expert: u16) -> &EntreeRepertoire;
+}
+pub fn lire_partie(octets: &[u8]) -> Result<Partie<'_>, ErreurFormat>;
+pub fn empreinte64(octets: &[u8]) -> u64;   // 8 premiers octets de SHA-256, petit-boutiste
+\end{lstlisting}
+
+\paragraph{The codec (\texttt{trc-codec}, lot F).} It contains the processor rANS coder and decoder, and above all \emph{the reference reconstruction of an expert}: the oracle that the card's decoder must match byte for byte. A symbol's context is a function the decoder can compute before decoding it (\texttt{None}: skipped symbol).
+
+\begin{lstlisting}[language=Rust, caption={[The interface of \texttt{trc-codec}]The interface of \texttt{trc-codec} (excerpt of \fichier{moteur/crates/trc-codec/src/lib.rs} and \fichier{rans.rs}).}, label={t2arch:lst:codec}]
+pub fn coder(source: &[u8], geometrie: u8, contexte: &dyn Fn(usize) -> Option<u8>,
+             tables: &[TableRans]) -> Vec<u8>;            // flux serialise
+pub fn decoder(flux: &[u8], contexte: &mut dyn FnMut(usize, &[u8]) -> Option<u8>,
+               tables: &[TableRans]) -> Result<Vec<u8>, ErreurCodec>; // voies hors de L : erreur
+pub fn reconstruire(fichier: &Fichier, couche: u16, expert: u16, parties: &[&[u8]],
+                    exact: bool) -> Result<ExpertDecode, ErreurCodec>;
+impl ExpertDecode { pub fn octets_origine(&self) -> Vec<u8>; pub fn empreinte(&self) -> u64; }
+\end{lstlisting}
+
+\paragraph{The byte path (\texttt{trc-cuda}, \texttt{trc-es}, lot E).} \texttt{trc-cuda} loads \texttt{nvcuda.dll} from System32 and wraps each entry point by its exact exported name (a \texttt{table!} macro names at load time any missing symbol); no other crate calls the driver. \texttt{trc-es} reads unbuffered (\texttt{FILE\_FLAG\_NO\_BUFFERING | FILE\_FLAG\_OVERLAPPED}): offset, length and destination address must be multiples of 4{,}096, which fixes the format's alignment \cite{microsoft2025filebuffering}.
+
+\begin{lstlisting}[language=Rust, caption={[The interfaces of \texttt{trc-cuda} and \texttt{trc-es}]The interfaces of \texttt{trc-cuda} and \texttt{trc-es} (seam C; excerpts).}, label={t2arch:lst:es}]
+impl HoteEpingle { pub fn allouer(c: &Contexte, octets: usize, projetee: bool) -> Result<Self>; }
+pub fn copier_vers_carte(dst: VueCarte, src: &HoteEpingle, decalage: usize, octets: usize,
+                         f: &Flux) -> Result<()>;
+impl Evenement { pub fn enregistrer(&self, f: &Flux) -> Result<()>; pub fn fini(&self) -> Result<bool>; }
+impl Flux { pub fn attendre(&self, e: &Evenement) -> Result<()>; }
+pub struct Requete { pub jeton: u64, pub decalage: u64, pub longueur: u32, pub destination: *mut u8 }
+impl Lecteur {
+    pub fn ouvrir(chemin: &Path, profondeur: usize) -> Result<Self>;
+    pub fn soumettre(&self, r: Requete) -> Result<()>;   // multiples de 4 096
+    pub fn recolter(&self, attente_ms: u32, sortie: &mut Vec<Achevement>) -> Result<()>;
+}
+\end{lstlisting}
+
+\paragraph{The cache (\texttt{trc-cache}, lot O, seam A).} The cache returns a \emph{decision} per requested expert: hit (the slot where it is), miss served by warm RAM, or miss served by disk. An expert requested by the current layer is pinned until \texttt{liberer}. The \texttt{rejouer} simulator is the same code, called on a trace: the witness ``engine count = simulator count, to the unit'' then becomes possible, and it held over 5{,}120 steps of the 20b (454{,}210 hits, 37{,}310 misses, 36{,}948 evictions on both sides; break: 427{,}984 / 63{,}536 / 63{,}174) \mes~(\fichier{moteur/O-pour-le-memoire.md} §\,6.4).
+
+\begin{lstlisting}[language=Rust, caption={[The interface of \texttt{trc-cache}]The interface of \texttt{trc-cache} (seam A, \fichier{ARCHITECTURE.md} §\,5.7).}, label={t2arch:lst:cache}]
+pub enum Decision {
+    Succes { emplacement: u32 },
+    DefautRam { emplacement: u32, tiede: u32 },        // troncon code deja en RAM epinglee
+    DefautDisque { emplacement: u32, tiede: Option<u32> } }
+impl<P: Politique> Cache<P> {
+    pub fn demander(&mut self, couche: u16, experts: &[u16], t: u64) -> Vec<Decision>;
+    pub fn pret(&mut self, emplacement: u32);           // decodage termine
+    pub fn liberer(&mut self, couche: u16);             // fin des GEMV : desepingle
+}
+pub fn rejouer<P: Politique>(trace: &Trace, emplacements: u32, tiedes: u32, vram: P, ram: P) -> Compteurs;
+\end{lstlisting}
+
+\paragraph{The engine (\texttt{trc-ordo}, lot O).} Its configuration shows the architecture better than a long text: every field after \texttt{brut} is an extension, added without changing anything, and almost each one bears the name of a measurement or of a finding (\cref{t2arch:lst:config}).
+
+\begin{lstlisting}[language=Rust, caption={[The engine's configuration]The engine's configuration (\fichier{moteur/crates/trc-ordo/src/lib.rs}, comments summarised).}, label={t2arch:lst:config}]
+pub struct Config {
+    pub fichier: PathBuf,
+    pub ram_tiede_go: f64,          // 0 : mode A0, aucun cache en RAM
+    pub enchassement_en_ram: bool,  // sinon une ligne de token_embd lue par jeton
+    pub profondeur_es: usize,       // lectures confiees au systeme a la fois (4)
+    pub couches_d_avance: usize,    // d : fenetre de d * k tampons d'arrivee (3)
+    pub prechargement: bool,        // J1+ : mesure, tue (-11 %)
+    pub contexte: u32,              // 4 096 positions en J1
+    pub temoin: bool,               // chaque expert decode redescend et se compare
+    pub brut: bool,                 // fichier brut exige (drapeau bit 2)
+    // ---- extensions
+    pub emplacements: Option<u32>,  // sinon : autant que le plafond de VRAM le permet
+    pub vram_plafond_mio: u64,      // 8 188 - 909 - 100 (critere C10)
+    pub longueur_lecture: Option<u32>, // 12 Mio : regime rapide du disque (lot E)
+    pub chronogramme: bool,
+    pub battement: bool,            // constat G1 : dater un blocage
+    pub garde: bool,                // constat M1 : vrai par defaut
+    pub casser: Option<(String, u64)>, // temoin de la garde, rien en production
+    pub kv_f32: bool,               // constat M5 : hors couture N, faux par defaut
+}
+impl Moteur {
+    pub fn nouveau(c: &Config) -> Result<Moteur>;
+    pub fn pas(&mut self, jeton: u32, position: u32, logits: Option<&mut [f32]>) -> Result<u32>;
+    pub fn preremplir(&mut self, jetons: &[u32], logits: Option<&mut dyn FnMut(usize, &[f32]) -> Result<()>>) -> Result<u32>;
+}
+\end{lstlisting}
+
+\paragraph{The kernels (\texttt{trc-noyaux}, lot K, seam N).} Twenty \texttt{extern "C"} kernels: the two-stage decoder (\texttt{decoder\_echelles} then \texttt{decoder\_codes}, and their batched versions), \texttt{copier\_brut}, three GEMVs (MXFP4, Q8\_0, f32, plus a batched MXFP4 GEMV), \texttt{rmsnorm}, \texttt{rope\_yarn}, \texttt{ecrire\_kv} and \texttt{attention} (and their f32 variants from the round), \texttt{routeur\_topk}, \texttt{swiglu\_oai}, \texttt{combiner}, \texttt{ligne\_q8\_0}, \texttt{argmax} \calc~(read in \fichier{moteur/crates/trc-noyaux/noyaux/*.cuh}). The layout they pass to one another, the expert slot, is frozen in the next chapter (\cref{t2fmt:sec:emplacement}).
+
+\section{The exactness chain}\label{t2arch:sec:chaine}
+
+Criterion C3 of the milestone required that the logits of the coded file and those of the raw file, in the same engine, differ by \emph{no bit} over 5{,}120 steps. It is a strange requirement at first sight: do two floating-point computations along different paths (an entropy decoder on one side, a copy on the other) really give the same bits? The answer is yes, and it rests on no luck: it is proven from the seams (\cref{t2arch:fig:chaine}).
+
+\begin{figure}[ht]
+\centering
+\TdArchChaine
+\caption[The exactness chain]{The exactness chain. Top, the coded pass; bottom, the raw pass (the same model written without entropy coding, flag bit 2). Each arrow carries the equality that guards it and the lot that proved it. The two paths meet at the expert slot, which holds the same bytes; from there, the determinism rule makes the equality of the logits inevitable.}
+\label{t2arch:fig:chaine}
+\end{figure}
+
+\begin{theoreme}[The exactness chain]\label{t2arch:thm:chaine}
+Assume:
+\begin{enumerate}
+\item[(C1)] for every expert $x$, the processor reconstruction of $x$'s chunk equals the original expert of the GGUF, byte for byte;
+\item[(K1)] the card's decoder writes into the slot exactly the bytes (codes, scales, biases) of the processor reconstruction, and \texttt{copier\_brut} writes the raw streams there in the same layout;
+\item[(C2)] the bytes of a chunk that arrive in VRAM are those of the file;
+\item[(N)] each kernel is a deterministic function of the bytes it reads and of its parameters;
+\item[(L)] no slot is read while it is being written (\cref{t2arch:lem:ordre});
+\item[(A)] the cache only chooses \emph{where} an expert is, never \emph{which bytes} it holds.
+\end{enumerate}
+Then, for any token sequence, the logits returned by the engine on the coded file and on the raw file are equal to the bit, whatever the number of slots, the cache policy and the completion order of the reads.
+\end{theoreme}
+
+\begin{proof}
+\emph{The slots.} Let $x$ be an expert and $E_c(x)$, $E_b(x)$ the bytes of its slot after decoding (coded pass) and after copying (raw pass). By (C2), the decoder and the copy read the file's bytes. By (K1) and (C1), $E_c(x)$ is the SoA layout of the codes, scales and biases of the original expert; the raw streams of the raw file are, by construction of the coder (\texttt{flux\_bruts}), the same scales, codes and biases, which \texttt{copier\_brut} arranges in the same layout: $E_b(x) = E_c(x)$.
+\emph{The other inputs.} Resident tensors are copied as they are in both files; the KV cache depends only on earlier computations; kernel parameters (positions, sizes) do not depend on the file.
+\emph{Induction.} Order the computations by (token $t$, layer $\ell$). Assume the states (residual, KV cache) equal to the bit in both passes before $(t, \ell)$. The attention and router kernels read equal bytes: by (N), they return the same bits, hence the same four indices and the same weights. By (A), the chosen slots may differ from one pass to the other, but each holds $E(x)$ for the requested expert $x$, and, by (L), these bytes are those of the finished decode at the time of reading. The experts' GEMVs therefore read equal bytes and return the same bits; \texttt{combiner} adds them in the router's order $i = 0, 1, 2, 3$, which is the same, not in slot order. The state after $(t, \ell)$ is equal to the bit. The output (norm, GEMV of the output embedding, argmax) reads only the final residual.
+\end{proof}
+
+The theorem says why C3 is \emph{expected}, not tolerated: a single bit of difference is a defect, to be hunted. It also says what it does not say: it does not judge the correctness of the model (that is criterion C4, against an f64 reference), only that entropy coding changes nothing in the computation.
+
+\paragraph{What was measured.} On gpt-oss-20b and gpt-oss-120b, 10 windows of 512 tokens (5{,}120 steps): 0 different logit fingerprints between coded and raw, \texttt{.kld} files equal byte for byte, perplexity 461.978277060145 (20b) and 422.20558522791305 (120b) on both sides \mes. The passes did not have the same number of slots (362 against 361 on the 20b, 325 against 326 on the 120b), hence not the same sequence of misses: the ``whatever the cache'' part is observed, not only deduced (\fichier{moteur/O-pour-le-memoire.md} §\,6.3). The independent trial redid it from a clean clone, with the streamed prefill instead of the step loop: its \texttt{.kld} files equal lot O's byte for byte (SHA-256 \texttt{5b212fe9…}) \mes~(\fichier{mesures/epreuve-J1.md} §\,0).
+
+\section{The bounded window, a property of the architecture}\label{t2arch:sec:fenetre}
+
+``without RAM or anything'' (``sans ram ni rien''), Stone asked. The reading adopted by the project (SOCLE): \emph{the memory in use no longer depends on the size of the model}, only on a bounded working window. This property is not a lucky measurement: it can be read in the structure.
+
+\begin{proposition}[Host memory, term by term]\label{t2arch:prop:fenetre}
+In mode A0 (no warm cache), the engine's host memory is
+\[
+M = M_{\mathrm{fixe}} + d \cdot k \cdot \ell_{\mathrm{al}} + M_{\mathrm{rép}},
+\]
+where $M_{\mathrm{fixe}}$ does not depend on the model (CUDA context, kernel image, libraries), $d \cdot k$ is the number of pinned arrival buffers ($d = 3$ layers ahead, $k = 4$ active experts) of length $\ell_{\mathrm{al}}$ (the largest chunk rounded to 4{,}096, or a fixed read length), and $M_{\mathrm{rép}}$ gathers what grows with the number of experts $L \cdot E$ (directory, cache lengths, tables, trace).
+\end{proposition}
+
+\begin{proof}
+Expert weights stay in host memory only for the duration of their copy to the card, in the $d \cdot k$ arrival buffers (\cref{t2arch:lem:ordre}: a buffer is reused only after the copy that read it); decoded slots are in VRAM. Resident tensors are mounted in VRAM at opening, except the input embedding (\texttt{token\_embd}, 0.615\,GB), one row of which is read from disk per token into an 8\,KiB buffer. The open file keeps only its structures in memory: header, tables, directory, residents table. Only the directory and the per-expert objects grow with $L \cdot E$.
+\end{proof}
+
+\paragraph{What was measured, and what the proposition miscounted.} Peak working set: \textbf{384.2\,MB} for gpt-oss-120b (63.4\,GB) and 380.5\,MB for gpt-oss-20b (12.1\,GB), against 10.9 and 9.42\,GB for llama.cpp on the same models \mes~(\fichier{moteur/O-pour-le-memoire.md} §\,5 and §\,6.6); llama.cpp's fastest configuration on the 120b, \texttt{fit -t 16}, swept by the round, holds 11.4 (\cref{t2res-sec:memoire}). A model 5.2 times larger costs 1\,\% more memory. The declared ceiling of C7 (1.9\,GB) holds, with a margin of five (386.8\,MB at most, guard included). But the 120b $-$ 20b \emph{gap}, declared at 0.5\,MB plus twice the noise, is measured at 3.70\,MB (lot O) and 2.94\,MB (trial): \textbf{it fails}. The proposition had forgotten terms: the window itself grows with the largest chunk (12 $\times$ (12{,}251{,}136 $-$ 12{,}144{,}640) = 1{,}277{,}952\,B), the timestamped events per possible miss (657 to 660\,B each), the directory held twice. The sum of the named terms is $\approx 2.05$\,MB; about $0.9$\,MB remains that these terms do not explain (granularity of small allocations): \textbf{the named-term model is not closed} (\fichier{moteur/O-pour-le-memoire.md} §\,13.6). The physics remains: memory does not follow the size of the model; what was badly set was the tolerance.
+
+\section{What the independent trial changed in the architecture}\label{t2arch:sec:epreuve}
+
+The trial (\fichier{mesures/epreuve-J1.md}, 2026-10-16) was held by a judge who had written neither the specification nor a line of the code. It confirmed the specification and the exactness criteria; it also found two serious findings and one medium finding that touched the architecture, not the computation. The correction round dealt with them (\cref{t2arch:tab:ronde}).
+
+\begin{table}[ht]
+\centering\small
+\begin{tabularx}{\linewidth}{c >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+& Finding & Correction & Witness and cost \\
+\midrule
+G1 & a pass can freeze forever and silently: on an error, destroying the engine spun inside \texttt{nvcuda64.dll} & the error is written before any destruction (\texttt{<journal>.erreur.json}), then the process ends without destroying the context; a heartbeat per layer of the prefill; arrival buffers of the stream corrected & the old binary waits 90\,s on the pipes, the new one returns in 1.5 to 4.9\,s; root cause not reproduced \\
+G2 & after an error, an orphaned \texttt{nvidia-smi} holds the parent's pipes & the child is killed by \texttt{Drop} and by a ``kill on close'' job; null input; non-inheritable standard handles & three cases, 0 orphans (the old one: one per case) \\
+M1 & production does not guard the raw streams of a chunk (MEDIANS, BIAS: 0.36\,\% of the bytes) nor the embedding row: a corruption passes without error & a \textbf{guard}: the fingerprint64 of the useful bytes of every chunk read is compared with the directory by four threads, before returning a token; every row read is compared with a table built at opening & named error on the corrupted copy (layer 0, expert 30); $-1.6\,\%$ tokens/s at equal disk throughput, 5.2 to 5.4\,ms of wait per token, +0.95\,s at opening, +1.9\,MB \\
+M5 & the f16 KV cache decides the first token of the C12 text & optional f32 KV cache (\texttt{--kv-f32}), outside seam N & troncons equal to the f64 truth up to the format on the 120b (KL at the format's floor, 100\,\% top-1 agreement); 326 $\to$ 314 slots \\
+\bottomrule
+\end{tabularx}
+\caption[What the correction round changed]{The trial's findings that touched the architecture, and their correction (\fichier{moteur/O-pour-le-memoire.md} part III; logs under \fichier{mesures/moteur/O/corrections/}).}
+\label{t2arch:tab:ronde}
+\end{table}
+
+\paragraph{The guard, a consequence of the format.} The guard needed no extra byte: the directory already held the fingerprint64 of the useful bytes of every part (field 32, next chapter). Its cost is set down before it is measured: a step of the 120b reads $B \approx 0.71$\,GB of chunks; fingerprinting runs at 1.07 to 1.10\,GB/s per thread \mes~(\fichier{examples/debit\_empreinte.rs}), i.e.\ $\approx 0.65$\,s of core time per step, spread over four threads ($\approx 0.17$\,s of wall time, below the $\approx 0.5$\,s of a step); only the hashing of the last read remains on the critical path, at most $12.25\,\mathrm{MB} / 1.07\,\mathrm{GB/s} \approx 11.4$\,ms \calc. Measured: 5.2 to 5.4\,ms of wait per token over the round's four guarded passes, and $-1.6\,\%$ tokens/s at equal disk throughput \mes~(\fichier{mesures/moteur/O/corrections/csv/vitesse-2026-10-16-passes.csv}). Lot O's note wrote \barre{5.2 to 5.3\,ms} and \barre{$-1.7\,\%$}: pass 07 (5.42\,ms) was not counted there, and $-1.7\,\%$ came from rounded throughputs (\cref{t2res-sec:garde}).
+
+\paragraph{Speed against the baseline, redone.} Milestone J1+ (C6) compared troncons with the best measured configuration of llama.cpp. The figure changed twice, and each time it is struck through, not removed. Lot O had published \barre{$\times$\,3.85} against \texttt{fit -t 6} (0.568\,tok/s), an under-tuned baseline; the trial found \texttt{-t 10} better and wrote \barre{$\times$\,2.79 to 2.89}; the round swept the baseline (\fichier{mesures/moteur/O/corrections/csv/base-2026-10-16-passes.csv}, eleven passes, declared palindrome): the best is \texttt{fit -t 16}, \textbf{0.884\,tok/s} (0.900 and 0.867), which beats \texttt{-t 6} by 54\,\% \mes. Against it, troncons \emph{guard included} does \textbf{1.965\,tok/s} on average over four passes (1.703; 1.900; 2.126; 2.131; noise 10.97\,\%, \fichier{csv/vitesse-2026-10-16-passes.csv}): \textbf{$\times$\,2.22}, beyond the rule's threshold (2 $\times$ 10.97\,\% + 3\,\% = 24.9\,\%) \mes. C6 holds. The baseline may still be better (more than 16 threads, \texttt{--mlock}): not swept.
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{The chain theorem assumes (N) for every kernel.} It is checked kernel by kernel (each call made twice, outputs equal to the bit, lot K) and by C3 end to end, not proven for the compiler: an \texttt{nvcc} that contracted an operation differently from one build to the next would change bits. The three fatbin images built with and without \texttt{vcvars} are equal byte for byte (finding m2), which bounds this risk for one version of \texttt{nvcc}, not for another.
+\item \textbf{The root cause of G1 is not established}: the arrival-buffer defect is proven possible, not observed; the old binary, replayed under the same load, also finished (338\,s).
+\item \textbf{The window model leaves 0.9\,MB unexplained}, and the 120b $-$ 20b gap of C7 fails as long as the arbiter has not decided (fixed-size window proposed: 0.99\,MB gap measured).
+\item \textbf{The line count} sorts a file by its place (\texttt{tests/}, \texttt{banc/}…), not by its content: a test module lodged in \texttt{src/} counts as code.
+\item \textbf{The guard's cost} rests on one pair of passes at equal disk throughput; the declared series says $-12.3\,\%$ under a threshold of 26.8\,\% (noise 11.9\,\%), not real (\cref{t2res-sec:garde}).
+\item \textbf{The choice of CUDA} rests on the decoder (+14.9\,\%) and on two functions absent from wgpu, not on a measurement of the full path under Vulkan; a Vulkan without wgpu (with host-memory import and a transfer queue) might have done as well.
+\end{itemize}
+\end{faux}

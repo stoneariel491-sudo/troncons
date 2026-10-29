@@ -1,0 +1,335 @@
+% Schémas du chapitre « Le format .trc au bit près » (Tome II).
+% Toutes les valeurs écrites dans les cases sont lues dans les fichiers réels (journaux du lot F :
+% mesures/moteur/F/journaux/second-chemin-*.json et verifier-*.json ; CSV dérivés :
+% memoire/figures/donnees/tome2/, écrits par memoire/outils/tome2_format.py).
+% Commandes définies par \providecommand : ce fichier peut être chargé deux fois sans erreur
+% (par le chapitre et par un chargeur commun). Styles TikZ préfixés « t2f ».
+
+\tikzset{
+  t2f case/.style={draw=#1!75!black, fill=#1!15, line width=0.4pt},
+  t2f texte/.style={font=\sffamily\scriptsize, align=center, inner sep=1pt},
+  t2f decal/.style={font=\ttfamily\scriptsize, text=black!55, anchor=east},
+  t2f note/.style={font=\sffamily\scriptsize, text=black!70, align=left},
+  t2f fleche/.style={-{Latex[length=2mm]}, line width=0.6pt},
+}
+
+% Carte d'octets générique.
+%  #1 largeur d'un octet (cm) ; #2 octets par rangée (liste {0,...,n-1} pour la règle du haut) ;
+%  #3 étiquettes de rangée « rangée/texte » ; #4 champs « rangée/début/octets/hauteur/couleur/texte ».
+\providecommand{\tdCarte}[4]{%
+\begin{tikzpicture}[x=#1cm, y=-0.76cm]
+  \foreach \fB in {#2} \node[font=\ttfamily\tiny, text=black!45] at (\fB+0.5,-0.25) {\fB};
+  \foreach \fR/\fL in {#3} \node[t2f decal] at (-0.08,\fR+0.48) {\fL};
+  \foreach \fR/\fD/\fN/\fH/\fK/\fT in {#4} {%
+    \filldraw[t2f case=\fK] (\fD+0.03,\fR+0.06) rectangle (\fD+\fN-0.03,\fR+\fH-0.08);
+    \node[t2f texte] at (\fD+\fN/2,\fR+\fH/2-0.01) {\fT};
+  }
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------------------------------
+% M3 : le fichier, ses sections, aux décalages réels des deux fichiers.
+\providecommand{\TdFmtFichier}{%
+\begin{tikzpicture}[x=1cm, y=1cm, font=\sffamily\scriptsize]
+  \def\fW{5.2}
+  % Pile des sections (hauteurs non proportionnelles).
+  \foreach \fY/\fH/\fK/\fT in {0/0.55/Accent/{\EF{FIXED HEADER}{EN-TÊTE FIXE}},
+      -0.55/0.7/Index/{MÉTA},
+      -1.25/1.0/Mant/{\EF{RESIDENTS}{RÉSIDENTS}},
+      -2.25/0.55/Echelle/{TABLES},
+      -2.8/0.65/Pcie/{\EF{DIRECTORY}{RÉPERTOIRE}},
+      -3.45/2.4/Disque/{\EF{CHUNKS}{TRONÇONS}}} {%
+    \filldraw[t2f case=\fK] (0,\fY) rectangle (\fW,\fY-\fH);
+    \node[font=\sffamily\small\bfseries] at (\fW/2,\fY-\fH/2) {\fT};
+  }
+  % Tronçons esquissés.
+  \foreach \fY in {-3.75,-4.05,-4.35,-4.65,-4.95,-5.25,-5.55} \draw[Disque!60, line width=0.3pt] (0.25,\fY) -- (\fW-0.25,\fY);
+  \node[font=\sffamily\tiny, text=Disque!70!black, text width=4.9cm, align=center] at (\fW/2,-5.55) {\EF{(layer, expert) order, one 4\,KiB-aligned chunk per expert}{ordre (couche, expert), un tronçon par expert, aligné sur 4\,Kio}};
+  % Décalages et longueurs : 120b à gauche, 20b à droite.
+  \node[font=\sffamily\small\bfseries, anchor=south east] at (-0.15,0.15) {gpt-oss-120b};
+  \node[font=\sffamily\small\bfseries, anchor=south west] at (\fW+0.15,0.15) {gpt-oss-20b};
+  \foreach \fY/\fA/\fB in {0/{0 \quad 4\,096}/{0 \quad 4\,096},
+      -0.55/{4\,096 \quad 12\,980\,522}/{4\,096 \quad 12\,980\,519},
+      -1.25/{12\,988\,416 \quad 2\,301\,059\,336}/{12\,988\,416 \quad 1\,917\,714\,696},
+      -2.25/{2\,314\,051\,584 \quad 224\,656}/{1\,930\,706\,944 \quad 149\,776},
+      -2.8/{2\,314\,276\,864 \quad 294\,920}/{1\,930\,858\,496 \quad 49\,160},
+      -3.45/{2\,314\,575\,872 \quad 55\,416\,086\,528}/{1\,930\,911\,744 \quad 9\,226\,493\,952}} {%
+    \node[font=\ttfamily\scriptsize, anchor=north east] at (-0.15,\fY-0.04) {\fA};
+    \node[font=\ttfamily\scriptsize, anchor=north west] at (\fW+0.15,\fY-0.04) {\fB};
+  }
+  \node[font=\sffamily\scriptsize, anchor=north east] at (-0.15,-5.85) {\EF{end}{fin} \texttt{57\,730\,662\,400}};
+  \node[font=\sffamily\scriptsize, anchor=north west] at (\fW+0.15,-5.85) {\EF{end}{fin} \texttt{11\,157\,405\,696}};
+  \node[font=\sffamily\tiny, text=black!55, anchor=south east] at (-0.15,-0.05) {\EF{offset \quad length}{décalage \quad longueur}};
+  % Barre à l'échelle (120b).
+  \begin{scope}[yshift=-7.0cm, xshift=-3.4cm]
+    \def\fL{12.0}
+    \node[anchor=south west, font=\sffamily\scriptsize] at (0,0.32) {\EF{to scale, gpt-oss-120b (57.73\,GB):}{à l'échelle, gpt-oss-120b (57,73\,Go) :}};
+    \filldraw[t2f case=Mant] (0,0) rectangle ({\fL*0.0400},0.3);
+    \filldraw[t2f case=Disque] ({\fL*0.0400},0) rectangle (\fL,0.3);
+    \node[anchor=north west, font=\sffamily\tiny] at (0,-0.02) {\EF{head + residents 4.0\,\%}{tête + résidents 4,0\,\%}};
+    \node[font=\sffamily\scriptsize] at ({\fL*0.52},0.15) {\EF{chunks, 96.0\,\% (4\,608 experts)}{tronçons, 96,0\,\% (4\,608 experts)}};
+  \end{scope}
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------------------------------
+% L'en-tête fixe (4 096 octets), valeurs de gpt-oss-120b.
+\providecommand{\TdFmtEntete}{%
+\tdCarte{1.48}{0,...,7}{0/0,1/8,2/16,3/24,4/32,8/64,9/72,10/80,12/96,14/112,15/120,16/128,17/136,20/264,21/4088}{%
+  0/0/8/1/Accent/{\EF{magic}{magie} \texttt{TRONCONS} \quad (54 52 4F 4E 43 4F 4E 53)},
+  1/0/2/1/Accent/{\EF{major}{majeure}\\u16 = 1},
+  1/2/2/1/Accent/{\EF{minor}{mineure}\\u16 = 0},
+  1/4/4/1/Accent/{\EF{flags}{drapeaux} u32 = 1\\{\tiny bit 0 \EF{aligned}{aligné}, 1 \EF{levels}{niveaux}, 2 \EF{raw}{brut}}},
+  2/0/4/1/Mant/{\EF{alignment}{alignement}\\u32 = 4\,096},
+  2/4/4/1/Mant/{\EF{header size}{taille de l'en-tête}\\u32 = 4\,096},
+  3/0/8/1/Accent/{\EF{size of the .trc file}{taille du fichier .trc}, u64 = 57\,730\,662\,400 \EF{(checked on open)}{(vérifiée à l'ouverture)}},
+  4/0/8/4/Index/{SHA-256 \EF{of the source GGUF}{du GGUF source}, 32 \EF{B}{o}\\[2pt]\texttt{582bd40f6886200101f4c4ed9f25f3fe}\\\texttt{80cc14c86e9e2b37746cd8904a0c622d}},
+  8/0/8/1/Index/{\EF{size of the source GGUF}{taille du GGUF source}, u64 = 63\,387\,346\,208},
+  9/0/2/1/Mant/{L = 36},
+  9/2/2/1/Mant/{E = 128},
+  9/4/2/1/Mant/{k = 4},
+  9/6/2/1/Mant/{\EF{matrices}{matrices} = 3},
+  10/0/8/2/Mant/{\EF{rows}{lignes} u32[4] = 2\,880,\; 2\,880,\; 2\,880,\; 0\\(gate, up, down, —)},
+  12/0/8/2/Mant/{\EF{columns}{colonnes} u32[4] = 2\,880,\; 2\,880,\; 2\,880,\; 0},
+  14/0/4/1/Mant/{\EF{weights per block}{poids par bloc} = 32},
+  14/4/4/1/Mant/{\EF{bytes per block}{octets par bloc} = 17},
+  15/0/1/1/Mant/{\EF{type}{type}\\39},
+  15/1/1/1/Mant/{\EF{lev.}{niv.}\\1},
+  15/2/1/1/Mant/{\EF{cls.}{cl.}\\3},
+  15/3/1/1/black/{\EF{res.}{rés.}},
+  15/4/4/1/Code/{\EF{magnitude partition}{partition des magnitudes} [0..3] = 0},
+  16/0/4/1/Code/{\EF{partition}{partition} [4..7] = 0},
+  16/4/4/1/black/{\EF{reserved}{réservé} u32 = 0},
+  17/0/8/3/Echelle/{\EF{sections}{sections} (u64 \EF{offset}{décalage}, u64 \EF{length}{longueur})[8], 128 \EF{B}{o}\\[1pt]{\tiny (4\,096; 12\,980\,522) (12\,988\,416; 2\,301\,059\,336) (2\,314\,051\,584; 224\,656)}\\{\tiny (2\,314\,276\,864; 294\,920) (2\,314\,575\,872; 55\,416\,086\,528) (0; 0) (0; 0) (0; 0)}},
+  20/0/8/1/black/{\EF{reserved, 3\,824 B, all zero (checked on read)}{réservé, 3\,824 o, tous nuls (vérifiés à la lecture)}},
+  21/0/8/1/Signe/{\EF{fingerprint64 of bytes $[0, 4\,088)$}{empreinte64 des octets $[0, 4\,088)$}, u64}}}
+
+% La section MÉTA : le compte, une paire GGUF v3 (clé de n octets), l'empreinte, le bourrage.
+% Rangées symboliques (les longueurs sont variables) ; une paire de gpt-oss en exemple (la clé
+% general.architecture, chaîne « gpt-oss », d'où le préfixe gpt-oss.* des autres clés).
+\providecommand{\TdFmtMeta}{%
+\tdCarte{0.78}{0,...,15}{0/+0,1/,2/,3/fin}{%
+  0/0/8/1/Accent/{n\_paires, u64 = 39},
+  0/8/8/1/Mant/{\EF{key length}{longueur de la clé}, u64},
+  1/0/10/1/Mant/{\EF{key bytes, UTF-8, e.g.}{octets de la clé, UTF-8, ex.} \texttt{general.architecture}},
+  1/10/4/1/Echelle/{type, u32\\(8 = \EF{string}{chaîne})},
+  1/14/2/1/black/{…},
+  2/0/16/1/Code/{\EF{value (for a string: u64 length, then the bytes ``gpt-oss'')}{valeur (pour une chaîne : longueur u64, puis les octets « gpt-oss »)} \quad … \EF{then 35 more GGUF pairs and the coder's 3}{puis 35 paires GGUF de plus et les 3 du codeur}},
+  3/0/8/1/Signe/{\EF{fingerprint64 of all the above}{empreinte64 de tout ce qui précède}},
+  3/8/8/1/black/{\EF{zeros up to 4\,096 (not counted)}{zéros jusqu'à 4\,096 (non comptés)}}}}
+
+% Une entrée de la table des RÉSIDENTS (128 octets).
+\providecommand{\TdFmtResident}{%
+\tdCarte{0.78}{0,...,15}{0/0,4/64,5/80,6/96,7/112}{%
+  0/0/16/4/Accent/{\EF{name, UTF-8, zero-padded to 64 bytes}{nom, UTF-8, complété de zéros jusqu'à 64 octets}\\[2pt]\EF{e.g.}{ex.} \texttt{blk.0.attn\_q.weight}},
+  4/0/4/1/Mant/{\EF{ggml type}{type ggml}\\u32},
+  4/4/4/1/Mant/{n\_dims\\u32},
+  4/8/8/1/Mant/{ne[0], u64},
+  5/0/8/1/Mant/{ne[1], u64},
+  5/8/8/1/Mant/{ne[2], u64},
+  6/0/8/1/Mant/{ne[3], u64 \EF{(1 beyond n\_dims)}{(1 au-delà de n\_dims)}},
+  6/8/8/1/Echelle/{\EF{data offset (multiple of 256)}{décalage des données (multiple de 256)}},
+  7/0/8/1/Echelle/{\EF{bytes}{octets}, u64},
+  7/8/8/1/Signe/{\EF{fingerprint64 of the bytes}{empreinte64 des octets}}}}
+
+% Un enregistrement de la section TABLES (8 octets + charge).
+\providecommand{\TdFmtTable}{%
+\tdCarte{1.48}{0,...,7}{0/0,1/8}{%
+  0/0/2/1/Mant/{\EF{layer}{couche}\\u16},
+  0/2/1/1/Mant/{\EF{matrix}{matrice}\\u8},
+  0/3/1/1/Accent/{\EF{kind}{sorte}\\u8},
+  0/4/1/1/Echelle/{\EF{context}{contexte}\\u8},
+  0/5/1/1/Accent/{\EF{payload}{charge}\\u8},
+  0/6/2/1/black/{\EF{reserved}{réservé}\\u16 = 0},
+  1/0/8/1/Code/{\EF{payload: 1 = 16 $\times$ u16 (32 B); 2 = 256 $\times$ u16 (512 B); 3 = 4 $\times$ f32 (16 B)}{charge : 1 = 16 $\times$ u16 (32 o) ; 2 = 256 $\times$ u16 (512 o) ; 3 = 4 $\times$ f32 (16 o)}}}}
+
+% Une entrée du RÉPERTOIRE (64 octets).
+\providecommand{\TdFmtRepertoire}{%
+\tdCarte{0.78}{0,...,15}{0/0,1/16,2/32,3/48}{%
+  0/0/8/1/Echelle/{\EF{absolute offset of the chunk (multiple of 4\,096)}{décalage absolu du tronçon (multiple de 4\,096)}},
+  0/8/4/1/Echelle/{\EF{length}{longueur} 0\\u32},
+  0/12/4/1/Echelle/{\EF{length}{longueur} 1\\u32 (= 0)},
+  1/0/4/1/Mant/{\EF{useful}{utiles} 0\\u32},
+  1/4/4/1/Mant/{\EF{useful}{utiles} 1\\u32 (= 0)},
+  1/8/8/1/Signe/{\EF{fingerprint64 of the original expert}{empreinte64 de l'expert d'origine}},
+  2/0/8/1/Signe/{\EF{fingerprint64, useful bytes of level 0}{empreinte64, octets utiles du niveau 0}},
+  2/8/8/1/Signe/{\EF{fingerprint64, level 1 (0)}{empreinte64, niveau 1 (0)}},
+  3/0/2/1/Mant/{\EF{layer}{couche}},
+  3/2/2/1/Mant/{expert},
+  3/4/4/1/black/{\EF{res.}{rés.} u32},
+  3/8/8/1/black/{\EF{reserved}{réservé} u64}}}
+
+% L'en-tête d'une partie de tronçon (64 octets) et un descripteur de flux (16 octets).
+\providecommand{\TdFmtPartieEntete}{%
+\tdCarte{0.78}{0,...,15}{0/0,1/16,4/+0}{%
+  0/0/4/1/Accent/{\EF{magic}{magie}\\\texttt{TRC0} = 0x30435254},
+  0/4/2/1/Mant/{\EF{layer}{couche}},
+  0/6/2/1/Mant/{expert},
+  0/8/1/1/Mant/{\EF{lev.}{niv.}},
+  0/9/1/1/Mant/{\EF{mat.}{mat.}\\3},
+  0/10/2/1/Mant/{n\_flux\\12},
+  0/12/4/1/Echelle/{\EF{useful bytes}{octets utiles}\\\EF{(header incl.)}{(en-tête compris)}},
+  1/0/16/3/black/{\EF{reserved, 48 bytes, zero}{réservé, 48 octets, nuls}},
+  4/0/1/1/Accent/{\EF{kind}{sorte}},
+  4/1/1/1/Mant/{\EF{mat.}{mat.}},
+  4/2/1/1/Echelle/{ctx},
+  4/3/1/1/black/{\EF{res.}{rés.}},
+  4/4/4/1/Echelle/{\EF{offset (multiple of 16)}{décalage (multiple de 16)}},
+  4/8/4/1/Echelle/{\EF{length}{longueur} (\EF{B}{o})},
+  4/12/4/1/Code/{\EF{bytes produced}{octets produits}}}}
+
+% En-tête d'un flux rANS (16 octets).
+\providecommand{\TdFmtFluxEntete}{%
+\tdCarte{0.78}{0,...,15}{0/0}{%
+  0/0/4/1/Code/{P \EF{bytes produced}{octets produits}\\u32 (\EF{multiple of 128}{multiple de 128})},
+  0/4/2/1/Mant/{N\\u16 = 256},
+  0/6/1/1/Mant/{\EF{geom.}{géom.}\\1 | 2},
+  0/7/1/1/black/{\EF{res.}{rés.}},
+  0/8/4/1/Mant/{T \EF{tiles}{tuiles}\\u32},
+  0/12/4/1/Mant/{W \EF{words}{mots}\\u32}}}
+
+% ---------------------------------------------------------------------------------------------
+% M4 : la tuile rANS et la table par voie. Un macro-pas : 32 voies × 4 sous-pas = 128 octets.
+\providecommand{\TdFmtTuile}{%
+\begin{tikzpicture}[x=0.38cm, y=1cm, font=\sffamily\scriptsize]
+  % Couleurs des contextes kappa des 8 blocs (exemple : 0, 1, 2, 2, 0, 1, 0, 2).
+  \foreach \fq/\fk in {0/0,1/1,2/2,3/2,4/0,5/1,6/0,7/2} {%
+    \ifcase\fk \def\fC{SerieA}\or \def\fC{SerieD}\or \def\fC{SerieB}\fi
+    \foreach \fv in {0,1,2,3} {%
+      \pgfmathtruncatemacro\fl{4*\fq+\fv}
+      \filldraw[draw=\fC!70!black, fill=\fC!25] (\fl,0) rectangle (\fl+0.92,0.6);
+      \node[font=\ttfamily\tiny] at (\fl+0.46,0.3) {\fl};
+    }
+    \draw[decorate, decoration={brace, amplitude=3pt}, \fC!80!black] (4*\fq,0.68) -- (4*\fq+3.92,0.68)
+      node[midway, above=3pt, font=\sffamily\tiny, align=center] {\EF{block}{bloc} 8m+\fq\\$\kappa$ = \fk};
+  }
+  \node[anchor=east, font=\sffamily\scriptsize, align=right, text width=2.0cm] at (-0.3,0.3) {\EF{lanes $l$}{voies $l$}};
+  % Les quatre sous-pas d'une voie : octets du mot w = 32m + l.
+  \begin{scope}[yshift=-1.25cm]
+    \foreach \fl in {0,...,31} {\foreach \kk in {0,1,2,3} {%
+      \draw[black!35, fill=white] (\fl+0.23*\kk,0) rectangle (\fl+0.23*\kk+0.23,0.5);}}
+    \node[anchor=east, font=\sffamily\scriptsize, align=right, text width=2.0cm] at (-0.3,0.25) {\EF{128 output bytes}{128 octets produits}};
+    
+    \node[t2f note, anchor=north west, text width=12.2cm] at (0,-0.08) {%
+      \EF{Lane $l$ of macro-step $m$ writes the 32-bit output word $w = 32m + l$; its sub-steps $k = 0, \dots, 3$ write the bytes $4w + k$, low byte first. A block of CODES\_CTX is 16 bytes = 4 words: lanes $4q \dots 4q+3$ write block $8m + q$, and all four read the LUT of that block's scale class $\kappa$. The choice of table is an address in shared memory, never a branch: the 32 lanes execute the same instruction.}%
+         {La voie $l$ du macro-pas $m$ écrit le mot de sortie de 32 bits $w = 32m + l$ ; ses sous-pas $k = 0, \dots, 3$ en écrivent les octets $4w + k$, l'octet faible d'abord. Un bloc de CODES\_CTX fait 16 octets = 4 mots : les voies $4q \dots 4q+3$ écrivent le bloc $8m + q$, et toutes les quatre lisent la LUT de la classe d'échelle $\kappa$ de ce bloc. Le choix de la table est une adresse en mémoire partagée, jamais une branche : les 32 voies exécutent la même instruction.}};
+  \end{scope}
+  % Le flux de mots partagé, lu dans l'ordre des voies.
+  \begin{scope}[yshift=2.1cm]
+    \foreach \fn in {0,...,23} \draw[draw=Code!70!black, fill=Code!12] (1.3*\fn*0.42,0) rectangle (1.3*\fn*0.42+0.5,0.45);
+    \node[anchor=east, font=\sffamily\scriptsize, align=right, text width=2.0cm] at (-0.3,0.22) {\EF{shared stream of 16-bit words}{flux partagé de mots de 16 bits}};
+    \draw[t2f fleche, Signe] (0.25,0.95) node[above, font=\sffamily\tiny] {$p$} -- (0.25,0.5);
+    \node[t2f note, anchor=south west] at (5,0.55) {\EF{lane $l$ that renormalises ($y_l < L$) reads word $p + \#\{l' < l : y_{l'} < L\}$}{la voie $l$ qui renormalise ($y_l < L$) lit le mot $p + \#\{l' < l : y_{l'} < L\}$}};
+  \end{scope}
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------------------------------
+% Un tronçon moyen du 120b, flux par flux (tailles : flux-moyens.csv), et le flux CODES_CTX zoomé.
+\providecommand{\TdFmtPartie}{%
+\begin{tikzpicture}[x=1cm, y=1cm, font=\sffamily\scriptsize]
+  \def\fh{0.8}
+  \filldraw[t2f case=Accent] (0,0) rectangle (0.6,\fh); \node[rotate=90, font=\sffamily\tiny, align=center] at (0.3,\fh/2) {\EF{head.}{en-tête}\\256};
+  \foreach \fj/\x in {0/0.6,1/4.3,2/8.0} {%
+    \filldraw[t2f case=Echelle] (\x,0) rectangle (\x+0.4,\fh);
+    \node[rotate=90, font=\sffamily\tiny] at (\x+0.2,\fh/2) {MED};
+    \filldraw[t2f case=Index] (\x+0.4,0) rectangle (\x+0.85,\fh);
+    \node[rotate=90, font=\sffamily\tiny] at (\x+0.625,\fh/2) {\EF{BIAS}{BIAIS}};
+    \filldraw[t2f case=Mant] (\x+0.85,0) rectangle (\x+1.35,\fh);
+    \node[rotate=90, font=\sffamily\tiny] at (\x+1.1,\fh/2) {DELTA};
+    \filldraw[t2f case=Code] (\x+1.35,0) rectangle (\x+3.7,\fh);
+    \node[font=\sffamily\scriptsize] at (\x+2.525,\fh/2) {CODES\_CTX$_{\fj}$};
+    \draw[decorate, decoration={brace, amplitude=3pt, mirror}, black!55] (\x,-0.08) -- (\x+3.7,-0.08)
+      node[midway, below=3pt, font=\sffamily\tiny] {\EF{matrix}{matrice} \fj};
+  }
+  \filldraw[t2f case=black] (11.7,0) rectangle (12.2,\fh); \node[rotate=90, font=\sffamily\tiny, align=center] at (11.95,\fh/2) {\EF{pad.}{bourr.}\\$\to$ 4\,Ki};
+  \node[font=\sffamily\tiny, text=black!60] at (2.1,-0.6) {0 = gate, 1 = up, 2 = down};
+  \node[t2f note, anchor=north west, text width=12.2cm] at (0,-0.85) {%
+    \EF{Mean sizes over the 13\,824 matrices of gpt-oss-120b: MEDIANS 2\,880\,B (raw), BIAS 11\,520\,B (raw), DELTA 32\,772\,B, CODES\_CTX 3\,960\,750\,B; part header and stream table 64 + 12 $\times$ 16 = 256\,B; zero padding to the next multiple of 4\,096: 2\,036\,B on average. Mean chunk: 12\,026\,060\,B, against 13\,253\,760\,B of original MXFP4 expert. Box widths are not to scale (CODES\_CTX is 98.8\,\% of the chunk).}%
+       {Tailles moyennes sur les 13\,824 matrices de gpt-oss-120b : MEDIANES 2\,880\,o (brut), BIAIS 11\,520\,o (brut), DELTA 32\,772\,o, CODES\_CTX 3\,960\,750\,o ; en-tête de partie et table des flux 64 + 12 $\times$ 16 = 256\,o ; bourrage de zéros jusqu'au multiple suivant de 4\,096 : 2\,036\,o en moyenne. Tronçon moyen : 12\,026\,060\,o, contre 13\,253\,760\,o d'expert MXFP4 d'origine. Largeurs des cases hors d'échelle (CODES\_CTX fait 98,8\,\% du tronçon).}};
+  % Zoom : un flux CODES_CTX sérialisé.
+  \begin{scope}[yshift=-4.55cm]
+    \node[anchor=south west, font=\sffamily\scriptsize\bfseries] at (0,0.82) {\EF{One CODES\_CTX stream, serialised}{Un flux CODES\_CTX, sérialisé}};
+    \filldraw[t2f case=Mant] (0,0) rectangle (1.2,0.75); \node[align=center] at (0.6,0.375) {\EF{header}{en-tête}\\16};
+    \filldraw[t2f case=Echelle] (1.2,0) rectangle (2.2,0.75); \node[align=center] at (1.7,0.375) {\EF{start}{début}[T]\\508};
+    \filldraw[t2f case=Accent] (2.2,0) rectangle (4.6,0.75); \node[align=center] at (3.4,0.375) {\EF{states}{états}[32\,T]\\16\,256};
+    \filldraw[t2f case=Code] (4.6,0) rectangle (11.85,0.75); \node[align=center] at (8.2,0.375) {\EF{words}{mots}[W], u16 \quad W $\approx$ 1\,971\,986 \EF{on average}{en moyenne}\\3\,943\,972\,\EF{B}{o}};
+    \filldraw[t2f case=black] (11.85,0) rectangle (12.2,0.75);
+    \node[t2f note, anchor=north west, text width=12.2cm] at (0,-0.08) {%
+      \EF{For a 2\,880 $\times$ 2\,880 matrix: P = 16 $\cdot$ 259\,200 = 4\,147\,200 bytes produced, 32\,400 macro-steps, T = $\lceil 32\,400/256 \rceil$ = 127 tiles; fixed part 16 + 4T + 128T = 16\,780\,B, i.e.\ 0.42\,\% of the stream. The last box is the padding to a multiple of 16 (at most 15\,B).}%
+         {Pour une matrice 2\,880 $\times$ 2\,880 : P = 16 $\cdot$ 259\,200 = 4\,147\,200 octets produits, 32\,400 macro-pas, T = $\lceil 32\,400/256 \rceil$ = 127 tuiles ; partie fixe 16 + 4T + 128T = 16\,780\,o, soit 0,42\,\% du flux. La dernière case est le bourrage jusqu'au multiple de 16 (au plus 15\,o).}};
+  \end{scope}
+\end{tikzpicture}}
+
+% L'entrée de LUT de 32 bits, géométries 1 et 2 (poids fort à gauche).
+% #1 ordonnée, #2 géométrie, #3 premier bit du champ haut, #4 premier bit du champ du milieu.
+\providecommand{\tdLutRangee}[4]{%
+  \node[anchor=east] at (-0.3,#1+0.27) {\EF{geometry}{géométrie} #2};
+  \foreach \fb in {0,...,31} {%
+    \pgfmathtruncatemacro\fx{31-\fb}
+    \ifnum\fb<#4\relax \def\fC{Code}\else\ifnum\fb<#3\relax \def\fC{Mant}\else \def\fC{Echelle}\fi\fi
+    \filldraw[draw=\fC!70!black, fill=\fC!20] (\fx,#1) rectangle (\fx+0.92,#1+0.55);
+    \node[font=\ttfamily\tiny] at (\fx+0.46,#1+0.27) {\fb};
+  }}
+\providecommand{\TdFmtLut}{%
+\begin{tikzpicture}[x=0.38cm, y=1cm, font=\sffamily\scriptsize]
+  \tdLutRangee{0}{1}{20}{8}
+  \tdLutRangee{-1.15}{2}{17}{4}
+  \node[font=\sffamily\scriptsize] at (6,0.8) {$i - c[s]$ (\EF{bits}{bits} 20--31)};
+  \node[font=\sffamily\scriptsize] at (18,0.8) {$f[s] - 1$ (8--19)};
+  \node[font=\sffamily\scriptsize] at (28,0.8) {$s$ (0--7)};
+  \node[font=\sffamily\scriptsize] at (7.5,-1.4) {$i - c[s]$ (17--31)};
+  \node[font=\sffamily\scriptsize] at (21,-1.4) {$f[s]$ (4--16)};
+  \node[font=\sffamily\scriptsize] at (30,-1.4) {$s$ (0--3)};
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------------------------------
+% Le codeur à deux passes d'une couche, et sa fenêtre de mémoire (à l'échelle, en Go).
+\providecommand{\TdFmtCodeur}{%
+\begin{tikzpicture}[x=1cm, y=1cm, font=\sffamily\scriptsize,
+    etape/.style={draw=##1!75!black, fill=##1!12, rounded corners=1pt, align=center, minimum height=0.8cm, inner sep=3pt, font=\sffamily\scriptsize}]
+  \node[etape=Disque] (g) at (0,0) {GGUF\\\EF{(read unbuffered)}{(lu sans tampon)}};
+  \node[etape=Mant, right=0.55cm of g] (p1) {\EF{pass 1, packet by packet:}{passe 1, paquet par paquet :}\\\EF{read, prepare, count}{lire, préparer, compter}};
+  \node[etape=Echelle, right=0.55cm of p1] (t) {\EF{tables of}{tables de la}\\\EF{the layer}{couche}};
+  \node[etape=Mant, right=0.55cm of t] (p2) {\EF{pass 2: re-read,}{passe 2 : relire,}\\\EF{prepare, code}{préparer, coder}};
+  \node[etape=Disque, right=0.55cm of p2] (w) {\EF{write in}{écrire dans}\\\EF{(layer, expert) order}{l'ordre (couche, expert)}};
+  \foreach \fa/\fz in {g/p1,p1/t,t/p2,p2/w} \draw[t2f fleche] (\fa) -- (\fz);
+  \draw[t2f fleche, black!50] (g.south) |- ++(0,-0.5) -| (p2.south) node[pos=0.25, below, font=\sffamily\tiny] {\EF{second read of the experts}{seconde lecture des experts}};
+  \node[t2f note, anchor=north west, text width=12.5cm] at (-1.0,-1.35) {\EF{A parallel thread re-reads the whole GGUF for its SHA-256. TABLES and DIRECTORY, of known sizes, are reserved before the chunks and filled at the end; the header is written last.}{Un fil en parallèle relit tout le GGUF pour sa SHA-256. TABLES et RÉPERTOIRE, de tailles connues d'avance, sont réservés avant les tronçons et remplis à la fin ; l'en-tête s'écrit en dernier.}};
+  % La fenêtre, à l'échelle : 1 Go = 4 cm.
+  \begin{scope}[yshift=-3.1cm, xshift=-1.0cm]
+    \def\fU{4.0}
+    \foreach \fY/\fV/\fK/\fT in {0/0.502/Mant/{\EF{two passes: one packet of 12 experts (0.50\,GB = 0.47\,GiB)}{deux passes : un paquet de 12 experts (0,50\,Go = 0,47\,Gio)}},
+        -0.6/0.42/SerieB/{\EF{one pass, 20b: the prepared layer (32 experts)}{une passe, 20b : la couche préparée (32 experts)}},
+        -1.2/1.69/SerieB/{\EF{one pass, 120b: the prepared layer (128 experts)}{une passe, 120b : la couche préparée (128 experts)}}} {%
+      \filldraw[t2f case=\fK] (0,\fY) rectangle (\fU*\fV,\fY+0.45);
+      \node[anchor=west, font=\sffamily\scriptsize] at (\fU*\fV+0.1,\fY+0.22) {\fT};
+    }
+    \draw[black!50] (0,-1.35) -- (\fU*2,-1.35);
+    \foreach \g/\gT in {0/0,0.5/{\EF{0.5}{0,5}},1/1,1.5/{\EF{1.5}{1,5}},2/2} \draw[black!50] (\fU*\g,-1.35) -- ++(0,-0.08) node[below, font=\sffamily\tiny] {\gT\,\EF{GB}{Go}};
+  \end{scope}
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------------------------------
+% La chaîne des égalités de C1 sur le 120b, deux chemins.
+\providecommand{\TdFmtCun}{%
+\begin{tikzpicture}[x=1cm, y=1cm, font=\sffamily\scriptsize,
+    boite/.style={draw=##1!75!black, fill=##1!12, rounded corners=1pt, align=center, minimum width=3.0cm, minimum height=0.7cm, inner sep=2pt, font=\sffamily\scriptsize}]
+  \node[boite=Disque] (gguf) at (3.6,0) {GGUF gpt-oss-120b\\SHA-256 582bd40f…};
+  % Premier chemin.
+  \node[boite=Echelle] (l1) at (0,-1.3) {\texttt{gguf::lire\_dans}\\\EF{(the coder's reader)}{(lecteur du codeur)}};
+  \node[boite=Echelle] (cod) at (0,-2.6) {\texttt{trc-codeur coder}};
+  \node[boite=Accent] (trc) at (0,-3.9) {\texttt{gpt-oss-120b.trc}};
+  \node[boite=Mant] (dec) at (0,-5.2) {\texttt{trc-codec}\\$D(x)$};
+  % Second chemin.
+  \node[boite=Index] (l2) at (7.2,-1.3) {\EF{Python reader (GGUF v3 spec)}{lecteur Python (spéc. GGUF v3)}\\\EF{offsets = llama.cpp's}{décalages = ceux de llama.cpp}};
+  \node[boite=Index] (g2) at (7.2,-2.6) {$G_2(x)$, \EF{unbuffered}{sans tampon}};
+  % Répertoire au centre.
+  \node[boite=Signe, minimum width=2.6cm] (r) at (3.6,-3.9) {\EF{directory}{répertoire}\\$r(x)$};
+  \draw[t2f fleche] (gguf) -- (l1); \draw[t2f fleche] (l1) -- node[left, font=\sffamily\tiny] {$G_1(x)$} (cod);
+  \draw[t2f fleche] (cod) -- (trc); \draw[t2f fleche] (trc) -- (dec);
+  \draw[t2f fleche] (gguf) -- (l2); \draw[t2f fleche] (l2) -- (g2);
+  \draw[t2f fleche, Signe] (cod.east) -- node[above, sloped, font=\sffamily\tiny] {$r = h(G_1)$} (r);
+  \draw[Signe, line width=0.8pt, {Latex}-{Latex}] (dec.east) -- node[below, sloped, font=\sffamily\tiny] {$h(D) = r$} (r);
+  \draw[Index, line width=0.8pt, {Latex}-{Latex}] (g2.south) |- node[pos=0.75, below, font=\sffamily\tiny] {$h(G_2) = r$} (r.east);
+  \draw[Mant, line width=0.8pt, {Latex}-{Latex}] (dec.west) -- ++(-0.5,0) |- node[pos=0.25, left, font=\sffamily\tiny, align=right] {$D = G_1$\\\EF{byte for byte}{octet pour octet}} (l1.west);
+  \node[t2f note, anchor=north west, text width=12.4cm] at (-1.6,-6.0) {\EF{Left: the first path (\texttt{trc-codeur verifier}, 4\,608 experts, five checks each). Right: the second path (\texttt{second\_chemin\_c1.py}), which shares no line with lot F and whose tensor offsets agree with llama.cpp's own GGUF reader. The two paths meet only in the directory; together they give $h(D(x)) = h(G_2(x))$ for every expert (\cref{t2fmt:prop:second-chemin}). The decoding link alone was redone by two other decoders: lot K's card decoder (4\,608/4\,608) and the trial's Python decoder (20 drawn chunks).}%
+     {À gauche, le premier chemin (\texttt{trc-codeur verifier}, 4\,608 experts, cinq contrôles chacun). À droite, le second (\texttt{second\_chemin\_c1.py}), qui ne partage aucune ligne avec le lot F et dont les décalages de tenseurs égalent ceux du lecteur GGUF de llama.cpp. Les deux chemins ne se rejoignent que dans le répertoire ; ensemble, ils donnent $h(D(x)) = h(G_2(x))$ pour chaque expert (\cref{t2fmt:prop:second-chemin}). Le seul maillon du décodage a été refait par deux autres décodeurs : celui de la carte du lot K (4\,608/4\,608) et le décodeur Python de l'épreuve (20 tronçons tirés).}};
+\end{tikzpicture}}

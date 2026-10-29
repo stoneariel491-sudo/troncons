@@ -1,0 +1,364 @@
+% Engendré par memoire/outils/tome3_annexes.py : ne pas modifier à la main.
+\begingroup\small
+\begin{longtable}{@{}p{0.40\linewidth}p{0.47\linewidth}r@{}}
+\caption[\EF{The committed tools of Volume~III}{Les outils commités du Tome~III}]{\EF{The committed tools of Volume~III, by chapter, each with the first line of its own description}{Les outils commités du Tome~III, par chapitre, chacun avec la première ligne de sa propre description} (\fichier{memoire/outils/tome3_annexes.py}).}\label{t3ann:tab:outils}\\
+\toprule
+\EF{Tool}{Outil} & \EF{Its own description (first line, quoted as written, in French)}{Sa propre description (première ligne, citée)} & \EF{Lines}{Lignes} \\
+\midrule
+\endfirsthead
+\toprule
+\EF{Tool}{Outil} & \EF{Its own description}{Sa propre description} & \EF{Lines}{Lignes} \\
+\midrule
+\endhead
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{Ch.~\ref{t3que:ch} and~\ref{t3ecl:ch}: the question, the scout}{Ch.~\ref{t3que:ch} et~\ref{t3ecl:ch} : la question, l'éclaireur}}} \\
+\fichier{outils/genome/eclaireur/bib_sources.py} & {\footnotesize Écrit le BibTeX et le tableau des sources de l'éclaireur depuis les métadonnées primaires.} & \num{128} \\
+\fichier{outils/genome/eclaireur/borne_rd.py} & {\footnotesize La borne distorsion-débit des poids MXFP4 de gpt-oss, dans le domaine des poids.} & \num{196} \\
+\fichier{outils/genome/eclaireur/capture/src/main.rs} & {\footnotesize genome-capture : entrées réelles des experts de gpt-oss, et KL d'une base substituée.} & \num{237} \\
+\fichier{outils/genome/eclaireur/capture/src/modele.rs} & {\footnotesize FOURCHE de moteur/crates/trc-reference/src/modele.rs (copie du 2026-10-16, commit 6dd7414) pour l'éclaireur du génome des poids (genome/01-eclaireur.md). …} & \num{770} \\
+\fichier{outils/genome/eclaireur/choix_delta.py} & {\footnotesize Le choix de l'amortissement δ de la mutation synonyme, par validation croisée SUR LA CALIBRATION SEULE.} & \num{74} \\
+\fichier{outils/genome/eclaireur/diagnostic_calibration.py} & {\footnotesize Diagnostic de la mutation synonyme : apprend-elle les entrées, ou seulement l'échantillon ?} & \num{67} \\
+\fichier{outils/genome/eclaireur/frontiere_csv.py} & {\footnotesize Place chaque mécanisme mesuré sur le plan débit × erreur (la figure de synthèse du mémoire).} & \num{65} \\
+\fichier{outils/genome/eclaireur/passes.sh} & {\footnotesize Les passes de la mutation synonyme, dans l'ordre déclaré (genome/REPRISE-etat-de-l-art.md). …} & \num{23} \\
+\fichier{outils/genome/eclaireur/synonyme.py} & {\footnotesize La mutation synonyme : une base de 2 bits choisie là où la sortie ne la voit pas.} & \num{575} \\
+\fichier{outils/genome/eclaireur/zero-synonyme/src/main.rs} & {\footnotesize FOURCHE de outils/arbitre/decoupe (la mesure F1, copiée le 2026-10-16) pour l'éclaireur du génome des poids (genome/01-eclaireur.md § 4) …} & \num{844} \\
+\fichier{outils/genome/eclaireur/zero_compte.py} & {\footnotesize Le codon synonyme du zéro, compté : combien de codes −0 et +0, et ce que coûte le signe d'un zéro.} & \num{86} \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{Ch.~\ref{t3gen:ch}: the genome of the weights (the recipe)}{Ch.~\ref{t3gen:ch} : le génome des poids (la recette)}}} \\
+\fichier{outils/genome/recette-kl/src/main.rs} & {\footnotesize genome-recette-kl : les logits des fenêtres d'un .kld avec des experts substitués (base .sym ou recette .f32w) …} & \num{98} \\
+\fichier{outils/genome/recette-kl/src/modele.rs} & {\footnotesize Copie (2026-10-16, sujet genome) de la fourche de l'éclaireur (outils/genome/eclaireur/capture/src/modele.rs), avec un seul ajout …} & \num{775} \\
+\fichier{outils/genome/recette/analyse.py} & {\footnotesize Second chemin du verdict W : refait, depuis les CSV par rangée de genome codons, les courbes débit-distorsion par allocation lagrangienne et les bits à erreur …} & \num{142} \\
+\fichier{outils/genome/recette/analyse_fidelite.py} & {\footnotesize Verdict F (fidélité de sortie) depuis le journal de genome fidelite.} & \num{67} \\
+\fichier{outils/genome/recette/borne_par_tenseur.py} & {\footnotesize Ce qu'atteindrait un code gaussien idéal (débit-distorsion de Shannon) sur les rangées de l'échantillon, à l'erreur de la base de chaque tenseur …} & \num{33} \\
+\fichier{outils/genome/recette/chaine.sh} & {\footnotesize Chaîne du sujet genome après les passes de poids : sortie des experts sur entrées réelles (et écriture des experts reconstruits), puis KL contre la référence …} & \num{30} \\
+\fichier{outils/genome/recette/erreur_colonnes.py} & {\footnotesize Où tombe l'erreur de la recette : par colonne (canal d'entrée) de chaque matrice d'un expert.} & \num{53} \\
+\fichier{outils/genome/recette/erreur_sortie_forme.py} & {\footnotesize La forme de l'erreur de sortie : quelle part est un simple changement de gain (parallèle à la sortie exacte), quelle part est orthogonale …} & \num{81} \\
+\fichier{outils/genome/recette/figures_transformations.py} & {\footnotesize Données des figures « avant / après » du sujet genome (SOCLE, demande de Stone du 2026-10-17) :} & \num{94} \\
+\fichier{outils/genome/recette/file.sh} & {\footnotesize File des passes du sujet genome, lancées l'une après l'autre (chacune prend tous les fils).} & \num{12} \\
+\fichier{outils/genome/recette/graine_theorie.py} & {\footnotesize Ce que la recette graine + coefficients peut atteindre au mieux, calculé (sans quantifier les coefficients) …} & \num{39} \\
+\fichier{outils/genome/recette/kl.sh} & {\footnotesize Passe K du sujet genome : la base et la recette S* (pondérée, exceptions 0,1 \%, 2,64 bits) substituées aux experts 0 et 16 des couches 0, 8, 16, 23 dans la …} & \num{20} \\
+\fichier{outils/genome/recette/kl10.sh} & {\footnotesize Passe K du sujet genome : la base et la recette S* (pondérée, exceptions 0,1 \%, 2,64 bits) substituées aux experts 0 et 16 des couches 0, 8, 16, 23 dans la …} & \num{20} \\
+\fichier{outils/genome/recette/src/base.rs} & {\footnotesize La frontière : la base de l'architecture B (signe + classe de magnitude parmi \{0 ; 0,5\} \{1 ; 1,5 ; 2\} \{3 …} & \num{70} \\
+\fichier{outils/genome/recette/src/codons.rs} & {\footnotesize La lecture par codons glissants : le « ribosome » des poids.} & \num{406} \\
+\fichier{outils/genome/recette/src/donnees.rs} & {\footnotesize Les poids réels : un expert d'un tenseur MXFP4 de gpt-oss, rangée par rangée, lu par le lecteur GGUF de trc-reference (chemin indépendant du .trc).} & \num{95} \\
+\fichier{outils/genome/recette/src/fidelite.rs} & {\footnotesize La fidélité de sortie en fonction du débit : pour chaque expert, la courbe (bits par poids, erreur relative de la sortie de l'expert sur des entrées réelles) …} & \num{336} \\
+\fichier{outils/genome/recette/src/graine.rs} & {\footnotesize La recette littérale : un bloc de C poids = U(graine) · t, U une matrice C × P tirée d'un générateur pseudo-aléatoire par sa graine de K bits, t P coefficients …} & \num{291} \\
+\fichier{outils/genome/recette/src/hadamard.rs} & {\footnotesize Rotation de Hadamard aléatoire par morceaux, le long des colonnes d'une rangée.} & \num{74} \\
+\fichier{outils/genome/recette/src/main.rs} & {\footnotesize genome : mesures du génome des poids sur gpt-oss (sujet genome). Processeur seul.} & \num{42} \\
+\fichier{outils/genome/recette/src/mesure.rs} & {\footnotesize Les mesures. Chaque sous-commande écrit un journal JSON sur la sortie standard.} & \num{832} \\
+\fichier{outils/genome/recette/src/motifs.rs} & {\footnotesize Les motifs partagés, combinés : un bloc de d poids = somme de M motifs, chacun tiré d'un dictionnaire de 2\textasciicircum{}b motifs partagé par tous les experts d'un tenseur …} & \num{74} \\
+\fichier{outils/genome/recette/src/sortie.rs} & {\footnotesize L'erreur sur la sortie des experts, pour des entrées réelles.} & \num{433} \\
+\fichier{outils/genome/recette/structure.py} & {\footnotesize Où est le bruit, où est la structure : trois mesures sur les experts MXFP4 réels de gpt-oss-20b.} & \num{135} \\
+\fichier{outils/genome/recette/vers_csv.py} & {\footnotesize Les CSV des figures du mémoire (sujet genome), régénérés depuis les journaux commités.} & \num{76} \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{Ch.~\ref{t3dup:ch}: gene duplication}{Ch.~\ref{t3dup:ch} : la duplication de gènes}}} \\
+\fichier{outils/genome/duplication/ecran_parente.py} & {\footnotesize Écran de parenté : chaque neurone d'un expert a-t-il un « gène parent » ailleurs dans le modèle ?} & \num{146} \\
+\fichier{outils/genome/duplication/experts.py} & {\footnotesize Accès aux experts MXFP4 de gpt-oss pour l'étude de la duplication (génome des poids).} & \num{101} \\
+\fichier{outils/genome/duplication/figure_phylogenie.py} & {\footnotesize Données de la figure « l'arbre phylogénétique des experts » (SOCLE : espaces latents, 2026-10-17).} & \num{88} \\
+\fichier{outils/genome/duplication/lancer_echantillon.sh} & {\footnotesize L'échantillon de D1, D2, D2b, D2c, T, O (seuils : mesures/genome/duplication/00-seuils-declares.md). …} & \num{11} \\
+\fichier{outils/genome/duplication/mutation.py} & {\footnotesize Un expert codé comme mutation de son parent : choix du parent, coût sans perte (D1), coût avec perte contre le même quantificateur sans parent (D2), mutation …} & \num{341} \\
+\fichier{outils/genome/duplication/paires_arbre.py} & {\footnotesize Parenté d'expert à expert à une permutation des neurones près, et l'arbre de parenté le plus économe.} & \num{183} \\
+\fichier{outils/genome/duplication/paralogues.py} & {\footnotesize Les paralogues : un expert absent peut-il être remplacé par un autre expert de sa couche ?} & \num{140} \\
+\fichier{outils/genome/duplication/spectre_famille.py} & {\footnotesize La famille de gènes : les 32 experts d'une couche partagent-ils un sous-espace (un « domaine » commun) ?} & \num{111} \\
+\fichier{outils/genome/duplication/synthese.py} & {\footnotesize Synthèse de l'échantillon de la duplication : CSV pour le mémoire et verdicts contre les seuils déclarés.} & \num{143} \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{Ch.~\ref{t3pre:ch}: predictive coding and pruning}{Ch.~\ref{t3pre:ch} : codage prédictif et élagage}}} \\
+\fichier{outils/genome/predictif-elagage/contextes.py} & {\footnotesize Codage prédictif sans perte des codes MXFP4 : ce que chaque prédicteur retire de l'entropie.} & \num{176} \\
+\fichier{outils/genome/predictif-elagage/contextes_temoin.py} & {\footnotesize Recalcule le témoin « gauche permutée » de contextes.py avec la formule de biais corrigée.} & \num{22} \\
+\fichier{outils/genome/predictif-elagage/debit_distorsion.py} & {\footnotesize Débit-distorsion des codes MXFP4 réels : élagage synaptique et quantification prédictive bornée.} & \num{380} \\
+\fichier{outils/genome/predictif-elagage/debit_hebb.py} & {\footnotesize Débit-distorsion à la sensibilité hebbienne : remplissage inverse sur (e, classe de ligne, classe de colonne).} & \num{151} \\
+\fichier{outils/genome/predictif-elagage/debit_sensibilite.py} & {\footnotesize Débit-distorsion à la sensibilité mesurée : remplissage inverse sur (échelle e, activité de colonne q).} & \num{168} \\
+\fichier{outils/genome/predictif-elagage/histo_hebb.py} & {\footnotesize Sensibilité hebbienne de chaque poids d'un expert : activité présynaptique × influence postsynaptique.} & \num{117} \\
+\fichier{outils/genome/predictif-elagage/histo_sensibilite.py} & {\footnotesize Loi conjointe pondérée par la sensibilité mesurée : l'élagage synaptique dépendant de l'activité.} & \num{88} \\
+\fichier{outils/genome/predictif-elagage/histogramme.py} & {\footnotesize Loi conjointe exacte (échelle e, δ de ligne, code) de chaque tenseur d'experts MXFP4.} & \num{59} \\
+\fichier{outils/genome/predictif-elagage/kld_identiques.py} & {\footnotesize Témoin de la chaîne à poids altérés : les entrées .kld d'un plan sans perte en valeur sont-elles identiques, octet pour octet, à celles de la référence exacte, …} & \num{42} \\
+\fichier{outils/genome/predictif-elagage/kld_tranche.py} & {\footnotesize Tranche un fichier .kld (format de llama-perplexity) : garde les fenêtres [a, b).} & \num{45} \\
+\fichier{outils/genome/predictif-elagage/mxfp4.py} & {\footnotesize Lecture des experts MXFP4 de gpt-oss, matrice par matrice, pour l'étude predictif-elagage.} & \num{109} \\
+\fichier{outils/genome/predictif-elagage/plans.py} & {\footnotesize Plans de reconstruction : pour une famille et une erreur visée, la table T[ctx][code] de chaque tenseur.} & \num{164} \\
+\fichier{outils/genome/predictif-elagage/resume_csv.py} & {\footnotesize Table de synthèse de l'étude (CSV pour le mémoire), tirée des journaux commités, jamais de mémoire.} & \num{60} \\
+\fichier{outils/genome/predictif-elagage/sonde/src/main.rs} & {\footnotesize La sonde de l'étude genome/predictif-elagage, sur la référence f64 de troncons (trc-reference).} & \num{254} \\
+\fichier{outils/genome/predictif-elagage/sortie_experts.py} & {\footnotesize Erreur à la SORTIE des experts, sur les entrées réelles capturées par la référence f64.} & \num{186} \\
+\fichier{outils/genome/predictif-elagage/taux_reel/src/bin/taux_plan.rs} & {\footnotesize Taux réel d'un plan avec perte (élagage, remplissage inverse) : les cellules de chaque poids sont codées par le rANS de l'étude 03, une table par (contexte du …} & \num{327} \\
+\fichier{outils/genome/predictif-elagage/taux_reel/src/main.rs} & {\footnotesize Taux réel des codes MXFP4 de gpt-oss, codés par le rANS de l'étude 03 et décodés exactement.} & \num{308} \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{Ch.~\ref{t3mim:ch}: mimicry, the judges}{Ch.~\ref{t3mim:ch} : le mimétisme, les juges}}} \\
+\fichier{outils/mimetisme/P1/juge/juge_p1.py} & {\footnotesize P1, juge : simulateur indépendant de cache à règle de groupe (LRU, LFU à demi-vie, décroissance inversée).} & \num{219} \\
+\fichier{outils/mimetisme/P1/juge/sondes_p1.py} & {\footnotesize P1, juge : sondes S1 (tête avant la fin de message), S3 (fenêtres froides) et cassure C1ter (post hoc, dite).} & \num{92} \\
+\fichier{outils/mimetisme/P2/juge/a_budget_egal.py} & {\footnotesize P2, juge, contrôle hors seuil (dit comme tel) : l'inclusif à R <= V est dégénéré par construction …} & \num{38} \\
+\fichier{outils/mimetisme/P2/juge/depouiller.py} & {\footnotesize P2, juge : confronte juge-brut.json aux seuils de genome/mimetisme/P2/juge-seuil.md (rend verdict-juge.json). Usage …} & \num{80} \\
+\fichier{outils/mimetisme/P2/juge/juge_p2.py} & {\footnotesize P2, juge : mon chemin pour refaire le chiffre principal (seuils : genome/mimetisme/P2/juge-seuil.md).} & \num{240} \\
+\fichier{outils/mimetisme/P3/juge/N238/juge_N238.py} & {\footnotesize Juge de P3 à N = 238 : mon propre chemin, sans importer p3\_*.py, le juge kl ni le lecteur du juge de N = 146.} & \num{344} \\
+\fichier{outils/mimetisme/P3/juge/etageB_juge.py} & {\footnotesize Juge de l'étage B de P3 : un second lecteur des .kld et du journal de routage, écrit sans reprendre p3\_etageB*.py.} & \num{277} \\
+\fichier{outils/mimetisme/P3/juge/juge_p3.py} & {\footnotesize P3, juge indépendant : second chemin de l'étage A (routage biaisé vers les résidents du cache).} & \num{254} \\
+\fichier{outils/mimetisme/P3/juge/routeur-ligne/juge_routeur_ligne.py} & {\footnotesize Juge du routeur biaisé EN LIGNE de P3 : mon propre chemin, sans importer p3\_*.py, le juge kl, rejouer, ni le juge de N = 238.} & \num{575} \\
+\fichier{outils/mimetisme/P4/juge/juge_generation.py} & {\footnotesize P4, juge : la jambe « génération » du verdict. Les deux traces de génération du 120b bouclent-elles, et que donne le prédicteur sur leur moitié de test ? Usage …} & \num{44} \\
+\fichier{outils/mimetisme/P4/juge/juge_p4.py} & {\footnotesize P4, juge indépendant : refait précision, couverture, octets et gain du bras P par un second chemin.} & \num{319} \\
+\fichier{outils/mimetisme/P5/juge/juge_p5.py} & {\footnotesize P5, juge indépendant : le gain d'évaluation de la descente cyclique (CD) contre Babai, par un chemin écrit de zéro.} & \num{244} \\
+\fichier{outils/mimetisme/P5/juge/juge_pt.py} & {\footnotesize P5 juge, phase optionnelle (descriptive) : échange de répliques écrit de zéro en numpy, sur les poids de J1.} & \num{118} \\
+\fichier{outils/mimetisme/P5/juge/lot_j5_pt.sh} & {\footnotesize J5 (demi-calibration) puis PT numpy descriptif, sequentiels (2 fils au plus).} & \num{16} \\
+\fichier{outils/mimetisme/P5/juge/lot_juge.sh} & {\footnotesize Lot du juge P5 : J1 (graine 1), J2 (graine 2026), J3 (regimes), temoins T1-T3, lambda 0,2 (graine 1).} & \num{16} \\
+\fichier{outils/mimetisme/P5/juge/resume_juge.py} & {\footnotesize P5 juge : agrège les journaux de juge\_p5.py et les compare aux chiffres de P5 (gains-d1.csv, table-regime.csv). …} & \num{135} \\
+\fichier{outils/mimetisme/P6/juge/juge_controles.py} & {\footnotesize Juge P6 : contrôles exploratoires (hors seuils déclarés, étiquetés tels dans JUGEMENT.md).} & \num{85} \\
+\fichier{outils/mimetisme/P6/juge/juge_p6.py} & {\footnotesize Juge P6 : second chemin indépendant du chiffre principal (variante A) et de la variante B.} & \num{257} \\
+\fichier{outils/mimetisme/P6/juge/juge_rang.py} & {\footnotesize Juge P6 : le mélange par couche (T2 et « les défauts ne sont pas corrélés aux petits poids ») garde le rang.} & \num{57} \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{Ch.~\ref{t3mim:ch}: mimicry, the six leads}{Ch.~\ref{t3mim:ch} : le mimétisme, les six pistes}}} \\
+\fichier{outils/mimetisme/P1/cache_p1.py} & {\footnotesize P1 : mémoire du cache à deux échelles (LFU à demi-vie), jugée en génération.} & \num{526} \\
+\fichier{outils/mimetisme/P1/fenetres_p1.py} & {\footnotesize P1, analyse post hoc A : fenêtres froides de 256 jetons sur des textes cohérents (lectures du 120b). Déclarée avant calcul …} & \num{91} \\
+\fichier{outils/mimetisme/P1/figures_p1.py} & {\footnotesize P1 : figures du mémoire, tirées des données commitées (hits-*.npz, fenetres-*.csv) et des traces extraites. Usage …} & \num{131} \\
+\fichier{outils/mimetisme/P1/noyau-p1/src/main.rs} & {\footnotesize noyau-p1 : copie de outils/mimetisme/physique/noyau-cache (rôle éclaireur physique, 2026-10-26), adaptée pour P1 (rôle expérimentateur, 2026-10-27). …} & \num{229} \\
+\fichier{outils/mimetisme/P1/rust_fenetres_p1.py} & {\footnotesize P1, second chemin des fenêtres froides : noyau-p1 rejoue LRU et LFU(h) sur des fenêtres de 256 jetons écrites en fichiers, comparées à fenetres-120b.csv …} & \num{33} \\
+\fichier{outils/mimetisme/P1/rust_p1.py} & {\footnotesize P1, second chemin : noyau-p1 (Rust, copie de noyau-cache du rôle physique avec deux changements dits dans son en-tête) rejoue les politiques de cache\_p1.py sur …} & \num{119} \\
+\fichier{outils/mimetisme/P2/cache_exclusif.py} & {\footnotesize P2, cache exclusif VRAM vers RAM : simulateur et bancs (mon implémentation, indépendante de cache2.py).} & \num{192} \\
+\fichier{outils/mimetisme/P2/diag_t2_20b.py} & {\footnotesize P2 : diagnostic du témoin T2 sur le 20b (écart de l'exclusif au LRU de V + R, avec et sans épinglage).} & \num{19} \\
+\fichier{outils/mimetisme/P2/explorations.py} & {\footnotesize P2, explorations POST-HOC (hors seuil déclaré, à lire comme des pistes, pas comme le verdict).} & \num{118} \\
+\fichier{outils/mimetisme/P2/figures.py} & {\footnotesize P2 : figures tirées des CSV commités (aucune valeur saisie à la main). fig1  distances de pile LRU …} & \num{80} \\
+\fichier{outils/mimetisme/P2/holdout20b.py} & {\footnotesize P2, test de la démotion sélective sur le 20b (seuil : genome/mimetisme/P2/seuil-declare-selectif.md). Usage …} & \num{62} \\
+\fichier{outils/mimetisme/P2/net_selectif.py} & {\footnotesize P2 : temps de service des défauts par jeton, 120b, R = 336 : LRU seul, exclusif simple (s=0), sélectif (s=1). …} & \num{23} \\
+\fichier{outils/mimetisme/P2/second_chemin.rs} & {\footnotesize P2, second chemin : cache LRU à deux étages, inclusif et exclusif, en Rust. Indépendant de cache2.py et de cache\_exclusif.py …} & \num{172} \\
+\fichier{outils/mimetisme/P2/verdict.py} & {\footnotesize P2 : lit temoins.csv, grille.csv, chaine.csv (et rust.csv s'il existe), vérifie les témoins déclarés dans genome/mimetisme/P2/seuil-declare.md, calcule le …} & \num{160} \\
+\fichier{outils/mimetisme/P2/verdict_selectif.py} & {\footnotesize P2 : verdict de la démotion sélective sur le 20b au seuil déclaré (seuil-declare-selectif.md).} & \num{37} \\
+\fichier{outils/mimetisme/P3/p3_affinage.py} & {\footnotesize P3, affinage post hoc de l'étage A (déclaré dans mesures/mimetisme/P3/01-affinage-declare.md avant ce lancement).} & \num{155} \\
+\fichier{outils/mimetisme/P3/p3_cassures_reelles.py} & {\footnotesize P3 : les cassures des témoins W3 et W5 sur les données réelles (elles n'avaient été passées que sur les logits synthétiques). W3-hasard …} & \num{33} \\
+\fichier{outils/mimetisme/P3/p3_etageB.py} & {\footnotesize P3 étage B : une passe de la référence f64 à routage imposé, sa RAM de pointe, sa KL (chemin 2).} & \num{101} \\
+\fichier{outils/mimetisme/P3/p3_etageB_N238.py} & {\footnotesize P3 étage B à N = 238 : deux passes de la référence f64 à routage imposé (β₁ puis β₂), l'une après l'autre.} & \num{163} \\
+\fichier{outils/mimetisme/P3/p3_etageB_N238_analyse.py} & {\footnotesize P3 étage B à N = 238 : second chemin (numpy depuis le CSV par position de juge kl) et verdict aux deux lectures de 03-critere-marge-declare.md.} & \num{92} \\
+\fichier{outils/mimetisme/P3/p3_etageB_N238_lecteur.py} & {\footnotesize P3 étage B à N = 238 : troisième chemin. Relit les .kld avec le lecteur du juge (etageB\_juge.py, écrit sans le code de l'étage B), recalcule KL, premier choix …} & \num{61} \\
+\fichier{outils/mimetisme/P3/p3_etageB_chemin2bis.py} & {\footnotesize P3 étage B, second chemin du chiffre principal : KL moyenne, premier choix identique, KL cumulée par fenêtre et arrêt d'O'Brien-Fleming, recalculés en numpy …} & \num{30} \\
+\fichier{outils/mimetisme/P3/p3_fichiers_B.py} & {\footnotesize P3 : les fichiers d'entrée de l'étage B (ensembles imposés à la référence f64), autour du franchissement de -10 \% de défauts.} & \num{41} \\
+\fichier{outils/mimetisme/P3/p3_fichiers_N238.py} & {\footnotesize P3 étage B à N = 238 : choix de beta\_1 (premier pas de 0,001 qui retire au moins 10 \% des défauts) et fichiers imposés.} & \num{34} \\
+\fichier{outils/mimetisme/P3/p3_routage.py} & {\footnotesize P3 : routage conditionné par le cache, borné par la marge. Étage A (boucle ouverte), outils et témoins.} & \num{451} \\
+\fichier{outils/mimetisme/P3/p3_routeur_ligne.py} & {\footnotesize P3, routeur biaisé en ligne : pilote des passes d'évaluation du moteur (gpt-oss-20b, 10 fenêtres de R1, 238 emplacements).} & \num{171} \\
+\fichier{outils/mimetisme/P3/p3_routeur_ligne_analyse.py} & {\footnotesize P3, routeur biaisé en ligne : analyse des passes d'évaluation du moteur et verdicts aux seuils de 06-routeur-ligne-declare.md.} & \num{207} \\
+\fichier{outils/mimetisme/P3/p3_routeur_ligne_vitesse.py} & {\footnotesize P3, routeur biaisé en ligne : génération (jetons par seconde), séries ABBA (06-routeur-ligne-declare.md § 7).} & \num{120} \\
+\fichier{outils/mimetisme/P3/p3_series.py} & {\footnotesize P3 : découpe affinage.csv en séries pour pgfplots (une par variante et budget, bêta positifs jusqu'à 1, triés), défauts évités en \% du compte à bêta = 0.} & \num{16} \\
+\fichier{outils/mimetisme/P4/p4.py} & {\footnotesize P4 : préchargement et rétention à confiance calibrée (prédiction conforme), qui cède à la demande.} & \num{314} \\
+\fichier{outils/mimetisme/P4/p4_figures.py} & {\footnotesize P4 : figures et CSV du mémoire, tirés de mesures/mimetisme/P4/mesure-*.json (aucune valeur saisie à la main). Usage …} & \num{95} \\
+\fichier{outils/mimetisme/P4/p4_mesure.py} & {\footnotesize P4 : mesure par session (calibration fendue, bras P et R, simulateur, second chemin, cassure).} & \num{187} \\
+\fichier{outils/mimetisme/P4/p4_synthese.py} & {\footnotesize P4 : synthèse au seuil déclaré (mesures/mimetisme/P4/00-seuils-declares.md § 2) à partir des JSON de p4\_mesure.py. Usage …} & \num{88} \\
+\fichier{outils/mimetisme/P4/p4_temoins.py} & {\footnotesize P4 : témoins du simulateur et de la calibration (déclarés dans mesures/mimetisme/P4/00-seuils-declares.md § 3).} & \num{165} \\
+\fichier{outils/mimetisme/P5/agreger_etape1.py} & {\footnotesize P5 etape 1 : agrege les journaux mesures/mimetisme/P5/etape1/L??-E??-d<delta>.json, applique la regle declaree (mesures/mimetisme/P5/00-seuil-declare.md + …} & \num{89} \\
+\fichier{outils/mimetisme/P5/etape1.py} & {\footnotesize P5 etape 1 : le H reel des captures, des poids SYNTHETIQUES gaussiens sur la grille MXFP4.} & \num{225} \\
+\fichier{outils/mimetisme/P5/etape2.py} & {\footnotesize P5 etape 2 : poids REELS (gpt-oss-20b), un expert a la fois (13 Mo de lecture : gate, up, down).} & \num{151} \\
+\fichier{outils/mimetisme/P5/figures.py} & {\footnotesize P5 : figures vraies, tirees des donnees commitees (CSV ecrits a cote). Sorties : mesures/mimetisme/P5/figures/.} & \num{194} \\
+\fichier{outils/mimetisme/P5/gibbs.py} & {\footnotesize P5 : l'estimateur de Gibbs. La mecanique statistique de l'apprentissage (Seung, Sompolinsky, Tishby 1992 …} & \num{66} \\
+\fichier{outils/mimetisme/P5/lot_diag.sh} & {\footnotesize Exploration (addendum 2) : cible diagonale de l'amortissement, Babai et CD seulement. usage : lot\_diag.sh CIBLE DAMP} & \num{11} \\
+\fichier{outils/mimetisme/P5/lot_etape1.sh} & {\footnotesize Les 8 instances (couches 0,8,16,23 x experts 0,16) pour un amortissement donne. 2 fils, priorite normale. usage : lot\_etape1.sh DAMP} & \num{11} \\
+\fichier{outils/mimetisme/P5/lot_regime.sh} & {\footnotesize Addendum 3 : variation de N. usage : lot\_regime.sh REGIME} & \num{11} \\
+\fichier{outils/mimetisme/P5/p5core/src/lib.rs} & {\footnotesize P5 : noyau du recuit et de l'echange de repliques sur le choix des symboles synonymes.} & \num{335} \\
+\fichier{outils/mimetisme/P5/p5lib.py} & {\footnotesize P5 : bibliotheque du recuit et de l'echange de repliques sur les symboles synonymes.} & \num{177} \\
+\fichier{outils/mimetisme/P5/resume.py} & {\footnotesize Affiche les lignes d'un journal etape1 (une ou plusieurs).} & \num{13} \\
+\fichier{outils/mimetisme/P5/table_delta.py} & {\footnotesize P5 : l'erreur d'evaluation de chaque methode a chaque amortissement, rapportee a Babai deploye (delta = 1, lam = 0). …} & \num{31} \\
+\fichier{outils/mimetisme/P5/table_diag.py} & {\footnotesize Addendum 2 : cible diagonale de l'amortissement. Erreur d'evaluation (Babai, CD) rapportee a Babai iso delta = 1.} & \num{32} \\
+\fichier{outils/mimetisme/P5/table_regime.py} & {\footnotesize Addendum 3 : variation de N. Gain de CD contre Babai du meme regime, sur le test, par instance.} & \num{42} \\
+\fichier{outils/mimetisme/P5/temoins.py} & {\footnotesize P5 : temoins W1, W2, W4 (sans fichier modele, sans capture). Seuils : mesures/mimetisme/P5/00-seuil-declare.md.} & \num{164} \\
+\fichier{outils/mimetisme/P5/temoins_reglage.py} & {\footnotesize P5 : reglage du PT sur les instances ou la premiere passe (200 balayages, 8 temperatures, 0,03 a 1,5) n'a pas retrouve l'optimum de la force brute. …} & \num{32} \\
+\fichier{outils/mimetisme/P6/analyses.py} & {\footnotesize P6 étape 0 : analyses exploratoires, hors verdict (étiquetées telles dans resultat.md). 1. …} & \num{118} \\
+\fichier{outils/mimetisme/P6/etape0.py} & {\footnotesize P6 étape 0 : la mesure, après les témoins. Seuils : mesures/mimetisme/P6/00-seuils-declares.md. Usage …} & \num{287} \\
+\fichier{outils/mimetisme/P6/etape0_B.py} & {\footnotesize P6 étape 0, variante B : préremplissage par lots, décision rapide/exact par masse agrégée. Seuils : mesures/mimetisme/P6/00-seuils-declares.md § 3. …} & \num{112} \\
+\fichier{outils/mimetisme/P6/figures.py} & {\footnotesize Figures de P6 (étape 0), tirées de mesures/mimetisme/P6/*.json. Usage : python -I -X utf8 figures.py <racine du dépôt>} & \num{71} \\
+\fichier{outils/mimetisme/P6/niveaux-rust/src/main.rs} & {\footnotesize Second chemin de P6, étape 0 : cache d'experts à niveaux (exact / rapide), écrit à part de tiers.py.} & \num{126} \\
+\fichier{outils/mimetisme/P6/second_chemin.py} & {\footnotesize Second chemin du chiffre principal de P6 (étape 0) : le automate Rust à étiquettes contre tiers.py. Usage …} & \num{25} \\
+\fichier{outils/mimetisme/P6/second_chemin_B.py} & {\footnotesize Second chemin de la variante B : boucles en dictionnaires, tri de Python, sans numpy dans le calcul de r. Usage …} & \num{33} \\
+\fichier{outils/mimetisme/P6/temoins.py} & {\footnotesize P6 étape 0 : témoins T0, T1, T4 (et sa cassure), avant toute mesure. Usage : python -I -X utf8 temoins.py <dossier t120> <exe noyau-cache> <dossier\_sortie> …} & \num{105} \\
+\fichier{outils/mimetisme/P6/tiers.py} & {\footnotesize P6, étape 0 : cache d'experts à niveaux (exact / rapide) et portillon de poids de mélange.} & \num{207} \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{Ch.~\ref{t3mim:ch}: mimicry, the domain scouts}{Ch.~\ref{t3mim:ch} : le mimétisme, les éclaireurs de domaine}}} \\
+\fichier{outils/mimetisme/humain/e1_memoire.py} & {\footnotesize E1 : politique de cache « mémoire humaine » (Anderson et Schooler 1991, ACT-R) contre LRU, LFU et Belady.} & \num{162} \\
+\fichier{outils/mimetisme/humain/e1b_demivie.py} & {\footnotesize E1b (POST HOC, non déclaré avant) : le LFU du dépôt (demi-vie 8) est-il mal réglé ? Balayage de la demi-vie, pooled et par genre, et meilleur réglage par genre …} & \num{25} \\
+\fichier{outils/mimetisme/humain/e2_triage.py} & {\footnotesize E2 : tri par poids de mélange (triage) des défauts de cache. Proxy de masse, pas de qualité.} & \num{132} \\
+\fichier{outils/mimetisme/humain/e345.py} & {\footnotesize E3 (allocation marginale par couche), E4 (précédent inter-couches), E5 (classes ABC). Seuils et témoins déclarés avant l'écriture de cet outil …} & \num{289} \\
+\fichier{outils/mimetisme/humain/e4b_defauts.py} & {\footnotesize E4b (POST HOC, non déclaré avant) : le prédicteur « précédent » de E4 (régime en ligne) couvre-t-il les DÉFAUTS de cache ?} & \num{122} \\
+\fichier{outils/mimetisme/humain/e6_sequentiel.py} & {\footnotesize E6 : arrêt séquentiel de groupe (forme O'Brien-Fleming) rejoué sur les séries de KL par fenêtre du juge. Seuils et témoins déclarés avant …} & \num{76} \\
+\fichier{outils/mimetisme/humain/e7_marge.py} & {\footnotesize E7 (POST HOC, descriptif, sans critère déclaré) : borne haute des défauts qu'un routage conscient du cache pourrait éviter en échangeant le 4e expert contre le …} & \num{66} \\
+\fichier{outils/mimetisme/ingenierie/cache2.py} & {\footnotesize Simulateur de cache d'experts à un ou deux étages, sur les traces de routage du 120b.} & \num{322} \\
+\fichier{outils/mimetisme/mathematiques/m1_m2.py} & {\footnotesize Éclaireur « mathématiques et théorie de l'information » : mesures M1 et M2.} & \num{320} \\
+\fichier{outils/mimetisme/mathematiques/maslov_jouet.py} & {\footnotesize Calcul jouet (pas une mesure sur le modèle) : lissage de Maslov d'une décision à seuil.} & \num{22} \\
+\fichier{outils/mimetisme/mathematiques/plafond_speculatif.py} & {\footnotesize Calcul (pas une mesure) : gain d'octets du décodage spéculatif à brouillon d'acceptation alpha par jeton, long de gamma jetons, de coût relatif c (octets lus …} & \num{23} \\
+\fichier{outils/mimetisme/mathematiques/t2bis.py} & {\footnotesize Témoin T2bis (amendement du 2026-10-26) : PB avec le prédicteur appris, relevé par l'indicateur vrai du prochain jeton. Seuil déclaré …} & \num{19} \\
+\fichier{outils/mimetisme/physique/e1_e2.py} & {\footnotesize E1 (noyaux de mémoire du cache) et E2 (nombres d'occupation) : seuils dans mesures/mimetisme/physique/00-seuils-declares.md (commit 59eb5a2, avant toute …} & \num{188} \\
+\fichier{outils/mimetisme/physique/e3.py} & {\footnotesize E3 : admission par seuil de score (BYPASS) contre LFU ordinaire à capacité égale de pointe. Seuil …} & \num{66} \\
+\fichier{outils/mimetisme/physique/noyau-cache/src/main.rs} & {\footnotesize Cache global d'experts à score par noyau de mémoire (rôle éclaireur physique, 2026-10-26).} & \num{213} \\
+\fichier{outils/mimetisme/terre_cosmos/alloc_lfu.py} & {\footnotesize Post hoc, hors seuil déclaré : M-A avec une LFU (demi-vie 32 jetons) par couche au lieu d'un LRU. …} & \num{65} \\
+\fichier{outils/mimetisme/terre_cosmos/cache_terre.py} & {\footnotesize Éclaireur Terre et cosmos : deux politiques de cache d'experts inspirées de la Terre, jugées sur les traces de routage commitées (seuils …} & \num{376} \\
+\fichier{outils/mimetisme/terre_cosmos/eau_usage.py} & {\footnotesize Éclaireur Terre et cosmos : eau-filling par l'usage (addendum 2 de seuil-declare.md, commité avant).} & \num{172} \\
+\fichier{outils/mimetisme/terre_cosmos/lfu_demivie.py} & {\footnotesize Post hoc, hors seuil déclaré : la LFU de la base (demi-vie 8 jetons) est-elle réglée au bon endroit ? Taux de succès moyen sur les quatre genres (cache vide au …} & \num{31} \\
+\fichier{outils/mimetisme/terre_cosmos/phase_120b_reduit.py} & {\footnotesize M-C sur le 120b, version réduite (la passe complète coûte 150 s par cas et a été arrêtée après 3 cas sur 16) …} & \num{42} \\
+\fichier{outils/mimetisme/terre_cosmos/phase_terre.py} & {\footnotesize Éclaireur Terre et cosmos : M-C, éviction par temps estimé jusqu'à la prochaine utilisation.} & \num{160} \\
+\fichier{outils/mimetisme/terre_cosmos/t2_melange.py} & {\footnotesize Témoin T2 (cassure) déclaré dans seuil-declare.md : ordre des jetons mélangé, l'avance de M-B sur la LFU doit tomber dans +-0,5 point …} & \num{29} \\
+\fichier{outils/mimetisme/vivant/ablation_demivie.py} & {\footnotesize Contrôle de E-A (non déclaré avant, dit tel) : le gain d'ACT-R contre LFU8 vient-il seulement d'une mémoire plus longue ?} & \num{55} \\
+\fichier{outils/mimetisme/vivant/bancs_traces.py} & {\footnotesize Bancs de l'éclaireur du vivant, sur les traces de routage de gpt-oss (aucun fichier de modèle ouvert).} & \num{766} \\
+\fichier{outils/mimetisme/vivant/casser_temoins.py} & {\footnotesize Cassures des témoins de bancs\_traces.py : chaque témoin doit pouvoir tomber.} & \num{87} \\
+\fichier{outils/mimetisme/vivant/eviction_episodique.py} & {\footnotesize E-L : éviction pilotée par la mémoire épisodique (cosinus exact, pas de deux jetons). Seuil : seuil-declare.md (E-L). Usage …} & \num{105} \\
+\fichier{outils/mimetisme/vivant/eviction_synergies.py} & {\footnotesize E-J : éviction pilotée par le prédicteur de synergies (pas de deux jetons). Seuil : seuil-declare.md (E-J). Usage …} & \num{146} \\
+\fichier{outils/mimetisme/vivant/memoire_episodique.py} & {\footnotesize E-K : mémoire épisodique clairsemée (la mouche), cosinus exact. Seuil : seuil-declare.md (E-K). Usage : python -I memoire\_episodique.py DOSSIER\_TRACES} & \num{105} \\
+\fichier{outils/mimetisme/vivant/poids_stats.py} & {\footnotesize Statistiques complémentaires de E-C : forme de la loi des poids de mélange (descriptif). Usage : python -I poids\_stats.py DOSSIER} & \num{18} \\
+\fichier{outils/mimetisme/vivant/predicteur_synergies.py} & {\footnotesize E-I : un prédicteur de synergies, appris sur d'autres genres, devine-t-il les experts du jeton suivant ? Seuil et témoins …} & \num{201} \\
+\fichier{outils/mimetisme/vivant/residence_partielle.py} & {\footnotesize E-G : résidence partielle (« polymérase en pause »). Seuil et prédiction : seuil-declare.md, ajout du 2026-10-27.} & \num{47} \\
+\fichier{outils/mimetisme/vivant/surprise_mode.py} & {\footnotesize E-H : le signal de surprise prédit-il où le mode rapide perd de la KL ? Seuil : seuil-declare.md (ajout E-H).} & \num{91} \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{Ch.~\ref{t3syn:ch}: the synthesis of the round}{Ch.~\ref{t3syn:ch} : la synthèse de la ronde}}} \\
+\fichier{outils/genome/synthese/frontiere.py} & {\footnotesize Synthèse de la ronde 1 du génome des poids : la frontière bits par poids contre KL sur le texte.} & \num{340} \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{Ch.~\ref{t3cod:ch}: the codon (lot A)}{Ch.~\ref{t3cod:ch} : le codon (lot A)}}} \\
+\fichier{outils/genome/construction/codon/analyse_codon.py} & {\footnotesize Analyse du lot A (codon) : tailles v1.2 contre v1.0, et verdicts du J1 ABBA.} & \num{175} \\
+\fichier{outils/genome/construction/codon/copie_temoin.sh} & {\footnotesize Témoin de la disposition sur le disque (lot A, codon) : copie neuve du v1.0 du 120b, SHA-256 des deux fichiers par Get-FileHash (chemin indépendant), puis les …} & \num{16} \\
+\fichier{outils/genome/construction/codon/lancer.ps1} & {\footnotesize Lance trc-codeur (cible du lot A, codon), sorties redirigées ; note l'alimentation (Win32\_Battery.BatteryStatus …} & \num{22} \\
+\fichier{outils/genome/construction/codon/pilote_codon.py} & {\footnotesize Pilote du lot A (codon synonyme du zéro, format .trc v1.2) : critère A-C1 (logits au bit) et jalon J1 refait sur le 120b en v1.2 contre v1.0 (A-C3 vitesse, …} & \num{316} \\
+\fichier{outils/genome/construction/codon/recoder.sh} & {\footnotesize Lot A (codon) : recodage v1.2 et vérification C1 des deux modèles, dans l'ordre. 1. témoin d'identité …} & \num{40} \\
+\fichier{outils/genome/construction/codon/recoder_temoin_120b.sh} & {\footnotesize Séance s2 du lot A (codon) : le v1.0 du 120b recodé aujourd'hui par trc-codeur (témoin d'identité du codeur modifié sur le 120b, et témoin de disposition pour …} & \num{17} \\
+\fichier{outils/genome/construction/codon/tables_octets.py} & {\footnotesize Les fréquences des tables CODES\_CTX lues dans les fichiers .trc, v1.0 et v1.2 (figure F2 du mémoire : la carte des 256 octets avant et après le fondu du zéro).} & \num{91} \\
+\fichier{outils/genome/construction/codon/verrou.py} & {\footnotesize Le verrou de la carte pour le lot A (codon) : prendre, rendre, état.} & \num{46} \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{Ch.~\ref{t3sno:ch}: the synonymous genome (lot B)}{Ch.~\ref{t3sno:ch} : le génome synonyme (lot B)}}} \\
+\fichier{outils/genome/synonyme/apparier.py} & {\footnotesize Différence appariée de deux passes KL (lot B, génome synonyme ; règle déclarée dans mesures/genome/construction/synonyme/00-seuils-declares.md).} & \num{117} \\
+\fichier{outils/genome/synonyme/coder_768.sh} & {\footnotesize Lot B, pas S1 : la mutation synonyme (λ = 1, δ* = 1) et la base frontière des 768 experts de gpt-oss-20b, par l'outil de l'éclaireur tel quel …} & \num{46} \\
+\fichier{outils/genome/synonyme/donnees_figures.py} & {\footnotesize Données des figures du lot B (génome synonyme) pour le mémoire : la transformation du synonyme vue dans la base propre de H (avant : frontière ; après …} & \num{97} \\
+\fichier{outils/genome/synonyme/evaluer_moteur.sh} & {\footnotesize Lot B, S3-K et S3-KL : la KL du moteur (carte, f32) sur les 10 fenêtres de R1, sous le verrou de la carte et sur secteur …} & \num{22} \\
+\fichier{outils/genome/synonyme/kl_passe.sh} & {\footnotesize Lot B, pas S2 : la KL de bout en bout d'un dossier de .sym substitués (768 experts), sur les 10 fenêtres de R1, par la référence f64 (genome-capture kl), puis …} & \num{20} \\
+\fichier{outils/genome/synonyme/mode_rapide_l0.sh} & {\footnotesize Lot B, après B2 (λ = 0 meilleure à 768 experts, 2026-10-21) : le compagnon rapide de la variante λ = 0, sa vérification S3-T1 (et sa cassure), la KL du moteur …} & \num{37} \\
+\fichier{outils/genome/synonyme/pilote_vitesse.py} & {\footnotesize Lot B, pas S3-V : la vitesse du mode rapide contre le mode exact sur gpt-oss-20b, séance ABBA.} & \num{183} \\
+\fichier{outils/genome/synonyme/proxy_120b.sh} & {\footnotesize Lot B, 120b (frontière seulement ; seuils : 00-seuils-declares.md § 120b, déclarés avant) : T2 …} & \num{51} \\
+\fichier{outils/genome/synonyme/rapide/src/main.rs} & {\footnotesize trc-rapide : le fichier compagnon du mode rapide (lot B, génome synonyme ; genome/05-synthese.md § 4.8, genome/07-genome-synonyme.md).} & \num{498} \\
+\fichier{outils/genome/synonyme/repere_llama.sh} & {\footnotesize Lot B, critère B2 (ii) : le repère de l'outil de référence. La requantification llama.cpp b11515 des seuls tenseurs d'experts en Q2\_0 (2,25 bits par poids, …} & \num{18} \\
+\fichier{outils/genome/synonyme/survie_kl.py} & {\footnotesize Données de la figure F-S2 du lot B : la fonction de survie de la KL par position, P(KL > t), sur une grille logarithmique de t, pour plusieurs passes juge kl …} & \num{43} \\
+\fichier{outils/genome/synonyme/tableau_variantes.py} & {\footnotesize Lot B : la table des variantes à 768 experts (figure F-S8), tirée des journaux commités.} & \num{33} \\
+\fichier{outils/genome/synonyme/verifier_sym.py} & {\footnotesize Second chemin du lot B (génome synonyme) : relire les fichiers .sym et recalculer, sans le code qui les a écrits, ce que l'éclaireur a publié …} & \num{225} \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{Ch.~\ref{t3jug:ch}: the judge of the construction}{Ch.~\ref{t3jug:ch} : le juge de la construction}}} \\
+\fichier{outils/genome/construction/juge/construire.bat} & {\footnotesize Juge de la construction : construit depuis main (arbre du depot) le moteur, juge et genome-capture dans la cible du juge, par la recette du SOCLE …} & \num{14} \\
+\fichier{outils/genome/construction/juge/decodeur_juge.py} & {\footnotesize Le décodeur indépendant du juge de la construction : le format .trc (v1.0 et v1.2), lu et décodé depuis la seule description de decisions/ARCHITECTURE.md §§ …} & \num{705} \\
+\fichier{outils/genome/construction/juge/donnees_juge.py} & {\footnotesize Les CSV du juge pour le mémoire (Tome III), tirés des journaux commités du juge.} & \num{85} \\
+\fichier{outils/genome/construction/juge/evaluer_juge.sh} & {\footnotesize Juge de la construction : les passes troncons evaluer --flux sur les fenêtres neuves (J-C1 et J-K, chemin du moteur), sous le verrou de la carte et sur …} & \num{27} \\
+\fichier{outils/genome/construction/juge/fenetres_juge.py} & {\footnotesize Les fenêtres neuves du juge : dix fenêtres de 512 jetons de wiki.test que les lots n'ont pas vues.} & \num{170} \\
+\fichier{outils/genome/construction/juge/kl_juge.py} & {\footnotesize La KL du juge, calculée par son propre code depuis les fichiers .kld (format de llama-perplexity).} & \num{179} \\
+\fichier{outils/genome/construction/juge/logits_juge.py} & {\footnotesize Les logits au bit (J-C1) : comparaison des empreintes de logits de deux passes troncons evaluer, et la copie à biais retournés de la cassure.} & \num{105} \\
+\fichier{outils/genome/construction/juge/reference_juge.sh} & {\footnotesize Juge de la construction : la référence f64 des fenêtres neuves, puis la référence f64 substituée (le chemin des lots, genome-capture kl --sub) pour λ = 0, la …} & \num{38} \\
+\fichier{outils/genome/construction/juge/routage_juge.py} & {\footnotesize Les experts routés par les fenêtres neuves que R1 n'a jamais routés (J-K, « ce que je publie de plus »).} & \num{52} \\
+\fichier{outils/genome/construction/juge/seance_juge.py} & {\footnotesize La séance de vitesse du juge : trois fichiers par modèle, ordre équilibré, machine calme relevée.} & \num{269} \\
+\fichier{outils/genome/construction/juge/verrou_juge.py} & {\footnotesize Le verrou de la carte pour le juge de la construction : prendre, rafraîchir, rendre, état.} & \num{59} \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{Ch.~\ref{t3tro:ch}: tropical geometry}{Ch.~\ref{t3tro:ch} : la géométrie tropicale}}} \\
+\fichier{outils/pistes/tropicale/cascades.py} & {\footnotesize Exploration, après le verdict (ne décide rien, seuil-declare.md § 5) : les cascades de bascules.} & \num{114} \\
+\fichier{outils/pistes/tropicale/figures.py} & {\footnotesize Données des figures de la garde tropicale (Tome III), tirées des journaux commités, et la coupe réelle du routeur (régions top-4 et bande de garde) rendue par …} & \num{228} \\
+\fichier{outils/pistes/tropicale/garde.py} & {\footnotesize La courbe de la garde tropicale : (part des cellules sous τ, part des bascules sous τ).} & \num{123} \\
+\fichier{outils/pistes/tropicale/indices.py} & {\footnotesize La garde à indices multiples (mémoire du conflit) : protocole de genome/pistes/tropicale/seuil-declare-indices.md.} & \num{236} \\
+\fichier{outils/pistes/tropicale/indices_complements.py} & {\footnotesize Compléments de la garde à indices multiples, APRÈS le verdict (étiquetés exploratoires).} & \num{99} \\
+\fichier{outils/pistes/tropicale/juge/juge.py} & {\footnotesize Juge indépendant de la garde tropicale : le chiffre principal refait par un autre chemin.} & \num{263} \\
+\fichier{outils/pistes/tropicale/juge/juge_classes.py} & {\footnotesize Juge : l'autre classe de modèle (probabilités par classes) refaite, et sa sensibilité aux ex aequo.} & \num{94} \\
+\fichier{outils/pistes/tropicale/juge/juge_indices.py} & {\footnotesize Juge indépendant de la garde à indices multiples (la mémoire du conflit).} & \num{274} \\
+\fichier{outils/pistes/tropicale/juge/juge_modele.py} & {\footnotesize Juge de la garde tropicale : deux contrôles du théorème du nombre de garde, par quadrature seule.} & \num{104} \\
+\fichier{outils/pistes/tropicale/juge/juge_w4.py} & {\footnotesize Juge : le témoin W4 (M3 entraîné sur étiquettes mélangées) sur vingt graines.} & \num{49} \\
+\fichier{outils/pistes/tropicale/lois.py} & {\footnotesize Ce que 05 § 3.1 dit non mesuré, lu sur les mêmes journaux (seuil-declare.md § 5) :} & \num{273} \\
+\fichier{outils/pistes/tropicale/routage.py} & {\footnotesize Lecture des journaux de routage du lot R, et la cohabitation avec le flux qui mesure des vitesses.} & \num{114} \\
+\fichier{outils/pistes/tropicale/second_chemin.py} & {\footnotesize Second chemin du point principal de la garde tropicale, indépendant du chemin numpy.} & \num{61} \\
+\fichier{outils/pistes/tropicale/second_chemin_indices.py} & {\footnotesize Second chemin de la garde à indices multiples (seuil-declare-indices.md § 6).} & \num{137} \\
+\fichier{outils/pistes/tropicale/second_chemin_racines.py} & {\footnotesize Second chemin, en Python pur (lecture de bascules.py, lot R), du chiffre exploratoire des racines …} & \num{52} \\
+\fichier{outils/pistes/tropicale/temoins.py} & {\footnotesize Témoins T1, T2, T3 de la garde tropicale (genome/pistes/tropicale/seuil-declare.md § 4).} & \num{114} \\
+\fichier{outils/pistes/tropicale/theoreme.py} & {\footnotesize Le nombre de garde κ = σ / E[m] : forme close de la courbe de la garde sous deux hypothèses (marge exponentielle de taux λ, bascule si la perturbation …} & \num{94} \\
+\fichier{outils/pistes/tropicale/verifier_chiffres.py} & {\footnotesize Relit les chiffres principaux de garde-tropicale.md contre les fichiers commités qui les portent. Chaque ligne …} & \num{54} \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{Ch.~\ref{t3spe:ch}: the spectra}{Ch.~\ref{t3spe:ch} : les spectres}}} \\
+\fichier{outils/pistes/spectres/ajuster.py} & {\footnotesize Piste spectres, pas 3 : ajustement CSN des 48 spectres réels et de leurs témoins T-perm.} & \num{72} \\
+\fichier{outils/pistes/spectres/alpha_levier.py} & {\footnotesize Piste spectres : l'exposant α̂ prédit-il le levier de rang payé ? (exploratoire, NON déclaré avant)} & \num{56} \\
+\fichier{outils/pistes/spectres/apres-chaine.sh} & {\footnotesize Piste spectres : lance le test de prédiction (seuil.md § 7 octies) une fois la chaîne levier3 normalise finie (« fin normalise » dans chaine.log), pour ne …} & \num{14} \\
+\fichier{outils/pistes/spectres/chaine.sh} & {\footnotesize Piste spectres : enchaîne les calculs, sans jamais démarrer pendant une séance de vitesse. …} & \num{58} \\
+\fichier{outils/pistes/spectres/commun.py} & {\footnotesize Piste spectres : ce que partagent les outils (priorité, garde du verrou, lecture des matrices).} & \num{152} \\
+\fichier{outils/pistes/spectres/csn.py} & {\footnotesize Loi de puissance par la méthode de Clauset, Shalizi et Newman (arXiv 0706.1062), écrite de zéro.} & \num{144} \\
+\fichier{outils/pistes/spectres/fig_plafond.py} & {\footnotesize Piste spectres : CSV des figures du plafond (P1 : plafond par rang ; P2 : α̂ contre levier payé).} & \num{66} \\
+\fichier{outils/pistes/spectres/fig_rangee.py} & {\footnotesize Piste spectres : CSV de la figure P3 (d'où vient le plafond : échelles de rangée, artefact MP, structure).} & \num{56} \\
+\fichier{outils/pistes/spectres/juge/comparer.py} & {\footnotesize Juge de la piste « spectres » : comparaison du chemin du juge au tableau publié (ajustements.out).} & \num{103} \\
+\fichier{outils/pistes/spectres/juge/juge_csn.py} & {\footnotesize Juge de la piste « spectres » : le chiffre principal refait par un chemin propre.} & \num{344} \\
+\fichier{outils/pistes/spectres/juge/juge_npz.py} & {\footnotesize Juge de la piste « spectres » : les spectres du npz viennent-ils bien du modèle ?} & \num{91} \\
+\fichier{outils/pistes/spectres/levier.py} & {\footnotesize Piste spectres, pas 4 : le spectre ouvre-t-il un levier de compression ? (seuil.md § 7)} & \num{287} \\
+\fichier{outils/pistes/spectres/levier_l3.py} & {\footnotesize Piste spectres : L3 v3, le quantificateur scalaire à tramage soustractif (seuil.md § 7 ter).} & \num{94} \\
+\fichier{outils/pistes/spectres/normalise.py} & {\footnotesize Piste spectres : d'où vient la queue ? (mesure exploratoire, NON déclarée avant ; dite comme telle)} & \num{62} \\
+\fichier{outils/pistes/spectres/plafond.py} & {\footnotesize Piste spectres : le plafond spectral (seuil.md § 7 quinquies), sur les valeurs singulières sauvées.} & \num{256} \\
+\fichier{outils/pistes/spectres/plafond_rang.py} & {\footnotesize Piste spectres : le plafond par rang, offert ou payé (seuil.md § 7 septies).} & \num{140} \\
+\fichier{outils/pistes/spectres/plafond_rangee.py} & {\footnotesize Piste spectres : le plafond au-delà des échelles de rangée (seuil.md § 7 nonies et § 7 decies).} & \num{167} \\
+\fichier{outils/pistes/spectres/prediction.py} & {\footnotesize Piste spectres : l'exposant α̂ prédit-il le levier de rang payé ? (seuil.md § 7 octies)} & \num{133} \\
+\fichier{outils/pistes/spectres/puissance_critere.py} & {\footnotesize Piste spectres : la puissance du critère déclaré, mesurée sur des lois de puissance vraies.} & \num{56} \\
+\fichier{outils/pistes/spectres/rangee_graine.py} & {\footnotesize Piste spectres : stabilité de la référence « permuté par rangée » d'une graine à l'autre (seuil.md § 7 undecies).} & \num{64} \\
+\fichier{outils/pistes/spectres/rapport.py} & {\footnotesize Piste spectres : les chiffres du livrable, lus dans les journaux commités (rien de mémoire).} & \num{253} \\
+\fichier{outils/pistes/spectres/second_chemin.py} & {\footnotesize Piste spectres : le second chemin du chiffre principal (seuil.md § 6).} & \num{186} \\
+\fichier{outils/pistes/spectres/spectres_svd.py} & {\footnotesize Piste spectres, pas 2 : les valeurs singulières complètes de l'échantillon et de ses témoins.} & \num{86} \\
+\fichier{outils/pistes/spectres/temoins.py} & {\footnotesize Piste spectres : les témoins de l'instrument (seuil.md § 5), et leur cassure.} & \num{60} \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{Figures: latent spaces and figure judges}{Les figures : espaces latents et juges des figures}}} \\
+\fichier{outils/genome/tome3/juge-construction/lectures.py} & {\footnotesize Juge des figures du lot « construction » : les lectures (ce qui serait faux ou trop beau).} & \num{198} \\
+\fichier{outils/genome/tome3/juge-construction/points.py} & {\footnotesize Juge des figures du lot « construction » : un point tiré au hasard par série tracée, contrôlé à la source.} & \num{296} \\
+\fichier{outils/genome/tome3/juge-construction/recalcul.py} & {\footnotesize Juge des figures du lot « construction » du Tome III (ch. 8 à 10) : les nombres des légendes.} & \num{447} \\
+\fichier{outils/genome/tome3/juge-construction/regenerer.py} & {\footnotesize Juge des figures du lot « construction » : régénérer les données des figures et les comparer au bit.} & \num{85} \\
+\fichier{outils/genome/tome3/juge-design/palette.py} & {\footnotesize Juge de design du Tome III : distances entre les couleurs du préambule et des lots, en vision normale, deutéranope, protanope (Machado, Oliveira, Fernandes …} & \num{71} \\
+\fichier{outils/genome/tome3/juge-design/planche.py} & {\footnotesize Planche : rend des pages d'un PDF, découpe la zone utile (fractions), les colle en grille. Usage …} & \num{42} \\
+\fichier{outils/genome/tome3/juge-design/zoom.py} & {\footnotesize Rend une page d'un PDF à une résolution donnée et en découpe une zone (fractions de page). Usage …} & \num{34} \\
+\fichier{outils/genome/tome3/juge-final/listing.py} & {\footnotesize Juge final : le listing du fondu (chapitre 08) contre les sources Rust commitées, par mon propre extrait (git show main:..., lignes 67 à 77 et 317 à 327), …} & \num{31} \\
+\fichier{outils/genome/tome3/juge-final/parite_ef.py} & {\footnotesize Juge final : dans un fichier bilingue (\textbackslash{}EF\{anglais\}\{français\}), compare les nombres et les renvois de chaque paire. Usage …} & \num{34} \\
+\fichier{outils/genome/tome3/juge-final/parite_nombres.py} & {\footnotesize Juge final du Tome III : compare, fichier par fichier, les nombres du français et de l'anglais. Chemin propre au juge (aucun outil des traducteurs repris) …} & \num{199} \\
+\fichier{outils/genome/tome3/juge-final/refaire_neufs.py} & {\footnotesize Juge final du Tome III : refait, par mon propre chemin (lecture directe des JSON et CSV commités), les chiffres neufs ou déplacés depuis …} & \num{211} \\
+\fichier{outils/genome/tome3/juge-final/resumes.py} & {\footnotesize Juge final : les deux blocs du résumé (Résumé, Abstract) sont-ils les mêmes, au caractère près, dans fr/resume.tex et en/resume.tex ? Usage …} & \num{25} \\
+\fichier{outils/genome/tome3/juge-final/typo_en.py} & {\footnotesize Juge final : typographie anglaise du Tome III (sources anglaises), relevé mécanique, hors commentaires. Relève : espace avant « …} & \num{28} \\
+\fichier{outils/genome/tome3/juge-latents/juge_commun.py} & {\footnotesize Juge du lot « espaces latents » du Tome III : lectures communes, écrites de zéro.} & \num{150} \\
+\fichier{outils/genome/tome3/juge-latents/juge_etats.py} & {\footnotesize Juge du lot « espaces latents » : les nombres de III-7.6 (l'espace latent des 6 132 états de la couche 23), refaits de zéro depuis la capture h-L23.f32, le …} & \num{227} \\
+\fichier{outils/genome/tome3/juge-latents/juge_etats_marges.py} & {\footnotesize Juge du lot « espaces latents », III-7.6 : ce que dit la taille des points.} & \num{76} \\
+\fichier{outils/genome/tome3/juge-latents/juge_rangee_nuage.py} & {\footnotesize Juge du lot « espaces latents » : les nombres de III-9.1 (c) (la rangée) et de III-9.7 (le nuage), refaits de zéro depuis le GGUF, les .sym du lot B, les …} & \num{226} \\
+\fichier{outils/genome/tome3/juge-latents/juge_regen.py} & {\footnotesize Juge du lot « espaces latents » : compare au bit les fichiers régénérés par les scripts du lot (dans une racine de brouillon, jamais dans le dépôt) aux …} & \num{109} \\
+\fichier{outils/genome/tome3/juge-redaction/assembler.py} & {\footnotesize Juge de la rédaction du Tome III (français) : assemble le tome à juger dans un dossier d'essai.} & \num{83} \\
+\fichier{outils/genome/tome3/juge-redaction/barres.py} & {\footnotesize Juge de la rédaction du Tome III (français) : les chiffres barrés dans les sources reviennent-ils, non barrés, dans le texte ?} & \num{112} \\
+\fichier{outils/genome/tome3/juge-redaction/calculs.py} & {\footnotesize Juge de la rédaction du Tome III (français) : refait les calculs neufs des rédacteurs (étiquetés \textbackslash{}calc, qu'aucune source n'avait posés), par un second chemin, …} & \num{67} \\
+\fichier{outils/genome/tome3/juge-redaction/construire.sh} & {\footnotesize Juge de la rédaction du Tome III (français) : construit le tome assemblé par assembler.py, comme memoire/construire.sh tome3-fr le construit (même latexmkrc, …} & \num{39} \\
+\fichier{outils/genome/tome3/juge-redaction/enonces.py} & {\footnotesize Juge de la rédaction du Tome III (français) : chaque énoncé (théorème, proposition, lemme, corollaire) est-il suivi de sa démonstration ? Rend, par chapitre, …} & \num{35} \\
+\fichier{outils/genome/tome3/juge-redaction/journal.py} & {\footnotesize Juge de la rédaction du Tome III (français) : lit le journal de la dernière passe de lualatex du tome assemblé et rend, par fichier source, les boîtes trop …} & \num{45} \\
+\fichier{outils/genome/tome3/juge-redaction/paralogues.py} & {\footnotesize Juge de la rédaction du Tome III (français) : refait la correction neuve du chapitre 4 (rédacteur A), « substituer n'est jamais meilleur que retirer l'expert » …} & \num{36} \\
+\fichier{outils/genome/tome3/juge-redaction/refaire.py} & {\footnotesize Juge de la rédaction du Tome III (français) : refait, par un chemin à moi, chaque nombre tiré par tirage.py (graine 20261029, journaux/tirage.csv), depuis le …} & \num{247} \\
+\fichier{outils/genome/tome3/juge-redaction/statique.py} & {\footnotesize Juge de la rédaction du Tome III (français) : contrôles statiques du tome assemblé, sans compiler.} & \num{183} \\
+\fichier{outils/genome/tome3/juge-redaction/tirage.py} & {\footnotesize Juge de la rédaction du Tome III (français) : tire au hasard les chiffres du texte à refaire.} & \num{98} \\
+\fichier{outils/genome/tome3/juge-redaction/typographie.py} & {\footnotesize Juge de la rédaction du Tome III (français) : les décimaux à point qui s'imprimeraient tels quels.} & \num{62} \\
+\fichier{outils/genome/tome3/juge-ronde/constats.py} & {\footnotesize Juge du lot « ronde » : les nombres des constats du jugement qui ne sont pas des clés du lot.} & \num{150} \\
+\fichier{outils/genome/tome3/juge-ronde/echantillon.py} & {\footnotesize Juge du lot « ronde » : un point tiré au hasard dans chaque série tracée, contrôlé à la source.} & \num{251} \\
+\fichier{outils/genome/tome3/juge-ronde/refaire.py} & {\footnotesize Juge du lot « ronde » (Tome III, figures des ch. 1 à 4 et 7) : chaque nombre refait par un autre chemin.} & \num{589} \\
+\fichier{outils/genome/tome3/juge-ronde/regenerer.py} & {\footnotesize Juge du lot « ronde » : régénère les CSV du lot par ses propres scripts et les compare au bit.} & \num{83} \\
+\fichier{outils/genome/tome3/juge-ronde/zeros.py} & {\footnotesize Juge du lot « ronde » : les nombres imprimés qui perdent un zéro final (fixed sans zerofill).} & \num{26} \\
+\fichier{outils/genome/tome3/juge2-construction/cadres.py} & {\footnotesize Juge des chiffres du second flux, lot « construction » : chaque cadre de chaque figure contre ses données.} & \num{191} \\
+\fichier{outils/genome/tome3/juge2-construction/points.py} & {\footnotesize Juge des chiffres du second flux, lot « construction » : un point tiré au hasard dans chaque série NEUVE ou CHANGÉE des CSV du lot, recalculé à la source …} & \num{193} \\
+\fichier{outils/genome/tome3/juge2-construction/refaire.py} & {\footnotesize Juge des chiffres du second flux, lot « construction » : refait chaque nombre NEUF ou DÉPLACÉ des trois fichiers *-nombres.tex (codon, synonyme, juge) depuis …} & \num{400} \\
+\fichier{outils/genome/tome3/juge2-construction/regenerer.py} & {\footnotesize Juge des chiffres du second flux, lot « construction » : régénère au bit les fichiers de données du lot.} & \num{159} \\
+\fichier{outils/genome/tome3/juge2-design/cadres.py} & {\footnotesize Juge de design du second flux (Tome III) : deux critères déclarés (JUGEMENT-figures2-design.md § 1.3), mesurés sur les fichiers commités, par un code à moi. …} & \num{67} \\
+\fichier{outils/genome/tome3/juge2-design/couleurs.py} & {\footnotesize Juge de design du second flux (Tome III) : les couleurs RENDUES d'une page de pilote, et leurs distances.} & \num{180} \\
+\fichier{outils/genome/tome3/juge2-design/lot.py} & {\footnotesize Juge de design du second flux (Tome III) : couleurs rendues de chaque page de figure des pilotes (français), par couleurs.py, et les paires d'entités NOMMÉES …} & \num{34} \\
+\fichier{outils/genome/tome3/juge2-design/tetes.py} & {\footnotesize Juge de design du second flux (Tome III) : relevé des légendes dans les fichiers *-figures.tex. …} & \num{47} \\
+\fichier{outils/genome/tome3/juge2-design/vues.py} & {\footnotesize Juge de design du second flux (Tome III) : une zone d'une page en trois vues côte à côte, couleur, gris (luminance relative) et deutéranope (Machado, Oliveira …} & \num{48} \\
+\fichier{outils/genome/tome3/juge2-latents/juge2_barrees.py} & {\footnotesize Juge des chiffres du lot « espaces latents », second flux : une phrase barrée revient-elle dans une légende ?} & \num{91} \\
+\fichier{outils/genome/tome3/juge2-latents/juge2_compiler.py} & {\footnotesize Juge des chiffres du lot « espaces latents », second flux : compiler le pilote du lot, en français et en anglais, sur les fichiers du commit jugé, et relever …} & \num{91} \\
+\fichier{outils/genome/tome3/juge2-latents/juge2_etats.py} & {\footnotesize Juge des chiffres du lot « espaces latents », second flux : III-7.6 (petits multiples, marge z(1) − z(2), bords des groupes, noms des experts), refait à la …} & \num{275} \\
+\fichier{outils/genome/tome3/juge2-latents/juge2_lecteurs.py} & {\footnotesize Juge des chiffres du lot « espaces latents », second flux : les lectures à la source, écrites de zéro.} & \num{141} \\
+\fichier{outils/genome/tome3/juge2-latents/juge2_nuage_rangee.py} & {\footnotesize Juge des chiffres du lot « espaces latents », second flux : III-9.7 (fonction d'appui, rose, cône, barres) et III-9.1 (d) (la rangée, sa bande, sa phrase de …} & \num{350} \\
+\fichier{outils/genome/tome3/juge2-latents/juge2_regen.py} & {\footnotesize Juge des chiffres du lot « espaces latents », second flux : la régénération au bit des données de figure.} & \num{144} \\
+\fichier{outils/genome/tome3/juge2-ronde/barrees.py} & {\footnotesize Juge des chiffres du lot « ronde », second flux : une phrase barrée revient-elle dans une légende ?} & \num{70} \\
+\fichier{outils/genome/tome3/juge2-ronde/cles.py} & {\footnotesize Juge des chiffres du lot « ronde », second flux : l'inventaire des nombres neufs ou déplacés.} & \num{151} \\
+\fichier{outils/genome/tome3/juge2-ronde/langues.py} & {\footnotesize Juge des chiffres du lot « ronde », second flux : les nombres des deux langues, page par page.} & \num{61} \\
+\fichier{outils/genome/tome3/juge2-ronde/refaire2.py} & {\footnotesize Juge des chiffres du lot « ronde », second flux : chaque nombre neuf ou déplacé, refait par un autre chemin.} & \num{426} \\
+\fichier{outils/genome/tome3/juge2-ronde/regenerer2.py} & {\footnotesize Juge des chiffres du lot « ronde », second flux : les données du lot se régénèrent-elles au bit ?} & \num{114} \\
+\fichier{outils/genome/tome3/juge2-ronde/series2.py} & {\footnotesize Juge des chiffres du lot « ronde », second flux : les séries neuves, point par point.} & \num{274} \\
+\fichier{outils/genome/tome3/juge3/comparer_pdf.py} & {\footnotesize Juge de la troisième passe : compare deux PDF page à page, par les mots et leurs boîtes (PyMuPDF) et par l'image (rendu en gris à 50 dpi par PyMuPDF, le même …} & \num{70} \\
+\fichier{outils/genome/tome3/juge3/compiler_pilotes.py} & {\footnotesize Juge de la troisième passe : copie les quatre pilotes du Tome III (memoire/essai/pilote-tome3-*.tex, non commités) dans memoire/essai/juge3/pilotes/ et les …} & \num{59} \\
+\fichier{outils/genome/tome3/juge3/construire_tomes.sh} & {\footnotesize Juge de la troisième passe : construit les Tomes I et II tels que commités (préambule réparé), sous MiKTeX tel qu'installé, sans toucher les PDF commités. …} & \num{25} \\
+\fichier{outils/genome/tome3/juge3/croisements.py} & {\footnotesize Juge de la troisième passe : sur une page de PDF, relève les traits dessinés (segments droits des chemins vectoriels, par PyMuPDF get\_drawings) qui traversent …} & \num{72} \\
+\fichier{outils/genome/tome3/juge3/croisements_vite.py} & {\footnotesize Juge de la troisième passe : version rapide de croisements.py pour toutes les pages d'un PDF. …} & \num{69} \\
+\fichier{outils/genome/tome3/juge3/extraire_correctifs.py} & {\footnotesize Juge de la troisième passe : extrait du préambule commité (memoire/commun/preambule.tex, tel que dans git HEAD) les lignes des deux correctifs, mot pour mot, …} & \num{36} \\
+\fichier{outils/genome/tome3/juge3/figure3.py} & {\footnotesize Juge de la troisième passe : la zone de la figure d'une page de pilote (du haut du texte à la ligne « Figure n.m »), rendue par zoom3.py en couleur, gris et …} & \num{21} \\
+\fichier{outils/genome/tome3/juge3/gd1_bleu.py} & {\footnotesize Juge de la troisième passe : GD1, le bleu au rendu. Pour chaque page de figure donnée, rend la zone de la figure (du haut de la page au début de la légende, « …} & \num{74} \\
+\fichier{outils/genome/tome3/juge3/minimal_variantes.py} & {\footnotesize Juge de la troisième passe : compile les variantes du document minimal (deux passes chacune) et relève, pour chacune, les erreurs du journal (lignes « ! »), …} & \num{31} \\
+\fichier{outils/genome/tome3/juge3/paires3.py} & {\footnotesize Juge de la troisième passe : refait, par une colorimétrie écrite ici (sRGB → CIELAB D65 ; gris = luminance Rec. 709 affichée en gris …} & \num{73} \\
+\fichier{outils/genome/tome3/juge3/refaire3.py} & {\footnotesize Juge de la troisième passe : refait, par mon code, chaque nombre neuf ou déplacé des retouches (7a40c54, 6137230, 1482dbe), depuis les fichiers commités sous …} & \num{290} \\
+\fichier{outils/genome/tome3/juge3/regenerer3.py} & {\footnotesize Juge de la troisième passe : régénère les données des figures du Tome III par les scripts commités, dans une copie tirée par « git -c core.autocrlf=false …} & \num{125} \\
+\fichier{outils/genome/tome3/juge3/sources_latents.py} & {\footnotesize Juge de la troisième passe : refait à la source, par un troisième chemin, les nombres neufs de la tête de III-9.7 (rapport ‖ΔW\_s x‖ / ‖ΔW\_f x‖ sur les 1 329 …} & \num{149} \\
+\fichier{outils/genome/tome3/juge3/tetes3.py} & {\footnotesize Juge de la troisième passe : DN1 au rendu. Pour chaque légende des pilotes (bloc « Figure 1.n »), prend la tête (du début jusqu'à l'étiquette de provenance « …} & \num{37} \\
+\fichier{outils/genome/tome3/juge3/zoom3.py} & {\footnotesize Juge de la troisième passe : rend une zone d'une page (en points PDF) à fort agrandissement par PyMuPDF (clip), en couleur, et, sur demande, en gris et en …} & \num{43} \\
+\fichier{outils/genome/tome3/latents_commun.py} & {\footnotesize Lectures communes du lot « espaces latents » du Tome III (figures III-9.1 (c) et III-9.7).} & \num{98} \\
+\fichier{outils/genome/tome3/latents_etats.py} & {\footnotesize L'espace latent des états de la couche 23 de gpt-oss-20b (Tome III, figure III-7.6).} & \num{365} \\
+\fichier{outils/genome/tome3/latents_nuage.py} & {\footnotesize Le nuage des entrées réelles d'un expert sur les trois premiers axes propres de H, et les ellipses de l'erreur de sortie de la frontière et du synonyme (Tome …} & \num{152} \\
+\fichier{outils/genome/tome3/latents_rangee.py} & {\footnotesize Une rangée de 32 poids, avant et après la mutation synonyme (Tome III, figure III-9.1 (c)).} & \num{122} \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{The thesis, Volume~III}{Le mémoire du Tome~III}}} \\
+\fichier{memoire/outils/tome3_annexes.py} & {\footnotesize Produit les tables des annexes du Tome III depuis le commit HEAD du dépôt (git ls-tree, git cat-file, git log).} & \num{386} \\
+\fichier{memoire/outils/tome3_cassures.py} & {\footnotesize Cassures des gardes neuves de la troisième passe des figures du Tome III (SOCLE : « tout témoin neuf doit pouvoir échouer »). …} & \num{101} \\
+\fichier{memoire/outils/tome3_codon.py} & {\footnotesize Données des figures du chapitre 8 du Tome III (lot A, le codon synonyme du zéro), tirées des fichiers commités (aucun chiffre recopié à la main).} & \num{456} \\
+\fichier{memoire/outils/tome3_duplication.py} & {\footnotesize Données des figures du chapitre 4 du Tome III (la duplication de gènes), tirées des fichiers commités de mesures/genome/duplication/ (aucun chiffre recopié à …} & \num{320} \\
+\fichier{memoire/outils/tome3_eclaireur.py} & {\footnotesize Données des figures des chapitres 1 et 2 du Tome III (la question du génome, l'éclaireur), tirées des journaux commités de mesures/genome/etat-de-l-art/ (aucun …} & \num{141} \\
+\fichier{memoire/outils/tome3_genome.py} & {\footnotesize Données des figures du chapitre 3 du Tome III (le génome des poids : le brin lu par codons), tirées des fichiers commités de mesures/genome/genome/ (aucun …} & \num{178} \\
+\fichier{memoire/outils/tome3_juge.py} & {\footnotesize Données des figures du juge de la construction pour le Tome III (III-8.8, III-10.1, III-10.3), tirées des fichiers commités sous …} & \num{246} \\
+\fichier{memoire/outils/tome3_latents.py} & {\footnotesize Données des figures du lot « espaces latents » du Tome III (III-7.6, III-9.1 (d), III-9.7), tirées des fichiers commités de mesures/genome/tome3/latents/ …} & \num{573} \\
+\fichier{memoire/outils/tome3_palette.py} & {\footnotesize Le dictionnaire des couleurs du Tome III, chiffré : pour chaque paire que les figures demandent de distinguer, ΔE CIE76 (CIELAB, D65) en vision normale, …} & \num{321} \\
+\fichier{memoire/outils/tome3_synonyme.py} & {\footnotesize Données des figures du chapitre 9 du Tome III (lot B, le génome synonyme), tirées des fichiers commités (aucun chiffre recopié à la main).} & \num{385} \\
+\fichier{memoire/outils/tome3_synthese.py} & {\footnotesize Données des figures du chapitre 7 du Tome III (la synthèse de la ronde : frontière commune, erreur d'expert contre KL, deux parts de la KL, colonnes géantes), …} & \num{370} \\
+\midrule
+\EF{Total}{Total} & \EF{332 tools}{332 outils} & \num{49577} \\
+\bottomrule
+\end{longtable}
+\endgroup

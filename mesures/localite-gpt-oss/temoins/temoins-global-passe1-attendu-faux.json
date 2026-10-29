@@ -1,0 +1,72 @@
+{
+ "outil": "gptoss_localite.py",
+ "mode": "temoins",
+ "rapport": {
+  "G1_lru_f0.10": {
+   "mesure": 0.03240625,
+   "attendu": 0.1015625,
+   "tolerance": 0.004979304398686517,
+   "reussi": false
+  },
+  "G1_lfu_f0.10": {
+   "mesure": 0.068421875,
+   "attendu": 0.1015625,
+   "tolerance": 0.004979304398686517,
+   "reussi": false
+  },
+  "G1_lru_f0.25": {
+   "mesure": 0.236421875,
+   "attendu": 0.25,
+   "tolerance": 0.007346531968814577,
+   "reussi": false
+  },
+  "G1_lfu_f0.25": {
+   "mesure": 0.218015625,
+   "attendu": 0.25,
+   "tolerance": 0.007346531968814577,
+   "reussi": false
+  },
+  "G1_lru_f0.40": {
+   "mesure": 0.364171875,
+   "attendu": 0.3984375,
+   "tolerance": 0.008537757678896349,
+   "reussi": false
+  },
+  "G1_lfu_f0.40": {
+   "mesure": 0.371734375,
+   "attendu": 0.3984375,
+   "tolerance": 0.008537757678896349,
+   "reussi": false
+  },
+  "G2_C8": {
+   "lru_global": 0.6336666666666667,
+   "lru_couche": 0.6336666666666667,
+   "belady_global": 0.7153333333333334,
+   "belady_couche": 0.7153333333333334,
+   "reussi": true
+  },
+  "G2_C16": {
+   "lru_global": 0.6863333333333334,
+   "lru_couche": 0.6863333333333334,
+   "belady_global": 0.8083333333333333,
+   "belady_couche": 0.8083333333333333,
+   "reussi": true
+  },
+  "G2_C32": {
+   "lru_global": 0.7925833333333333,
+   "lru_couche": 0.7925833333333333,
+   "belady_global": 0.9051666666666667,
+   "belady_couche": 0.9051666666666667,
+   "reussi": true
+  }
+ },
+ "echecs": [
+  "G1 lru f=0.1",
+  "G1 lfu f=0.1",
+  "G1 lru f=0.25",
+  "G1 lfu f=0.25",
+  "G1 lru f=0.4",
+  "G1 lfu f=0.4"
+ ],
+ "verdict": "TEMOIN TOMBE"
+}

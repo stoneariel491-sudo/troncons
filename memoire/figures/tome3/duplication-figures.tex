@@ -1,0 +1,166 @@
+% Figures du chapitre 4 du Tome III (la duplication de gènes ; genome/duplication.md,
+% genome/duplication-pour-le-memoire.md, figures 1 et 7). Gardé par \ifdefined\GrapheDupParente.
+% Données : \Racine/figures/tome3/donnees/duplication-*.csv, écrites par memoire/outils/tome3_duplication.py
+% depuis mesures/genome/duplication/. Chaque nombre d'une légende ou d'une annotation se lit dans
+% duplication-nombres.csv par \dupNombre{cle}. Styles préfixés « dup ». Pour chaque figure <Nom> :
+% \Graphe<Nom>, et par la convention du Tome III (legende-tome3.tex) \Titre<Nom>, \Legende<Nom>,
+% \Source<Nom> ; le chapitre écrit \LegendeFigure{<Nom>}.
+%
+% Second flux (2026-10-27) : couleurs du dictionnaire (palette-tome3.tex : les trois genres de candidats
+% en catégories A, B, C ; les témoins à l'encre) ; G8 du juge de design (III-4.8 : disposition d'arbre
+% radiale autour du moyeu, arêtes visibles, la MDS en encart avec sa fidélité, le fond arrondi retiré) ;
+% M3, M4, D5, D10 du juge ronde ; D7 du juge de design (légende sortie du cadre).
+
+\ifdefined\GrapheDupParente\else
+\input{\Racine/figures/tome3/legende-tome3}
+\newcommand{\DupDonnees}{\Racine/figures/tome3/donnees}
+
+% --- Les nombres des légendes, lus dans le CSV au chargement -----------------------------------------
+\pgfplotstableread[col sep=comma]{\DupDonnees/duplication-nombres.csv}\dupTableNombres
+\pgfplotstableforeachcolumnelement{cle}\of\dupTableNombres\as\dupCle{%
+  \pgfplotstablegetelem{\pgfplotstablerow}{valeur}\of\dupTableNombres
+  \expandafter\xdef\csname dupN@\dupCle\endcsname{\pgfplotsretval}}
+\newcommand{\dupVal}[1]{\ifcsname dupN@#1\endcsname\csname dupN@#1\endcsname\else
+  \PackageError{duplication-figures}{nombre inconnu : #1}{}0\fi}
+\NewDocumentCommand{\dupNombre}{O{}m}{\pgfmathprintnumber[#1]{\dupVal{#2}}}
+\NewDocumentCommand{\dupEntier}{m}{\pgfmathprintnumber[fixed, precision=0]{\dupVal{#1}}}
+\NewDocumentCommand{\dupPct}{O{1}m}{\pgfmathparse{100*\dupVal{#2}}\pgfmathprintnumber[fixed, fixed zerofill, precision=#1]{\pgfmathresult}\EF{\%}{\,\%}}
+
+\pgfplotsset{
+  dup intra/.style={only marks, mark=*, mark size=1.25pt, mark options={solid, fill=CouleurCategorieA,
+    draw=CouleurCategorieA!70!black, fill opacity=0.65, draw opacity=0.8}},
+  dup voisine/.style={only marks, mark=square*, mark size=1.15pt, mark options={solid, fill=CouleurCategorieB,
+    draw=CouleurCategorieB!70!black, fill opacity=0.65, draw opacity=0.8}},
+  dup meme/.style={only marks, mark=diamond*, mark size=2.3pt, mark options={solid, fill=CouleurCategorieC,
+    draw=CouleurCategorieC}},
+}
+
+% =====================================================================================================
+% III-4.2. Le score de parenté de chaque candidat, contre le hasard et le témoin planté. Chaque témoin du
+% hasard se trace sur la couche où il a été mesuré (M3) ; le témoin planté (couche 12) est un contrôle de
+% l'instrument, tracé sur toute la largeur et dit comme tel.
+\newcommand{\GrapheDupParente}{%
+\begin{tikzpicture}
+\begin{axis}[t3 graphe, t3 points, width=0.96\linewidth, height=8.0cm, ymode=log, ymin=7e-4, ymax=0.5,
+  xmin=-0.5, xmax=3.5, xtick={0,1,2,3}, minor tick length=0pt,
+  xticklabels={\EF{layer}{couche} \dupEntier{s-couche-0},\EF{layer}{couche} \dupEntier{s-couche-1},\EF{layer}{couche} \dupEntier{s-couche-2},\EF{layer}{couche} \dupEntier{s-couche-3}},
+  xmajorgrids=false, xtick style={draw=none},
+  ylabel={\EF{kinship score (bits per weight)}{score de parenté (bits par poids)}},
+  legend style={at={(0.5,1.02)}, anchor=south, draw=none, fill=none, column sep=8pt}, legend columns=3, clip=false]
+\foreach \s in {0.5,1.5,2.5}{\edef\dupTmp{\noexpand\draw[black!18, line width=0.5pt] (axis cs:\s,7e-4) -- (axis cs:\s,0.5);}\dupTmp}
+% Le plancher commun de la couche 0 (M3) : tous ses candidats de même couche, dans un cadre tireté (troisième
+% passe, DN4 du juge de design : le gris de fond est réservé au hors domaine, toujours hachuré).
+\draw[Encre!45, densely dashed, line width=0.5pt] (axis cs:-0.47,\dupVal{c0-score-min}) rectangle (axis cs:0.47,\dupVal{c0-score-max});
+\node[t3 etiquette, anchor=north, text=black!60, align=center] at (axis cs:0,\dupVal{c0-score-min}) [yshift=-2pt]
+  {\EF{a floor common}{un plancher commun}\\\EF{to layer}{à la couche}~\dupEntier{s-couche-0}};
+% Le témoin du hasard, sur sa couche (23).
+\draw[t3 seuil] (axis cs:\dupVal{t-couche-bande}-0.5,\dupVal{t23-hasard}) -- (axis cs:\dupVal{t-couche-bande}+0.5,\dupVal{t23-hasard});
+\node[t3 etiquette, anchor=north east] at (axis cs:\dupVal{t-couche-bande}+0.48,\dupVal{t23-hasard})
+  {\EF{random parent, layer}{parent de hasard, couche} \dupEntier{s-couche-3}\Dp{} $\dupNombre[fixed, precision=4]{t23-hasard}$};
+% Le témoin planté : un contrôle de l'instrument (couche 12).
+\draw[t3 temoin] (axis cs:-0.5,\dupVal{t-plante-attendu}) -- (axis cs:3.5,\dupVal{t-plante-attendu});
+\node[t3 etiquette, anchor=south east] at (axis cs:3.48,\dupVal{t-plante-attendu})
+  {\EF{planted copy}{copie plantée} ($\rho = \dupNombre[fixed, precision=1]{t-rho}$, \EF{layer}{couche} \dupEntier{t-couche})\Dp{} \EF{expected}{attendu} $\dupNombre[fixed, precision=4]{t-plante-attendu}$, \EF{found}{retrouvé} $\dupNombre[fixed, precision=4]{t-plante-mesure}$};
+\addplot[dup intra] table[x=x, y=score] {\DupDonnees/duplication-scores-intra.csv};
+\addlegendentry{\EF{same layer}{même couche}}
+\addplot[dup voisine] table[x=x, y=score] {\DupDonnees/duplication-scores-voisine.csv};
+\addlegendentry{\EF{previous layer}{couche précédente}}
+\addplot[dup meme] table[x=x, y=score] {\DupDonnees/duplication-scores-meme_indice.csv};
+\addlegendentry{\EF{same index, previous layer}{même indice, couche précédente}}
+\end{axis}
+\end{tikzpicture}}
+\Titre{DupParente}{The kinship score of every candidate parent}{Le score de parenté de chaque parent candidat}
+\Legende{DupParente}{\mes}
+  {No expert is the copy of another: every candidate parent stays far below a planted copy.}
+  {Aucun expert n'est la copie d'un autre : chaque parent candidat reste loin sous une copie plantée.}
+  {For \dupEntier{s-enfants} child experts in each of \dupEntier{s-couches} layers of gpt-oss-20b, the kinship score of every candidate parent: the bits per weight that the best permutation of its neurons (Hungarian matching on gate, up and down together) saves on the child, $-\tfrac12\log_2(1-\rho^2)$ averaged over the three matrices. Each column of points is one child, its candidates ranked by score: the \dupEntier{s-par-intra} other experts of the same layer (blue discs), \dupEntier{s-par-voisine} experts of the previous layer (green squares), the expert of the same index in the previous layer (ink diamonds). All \dupEntier{s-n} scores lie between $\dupNombre[fixed, precision=4]{s-min}$ and $\dupNombre[fixed, precision=4]{s-max}$ bit. The highest (child \dupEntier{s-max-enfant}, parent \dupEntier{s-max-parent}, layer \dupEntier{s-couche-3}) is $\times\dupNombre[fixed, precision=0]{s-sur-hasard}$ the random-parent control of its own layer ($\dupNombre[fixed, precision=4]{t23-hasard}$, \dupEntier{t23-paires} pairs; the control of layer \dupEntier{t-couche}, \dupEntier{t-paires} pairs, gives $\dupNombre[fixed, precision=4]{t-hasard}$), and $\dupNombre[fixed, precision=1]{s-sous-plante}$ times below a copy planted at $\rho = \dupNombre[fixed, precision=1]{t-rho}$, which the same instrument finds (dash-dot line: a control of the instrument, measured in layer \dupEntier{t-couche}). In layer \dupEntier{s-couche-0}, the \dupEntier{c0-n} same-layer candidates all score from $\dupNombre[fixed, precision=4]{c0-score-min}$ to $\dupNombre[fixed, precision=4]{c0-score-max}$ (dashed frame), with a cosine of the down matrices from $\dupNombre[fixed, precision=2]{c0-cos-down-min}$ to $\dupNombre[fixed, precision=2]{c0-cos-down-max}$ (median $\dupNombre[fixed, precision=2]{autres-cos-down-med}$ in the other layers): a floor common to the whole layer, a shared statistic of its columns, not a kinship; no random-parent control was measured in that layer. What the figure does not show: the cost of storing the permutation and the parent index (added in the lossless account D1, which falls), nor the 120b, measured on a single layer.}
+  {Pour \dupEntier{s-enfants} experts enfants dans chacune de \dupEntier{s-couches} couches de gpt-oss-20b, le score de parenté de chaque parent candidat : les bits par poids que la meilleure permutation de ses neurones (appariement hongrois sur gate, up et down ensemble) économise sur l'enfant, $-\tfrac12\log_2(1-\rho^2)$ en moyenne sur les trois matrices. Chaque colonne de points est un enfant, ses candidats rangés par score : les \dupEntier{s-par-intra} autres experts de la même couche (disques bleus), \dupEntier{s-par-voisine} experts de la couche précédente (carrés verts), l'expert de même indice dans la couche précédente (losanges à l'encre). Les \dupEntier{s-n} scores tiennent entre $\dupNombre[fixed, precision=4]{s-min}$ et $\dupNombre[fixed, precision=4]{s-max}$ bit. Le plus haut (enfant \dupEntier{s-max-enfant}, parent \dupEntier{s-max-parent}, couche \dupEntier{s-couche-3}) vaut $\times\dupNombre[fixed, precision=0]{s-sur-hasard}$ le témoin du parent de hasard de sa propre couche ($\dupNombre[fixed, precision=4]{t23-hasard}$, \dupEntier{t23-paires} paires ; celui de la couche \dupEntier{t-couche}, \dupEntier{t-paires} paires, rend $\dupNombre[fixed, precision=4]{t-hasard}$), et $\dupNombre[fixed, precision=1]{s-sous-plante}$ fois moins qu'une copie plantée à $\rho = \dupNombre[fixed, precision=1]{t-rho}$, que le même instrument retrouve (trait mixte : un contrôle de l'instrument, mesuré à la couche \dupEntier{t-couche}). À la couche \dupEntier{s-couche-0}, les \dupEntier{c0-n} candidats de même couche ont tous un score de $\dupNombre[fixed, precision=4]{c0-score-min}$ à $\dupNombre[fixed, precision=4]{c0-score-max}$ (cadre tireté), avec un cosinus des matrices down de $\dupNombre[fixed, precision=2]{c0-cos-down-min}$ à $\dupNombre[fixed, precision=2]{c0-cos-down-max}$ (médiane de $\dupNombre[fixed, precision=2]{autres-cos-down-med}$ aux autres couches) : un plancher commun à toute la couche, une statistique partagée de ses colonnes, pas une parenté ; aucun témoin du hasard n'a été mesuré à cette couche. Ce que la figure ne montre pas : le coût de la permutation et de l'indice du parent (ajouté dans le compte sans perte D1, qui tombe), ni le 120b, mesuré sur une seule couche.}
+\Source{DupParente}{\fichier{mesures/genome/duplication/csv/scores-parente.csv}, \fichier{paires-temoin-planter-0.5.json}, \fichier{arbre-c23.json}\Pv{} \EF{script}{script} \fichier{memoire/outils/tome3_duplication.py}.}
+
+% =====================================================================================================
+% III-4.8. L'arbre des experts de la couche 23 : disposition radiale autour du moyeu (G8), la MDS en encart.
+\pgfplotstableread[col sep=comma]{\DupDonnees/duplication-aretes.csv}\dupTableAretes
+\pgfplotstableread[col sep=comma]{\DupDonnees/duplication-noeuds.csv}\dupTableNoeuds
+\pgfplotstableread[col sep=comma]{\DupDonnees/duplication-radial-aretes.csv}\dupTableRadAretes
+\pgfplotstableread[col sep=comma]{\DupDonnees/duplication-radial-noeuds.csv}\dupTableRadNoeuds
+% Lit les colonnes d'une rangée de table dans des macros (\dupL<colonne>).
+\newcommand{\dupLire}[3]{% #1 table, #2 rangée, #3 liste de colonnes
+  \foreach \dupC in {#3}{\pgfplotstablegetelem{#2}{\dupC}\of#1%
+    \expandafter\xdef\csname dupL\dupC\endcsname{\pgfplotsretval}}}
+\tikzset{
+  dup arete/.style={line cap=round, draw=Encre!#1!white},
+  dup expert/.style={circle, draw=Encre!75, line width=0.5pt, fill=white, text=Encre, inner sep=0pt,
+    font=\sffamily\scriptsize, t3 sans cesure},
+}
+\newcommand{\GrapheDupArbre}{%
+\begin{tikzpicture}[x=0.80cm, y=0.80cm]
+  % Les cercles des profondeurs : l'ordre de codage se lit du centre vers le bord.
+  \edef\dupPmax{\dupVal{r-profondeur-max}}% (un entier : \pgfmathtruncatemacro ne digère pas le \ifcsname de \dupVal)
+  \edef\dupDec{\dupVal{r-decalage}}%
+  \foreach \p in {1,...,\dupPmax}{%
+    \draw[black!12, line width=0.4pt, densely dashed] (0,0) circle[radius=\p+\dupDec];
+    \node[t3 etiquette, text=black!45, fill=white, inner sep=0.5pt] at (-96:\p+\dupDec) {\p};}
+  \node[t3 etiquette, text=black!50, anchor=north] at (-90:\dupPmax+\dupDec+0.25)
+    {\EF{depth in the tree, from the hub}{profondeur dans l'arbre, depuis le moyeu}};
+  % Les arêtes : épaisseur et teinte selon le score rapporté au plus fort.
+  \pgfplotstablegetrowsof{\dupTableRadAretes}\pgfmathtruncatemacro{\dupNa}{\pgfplotsretval-1}%
+  \foreach \r in {0,...,\dupNa}{%
+    \dupLire{\dupTableRadAretes}{\r}{xp,yp,xe,ye,rel}%
+    \pgfmathsetmacro{\dupep}{0.6+4.6*\dupLrel}%
+    \pgfmathtruncatemacro{\dupte}{25+75*\dupLrel}%
+    \draw[dup arete=\dupte, line width=\dupep pt] (\dupLxp,\dupLyp) -- (\dupLxe,\dupLye);
+  }
+  % Les experts : taille selon le degré ; teintés s'ils ont au moins trois voisins ; le moyeu à l'encre.
+  \pgfplotstablegetrowsof{\dupTableRadNoeuds}\pgfmathtruncatemacro{\dupNn}{\pgfplotsretval-1}%
+  \foreach \r in {0,...,\dupNn}{%
+    \dupLire{\dupTableRadNoeuds}{\r}{x,y,expert,degre,moyeu}%
+    \pgfmathsetmacro{\duptaille}{0.40+0.035*\dupLdegre}%
+    \ifnum\dupLmoyeu=1 \def\dupfond{Encre}\def\duptexte{white}%
+    \else\ifnum\dupLdegre>2 \def\dupfond{black!12}\def\duptexte{Encre}%
+    \else\def\dupfond{white}\def\duptexte{Encre}\fi\fi
+    \node[dup expert, fill=\dupfond, text=\duptexte, minimum size=\duptaille cm] at (\dupLx,\dupLy) {\dupLexpert};
+  }
+  % Les liens les plus lourds portent leur valeur (bits par poids), contre l'arête.
+  \foreach \r in {0,...,\dupNa}{%
+    \dupLire{\dupTableRadAretes}{\r}{xm,ym,rel,score}%
+    \pgfmathtruncatemacro{\dupLourd}{\dupLrel>0.25}%
+    \ifnum\dupLourd=1
+      \node[t3 nombre=Encre, inner sep=0.6pt] at (\dupLxm,\dupLym) {$\pgfmathprintnumber[fixed, fixed zerofill, precision=3]{\dupLscore}$};
+    \fi
+  }
+  % L'échelle des épaisseurs.
+  \begin{scope}[shift={(-6.4,-6.6)}]
+    \draw[dup arete=25, line width=0.6pt] (0,0) -- (0.5,0);
+    \draw[dup arete=100, line width=5.2pt] (0,0.42) -- (0.5,0.42);
+    \node[t3 etiquette, anchor=west] at (0.6,0) {$\dupNombre[fixed, precision=4]{a-score-min}$ bit};
+    \node[t3 etiquette, anchor=west] at (0.6,0.42) {$\dupNombre[fixed, precision=4]{a-smax}$ bit ($s_{\max}$)};
+    \node[t3 note, anchor=south west] at (-0.05,0.75) {\EF{bond (bits per weight)}{lien (bits par poids)}};
+  \end{scope}
+  % L'encart : l'ombre de la MDS, avec sa fidélité.
+  \begin{scope}[shift={(-5.0,5.2)}, x=0.52cm, y=0.52cm]
+    \draw[black!25, line width=0.4pt, fill=white] (-2.45,-2.35) rectangle (2.15,1.75);
+    \foreach \r in {0,...,\dupNa}{%
+      \dupLire{\dupTableAretes}{\r}{xi,yi,xj,yj,rel}%
+      \pgfmathsetmacro{\dupep}{0.3+1.6*\dupLrel}%
+      \pgfmathtruncatemacro{\dupte}{25+75*\dupLrel}%
+      \draw[dup arete=\dupte, line width=\dupep pt] (\dupLxi,\dupLyi) -- (\dupLxj,\dupLyj);
+    }
+    \foreach \r in {0,...,\dupNn}{%
+      \dupLire{\dupTableNoeuds}{\r}{x,y,expert}%
+      \edef\dupMoyeu{\dupVal{a-moyeu}}%
+      \ifnum\dupLexpert=\dupMoyeu\relax \fill[Encre] (\dupLx,\dupLy) circle[radius=2.2pt];
+      \else \fill[white] (\dupLx,\dupLy) circle[radius=1.5pt]; \draw[Encre!75, line width=0.4pt] (\dupLx,\dupLy) circle[radius=1.5pt];\fi
+    }
+    \node[t3 titre encart, anchor=south west] at (-2.45,1.85) {\EF{the shadow: MDS of the same experts}{l'ombre : MDS des mêmes experts}};
+    \node[t3 note, anchor=north west, text width=2.75cm] at (2.3,1.75)
+      {\EF{plane: $\dupPct[1]{a-variance}$ of the distance variance; Spearman (plane, true) $\dupNombre[fixed, precision=2]{a-spearman}$, control $\dupNombre[fixed, precision=2]{a-temoin}$}{plan : $\dupPct[1]{a-variance}$ de la variance des distances ; Spearman (plan, vraies) $\dupNombre[fixed, precision=2]{a-spearman}$, témoin $\dupNombre[fixed, precision=2]{a-temoin}$}};
+  \end{scope}
+\end{tikzpicture}}
+\Titre{DupArbre}{The most economical tree of the experts of layer 23}{L'arbre le plus économe des experts de la couche 23}
+\Legende{DupArbre}{\mes\,\calc}
+  {The cheapest coding order of the \dupEntier{a-experts} experts of layer 23 is a star around expert \dupEntier{a-moyeu}, then thin branches.}
+  {L'ordre de codage le moins cher des \dupEntier{a-experts} experts de la couche 23 est une étoile autour de l'expert \dupEntier{a-moyeu}, puis des branches minces.}
+  {Every pair of experts (\dupEntier{a-paires} pairs) gets a kinship score $s_{ij}$; the maximum spanning tree (Kruskal) keeps the \dupEntier{a-aretes} edges that would cost the fewest bits if each expert were coded knowing its parent. The tree is drawn by its own structure, not by a projection: the hub at the centre, each expert on the circle of its depth, each subtree in a sector proportional to its leaves plus one, so no two edges cross (a drawing computation, not a measurement). Edge thickness and depth of grey follow $s_{ij}/s_{\max}$, and the bonds above a quarter of $s_{\max}$ carry their value, set beside the edge where its box touches no other line, disc or value (a drawing computation). Disc size follows the degree; tinted discs have at least three neighbours. \dupEntier{a-degmax-n} experts have the highest degree, \dupEntier{a-degmax} (\dupEntier{a-degmax-0}, \dupEntier{a-degmax-1}, \dupEntier{a-degmax-2}); expert \dupEntier{a-moyeu} is the hub by weight (ink disc): its edges sum to $\dupNombre[fixed, precision=3]{a-moyeu-poids}$ bit, against $\dupNombre[fixed, precision=3]{a-second-poids}$ for expert \dupEntier{a-second}, and the \dupEntier{a-moyeu-lourdes} heaviest edges of the tree all touch it; \dupEntier{a-feuilles} experts are leaves. Scale: even the strongest bond is worth $\dupNombre[fixed, precision=3]{a-smax}$ bit per weight, against $\dupNombre[fixed, precision=4]{t23-hasard}$ for a random parent of the same layer. Inset: the shadow of the same experts by classical MDS on $d_{ij} = \log_2(s_{\max}/s_{ij})$, the drawing of the first pass; the plane keeps $\dupPct[1]{a-variance}$ of the variance of the distances, and the rank correlation between plane and true distances is $\dupNombre[fixed, precision=2]{a-spearman}$ (control with permuted distances: $\dupNombre[fixed, precision=2]{a-temoin}$): neighbours on that page are often, not always, neighbours in the data. What the figure does not show: a genealogy. No edge is a copy; the tree is the cheapest coding order, not a history.}
+  {Chaque paire d'experts (\dupEntier{a-paires} paires) reçoit un score de parenté $s_{ij}$ ; l'arbre couvrant de poids maximal (Kruskal) garde les \dupEntier{a-aretes} arêtes qui coûteraient le moins de bits si chaque expert était codé sachant son parent. L'arbre est dessiné par sa propre structure, pas par une projection : le moyeu au centre, chaque expert sur le cercle de sa profondeur, chaque sous-arbre dans un secteur proportionnel à ses feuilles plus une, si bien qu'aucune arête n'en croise une autre (un calcul de dessin, pas une mesure). L'épaisseur et la profondeur du gris des arêtes suivent $s_{ij}/s_{\max}$, et les liens au-dessus du quart de $s_{\max}$ portent leur valeur, posée à côté de l'arête, là où sa boîte ne touche aucun autre trait, disque ni valeur (un calcul de dessin). La taille des disques suit le degré ; les disques teintés ont au moins trois voisins. \dupEntier{a-degmax-n} experts ont le plus haut degré, \dupEntier{a-degmax} (\dupEntier{a-degmax-0}, \dupEntier{a-degmax-1}, \dupEntier{a-degmax-2}) ; l'expert \dupEntier{a-moyeu} est le moyeu par le poids (disque à l'encre) : ses arêtes pèsent ensemble $\dupNombre[fixed, precision=3]{a-moyeu-poids}$ bit, contre $\dupNombre[fixed, precision=3]{a-second-poids}$ pour l'expert \dupEntier{a-second}, et les \dupEntier{a-moyeu-lourdes} arêtes les plus lourdes de l'arbre le touchent toutes ; \dupEntier{a-feuilles} experts sont des feuilles. Échelle : le lien le plus fort vaut $\dupNombre[fixed, precision=3]{a-smax}$ bit par poids, contre $\dupNombre[fixed, precision=4]{t23-hasard}$ pour un parent de hasard de la même couche. En encart, l'ombre des mêmes experts par une MDS classique sur $d_{ij} = \log_2(s_{\max}/s_{ij})$, le dessin du premier passage ; le plan garde $\dupPct[1]{a-variance}$ de la variance des distances, et la corrélation de rangs entre distances du plan et distances vraies vaut $\dupNombre[fixed, precision=2]{a-spearman}$ (témoin à distances permutées : $\dupNombre[fixed, precision=2]{a-temoin}$) : deux voisins sur cette page sont souvent, pas toujours, voisins dans les données. Ce que la figure ne montre pas : une généalogie. Aucune arête n'est une copie ; l'arbre est l'ordre de codage le moins cher, pas une histoire.}
+\Source{DupArbre}{\fichier{mesures/genome/duplication/csv/phylogenie-c23-noeuds.csv}, \fichier{phylogenie-c23-aretes.csv}, \fichier{phylogenie-c23.json} (\fichier{outils/genome/duplication/figure_phylogenie.py}), \fichier{arbre-c23.json}\Pv{} \EF{script}{script} \fichier{memoire/outils/tome3_duplication.py}.}
+\fi

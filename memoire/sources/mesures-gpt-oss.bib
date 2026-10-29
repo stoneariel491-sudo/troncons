@@ -1,0 +1,113 @@
+% Sources des mesures sur gpt-oss (mesures/gpt-oss.md) : la base llama.cpp, la localité des experts.
+% Consultées le 2026-10-15 sauf mention. Les chiffres mesurés viennent des fichiers commités sous
+% mesures/base-gpt-oss/ et mesures/localite-gpt-oss/ ; ces entrées ne portent que les sources.
+
+@software{llamacpp2026b11515,
+  author       = {{The ggml authors}},
+  title        = {llama.cpp, version b11515},
+  url          = {https://github.com/ggml-org/llama.cpp/releases/tag/b11515},
+  version      = {b11515},
+  date         = {2026-10-09},
+  urldate      = {2026-10-15},
+  note         = {Commit 3d65c90d04d337e88f2b1f7f0061f40a5324e662, licence MIT. Binaires
+                  llama-b11515-bin-win-cuda-12.4-x64.zip. Sources lues sans rien copier :
+                  src/llama-graph.cpp (build\_moe\_ffn, noms des nœuds du routeur),
+                  src/llama-moe-cache.cpp (cache LRU des experts de l'hôte en VRAM, règle plan()),
+                  ggml/src/ggml-backend.cpp (rappel d'évaluation de l'ordonnanceur), include/llama.h.}
+}
+
+@article{openai2025gptoss,
+  author       = {{OpenAI}},
+  title        = {gpt-oss-120b \& gpt-oss-20b Model Card},
+  journaltitle = {arXiv},
+  eprint       = {2508.10925},
+  eprinttype   = {arXiv},
+  date         = {2025-08-08},
+  urldate      = {2026-10-15},
+  note         = {Architecture lue aussi dans les en-têtes GGUF (mesuré ici) : 20b, 24 couches,
+                  32 experts, quatre experts par jeton ; 120b, 36 couches, 128 experts, quatre par
+                  jeton ; experts MXFP4. Licence Apache-2.0.}
+}
+
+@online{ggmlorg2025gptossgguf,
+  author       = {{ggml-org}},
+  title        = {gpt-oss-20b-GGUF et gpt-oss-120b-GGUF (fichiers MXFP4)},
+  url          = {https://huggingface.co/ggml-org/gpt-oss-120b-GGUF},
+  date         = {2026-07-28},
+  urldate      = {2026-10-15},
+  note         = {Fichiers gpt-oss-20b-MXFP4.gguf (12\,109\,566\,624 octets) et gpt-oss-120b-MXFP4.gguf
+                  (63\,387\,346\,208 octets), empreintes vérifiées par l'orchestrateur ; Apache-2.0. Dépôts créés le
+                  2025-08-02, dernière modification le 2026-07-28 (API de Hugging Face, consultée le
+                  2026-10-15 : révisions 238abdd2 pour 120b, ef9b12f2 pour 20b).}
+}
+
+@article{merity2016wikitext,
+  author       = {Merity, Stephen and Xiong, Caiming and Bradbury, James and Socher, Richard},
+  title        = {Pointer Sentinel Mixture Models},
+  journaltitle = {arXiv},
+  eprint       = {1609.07843},
+  eprinttype   = {arXiv},
+  date         = {2016-09-26},
+  urldate      = {2026-10-15},
+  note         = {Jeu wikitext-2 (CC BY-SA 3.0) : invite fixée de la base et genre « prose-en » du corpus.}
+}
+
+@book{hugo1862miserables,
+  author       = {Hugo, Victor},
+  title        = {Les Misérables, tome I : Fantine},
+  date         = {1862},
+  publisher    = {Project Gutenberg, livre n\textsuperscript{o} 17489},
+  url          = {https://www.gutenberg.org/cache/epub/17489/pg17489.txt},
+  urldate      = {2026-10-15},
+  note         = {Domaine public. Genre « prose-fr » du corpus (extrait de 10\,988 octets).}
+}
+
+@book{wilde1895earnest,
+  author       = {Wilde, Oscar},
+  title        = {The Importance of Being Earnest},
+  date         = {1895},
+  publisher    = {Project Gutenberg, livre n\textsuperscript{o} 844},
+  url          = {https://www.gutenberg.org/cache/epub/844/pg844.txt},
+  urldate      = {2026-10-15},
+  note         = {Domaine public. Genre « dialogue » du corpus (extrait de 10\,968 octets).}
+}
+
+@software{cpython31312,
+  author       = {{Python Software Foundation}},
+  title        = {CPython 3.13.12, Lib/functools.py},
+  version      = {3.13.12},
+  date         = {2026-02-03},
+  note         = {Licence PSF. Genre « code » du corpus (extrait de 11\,000 octets, copie locale de
+                  l'installation de la machine).}
+}
+
+@article{belady1966,
+  author       = {Belady, Laszlo A.},
+  title        = {A Study of Replacement Algorithms for a Virtual-Storage Computer},
+  journaltitle = {IBM Systems Journal},
+  volume       = {5},
+  number       = {2},
+  pages        = {78--101},
+  date         = {1966},
+  doi          = {10.1147/sj.52.0078},
+  note         = {Politique d'éviction optimale hors ligne (le plus lointain prochain usage). Métadonnées
+                  (titre, auteur, volume, numéro, pages, année) vérifiées le 2026-10-15 auprès de Crossref,
+                  https://api.crossref.org/works/10.1147/sj.52.0078 ; article lui-même non relu.},
+  urldate      = {2026-10-15},
+}
+
+@article{mattson1970,
+  author       = {Mattson, Richard L. and Gecsei, Jan and Slutz, Donald R. and Traiger, Irving L.},
+  title        = {Evaluation Techniques for Storage Hierarchies},
+  journaltitle = {IBM Systems Journal},
+  volume       = {9},
+  number       = {2},
+  pages        = {78--117},
+  date         = {1970},
+  doi          = {10.1147/sj.92.0078},
+  note         = {Algorithmes à pile (propriété d'inclusion), qui fondent le scénario « deux étages ».
+                  Métadonnées (titre,
+                  quatre auteurs, volume, numéro, pages, année) vérifiées le 2026-10-15 auprès de Crossref,
+                  https://api.crossref.org/works/10.1147/sj.92.0078 ; article lui-même non relu.},
+  urldate      = {2026-10-15},
+}

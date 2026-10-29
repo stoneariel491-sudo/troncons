@@ -1,0 +1,419 @@
+\chapter{The machine and its physics}\label{ch:machine}
+
+\begin{origine}
+\textbf{At the start}, we only had ceilings computed from data sheets (NVMe link \SI{7.877}{\Go\per\second}, PCIe \SI{15.754}{\Go\per\second}, VRAM \SI{256}{\Go\per\second}, RAM \SI{41.6}{\Go\per\second}) and a single number measured by another study, under load (PCIe \SI{6.4}{\Go\per\second}).
+\textbf{This chapter establishes} the real throughput of every stage on Stone's machine, with control cases and ABBA series, in two regimes (mains and battery), then proves the roof that follows: a lower bound on the time per token, its steady state, and two corollaries that decide the architecture.
+\textbf{What remains} is the RAM and llama.cpp measured on a quiet machine on mains power, the share of BitLocker in the disk ceiling, and a 4-bit Vulkan kernel at VRAM speed.
+Source: \fichier{fondations/01-machine.md} and \fichier{fondations/journaux/01-machine/}.
+\end{origine}
+
+This chapter is the judge of the whole thesis. An idea about compression, caching or speculation is worth only what it gains on the slowest stage a token crosses; we therefore need to know, to within 1\,\% if possible, what each stage really delivers. We first describe the machine, then the measurement method, then each stage from the slowest to the fastest, and we end with the roof theorem.
+
+\section{The machine}\label{sec:machine-releve}
+
+\begin{table}[ht]
+\centering\small
+\caption[Stone's machine, survey of 2026-10-15]{Stone's machine, survey of 2026-10-15 (WMI, nvidia-smi, \texttt{FSCTL\_MANAGE\_BYPASS\_IO}).}
+\label{tab:machine}
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+\toprule
+Component & Survey \\
+\midrule
+Processor & Intel i7-13620H: 6 performance cores, 4 efficient cores, 16 threads; L2 9.5\,MiB, L3 24\,MiB \\
+RAM & \textbf{a single} 16\,GiB Micron DDR5 module rated 5\,600, configured at 5\,200\,MT/s (slot Controller0-ChannelA-DIMM0); ceiling $5\,200 \times 8 = \SI{41.6}{\Go\per\second}$ \calc \\
+Graphics card & NVIDIA RTX 4060 Laptop (AD107), 8\,188\,MiB of GDDR6 on 128 bits at 16\,Gbit/s (memory clock read at 8\,001\,MHz), driver 591.91; PCIe 4.0 $\times$8 link at most \\
+Disk & Samsung NVMe MZVMA1T0HCLD (1\,TB), firmware MXE7001Q, \textbf{behind the Intel RST VMD controller} (driver \texttt{iaStor}); volume C: \textbf{encrypted by BitLocker} \\
+System & Windows 11 Pro 10.0.26300; virtualization-based security (VBS) and memory integrity (HVCI) enabled \\
+Tools & CUDA 13.1.2 unpacked without installation; wgpu 30.0.1 (Vulkan, DirectX~12); Rust 1.98.1; llama.cpp b11515 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Two traits of this machine weigh on everything else. The first is the \textbf{single RAM module}: one 64-bit channel, half the bandwidth of a two-module laptop, and a RAM only 5.3 times faster than the disk link. The second is the \textbf{disk path}: every byte read crosses the BitLocker encryption filter and Intel's VMD controller, two default settings of a consumer Windows laptop, which we will see cost more than half of the advertised throughput.
+
+\section{The measurement method}\label{sec:methode-mesure}
+
+Every number in this chapter follows the same rules (\cref{ann:protocoles}):
+\begin{itemize}
+\item \textbf{a control case}, i.e.\ a case whose answer is known in advance, forced to be wrong once to check that the instrument fails (\texttt{--fausser});
+\item \textbf{a threshold declared before} the measurement, derived from a named quantity (\fichier{00-seuils-declares.md});
+\item \textbf{ABBA series}: the list of configurations is measured in one direction then in the other; each cell is seen twice, in mirror order, slow drift cancels, and the gap $|A-B|$ relative to the mean serves as the reference noise;
+\item \textbf{an independent second path} for every number we depend on;
+\item \textbf{the power source} recorded at every pass (\texttt{Win32\_Battery}, \texttt{BatteryStatus} $=2$ on mains), since the discovery of \cref{sec:batterie}.
+\end{itemize}
+
+\paragraph{A permanent bias, stated in advance.} Other computations of the project were running on the machine during all these measurements (llama.cpp quantizations using up to 8.7 cores, perplexity runs on the card using up to 7.7\,GiB of VRAM, free RAM between 1.0 and 4.4\,GiB). Every pass logs that load. The \enquote{best} numbers of this chapter are therefore \textbf{lower bounds} of what the machine gives at rest; the medians say what it gives when shared.
+
+\section{The disk}\label{sec:disque}
+
+\subsection{The instrument}
+
+The \texttt{disque.exe} bench (Rust, \texttt{windows-sys}) reads a 32\,GiB test file, twice the RAM, opened with \texttt{FILE\_FLAG\_NO\_BUFFERING | FILE\_FLAG\_OVERLAPPED}, into buffers aligned by \texttt{VirtualAlloc}, with $q$ reads in flight (the queue depth, QD) through a completion port (IOCP) or through IoRing. The file carries a verifiable pattern: every 4\,KiB page starts with its number XORed with a constant, the rest is an xorshift64* stream seeded with that number. Every read checks the header of every page received, and one full page in 64. The sweep crosses blocks from 4\,KiB to 16\,MiB with depths 1 to 64, random and sequential, in ABBA order: 188 passes, then 40 passes of IOCP against IoRing.
+
+\paragraph{The controls.} Forced to be wrong (the expected value shifted by one page), the instrument counts 978\,688 wrong pages out of 978\,688; without the fault, 0 wrong pages on all passes. No unbuffered read exceeded the link (7.877\,GB/s). The second path is the cumulative system counter (\texttt{Win32\_PerfRawData\_PerfDisk\_PhysicalDisk}), read every 0.5\,s: re-read through the Windows cache, 1\,GiB is delivered at 1.65\,GB/s while the disk reads only 3.4\,\% of those bytes; the cache is therefore visible when it plays, and absent from the unbuffered passes, where the disk sees at least 100\,\% of the bytes.
+
+\paragraph{A crossed-out rule.} The declared rule \enquote{the buffered engine re-reading 1\,GiB must exceed 7.877\,GB/s} was wrong: \barre{the re-read cache exceeds the link}. The trial delivered the cache at 3.1\,GB/s with 2.98\,s of CPU for a 3\,s window: copying from the Windows cache is bounded by one CPU thread, not by the RAM. It was crossed out before the sweep and replaced by the stronger counter-based control.
+
+\subsection{Results}
+
+\begin{figure}[ht]
+\centering
+\GrapheDisque
+\caption[Disk throughput versus block size and queue depth]{Disk throughput for unbuffered random reads, versus block size and queue depth \mes. Each point is the mean of passes A and B; the error bar is the half-gap $|A-B|/2$. The large-block plateau stays between 2.4 and 2.9\,GB/s whatever the depth, at 36\,\% of the link and 47\,\% of the advertised rate.}
+\label{fig:disque}
+\sourcefig{\fichier{fondations/journaux/01-machine/disque-balayage.csv} (94 cells), via \fichier{memoire/outils/donnees_figures.py}.}
+\end{figure}
+
+\begin{table}[ht]
+\centering\small
+\caption[Disk throughput, excerpt of the ABBA sweep]{Disk throughput in GB/s, mean of passes A and B; in brackets, the noise $|A-B|/\text{mean}$ \mes.}
+\label{tab:disque}
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+block & rand.\ QD 1 & rand.\ QD 4 & rand.\ QD 16 & rand.\ QD 64 & seq.\ QD 1 & seq.\ QD 16 \\
+\midrule
+4\,KiB & 0.015 [53\,\%] & 0.059 [44\,\%] & 0.125 [136\,\%] & 0.132 [134\,\%] & 0.046 [11\,\%] & 0.188 [3\,\%] \\
+64\,KiB & 0.205 [11\,\%] & 0.578 [30\,\%] & 0.739 [6\,\%] & 0.721 [10\,\%] & 0.390 [16\,\%] & 2.309 [0\,\%] \\
+1\,MiB & 1.307 [18\,\%] & 2.195 [17\,\%] & 2.327 [3\,\%] & 1.928 [8\,\%] & 1.599 [8\,\%] & 1.900 [40\,\%] \\
+4\,MiB & 2.314 [5\,\%] & 2.581 [10\,\%] & 2.430 [0\,\%] & 2.418 [2\,\%] & 1.041 [13\,\%] & 1.631 [92\,\%] \\
+16\,MiB & \textbf{2.819 [1\,\%]} & 2.533 [0\,\%] & 2.487 [2\,\%] & --- & 2.340 [43\,\%] & 2.206 [17\,\%] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+What we draw from it (\cref{fig:disque,tab:disque}):
+\begin{itemize}
+\item \textbf{The large-block plateau is at 2.4--2.9\,GB/s}, whatever the depth. The best reproducible point is the 16\,MiB random read at QD~1: \textbf{2.82\,GB/s, noise 1\,\%}. Two cells reached 3.84\,GB/s in pass A without reproducing in pass B; they are not retained as a ceiling.
+\item Small blocks are bounded by the processor: 4\,KiB random tops out near 54\,000 I/O per second at best, the median latency at QD~1 is 200 to 230\,µs, and the bench spends about 4\,s of CPU per GB read in 4\,KiB pieces (16\,µs per I/O), against 0.07 to 0.11\,s/GB beyond 1\,MiB.
+\item \textbf{IOCP and IoRing are indistinguishable}: over five cases in double ABBA, the gap (0 to 5\,\%) stays below the declared rule (at least twice the noise and 3\,\%). IoRing costs slightly less CPU on large blocks, with no throughput gain.
+\end{itemize}
+
+\subsection{Why so far from the advertised rate}
+
+Samsung advertises 6\,000\,MB/s sequential reads and 900\,000 IOPS for the PM9C1a \litt~\cite{samsung2023pm9c1a,storagereview2023pm9c1a}; identifying the MZVMA1T0HCLD part with that model is likely (MZVMA prefix), not proven. What we know, measured:
+\begin{enumerate}
+\item \textbf{BitLocker is active and its \texttt{fvevol} filter refuses BypassIO} (status \texttt{0xC00004C9}). Microsoft's documentation describes exactly this case~\cite{microsoft2025bypassio}: every byte read goes through the software decryption of the volume.
+\item \textbf{The storage driver is \texttt{iaStor} (Intel RST VMD)}, not \texttt{stornvme}; the same page reserves the full BypassIO path for StorNVMe.
+\item The processor was loaded by other computations of the project; small, CPU-bound blocks suffer the most.
+\end{enumerate}
+The shares of BitLocker, of VMD and of the disk itself cannot be separated without reading the disk unencrypted, which requires Stone to touch a security setting. Delegated answer of 2026-10-15, reversible: we keep BitLocker, the protection of his data if the laptop is stolen, and we design for 2.82\,GB/s.
+
+\subsection{The cost of BitLocker, measured by a second path}\label{sec:bitlocker}
+
+We can, however, measure what the decryption that \texttt{fvevol} applies to every byte costs on this processor. The \texttt{aes\_xts.py} tool calls the Windows CNG API (\texttt{bcrypt.dll}, algorithm \texttt{XTS-AES}~\cite{microsoft2026cngalg}) on 4\,KiB units, like a BitLocker sector, from 1 to 8 threads.
+
+\paragraph{The mechanism.} The XTS mode~\cite{ieee2008xts} encrypts the 16-byte block $j$ of unit number $i$ as
+\begin{equation}\label{eq:xts}
+C_j = E_{K_1}(P_j \oplus T_j) \oplus T_j, \qquad T_j = E_{K_2}(i) \otimes \alpha^{j} \in \mathrm{GF}(2^{128}),
+\end{equation}
+where $E_K$ is AES under key $K$ and $\alpha$ the primitive element of the field. Each block costs one AES (10 rounds for a 128-bit key, 14 for 256), executed by the AES-NI instructions, plus a multiplication by $\alpha$ (a shift and a conditional XOR). Blocks are independent: decryption parallelizes perfectly across units. Controls: vector 1 of annex B of IEEE 1619-2007 and the encrypt-decrypt round trip on 1\,MiB; \texttt{--fausser} makes both fail.
+
+\begin{figure}[ht]
+\centering
+\GrapheAES
+\caption[XTS-AES decryption versus thread count]{XTS-AES decryption through the Windows CNG API, 4\,KiB units, on battery \mes. Point: median; bar: minimum and maximum of the series. Two single-thread passes (A then B) are plotted. On one thread, decryption runs at the pace of the disk plateau.}
+\label{fig:aes}
+\sourcefig{\fichier{fondations/journaux/01-machine/aes-xts-batterie.log}.}
+\end{figure}
+
+On one thread, decryption runs at 3.2--4.2\,GB/s, \textbf{the same order as the disk plateau}; on eight threads, 8.7\,GB/s (\cref{fig:aes}). If \texttt{fvevol} decrypts one request on a single thread, a QD~1 read is bounded by one core. But the plateau does not rise with depth while the processor can decrypt 8.7\,GB/s: either \texttt{fvevol} serializes, or the bound is elsewhere (VMD, the disk, its thermal management). We cannot decide without reading without BitLocker; it is stated as a quantified hypothesis. What BitLocker costs the project in CPU time is, however, measured: $1/4.2$ to $1/3.2$, i.e.\ \textbf{0.24 to 0.31\,core-seconds per GB read}. At 2.82\,GB/s, that is 0.7 to 0.9 core busy at all times, which our own CPU-side decompression could not use.
+
+\subsection{IoRing, BypassIO, DirectStorage}
+IoRing is present in the kernel at maximum version 400, newer than the \texttt{windows-sys} headers; usable, with no measurable gain here~\cite{microsoft2026ioring}. BypassIO is refused on C:. DirectStorage does not ship with Windows: its SDK is a 2.8\,MB NuGet package (version 1.3.0) or 4.0\,MB (preview 1.4.0-preview2, which adds Zstandard decompressed on the GPU)~\cite{nuget2026directstorage,microsoft2026directstorage14}. It is not measured here, and would run without BypassIO anyway.
+
+\section{The RAM}\label{sec:ram}
+
+The \texttt{memoire.exe} bench measures reads (sum of 64-bit words, four accumulators), writes and copies, from 1 to 16 threads, on 512\,MiB buffers (21 times the L3), and latency by pointer chasing on a Sattolo cycle, one hop per 64-byte line. Control: the sum of the pattern is known, $n(n-1)/2$.
+
+\paragraph{What the first measurement taught the instrument.} The first measurement (machine heavily loaded) gave 15.6\,GB/s for a single-thread read, then collapsed to 2--4\,GB/s for every thread count. With 1 to 2\,GiB of free RAM, Windows trims pages from the bench's working set and stores them in its compression store: a \enquote{RAM} read then pays a page fault and a decompression. The bench now raises its working-set floor, \textbf{locks its buffers} (\texttt{VirtualLock}) and counts page faults. New control, declared before: fewer than 1\,\% of the pages read faulted. Forced to be wrong (a fresh buffer every pass), it fails: 197\,033 faults for 196\,608 pages read. Locked: 15 to 267 faults, control held.
+
+\begin{figure}[ht]
+\centering
+\GrapheLatence
+\caption[Dependent-access latency versus buffer size]{Latency of a dependent access (pointer chasing), locked buffers, no page fault, on battery \mes. Point: median; bar: minimum and maximum. Beyond the L3, an access costs 0.75 to 0.96\,µs, seven to ten times a DRAM latency.}
+\label{fig:latence}
+\sourcefig{\fichier{fondations/journaux/01-machine/memoire-batterie-verrou.log}.}
+\end{figure}
+
+The locked measurement, made on battery, has an ABBA throughput noise above 100\,\%: nothing can be taken from it as a ceiling. Only two facts (\cref{fig:latence}): the latency of a dependent access is 0.75 to 0.96\,µs beyond the L3, with no page fault; and 16 threads read more slowly than one. A DDR5 DRAM answers in about a hundred nanoseconds; a TLB miss costs a few hundred more when translation is \emph{nested}, which is the case here since VBS and HVCI are running (each miss walks two page tables). Added to a processor at 1.5\,GHz on battery, this is the most likely explanation: \textbf{a hypothesis, not proven} (it would take large pages, which require an administrator privilege). The best CPU-to-RAM throughput remains 15.6\,GB/s (one thread, first pass, control held), 37\,\% of a module's ceiling; the measurement on a quiet machine on mains power is pending.
+
+\section{From host to device}\label{sec:pcie}
+
+\subsection{The instrument, and the trap the control uncovered}
+
+The \texttt{carte.exe transfert} bench (wgpu 30.0.1~\cite{gfxrs2026wgpu}, Vulkan and DirectX~12) measures in ABBA order, with GPU timestamps: true DMA from a buffer placed in host RAM to VRAM; the processor writing into a mapped buffer; the naive \texttt{queue.write\_buffer} write; device-to-host and device-to-device copies. Control: byte-for-byte round trip.
+
+\paragraph{A discovery by the ceiling control.} The first trial gave \enquote{host to device} at 80--220\,GB/s: the control \enquote{never above the link} flagged it as false. The reason: \textbf{under Vulkan, the driver places write-mapped buffers in CPU-visible VRAM (resizable BAR)}; the measured copy was a VRAM-to-VRAM copy, and the real crossing of the link had happened while the processor wrote into the mapping. Under DirectX~12, the same buffer lives in host RAM (copy at 12.2\,GB/s). An exception confirms it: when the VRAM was almost full, the buffer fell back to host RAM and the copy gave 7.9\,GB/s, below the ceiling.
+
+\subsection{Results}
+
+\begin{table}[ht]
+\centering\small
+\caption[Host $\leftrightarrow$ device transfers, 64\,MiB]{Transfers between host and device, 64\,MiB \mes.}
+\label{tab:pcie}
+\begin{tabular}{@{}lrrl@{}}
+\toprule
+Operation & quiet machine & under load & remark \\
+\midrule
+host $\to$ device, DMA from host RAM & \textbf{12.10 / 12.24 / 12.20} & 3.2 to 6.3 & 77\,\% of the link \\
+CPU $\to$ BAR (Vulkan) & 9.1 & 0.45 to 4.5 & wall clock, mapping included \\
+\texttt{write\_buffer} (Vulkan) & 7.5 to 8.2 & 0.1 to 4.3 & one write per submission \\
+device $\to$ host & 6.2 to 9.4 & 3.3 to 6.8 & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+DMA from host RAM reaches \textbf{12.2\,GB/s, 77\,\% of the} PCIe 4.0 $\times$8 link (\cref{tab:pcie}). One sentence was crossed out during the study: \barre{at 256\,MiB, DMA drops to 4.4--6.3\,GB/s, a size effect}. The size sweep gave 3.2--4.3\,GB/s at \emph{every} size, 64\,MiB included, then three series at 64\,MiB came back to 12.1--12.2\,GB/s a quarter of an hour later: the variable is time (the load of other computations on the card), not size. Independent second path: the loading study measured 6.4\,GB/s through the CUDA runtime in pinned memory, under load; it falls in the range of the loaded series, and 6.4 was not a CUDA ceiling but a state of the machine.
+
+\begin{figure}[ht]
+\centering
+\GraphePCIe
+\caption[PCIe link generation during copies]{PCIe link generation and VRAM clock read by nvidia-smi every 0.1\,s during three series of copies \mes. The link sleeps in generation~1 and only climbs to generation~4 under load; 216 readings in generation~1, 118 in generation~4.}
+\label{fig:pcie-gen}
+\sourcefig{\fichier{fondations/journaux/01-machine/carte-lien-pcie.csv}.}
+\end{figure}
+
+\paragraph{The link changes generation.} Read during copies (\cref{fig:pcie-gen}), the link is in generation~1 at rest, generation~4 under load, generation~3 on battery. The low level of about 3.8\,GB/s of the slow series resembles the ceiling of a generation~2 $\times$8 link (4\,GB/s); not proven. \textbf{Every transfer measurement must record the link generation during the measurement, not before.} The loading study saw it too (\cref{ch:chargement}): a pipeline that only copies leaves the link in generation~3; the card must compute while we copy.
+
+\section{The card}\label{sec:carte}
+
+\paragraph{VRAM.} A read shader (sum of \texttt{vec4<u32>} over 512\,MiB, sum checked against the CPU) reaches \textbf{251.3\,GB/s, 98.2\,\% of the} 256\,GB/s ceiling. Below 32\,MiB, copies exceed 256\,GB/s: that is the L2 cache, expected, and it is the positive control of the cache.
+
+\paragraph{Compute.} In independent chains, timed by the GPU (Vulkan): f32 FMA up to 12.6\,Tflop/s, f16 13.4, \texttt{dot4I8Packed} 12.3\,Top/s, i.e.\ 77\,\% of the computed ceiling ($24 \text{ SMs} \times 128 \text{ lanes} \times 2 \times \SI{2.67}{\giga\hertz} = 16.4$\,Tflop/s). A 4-bit decode (shift, mask, convert, FMA) from registers runs at \textbf{2.61\,Top/s, i.e.\ 1.31 trillion weights per second}: 2.6 times what the VRAM delivers at 4 bits. The controls compare against a CPU reference running the same sequence (gap 0, 0 and $4\cdot10^{-7}$); forced to be wrong, they fail.
+
+\begin{figure}[ht]
+\centering
+\GrapheGEMV
+\caption[Matrix--vector products written here, on the RTX 4060]{Matrix--vector products written here (Vulkan, RTX 4060), best GPU-timed median, control held \mes. f16 reaches the VRAM; 4-bit tops out at 122\,GB/s with these kernels; with weights left in host RAM (zero copy), the card computes at the link's throughput.}
+\label{fig:gemv-machine}
+\sourcefig{\fichier{fondations/journaux/01-machine/carte.jsonl} and \fichier{carte-complement.jsonl}.}
+\end{figure}
+
+\paragraph{The matrix--vector product.} It is the heart of a decoded token: each weight matrix multiplies a single activation vector, each weight is used once, and the kernel is memory-bound. \Cref{fig:gemv-machine} yields four facts. f16 reaches the VRAM (250\,GB/s): the machine can read its 251\,GB/s in a real computation. 4-bit tops out at 122\,GB/s while decoding from registers costs 2.6 times less than what the VRAM delivers: the shortfall is in the kernel (access to the scales and the vector, memory parallelism), not in the machine. \textbf{With zero copy}, the card computes a GEMV whose weights stay in host RAM at 11.75\,GB/s, the DMA throughput: for a model larger than the VRAM, weights can be consumed straight from pinned RAM, with no staging buffer. Finally, batches of 8 vectors collapse with these kernels, which re-read the vector for every block: the kernel must be rewritten before any use in speculative decoding.
+
+\subsection{Thermals, and the discovery of the battery}\label{sec:batterie}
+
+\begin{figure}[ht]
+\centering
+\GrapheThermique
+\caption[Five minutes of GEMV, mains versus battery]{Five minutes of q4b GEMV in a loop, throughput per 5\,s slice \mes. On mains: end/start ratio 1.001, no throttle reason, 2\,685\,MHz, 75\,°C, 72\,W. On battery: the card is throttled from the first second (enforced limit 52.6\,W, memory at 6\,001\,MHz).}
+\label{fig:thermique}
+\sourcefig{\fichier{fondations/journaux/01-machine/thermique-secteur-charge.csv}, \fichier{thermique-batterie.csv}.}
+\end{figure}
+
+The rule declared before the thermal pass says \enquote{throttling if the last 30 seconds fall below 95\,\% of the first 30}. On mains, it holds (ratio 1.001, noise 6.3\,\%). This test is not a maximal load: the loop submits 20 GEMVs then waits, the card is about 70\,\% busy; it is a decoding load, the project's.
+
+The second pass, at 07:25, revealed that \textbf{the machine was on battery}, and that \textbf{on battery the machine is another machine}: the driver lowers the card's power limit from 80\,W to 52.6\,W, the card memory stays at 6\,001\,MHz (25\,\% less VRAM throughput, 192\,GB/s at most \calc), the link drops to generation~3, the processor runs near 1.5\,GHz. On short measurements, host-to-device DMA stays at 11.8\,GB/s, but CPU writes into the BAR fall from 9.1 to 1.7\,GB/s and \texttt{write\_buffer} from 7.5 to 1.25\,GB/s: \textbf{everything that goes through the processor collapses}. For the project, a weight loader that relies on the processor loses a factor of 4 to 6 on battery; a loader that only does DMA and decodes on the card loses little. It is a measured argument for architecture~B (\cref{sec:toit}).
+
+\section{The baseline: llama.cpp}\label{sec:llamacpp}
+
+The \texttt{pilote\_llama.py} driver runs \texttt{llama-bench}~\cite{ggml2026llamacpp} (b11515, CUDA 12.4 backend) on Qwen3.5-9B Q4\_K\_M (5\,680\,522\,464 bytes, 8\,953\,803\,264 parameters), generation only, one configuration per process, in ABBA order, and records during the life of the process the peak memory, the page faults and the VRAM.
+
+\begin{table}[ht]
+\centering\small
+\caption[llama.cpp on Qwen3.5-9B Q4\_K\_M, first pass]{llama.cpp b11515 on Qwen3.5-9B Q4\_K\_M, first pass (3 configurations out of 12, shared machine) \mes.}
+\label{tab:llama-base}
+\begin{tabular}{@{}lllrrrr@{}}
+\toprule
+\texttt{-ngl} & loading & tok/s & s.d. & working set & added VRAM & faults \\
+\midrule
+99 (all in VRAM) & mmap & 16.5 & 1.2 & 5\,279\,MiB & 5\,118\,MiB & 1\,376\,607 \\
+99 & direct read & \textbf{34.1} & 5.4 & \textbf{964\,MiB} & 5\,083\,MiB & 270\,240 \\
+24 (of 32 layers) & mmap & \textbf{2.8} & 2.1 & 5\,296\,MiB & 7\,114\,MiB & 1\,563\,456 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Cautious reading (\cref{tab:llama-base}): 34.1 tokens/s all in VRAM is 69\,\% of the roof of 49.3 (\cref{sec:toit}), i.e.\ $34.1 \times 5.10 = 174$\,GB/s of weights read \calc, better than our 122\,GB/s. The gap between mmap and direct read (16.5 against 34.1) does not come from loading (the weights are in VRAM in both cases): another process took VRAM during the measurement (the \texttt{-ngl 24} pass adds more VRAM than the all-in-VRAM pass). We keep only the order of magnitude; the complete ABBA awaits a quiet machine on mains power. What is certain: with eight of 32 layers left on the processor, generation drops by a factor of 12.
+
+\section{The roof}\label{sec:toit}
+
+\subsection{The model}
+
+A decoded token, at batch size one, reads $B$ bytes of weights: every weight it uses, once each. The weights reside on three stages: a fraction $f_V$ in VRAM, $f_R$ in host RAM, $f_D$ on disk ($f_V + f_R + f_D = 1$), the disk part stored compressed by a factor $r$ (bytes served over bytes stored). Each stage $i$ has a measured effective throughput $W_i$: $W_{\mathrm{VRAM}} = 251.3$, $W_{\mathrm{PCIe}} = 12.2$, $W_{\mathrm{disk}} = 2.82$\,GB/s (\fichier{debits-mesures.json}, each value with its log). \Cref{fig:chemin} summarizes this path, \cref{fig:etages} the efficiency of each stage.
+
+\begin{figure}[p]
+\centering
+\SchemaChemin
+\caption[The data path, from disk to compute units]{The data path on Stone's machine, from disk to compute units. Each arrow carries the best reproducible throughput measured here and the computed ceiling of the stage; thickness grows with throughput. The dotted path is \enquote{zero copy}: the card computes directly on weights in host RAM, across the link.}
+\label{fig:chemin}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\GrapheEtages
+\caption[Computed ceiling versus measured throughput, by stage]{Computed ceiling versus measured throughput, by stage (log scale) \mes~\calc. The disk delivers 36\,\% of its link, the RAM 37\,\% of one module, DMA 77\,\% of the PCIe link, the VRAM 98\,\%.}
+\label{fig:etages}
+\sourcefig{\fichier{fondations/journaux/01-machine/debits-mesures.json}, \fichier{memoire.log}.}
+\end{figure}
+
+We distinguish two architectures (\cref{fig:architectures}), according to where the bytes coming from the disk are decompressed:
+\begin{description}
+\item[Architecture A] (the processor decompresses, PCIe carries the served bytes):
+$O_{\mathrm{VRAM}} = f_V B$, $O_{\mathrm{PCIe}} = (f_R + f_D) B$, $O_{\mathrm{disk}} = f_D B / r$, and the CPU decoder must output $f_D B$ bytes.
+\item[Architecture B] (the card decompresses, PCIe carries the compressed bytes):
+$O_{\mathrm{VRAM}} = f_V B$, $O_{\mathrm{PCIe}} = (f_R + f_D/r) B$, $O_{\mathrm{disk}} = f_D B / r$, and the GPU decoder must output $f_D B$ bytes, preferably in registers, without writing them back to VRAM.
+\end{description}
+
+\begin{figure}[ht]
+\centering
+\SchemaArchitectures
+\caption[Architectures A and B]{The two architectures. In A, the processor decompresses and the link carries the served bytes; in B, the card decompresses and the link carries the compressed bytes. The quantities on the arrows are bytes per token.}
+\label{fig:architectures}
+\end{figure}
+
+\subsection{The roof theorem}
+
+We model a stage by its throughput constraint alone.
+
+\begin{hypothese}[Throughput-bounded stage]\label{hyp:etage}
+Over any time interval of length $\tau$, stage $i$ moves at most $W_i \tau$ bytes. A token is finished when every stage has moved its $O_i$ bytes.
+\end{hypothese}
+
+\begin{theoreme}[Throughput bound of a chain of stages]\label{thm:toit}
+Under \cref{hyp:etage}, whatever the schedule, the time $t$ of one token satisfies
+\begin{equation}\label{eq:toit}
+t \;\ge\; \max_i \frac{O_i}{W_i}, \qquad \text{hence} \qquad \text{tokens/s} \;\le\; \min_i \frac{W_i}{O_i}.
+\end{equation}
+If the stages work one after another without overlap, $t = \sum_i O_i / W_i$.
+\end{theoreme}
+
+\begin{proof}
+Let $[0, t]$ be the interval during which the token is processed. By \cref{hyp:etage}, stage $i$ moves at most $W_i t$ bytes in that interval; it must move $O_i$, hence $W_i t \ge O_i$, i.e.\ $t \ge O_i/W_i$, for every $i$. The bound holds for the maximum. Without overlap, the activity intervals of the stages are disjoint and each lasts at least $O_i/W_i$; if they work at their throughput, each lasts exactly $O_i/W_i$, and the durations add up.
+\end{proof}
+
+For a dense model read entirely through one stage, $B = N b / 8$ and the theorem gives the form used throughout the thesis:
+\begin{equation}\label{eq:toit-dense}
+\text{tokens/s} \;\le\; \frac{8\, W}{N\, b}.
+\end{equation}
+Its slope in $b$ is $\partial \ln(\text{tokens/s}) / \partial \ln b = -1$: halving the number of bits per weight doubles the ceiling, at any stage. No other parameter of the chain has this slope without a counterpart.
+
+Is the bound attainable? Yes, up to a filling penalty that can be quantified. Split the token into $L$ equal pieces (the layers) that each stage processes in order; piece $\ell$ can only enter stage $i+1$ once it has left stage $i$ (double buffering between stages). This is a permutation flow shop with identical jobs.
+
+\begin{lemme}[Flow shop with identical jobs]\label{lem:flowshop}
+Let there be $m$ stages in series and $L$ identical jobs, the job requiring $p_i$ seconds at stage $i$, each stage processing the jobs in order, one at a time. The total duration is
+\begin{equation}\label{eq:flowshop}
+T_L \;=\; \sum_{i=1}^{m} p_i \;+\; (L - 1)\, \max_i p_i .
+\end{equation}
+\end{lemme}
+
+\begin{proof}
+Let $C_{i,\ell}$ be the instant job $\ell$ leaves stage $i$. The constraints give the recurrence $C_{i,\ell} = \max(C_{i-1,\ell},\, C_{i,\ell-1}) + p_i$, with $C_{0,\ell} = C_{i,0} = 0$. Unrolled, $C_{m,L}$ is the maximum, over all paths from cell $(1,1)$ to cell $(m,L)$ that advance by one stage or one job at each step, of the sum of the $p_i$ of the visited cells. Such a path visits $m + L - 1$ cells and passes at least once through every stage; its sum is $\sum_i p_i$ plus the $L-1$ extra cells, each at most $\max_i p_i$. The path that goes down all the stages while spending its $L-1$ extra cells on the slowest stage attains this bound.
+\end{proof}
+
+\begin{corollaire}[Steady state]\label{cor:permanent}
+With $L$ equal pieces, $p_i = O_i / (L W_i)$ and the time per token is
+\begin{equation}\label{eq:permanent}
+t_L \;=\; \max_i \frac{O_i}{W_i} \;+\; \frac{1}{L} \Bigl( \sum_i \frac{O_i}{W_i} - \max_i \frac{O_i}{W_i} \Bigr).
+\end{equation}
+It tends to the bound of \cref{thm:toit} as $L$ grows, and the filling penalty is at most $1/L$ of the gap between the sum and the maximum. If the weights of the next token can be read during the computation of the current one (dense model, large enough prefetch window), filling is paid only once and the time per token tends to $\max_i O_i/W_i$.
+\end{corollaire}
+
+\begin{proof}
+Substitute $p_i$ in \cref{eq:flowshop} and divide by the number of tokens (one).
+\end{proof}
+
+For gpt-oss-120b, $L = 36$ layers: even without overlap between tokens, the time per token is within 3\,\% of the sum--maximum gap above the bound. \Cref{fig:chronogramme} shows the two regimes.
+
+\begin{figure}[ht]
+\centering
+\SchemaChronogramme
+\caption[Timing diagram: serial versus overlapped]{Timing diagram of the stages for a sequence of layers. In series, the time is the sum of the stages; with double buffering, each stage works on a different layer and the slowest one sets the pace (\cref{lem:flowshop,cor:permanent}).}
+\label{fig:chronogramme}
+\end{figure}
+
+\subsection{The two corollaries that decide the architecture}
+
+\begin{corollaire}[The crossing factor]\label{cor:croisement}
+In architecture A, with all non-VRAM weights on disk ($f_R = 0$), the disk stops being the limiting stage as soon as
+\begin{equation}\label{eq:rstar}
+r \;\ge\; r^\star = \frac{W_{\mathrm{PCIe}}}{W_{\mathrm{disk}}} = \frac{12.2}{2.82} = 4.33 \quad \calc.
+\end{equation}
+Beyond it, compressing further is useless in A. With a share $f_R$ in RAM, the threshold becomes $r^\star f_D / (f_R + f_D)$, smaller.
+\end{corollaire}
+
+\begin{proof}
+In A, $O_{\mathrm{disk}}/W_{\mathrm{disk}} = f_D B / (r W_{\mathrm{disk}})$ and $O_{\mathrm{PCIe}}/W_{\mathrm{PCIe}} = (f_R + f_D) B / W_{\mathrm{PCIe}}$. The disk is no longer limiting when the first term does not exceed the second, i.e.\ $r \ge W_{\mathrm{PCIe}} f_D / (W_{\mathrm{disk}} (f_R + f_D))$, which equals $r^\star$ for $f_R = 0$. Beyond, the maximum of \cref{thm:toit} is the PCIe term, which does not depend on $r$.
+\end{proof}
+
+\begin{corollaire}[In architecture B, no crossing]\label{cor:sans-croisement}
+In architecture B with $f_R = 0$, the disk remains the limiting stage for every $r$, and the ceiling of the disk stream grows as $r\,W_{\mathrm{disk}}/(f_D B)$ until the GPU decoder or the VRAM bounds it.
+\end{corollaire}
+
+\begin{proof}
+In B, disk and PCIe both carry $f_D B / r$; the ratio of their times is $W_{\mathrm{PCIe}}/W_{\mathrm{disk}} = 4.33 > 1$, independent of $r$: the disk is always the slower of the two. Its time $f_D B/(r W_{\mathrm{disk}})$ decreases as $1/r$, which gives the stated ceiling, until another term (the decoder, the VRAM) exceeds it.
+\end{proof}
+
+The upper bound of the GPU decoder is read from the measurement of \cref{sec:carte}: 1.31 trillion weights per second decoded from registers, i.e.\ $1.31\cdot10^{12} \times 5.08/8 = 832$\,GB/s served \calc. It is not an entropy-decoding bound (\cref{ch:avenir} returns to it), but it says that, on this card, compute is not the limiting stage.
+
+\begin{figure}[ht]
+\centering
+\GrapheToitR
+\caption[The roof of Qwen3.5-9B entirely on disk, versus $r$]{Tokens-per-second ceiling of Qwen3.5-9B Q4\_K\_M ($B = 5.10$\,GB per token) entirely on disk, versus the compression factor $r$ \calc. In architecture A, any factor beyond $r^\star = 4.33$ is lost; in architecture B, the ceiling keeps growing.}
+\label{fig:toit-r}
+\sourcefig{\fichier{fondations/journaux/01-machine/toit-9b-compression.csv} (tool \fichier{outils/banc/toit.py}).}
+\end{figure}
+
+\subsection{Ceilings by stage}
+
+\begin{table}[ht]
+\centering\small
+\caption[Tokens/s ceilings by stage]{Tokens-per-second ceilings if all weights read go through the named stage \calc~on measurements. $B$: bytes read per token (for MoE models, always-read plus experts, uniform routing).}
+\label{tab:toit-modeles}
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+Model & $B$ (GB) & VRAM & PCIe & disk, $r=1$ & disk, $r=r^\star$ \\
+\midrule
+Qwen3.5-9B Q4\_K\_M & 5.10 & \textbf{49.3} & 2.39 & \textbf{0.55} & 2.39 \\
+Qwen3.5-4B Q4\_K\_M & 2.73 & 92.1 & 4.47 & 1.03 & 4.47 \\
+gpt-oss-120b MXFP4 & 3.60 & 69.8 & 3.39 & 0.78 & 3.39 \\
+Qwen3.8-Flash-Next UD-Q2\_K\_XL & 4.44 & 56.6 & 2.75 & 0.64 & 2.75 \\
+Kimi-K2.6 UD-Q2\_K\_XL & 15.42 & 16.3 & 0.79 & 0.18 & 0.79 \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{fondations/journaux/01-machine/toit-modeles.csv}.}
+\end{table}
+
+The real placement (\cref{fig:toit-placements}) assumes, like the model study (\cref{ch:modeles}), 6.5\,GB of VRAM and 11\,GB of RAM available for weights, always-read tensors first in VRAM, experts spread in the same order, uniform routing and no dynamic cache: it is the pessimistic bound. For gpt-oss-120b, it gives \textbf{1.98 tokens/s} overlapped (1.53 in series): 1.84\,GB per token served by the VRAM, 0.34 by the RAM, 1.42 by the disk.
+
+\begin{figure}[ht]
+\centering
+\GrapheToitPlacements
+\caption[The roof of the three target MoE models, real placement]{Ceiling (overlapped stages) of the three target MoE models on the machine, architecture A, uniform routing, no cache, for three compression factors of the disk part \calc. The no-overlap floor is in the source file.}
+\label{fig:toit-placements}
+\sourcefig{\fichier{fondations/journaux/01-machine/toit-placements.csv}.}
+\end{figure}
+
+\paragraph{Second path, and what it corrects.} The tool of the model study (\texttt{modeles\_physique.py}) gives 5.1 to 5.6 tokens/s for gpt-oss-120b. Redone with its own assumptions, the roof tool finds the same order (1.42\,GB per token at 7.877\,GB/s, i.e.\ 5.5 tokens/s): the two models agree. The gap comes from the disk throughput, the link ceiling on one side, the measurement on the other: \textbf{the real ceiling of gpt-oss-120b on this machine, without cache and without compression, is about 2 tokens/s, not 5.5.} The judge of the loading study, rerun with the measured disk, finds 1.99 tokens/s by a third path (\cref{ch:chargement}).
+
+\subsection{The decoder budget, and why B}
+
+At a compressed input rate equal to the link (12.2\,GB/s, architecture A at the crossing), the card has $2.61\cdot10^{12} / 12.2\cdot10^{9} \approx \mathbf{214}$ operations per compressed byte \calc; at the disk rate (architecture B), $\mathbf{926}$. An entropy decoder of the rANS family performs on the order of ten operations per symbol: compute is not the bound; the question is the parallelism and memory access of the decoder.
+
+\textbf{Three measured reasons to prefer architecture B}: in A, any factor beyond 4.33 is lost (\cref{cor:croisement}); in A, the processor already pays 0.24 to 0.31\,core-seconds per GB for BitLocker before any decompression (\cref{sec:bitlocker}); on battery, everything that goes through the processor loses a factor of 4 to 6 while DMA stays at 11.8\,GB/s (\cref{sec:batterie}). And the card can consume weights without copying them into VRAM (zero copy, 11.75\,GB/s).
+
+\paragraph{What $r^\star$ means in bits.} Q4\_K\_M serves 5.08 bits per weight on average; stored at $r^\star = 4.33$, it would fit in $5.08/4.33 = \mathbf{1.17}$ bits per weight on disk. \barre{i.e.\ about 1.05 bits per stored weight for 4.5 bits served} (crossed out in the original study: Q4\_K\_M is not at 4.5 bits, it mixes Q6\_K tensors). No lossless code gets there on 4-bit codes, whose measured entropy leaves a few per cent: $r^\star$ is reachable only by changing the representation (\cref{ch:quant}). On a large MoE, compression is not the only lever anyway: the hit rate of the expert cache multiplies the effect of $r$ (\cref{ch:chargement,ch:modeles}).
+
+\section{What is missing in the world}
+
+\begin{enumerate}
+\item \textbf{A measured, not advertised, roof for out-of-memory inference on a laptop.} Work on inference from storage reasons with data-sheet or workstation throughputs. Here, the disk delivers 47\,\% of its advertised rate because of two default settings; a ceiling computed at the link is wrong by a factor of 2.8.
+\item \textbf{The battery regime.} No inference benchmark we read records the power source; here it changes the card's power limit, its memory clock, the link generation, and divides by 4 to 6 everything that goes through the processor.
+\item \textbf{The CPU cost of BitLocker for a weight stream}, 0.24 to 0.31\,core-seconds per GB, and the open question of whether \texttt{fvevol} parallelizes.
+\item \textbf{GPU-side decompression fed by DMA from pinned RAM or by zero copy, under Vulkan.} DirectStorage decompresses on the GPU, but into Direct3D~12 resources and for textures; inference engines decode their formats on the GPU, but from weights already in VRAM. The path \enquote{disk $\to$ pinned RAM $\to$ PCIe (compressed bytes) $\to$ decoding on the card} exists, to our knowledge, nowhere under Vulkan.
+\item \textbf{A 4-bit Vulkan kernel at VRAM speed}: our kernels top out at 48\,\%, llama.cpp under CUDA reaches 69\,\%; the machine offers 98\,\%.
+\end{enumerate}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{The machine was never quiet.} The \enquote{best} numbers are lower bounds of the rest state; the disk ceiling is the most exposed (up to 0.6\,GB/s of foreign reads during pass A).
+\item \textbf{The roof assumes independent throughputs.} The RAM is shared between DMA to the card, disk reads and the processor, on a single module. Perfect overlap may be unattainable; the serial column brackets from below.
+\item \textbf{$B = 5.10$\,GB per token} ignores the KV cache and activations: right for a short context, too low for a long one.
+\item \textbf{Identifying the disk with the PM9C1a} is likely, not proven.
+\item \textbf{The RAM latency attributed to nested translation} is a hypothesis.
+\item \textbf{The llama.cpp measurements are contaminated} by another load on the card; the mmap / direct-read gap is not a fact.
+\item \textbf{The thermal test is not a maximal load.}
+\item \textbf{The decoder bound (832\,GB/s served)} measures a decode of 4-bit fields; a real entropy decoder has other bottlenecks.
+\item \textbf{BitLocker's XTS key size} (128 or 256 bits) is unknown; the gap is about 10\,\%.
+\end{itemize}
+\end{faux}

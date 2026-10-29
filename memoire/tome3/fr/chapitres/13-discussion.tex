@@ -1,0 +1,131 @@
+% Tome~III, chapitre 13 : discussion (version française). Rédacteur D, 2026-10-29, écrite en dernier.
+% Chiffres : ceux des chapitres du tome, avec leurs sources (genome/05-synthese.md § 2.3 à 2.5 et § 4.11,
+% 06 § 12, 07 § 8, JUGEMENT-construction § 11, garde-tropicale, spectres/JUGEMENT, mimetisme/*/JUGEMENT),
+% repris tels quels, barres comprises. Modèle de forme : memoire/tome2/fr/chapitres/09-discussion.tex.
+
+\chapter{Discussion}\label{t3dis:ch}
+
+\begin{origine}
+\textbf{Au départ}, douze chapitres, chacun fermé sur sa propre section « Ce qui pourrait être faux », et chacun jugé par un juge qui n'avait pas fait le travail.
+\textbf{Ce chapitre établit} ce que le tome dit ensemble : les verdicts, chacun avec son juge et le nombre qui le décide ; les chiffres barrés, rassemblés ; la leçon de la quête ; ce qui pourrait être faux à l'échelle du tome ; et les travaux qui viennent, par ordre de gain attendu, chiffrés quand ils le sont.
+\textbf{Il reste} à les faire.
+\end{origine}
+
+\section{Ce que le tome établit, ensemble}\label{t3dis:sec:bilan}
+
+\Cref{t3dis:tab:verdicts} rassemble les verdicts. Un verdict est celui du critère déclaré avant la mesure, tel que le juge de l'étape l'a refait ; « ouvert » veut dire qu'aucun des deux seuils, succès ni mort, n'est franchi, et le chapitre dit pourquoi.
+
+\begingroup\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.25\linewidth}>{\raggedright\arraybackslash}p{0.17\linewidth}>{\raggedright\arraybackslash}p{0.40\linewidth}>{\raggedright\arraybackslash}p{0.11\linewidth}@{}}
+\caption[Les verdicts du Tome~III]{Les verdicts du Tome~III, chacun avec le nombre qui le décide et le chapitre qui le porte.}\label{t3dis:tab:verdicts}\\
+\toprule
+Mécanisme & Verdict & Le nombre qui le dit & Où \\
+\midrule
+\endfirsthead
+\toprule
+Mécanisme & Verdict & Le nombre qui le dit & Où \\
+\midrule
+\endhead
+\multicolumn{4}{@{}l}{\textsf{\bfseries Gagnent (les synonymes)}} \\
+codon synonyme du zéro & gagne, sans perte & le signe d'un zéro a une entropie de 0,9999999967 bit et le calcul ne le lit jamais ; \num{0.12791} et \num{0.12562} bit par poids d'expert ; logits identiques au bit (juge : 0 sur \num{5120}, deux modèles) & \cref{t3ecl:ch,t3cod:ch,t3jug:ch} \\
+contexte de la colonne & gagne, sans perte, à la couche 0 & $-\num{0.142}$ et $-\num{0.123}$ bit à la couche 0 (gate et up, contre le flux octet) ; sous \num{0.01} bit ailleurs & \cref{t3syn:ch} \\
+mutation synonyme ($\lambda = 0$, 768 experts) & gagne en KL & \num{0.1318} contre \num{0.2640} (R1) ; $-\num{0.1565} \pm \num{0.0334}$ contre la frontière hors de R1 (juge, \num{4.7}\,$\sigma$) & \cref{t3sno:ch,t3jug:ch} \\
+$\lambda = 0$ contre $\lambda = 1$ & $\lambda = 0$ retenue & \num{2.09}\,$\sigma$ sur R1, \num{3.6}\,$\sigma$ hors de R1 & \cref{t3sno:ch} \\
+\multicolumn{4}{@{}l}{\textsf{\bfseries Égaux}} \\
+partitions par $\kappa$ & égales en KL, moins de bits & appariée $+\num{0.0066} \pm \num{0.0053}$ ; \num{0.911} fois les bits & \cref{t3syn:ch} \\
+S\textsuperscript{*} (le brin et ses exceptions) & gagne en sortie d'expert, égal en KL & rapport d'erreur \num{0.747} ; KL appariée $+\num{0.0004} \pm \num{0.0019}$ (dix fenêtres ; R4) & \cref{t3gen:ch,t3syn:ch} \\
+\multicolumn{4}{@{}l}{\textsf{\bfseries Tombent}} \\
+graine et coefficients & tombe & \num{3.06} bits à l'erreur de la base & \cref{t3gen:ch} \\
+motifs partagés & tombe & \num{2.90} bits & \cref{t3gen:ch} \\
+recette et complément exact & tombe & \numrange{4.05}{4.37} bits contre \num{3.84} & \cref{t3gen:ch} \\
+duplication (le parent) & tombe & \num{0.0034} bit, dont \num{0.0016} au hasard & \cref{t3dup:ch} \\
+hebbien, élagage, partitions par $e$ & tombent & hebbien : KL $\times 3{,}06$ la base pour une erreur d'expert $\times 1{,}02$ ; élagage par magnitude : $\times 1{,}012$ les bits de la base à erreur égale & \cref{t3pre:ch,t3syn:ch} \\
+mode rapide, gain de génération & ne tient pas & $\times 1{,}28$ (120b) et $\times 0{,}94$ (20b) contre le v1.2 (juge) & \cref{t3sno:ch,t3jug:ch} \\
+garde tropicale & tombe & \SI{57.1}{\percent} des bascules pour \SI{10}{\percent} des cellules ; 80\,\% coûterait \SI{26.6}{\percent} (juge) & \cref{t3tro:ch} \\
+loi de puissance des spectres & ne s'écrit pas & 0 matrice sur 48 au critère principal, 9 « compatibles » au critère amendé, il en fallait 32 (juge) & \cref{t3spe:ch} \\
+\multicolumn{4}{@{}l}{\textsf{\bfseries Ouverts}} \\
+P1, mémoire du cache à deux échelles & ouvert & le « tombe » du protocole est décidé par des jetons produits après la fin du message (juge) & \cref{t3mim:ch} \\
+P2, cache exclusif & ouvert & un étage de RAM inclusif plus petit que la VRAM ne sert à rien & \cref{t3mim:ch} \\
+P3, routage conditionné par le cache & à la limite & environ \SI{10}{\percent} des défauts retirés pour une KL de \num{0.0314} au routeur en ligne ($\beta_1 = \num{0.041}$), \num{0.0209} et \num{0.0239} à l'étage B ($\beta = \num{0.06}$ et \num{0.07}) (ce qui est jugé ; réserve R6) & \cref{t3mim:ch} \\
+P4, préchargement à confiance calibrée & ouvert, plutôt tombe & simulateur non validé & \cref{t3mim:ch} \\
+P5, recuit et échange de répliques & ouvert & médiane \SI{5.09}{\percent} de gain tenu à l'écart ; le mécanisme annoncé ne tient pas au seuil (juge) & \cref{t3mim:ch} \\
+P6, fidélité décidée par appel & ouvert ; B tient à l'étape 0 & un « tient » qui ne pouvait presque pas tomber (juge) & \cref{t3mim:ch} \\
+\bottomrule
+\end{longtable}
+\endgroup
+
+\paragraph{Ce que cela fait, pour la machine.} Des trois synonymes, deux sont construits : le codon du zéro, dans le format, et la mutation synonyme, dans le mode rapide ; le contexte de la colonne, qui ne rend qu'à la couche 0, reste hors du format v1.2 (\cref{t3cod:sec:colonne}). Sans perte, le format v1.2 fait lire \SI{3.3}{\percent} d'octets de moins par jeton au 120b, et le J1 y gagne $\times 1{,}44$ sur ce disque, parce que le motif de ses requêtes de lecture est rapide là où celui du v1.0 ne l'est pas (réserve R1). Avec perte, le mode rapide sert le 20b avec une KL de \num{0.13} pour \num{2.67} bits par poids d'expert au lieu de \num{3.86}, mais ce gain d'octets ne devient pas un gain de génération : le routage d'un modèle avec perte manque plus souvent la VRAM, et les octets par pas restent les mêmes. Le gain de vitesse que la quête a trouvé n'est pas un mécanisme du génome : c'est le format, lu sur ce disque.
+
+\section{Les chiffres barrés}\label{t3dis:sec:barres}
+
+Quand une mesure a contredit un chiffre publié, la phrase a été barrée là où elle était. \Cref{t3dis:tab:barres} les rassemble ; c'est la trace que la méthode a fonctionné.
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[Les chiffres et les phrases barrés du Tome~III]{Les chiffres et les phrases barrés pendant la quête, et ce qui les a remplacés.}
+\label{t3dis:tab:barres}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.33\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.12\linewidth}@{}}
+\toprule
+Barré & Remplacé par, et pourquoi & Où \\
+\midrule
+\barre{S* : 33 \% de KL de plus} (trois fenêtres) & égal à la base sur dix fenêtres, $+\num{0.0004} \pm \num{0.0019}$ (R4) & \cref{t3syn:ch} \\
+\barre{$\lambda = 1$ : KL 0,0262} & la KL 0,0262 était celle de $\lambda = 0$ ; aucune variante n'était encore sous la frontière en bits et en KL à la fois & \cref{t3syn:ch} \\
+\barre{768 experts substitués} (témoin) & substitués = lus (732 sur 732) : 36 experts ne sont routés par aucune position & \cref{t3sno:ch} \\
+\barre{20b $\times 1{,}24$, 120b $\times 2{,}00$} (gains du mode rapide) & $\times 0{,}94$ et $\times 1{,}28$ contre le v1.2, que l'étage disque lit à la même vitesse (G1, G2) & \cref{t3sno:ch,t3jug:ch} \\
+\barre{cause : le cache de fichiers du système} & impossible : le moteur lit sans tampon & \cref{t3jug:ch} \\
+\barre{c'est l'état des fichiers, pas le format} & le motif des requêtes de lecture du format, propre à ce disque (réserve R1) & \cref{t3jug:ch} \\
+\barre{avec $\lambda = 0$ la queue baisse aussi, contre $\lambda = 1$} & non reproduit hors de R1 ; un centile 99,9 de \num{2550} positions tient à trois positions (M2) & \cref{t3sno:ch} \\
+\barre{$\lambda = 0$ déforme dans une direction privilégiée} & le sens de la perplexité s'inverse hors de R1 (M3) & \cref{t3sno:ch} \\
+\barre{au plus 4,0 \% de cellules qui basculent} (garde) & vrai seulement pour une population homogène ; un contre-exemple du juge tient 80/10 avec \SI{5.26}{\percent} & \cref{t3tro:ch} \\
+\barre{seul endroit} (spectres) & faux : 11 matrices sur 48 & \cref{t3spe:ch} \\
+\barre{les défauts ne sont pas corrélés aux petits poids} (P6) & ils le sont : \SI{35}{\percent} de défauts au rang 0, \SI{56}{\percent} au rang 3 & \cref{t3mim:ch} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{La leçon de la quête}\label{t3dis:sec:lecon}
+
+La synthèse de la ronde l'a dite en une phrase par niveau, et la construction l'a confirmée.
+\begin{itemize}
+\item \textbf{Dans le domaine des poids, il n'y a rien à générer.} Le gain se prend sur ce que le calcul ne lit pas (le signe d'un zéro) ou sur ce que le codeur sait déjà (l'échelle, la colonne). La recette, la graine, la parenté supposent une dépendance entre poids que ces poids, une fois l'échelle connue, n'ont pas.
+\item \textbf{Dans le domaine des sorties, la moyenne de l'erreur ne suffit pas.} Ce qui compte est l'endroit où l'erreur tombe : la mutation synonyme la place là où les entrées ne regardent pas, l'hebbien là où l'énergie est faible ; les deux ont une erreur d'expert basse, seule la première gagne en KL.
+\item \textbf{Dans le domaine du texte, ce qui coûte est la bascule.} Une erreur ne vaut que par sa probabilité de faire franchir une frontière du routeur à une couche suivante ; et une bascule en entraîne d'autres, loin des frontières, que la marge locale ne voit pas (\cref{t3tro:ch}).
+\end{itemize}
+Pour la conviction de Stone, la réponse est double, et les deux moitiés sont mesurées. L'ADN comme \emph{recette} ne marche pas sur ces poids : la théorie le prédisait avant la mesure, et la mesure l'a confirmé. L'ADN comme \emph{code redondant}, où un synonyme change la séquence sans changer le phénotype, est exactement ce qui gagne, trois fois. Le vivant avait la bonne idée ; ce n'était pas celle qu'on attendait de lui.
+
+\section{Ce qui pourrait être faux, à l'échelle du tome}\label{t3dis:sec:faux}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{Les échantillons.} La ronde a mesuré sur 12 tenseurs de référence (couches 0, 8, 16, 23 de gpt-oss-20b) et souvent sur 16 ou 32 experts sur 768 ; les spectres sur 48 matrices (\SI{2}{\percent}) de trois couches ; P5 sur des poids synthétiques. Une propriété vraie de ces échantillons peut ne pas l'être d'un autre.
+\item \textbf{Le texte.} Toutes les KL sont prises sur wiki.test : R1, la calibration et les fenêtres neuves du juge en viennent. Dix fenêtres d'un même corpus, dont les positions sont corrélées (un effet de plan de 32 pour une KL absolue) ; aucun texte de code ni de dialogue. Le mimétisme juge la génération sur deux traces de 256 jetons, dont les juges ont montré qu'elles sont dégénérées.
+\item \textbf{Les protocoles à 32 et à 768 experts} mesurent deux choses différentes (R3) ; une variante jugée sur 32 experts ne se juge pas : $\lambda = 1$ y égale la frontière, et la bat de \SI{42}{\percent} à 768.
+\item \textbf{Un seul disque, une seule machine} (réserve R1). Tout chiffre de vitesse du tome vaut pour ce NVMe, derrière Intel RST VMD, sous BitLocker, un jour donné ; le gain du format v1.2 tient au motif de ses requêtes sur ce disque, et la variable exacte du motif n'est pas isolée.
+\item \textbf{Un seul modèle, né en MXFP4.} gpt-oss a des poids d'experts publiés en quatre bits ; le tome ne dit rien d'un modèle publié en BF16, où la frontière et le bruit sont autres.
+\item \textbf{Les analogies.} Le génome, le ribosome, le cortex cingulaire, le verre de spin ont orienté la recherche ; aucun n'a prouvé quoi que ce soit. Un chapitre qui lirait une analogie comme un argument se tromperait, et le tome les dit comme telles.
+\item \textbf{Les chiffres non jugés.} Les pages 3 à 5 des figures des spectres (le levier, le plafond) ne sont pas jugées et ne sont pas placées ; les explorations de la piste tropicale après son verdict (les racines de cascade, la mémoire du conflit) sont présentées comme telles ; le second tirage de P3 n'entre pas dans le tome (R6) ; le proxy de qualité du 120b est validé sur le 20b, pas sur le 120b.
+\item \textbf{Les juges partagent des conventions.} Le juge de la construction a son propre code, mais la même convention de KL (coupe à $\log p > -16$) et le même moteur, construit depuis le même dépôt ; un défaut commun à cette convention ou à ce moteur ne serait pas vu. Le second chemin des logits reste la référence f64 du Tome~II.
+\item \textbf{Un juge peut se tromper, et un juge l'a fait} : l'attribution « état du fichier » du juge de la construction est tombée devant le juge du placement. Rien ne garantit qu'une autre lecture ne viendra pas.
+\end{itemize}
+\end{faux}
+
+\section{Travaux futurs}\label{t3dis:sec:futurs}
+
+Rangés par gain attendu, chacun avec la mesure qui le jugera.
+
+\paragraph{1. Faire du v1.2 le format par défaut, et isoler le motif.} Les deux fichiers sont déjà recodés et vérifiés (\cref{t3cod:sec:fichiers}) ; le passage du v1.0 au v1.2 est le seul levier de vitesse mesuré de bout en bout : $\times 1{,}30$ (20b) à $\times 1{,}44$ (120b) entre deux fichiers du même modèle sur ce disque, sans perte. Le choix des v1.2 comme fichiers par défaut, et l'effacement des v1.0 (\SI{57.7}{\Go} et \SI{11.2}{\Go}), reviennent à Stone. La variable exacte du motif v1.0 lent se cherche à l'étage disque, par des motifs déclarés avant (le juge du placement en propose quatre) ; un levier de lecture ne se mesure de bout en bout qu'une fois trouvé.
+
+\paragraph{2. La queue de la KL, ou les bascules.} Elle porte l'essentiel de la moyenne, et aucun mécanisme du tome ne la vise : la mutation synonyme baisse la part lisse (médiane divisée par près de trois) bien plus que la queue (centile 99,9 contre la frontière sur R1 : $-\SI{3.4}{\percent}$ pour $\lambda = 1$, $-\SI{17.2}{\percent}$ pour $\lambda = 0$) ; la garde tropicale tombe parce que les bascules secondaires arrivent à des marges larges. La suite désignée par les mesures est la cascade : la garde attrape \SI{85.2}{\percent} des racines de cascade, lecture exploratoire faite après le verdict, à déclarer comme critère avant toute mesure neuve.
+
+\paragraph{3. La mutation synonyme du 120b.} Il lui faut la capture de la référence f64 sur le 120b (36 couches, 128 experts), un codeur sur la carte (le codeur Python demanderait environ \SI{23}{\hour}), puis la KL de bout en bout contre une référence f64 du 120b sur les dix fenêtres, qui n'existe pas encore. Prédit, non mesuré : vers \num{0.07} de KL si le rapport du 20b se transporte.
+
+\paragraph{4. Les usages du mode rapide, refaits avec les bons rapports.} La politique mixte des défauts (servir en rapide un expert froid, relire en exact un expert promu) se simule d'abord sur les traces par le même code que le cache réel, avec $r(R/B)$ et non $r(R/A)$ : $\times 1{,}28$ en génération pour une KL de \num{0.14} sur le 120b, rien en génération sur le 20b. Le brouillon spéculatif, idée de Stone (« un genre de puissance de raisonnement différent »), rend le texte exact au bit ; mais par le lemme de la synthèse, un brouillon lu du disque n'est rentable que si $\alpha > 1 - \rho + b_d/b_e$, et avec un routage indépendant la réutilisation $\rho$ des experts entre positions voisines est de l'ordre de \num{0.03} sur le 120b : le seul brouillon résident d'un 120b sur cette machine serait le 20b en mode rapide, dont l'accord avec le 120b n'est pas mesuré (\cref{t3syn:ch}).
+
+\paragraph{5. Un autre corpus.} Des fenêtres de code et de dialogue, tenues à l'écart, pour la KL du génome synonyme et pour B2 ; et, pour le mimétisme, des générations du 120b qui s'arrêtent au jeton de fin, la mesure que le juge de P1 demande pour trancher.
+
+\paragraph{6. Ce que la ronde laisse.} S\textsuperscript{*} combiné à la rétroaction par le $H$ complet (la prédiction qui dirait pourquoi S\textsuperscript{*} ne gagne pas en KL) ; l'expert pont, dont le meilleur paralogue laisse de 33 à \SI{84}{\percent} de l'énergie de sortie en erreur ; le second tirage de P3. Aucun n'a de chiffre de gain aujourd'hui.
+
+\section*{Conclusion}\label{t3dis:sec:conclusion}
+
+Le Tome~I avait mesuré la machine et démontré que, sur elle, tout se joue en bits lus par poids. Le Tome~II avait construit un programme qui sert un modèle quatre fois plus gros que la RAM, exactement. Ce tome a cherché dans le vivant une manière de lire moins de bits, et il en a trouvé trois, toutes de la même famille : un synonyme change le code sans changer ce qui compte. Il a aussi montré, avec la même exigence, ce qui ne marche pas et pourquoi : les poids de gpt-oss, une fois l'échelle connue, sont du bruit ; ce qui coûte au texte est la bascule du routeur ; et le gain de vitesse trouvé en route appartient au format et à ce disque, pas au génome. Chaque verdict a son seuil déclaré avant, son témoin qui sait tomber, et un juge qui n'a pas fait le travail. Ce qui reste est écrit ci-dessus, dans l'ordre où il paierait.

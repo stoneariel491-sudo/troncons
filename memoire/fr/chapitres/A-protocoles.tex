@@ -1,0 +1,47 @@
+\chapter{Protocoles de mesure}\label{ann:protocoles}
+
+Cette annexe rassemble les règles qui ont produit chaque nombre \mes{} du mémoire. Elles ont été écrites et commitées \emph{avant} les mesures qu'elles jugent (\fichier{fondations/journaux/01-machine/00-seuils-declares.md}, commité à 01:35 le 2026-10-15, avant le premier lancement du banc) ; aucune ne s'est réglée après coup.
+
+\section{Les étiquettes}
+
+Chaque nombre porte sa provenance : \mes{} mesuré ici, sur la machine de Stone, par un outil et un journal commités ; \calc{} calculé par une formule écrite et un outil commité ; \litt{} littérature (chiffre d'éditeur, non reproduit). Un chiffre repris d'une étude garde son étiquette et son numéro d'étude.
+
+\section{Le témoin, et sa cassure}\label{sec:protocole-temoin}
+
+Chaque mesure a son témoin : un cas dont la réponse est connue d'avance. Tout témoin neuf doit pouvoir échouer : on force sa condition à faux (option \texttt{--fausser} ou \texttt{--casser} de l'outil), on relance, on vérifie que l'instrument tombe, puis on restaure. Exemples tirés des études :
+\begin{itemize}
+\item \textbf{disque} : chaque page de 4\,Kio porte son numéro ; les pages fausses doivent valoir zéro, et toutes les pages vérifiées sous \texttt{--fausser} ;
+\item \textbf{RAM} : la somme lue doit égaler la somme connue du motif ; \texttt{--fausser} change l'attendu et fait échouer ;
+\item \textbf{carte} : aller-retour hôte $\to$ carte $\to$ hôte octet pour octet ; produit matrice-vecteur comparé à une référence processeur (écart relatif $\le 10^{-3}$ sur 64 lignes) ;
+\item \textbf{plafonds physiques} : une lecture sans tampon qui dépasse le lien NVMe (7,877\,Go/s), une lecture de RAM au-dessus d'un module DDR5-5200 (41,6\,Go/s) prouvent une lecture servie par un cache, et font tomber l'instrument ;
+\item \textbf{équation du jeton} : trois chiffres publiés par d'autres études refaits à 1\,\% ; remplacer le débit mesuré du disque par le plafond du lien fait tomber exactement celui qui en dépend (\cref{tab:temoins-equation}) ;
+\item \textbf{codeurs} : chaque flux décodé et comparé octet à octet à l'original ; une table de fréquences faussée doit rendre le décodage inexact (\cref{sec:decision}).
+\end{itemize}
+
+\section{Le seuil déclaré avant}
+
+Un seuil ne se pose pas au jugé : il dérive d'une grandeur mesurée que l'on nomme, et il se déclare avant le lancement. Ainsi le budget de qualité $\kappa = 0{,}0055$ est l'écart mesuré entre deux moteurs justes (\cref{def:probleme}) ; le seuil de la mesure F1 (0,40\,\%) est le coût d'en-tête mesuré d'un flux de plus ; le seuil de bridage thermique (95\,\% du débit initial) est plus du double du bruit attendu d'une GEMV répétée.
+
+\section{Les séries ABBA et le bruit}\label{sec:protocole-abba}
+
+Un coût ne se fonde jamais sur une seule passe. Chaque comparaison A/B se mesure en séries A1 B1 B2 A2, répétées au moins deux fois. Le bruit d'un programme à lui-même est $|A_1 - A_2|/\overline{A}$. Une différence est déclarée réelle seulement si
+\[
+\frac{|\overline{A} - \overline{B}|}{\overline{A}} \;\ge\; 2 \max(\text{bruit}_A, \text{bruit}_B) \quad \text{et} \quad \ge 3\,\% .
+\]
+C'est cette règle qui déclare « dans le bruit » l'écart entre IOCP et IoRing (\cref{ch:machine}) et entre le cache d'experts de llama.cpp et les experts au processeur sur gpt-oss-20b (\cref{sec:premieres-mesures}).
+
+\section{Le second chemin}
+
+Tout chiffre publié dont on dépend est refait par un chemin indépendant. Le débit du disque est refait par le compteur cumulé du système (\texttt{Win32\_PerfRawData\_PerfDisk\_PhysicalDisk}, relevé toutes les 0,5\,s ; sans tampon, le disque doit avoir vu au moins 90\,\% des octets de l'outil) ; le coût de BitLocker par l'API de chiffrement de Windows ; l'inventaire de gpt-oss par la lecture de l'en-tête du fichier local après la lecture de l'en-tête distant ; les plafonds des architectures par un outil de l'arbitre qui n'importe aucun outil d'un autre.
+
+\section{L'alimentation et la machine partagée}\label{sec:protocole-alimentation}
+
+Sur batterie, la machine change de régime (\cref{sec:batterie}). L'état de l'alimentation est relevé au début de chaque mesure par \texttt{Win32\_Battery.BatteryStatus} (2 : sur secteur ; 1 : sur batterie) et noté dans le journal ; seules les mesures sur secteur sont retenues comme débits de référence, les autres sont dites. D'autres agents travaillaient sur la même machine : chaque passe journalise la charge étrangère (compteurs du disque, \texttt{nvidia-smi}), et les débits « au mieux » sont des bornes inférieures du repos.
+
+\section{Le juge de qualité}\label{sec:protocole-qualite}
+
+Le protocole de l'étude des modèles (\cref{sec:protocole-jugement}) : llama.cpp b11515 tel quel comme base ; un texte réel fixé (les 3\,000 premiers octets de WikiText-2 test, empreinte SHA-256 notée), 256 jetons, décodage glouton ; jetons/s du préremplissage et de la génération, mémoire de pointe du processus (toutes les 100\,ms), VRAM de pointe (toutes les 250\,ms), octets lus sur le disque (compteur PDH intégré, avec un repos de 10\,s pour chiffrer la charge étrangère), empreinte du texte produit. La qualité se juge par la divergence KL contre la base et le taux de premier choix identique : plancher de l'instrument (même moteur) 0,000055 au 99,9\textsuperscript{e} centile ; écart entre deux moteurs justes 0,0055 en moyenne, 95,96\,\% de premier choix identique.
+
+\section{La phrase barrée}
+
+Quand une mesure contredit un chiffre publié, même le nôtre, la phrase est barrée à sa place (\barre{ainsi}) et l'on dit ce qui a changé ; jamais de retrait silencieux. Le \cref{tab:barres} rassemble celles des fondations.

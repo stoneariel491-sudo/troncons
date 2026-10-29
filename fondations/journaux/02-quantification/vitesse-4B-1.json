@@ -1,0 +1,82 @@
+{
+ "outil": "quant-vitesse.py",
+ "date": "2026-10-15 02:48:29",
+ "n_gen": 64,
+ "repetitions": 3,
+ "reference": "Qwen3.5-4B-Q4_K_M.gguf",
+ "mesures": [
+  {
+   "fichier": "qwen35-4B-IQ4_XS.gguf",
+   "bpp_tenseurs": 4.7617,
+   "octets_lus_par_jeton": 2503317504,
+   "serie_abba": [
+    {
+     "role": "A",
+     "jetons_s": 30.290853,
+     "ecart_type": 5.647881
+    },
+    {
+     "role": "B",
+     "jetons_s": 34.615502,
+     "ecart_type": 3.717677
+    },
+    {
+     "role": "B",
+     "jetons_s": 63.43149,
+     "ecart_type": 7.558323
+    },
+    {
+     "role": "A",
+     "jetons_s": 59.11409,
+     "ecart_type": 1.702489
+    }
+   ],
+   "jetons_s": 49.02,
+   "go_s_effectifs": 122.7,
+   "part_du_plafond_256": 0.479,
+   "reference_jetons_s": 44.7,
+   "bruit_reference_relatif": 0.645
+  },
+  {
+   "fichier": "qwen35-4B-IQ2_XXS.gguf",
+   "bpp_tenseurs": 2.9054,
+   "octets_lus_par_jeton": 1527425024,
+   "serie_abba": [
+    {
+     "role": "A",
+     "jetons_s": 44.646016,
+     "ecart_type": 2.872343
+    },
+    {
+     "role": "B",
+     "jetons_s": 53.013615,
+     "ecart_type": 8.275974
+    },
+    {
+     "role": "B",
+     "jetons_s": 58.124359,
+     "ecart_type": 30.552319
+    },
+    {
+     "role": "A",
+     "jetons_s": 33.211621,
+     "ecart_type": 9.863583
+    }
+   ],
+   "jetons_s": 55.57,
+   "go_s_effectifs": 84.9,
+   "part_du_plafond_256": 0.332,
+   "reference_jetons_s": 38.93,
+   "bruit_reference_relatif": 0.294
+  }
+ ],
+ "reference_bilan": {
+  "bpp_tenseurs": 5.1928,
+  "octets_lus_par_jeton": 2729969664,
+  "jetons_s_moyen": 41.82,
+  "jetons_s_min": 30.29,
+  "jetons_s_max": 59.11,
+  "go_s_effectifs": 114.2,
+  "part_du_plafond_256": 0.446
+ }
+}

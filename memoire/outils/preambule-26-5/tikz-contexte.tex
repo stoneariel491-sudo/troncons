@@ -1,0 +1,42 @@
+% Isolement : l'erreur TikZ du ch. 4 du Tome II en contexte. Les chapitres à lire se choisissent par
+% \def\CHAPITRES{...} avant \input (liste de noms de fichiers du dossier tome2/en/chapitres) ;
+% \def\APPEL{1} appelle ensuite \SchemaNoyStructures seul (avec \def\TRACE{1} : sous \tracingall).
+\documentclass[11pt, a4paper, twoside, openright, parskip=false, headings=big,
+               chapterprefix=true, numbers=noenddot, bibliography=totoc, listof=totoc]{scrbook}
+\newif\ifanglais
+\anglaistrue
+\newcommand{\Racine}{~/dev/active/troncons/memoire}
+\newcommand{\Depot}{~/dev/active/troncons}
+\ifdefined\PREAMBULE\input{\PREAMBULE}\else\input{\Racine/commun/preambule}\fi
+\input{\Racine/tome2/commun/bibliographie}
+\errorcontextlines=200
+\begin{document}
+\mainmatter
+\ifdefined\CHAPITRES\else\def\CHAPITRES{00-introduction,01-architecture,02-format,03-chemin,04-noyaux}\fi
+\makeatletter
+\@for\chap:=\CHAPITRES\do{\typeout{CHAPITRE \chap}\input{\Racine/tome2/en/chapitres/\chap}}
+\makeatother
+\ifdefined\NOEUDS
+  \typeout{NOEUD A : align=center, textsubscript}
+  \tikz\node[font=\sffamily\tiny, align=center] {ctx\textsubscript{0}};
+  \typeout{NOEUD B : sans align, textsubscript}
+  \tikz\node[font=\sffamily\tiny] {ctx\textsubscript{0}};
+  \typeout{NOEUD C : align=center, textsubscript dans un groupe}
+  \tikz\node[font=\sffamily\tiny, align=center] {{ctx\textsubscript{0}}};
+  \typeout{NOEUD D : align=center, indice mathématique}
+  \tikz\node[font=\sffamily\tiny, align=center] {ctx$_0$};
+  \typeout{NOEUD E : align=center, textsuperscript}
+  \tikz\node[font=\sffamily\tiny, align=center] {4\textsuperscript{e}};
+  \typeout{NOEUD F : align=center, normalsize, textsubscript}
+  \tikz\node[align=center] {ctx\textsubscript{0}};
+\fi
+\ifdefined\APPEL
+  \ifdefined\FIGNOY\input{\FIGNOY}\fi
+  \ifdefined\GrapheNoyDecodeur\else\input{\Racine/figures/tome2/noyaux-figures}\fi
+  \typeout{APPEL}
+  \ifdefined\TRACE\tracingall\fi
+  \resizebox{\linewidth}{!}{\SchemaNoyStructures}
+  \tracingnone
+\fi
+\typeout{FIN}
+\end{document}

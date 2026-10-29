@@ -1,0 +1,148 @@
+{
+  "alimentation": {
+    "ACLineStatus": 1,
+    "BatteryFlag": 1,
+    "BatteryLifePercent": 80,
+    "secteur": true
+  },
+  "base": "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+  "commande": "evaluer --modele ~/dev/essais/troncons/genome/synonyme/trc/gpt-oss-20b-frontiere.rapide.trc --base ~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld --fenetres 10 --sortie ~/dev/essais/troncons/genome/synonyme/kl/moteur-frontiere.kld --journal ~/dev/active/troncons/outils/genome/synonyme/../../../mesures/genome/construction/synonyme/moteur/evaluer-frontiere.json --rapide",
+  "compteurs": {
+    "acces": 491520,
+    "defauts_disque": 36285,
+    "emplacements": 365,
+    "evictions": 35920,
+    "experts_decodes": 36285,
+    "experts_verifies": 0,
+    "flux_conflits_evites": 0,
+    "garde_attente_s": 15.203123100000008,
+    "garde_lignes": 5120,
+    "garde_octets": 300203512000,
+    "garde_octets_ouverture": 615333888,
+    "garde_troncons": 36285,
+    "h_vram": 0.926177978515625,
+    "lectures_enchassement": 5120,
+    "lectures_troncons": 36285,
+    "ms_copie_carte": 48254.11912995577,
+    "ms_decodage_carte": 53659.20208439231,
+    "octets_copies_cache": 300280455168,
+    "octets_disque_cache": 300280455168,
+    "octets_dma": 300280455168,
+    "octets_lus": 302240083968,
+    "octets_lus_enchassement": 41943040,
+    "octets_lus_troncons": 300280455168,
+    "pas": 5120,
+    "pf_emis": 0,
+    "pf_octets": 0,
+    "pf_utiles": 0,
+    "s_attente_routeur": 562.1290470999977,
+    "s_fin_jeton": 54.38802260000003,
+    "s_lectures": 203.82896300000357,
+    "s_pas": 946.9929797000021,
+    "succes_ram": 0,
+    "succes_vram": 455235,
+    "tiedes": 0
+  },
+  "date_utc": "2026-10-17T14:22:56Z",
+  "disque": {
+    "octets_comptes_moteur": {
+      "dont_chargement_residents": 1302351872,
+      "lecteur": 302240083968,
+      "ouverture_tamponnee": 13226656,
+      "total": 302253310624
+    },
+    "processus": {
+      "lectures": 41535,
+      "octets_ecrits": 1025590112,
+      "octets_lus": 302258384545,
+      "octets_lus_depuis_le_depart": 302262609657
+    }
+  },
+  "empreinte_csv_sha256": "8bc1a7a8fe0c06b1458617de4ace232b5a5188cabe42c7515382cb4f86f413bf",
+  "fenetres": 10,
+  "flux": false,
+  "flux_experts": 0,
+  "flux_positions": 0,
+  "moteur": {
+    "arrivees": 12,
+    "brut": false,
+    "carte": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "casser_garde": null,
+    "chargement": {
+      "empreintes_verifiees": 314,
+      "lectures": 78,
+      "octets_lus": 1302351872,
+      "octets_tenseurs": 1302341376,
+      "secondes": 1.4813414,
+      "tenseurs": 314
+    },
+    "contexte": 4096,
+    "couches": 24,
+    "couches_d_avance": 3,
+    "emplacements": 365,
+    "enchassement_en_ram": false,
+    "etapes_memoire": [
+      {
+        "ensemble_travail": 5103616,
+        "etape": "avant"
+      },
+      {
+        "ensemble_travail": 18497536,
+        "etape": "fichier"
+      },
+      {
+        "ensemble_travail": 128397312,
+        "etape": "contexte_flux"
+      },
+      {
+        "ensemble_travail": 129593344,
+        "etape": "noyaux"
+      },
+      {
+        "ensemble_travail": 130457600,
+        "etape": "modele"
+      },
+      {
+        "ensemble_travail": 130678784,
+        "etape": "luts"
+      },
+      {
+        "ensemble_travail": 235167744,
+        "etape": "fenetre_et_tampons"
+      },
+      {
+        "ensemble_travail": 235388928,
+        "etape": "emplacements_cache_evenements"
+      }
+    ],
+    "experts": 32,
+    "fichier": "~/dev/essais/troncons/genome/synonyme/trc/gpt-oss-20b-frontiere.rapide.trc",
+    "garde": true,
+    "k": 4,
+    "kv_f32": false,
+    "longueur_arrivee": 8388608,
+    "longueur_lecture": null,
+    "octets_emplacement": 13254144,
+    "octets_epingles": 101490688,
+    "octets_vram_moteur": 6350272688,
+    "ouverture_s": 2.9387831,
+    "prechargement": false,
+    "profondeur_es": 4,
+    "ram_tiede_go": 0.0,
+    "rapide": true,
+    "temoin": false,
+    "tiedes": 0,
+    "vocab": 201088,
+    "vram_plafond_mio": 7179
+  },
+  "n_ctx": 512,
+  "outil": "troncons evaluer",
+  "pas": 5120,
+  "pas_s": 4.897903141103556,
+  "positions_notees": 2550,
+  "positions_par_fenetre": 512,
+  "ppl_positions_notees": 274.58381073413625,
+  "secondes": 1045.3452942,
+  "sortie": "~/dev/essais/troncons/genome/synonyme/kl/moteur-frontiere.kld",
+  "version": "0.1.0"
+}

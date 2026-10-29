@@ -1,0 +1,63 @@
+% Tome~II, introduction (writer "results"). Where we start: Volume~I; where we are going.
+% Volume~I's numbers come from its abstract and chapters (memoire/commun/resumes.tex,
+% memoire/en/chapitres/); Volume~II's, from chapters 7 and 8 of this volume.
+
+\chapter{Introduction: from calculation to program}\label{ch:t2-intro}
+
+\begin{origine}
+\textbf{Where we start}: Volume~I, a machine measured stage by stage, a proved roof, four measured levers, a token equation, three computed architectures and a decision: build the exact architecture first, in a format that prepares the contribution. No program was running.
+\textbf{This volume establishes} the program, troncons, built by a team of five lots; its format, its byte path, its kernels, its reference, its cache and its engine, each with its proofs and benches; the results of its first milestone on gpt-oss-120b; the trial an independent judge put it through, and the round of corrections that followed.
+\textbf{What remains}: the research contribution (the base + complement split, milestone J2), the unencrypted disk, the study of the weight genome and the gate for relais (\cref{ch:t2-discussion}).
+\end{origine}
+
+\section{The mission, and what Stone asked of this volume}\label{t2i-sec:mission}
+
+The mission was written by Stone on 15 October 2026, and Volume~I quotes it in full. It asks for ``une vrai solution pour prendre un modele ultra lourd quelcoque d'une ai le faire tourner proprement sans ram ni rien'' (\emph{a real solution to take any ultra-heavy AI model and run it cleanly without RAM or anything}), then: ``je ne veux pas que des recherches déja existante je veux que tu fasse une vrai recherche de spécialiste puis tu implémente la solution fonctionnelle avec une team d'ingénieur'' (\emph{I do not want only research that already exists, I want you to do real specialist research and then implement the working solution with a team of engineers}). Volume~I was the research; this volume is the implementation. Stone asked that it be written with the same demands (in French, typing errors included):
+
+\begin{quote}\itshape
+pareil tout ce que l'équipe fera calcul et tout ça on fera un mémoire comme l'autre architectuew areucture genre vraiment comme un projet de recherche c'est dailleur le cas mais vraiment calcul theorie et tout
+\end{quote}
+
+(\emph{the same: everything the team does, calculations and all, we will make a thesis like the other one, architecture, structure, really like a research project, which it is, but really calculation, theory and all}), and he had set the bar the same day: ``des shemas des explications des commentaires he veux que ce soit légendaire ce projet'' (\emph{diagrams, explanations, comments, I want this project to be legendary}). This volume therefore follows the form of the first: every chapter says where it starts, what it establishes and what remains; every structure is given to the bit, every calculation posed step by step, every measurement drawn from its committed data; every chapter closes on what could be wrong.
+
+\section{Where we start: Volume~I}\label{t2i-sec:tome1}
+
+\paragraph{The machine.} An ordinary laptop: i7-13620H processor, \SI{16}{\Go} of RAM on a single module, an \SI{8}{\Go} RTX~4060 Laptop card, a 1\,TB NVMe disk encrypted by BitLocker. Volume~I measured each of its stages with tools written for the purpose, each with a control forced to fail: the disk delivers \SI{2.82}{\Go\per\second}, \SI{47}{\percent} of its rating, because the volume is encrypted and goes through Intel RST VMD; the host-to-card link \SI{12.2}{\Go\per\second}; the card's memory \SI{251.3}{\Go\per\second}.
+
+\paragraph{The roof.} From these throughputs, Volume~I proved the bound of a chain of stages: the time of a token is at least $\max_i O_i / W_i$, where $W_i$ is the throughput of stage $i$ and $O_i$ the bytes a token must push through it. If the card decompresses, compression never becomes useless; if the processor decompresses, it does beyond a factor $r^\star = 4.33$.
+
+\paragraph{The levers.} Extreme quantization (a 2-bit trellis closing \num{90}\,\% of the gap between the optimal scalar quantizer and the Shannon bound); lossless coding (the MXFP4 scales coded by the median of their row, a rate of \num{1.1026} on the experts of gpt-oss-120b, an rANS decoder proved exact at \SI{82}{\Go\per\second} under CUDA); on-demand loading, where the cache hit rate decides everything; speculation, which pays only under an expert reuse that independent routing does not give.
+
+\paragraph{The equation, and the decision.} A single equation, the time of a token of a mixture of experts served by the card, contains the four levers; its proved elasticities say that on this machine the disk holds the maximum, and that faster kernels would return less than \SI{2}{\percent}. Three architectures were computed on it: A, exact; B, which serves a base without its complement where a byte is expensive, a new mechanism; C, which reads less often. After the debate of two advocates, the arbiter decided to build A first, in Rust with CUDA kernels, in a format that prepares B (\fichier{decisions/ARCHITECTURE.md}). This is where this volume begins.
+
+\section{The question of this volume}\label{t2i-sec:question}
+
+\begin{center}
+\begin{tcolorbox}[enhanced, width=0.92\linewidth, colback=Fond, colframe=Accent, boxrule=0.6pt, arc=1pt]
+\emph{Does the program do what the calculation promised: serve a model several times larger than all the memory of the machine, exactly, within a memory window that does not depend on its size, faster than the best baseline measured; and does a judge who did not write it confirm it?}
+\end{tcolorbox}
+\end{center}
+
+The question is judged on twelve criteria, declared on 15 October 2026 before the first line of code, each with a threshold derived from a named quantity (\fichier{decisions/ARCHITECTURE.md}, § 7). The answer is in \cref{ch:t2-resultats}; the trial, in \cref{ch:t2-epreuve}.
+
+\section{What this volume contributes}\label{t2i-sec:apports}
+
+\begin{enumerate}
+\item \textbf{A program that works}: troncons runs gpt-oss-120b (\SI{63.4}{\Go}, four times the RAM and eight times the card's memory) on Stone's machine, with \SI{384}{\Mo} of peak memory, the same to within \SI{3.7}{\Mo} as for a model five times smaller.
+\item \textbf{A self-contained format, to the bit}, \texttt{.trc}, one chunk per expert, streams stored by refinement level to welcome B without costing A anything, and a third decoder, written by the judge from the specification alone, that reproduces it to the bit.
+\item \textbf{Exactness, proved and measured}: logits identical to the bit between the coded and the raw file over \num{5120} steps, from one build and one order of computation to another.
+\item \textbf{Speed}: \num{1.965} tokens per second guard included, \num{2.22} times the best llama.cpp baseline measured, and a stream prefill seven times faster; two earlier ratios, $\times 3.85$ then $\times 2.79$, struck out where they stood because the baseline was badly tuned.
+\item \textbf{Correctness, against the exact mathematics of the model}, through a double-precision reference confirmed by a third independent computation up to rounding; and the measurement that the f16 rounding of the KV cache carried the engine's whole gap to the truth.
+\item \textbf{A production integrity guard} that turns any corruption of a chunk read into a named fatal error, proved, for \SI{1.6}{\percent} of speed at equal disk.
+\item \textbf{An independent trial and a round of corrections}: two serious and five medium defects found by a judge, corrected or measured in one morning, each with a control that fails on the old binary.
+\end{enumerate}
+
+\section{The method}\label{t2i-sec:methode}
+
+The rules are Volume~I's: every measurement has its control, and every new control must be able to fail; a threshold derives from a named quantity and is declared before the measurement, by a dated commit; a cost is judged in ABBA series, with a program's distance to itself as the noise; every number we depend on is redone by a second path; a sentence contradicted by a measurement is struck out, and what changed is said. This volume adds three. \emph{Frozen seams}: the interfaces between lots are fixed in writing before construction, and change only by a decision of the arbiter. \emph{The independent trial}: an agent who wrote neither the specification nor the code redoes the numbers with his own tools. \emph{The second path for the thesis's numbers}: the numbers of the results chapters are recomputed from the passes themselves by a committed tool (\fichier{memoire/outils/tome2\_resultats.py}), which stops with an error at the first discrepancy with a published number.
+
+Every number carries its provenance: \mes{} measured here, by a committed tool and log; \calc{} computed from named numbers; \litt{} literature, not reproduced.
+
+\section{Plan of the volume}\label{t2i-sec:plan}
+
+The volume follows the path of a byte, from the program to the result. \Cref{t2arch:ch} gives the architecture and structure of the program: the requirements, the language and the kernels, the workspace, the lots and their seams. \Cref{t2fmt:ch} gives the \texttt{.trc} format to the bit, section by section, and the exact reconstruction of an expert. \Cref{ch:t2-chemin} follows the byte path, from the disk to the card's memory, through unbuffered reads and pinned memory. \Cref{ch:t2-noyaux} describes the kernels on the card, the rANS decoder with per-lane tables and the forward pass of gpt-oss, with the proof of their exactness and determinism. \Cref{ch:t2-reference} sets out the exact double-precision reference and the theory of the judge. \Cref{ch:t2-cache} describes the expert cache, the scheduler and the engine, with the theory of the cache. The last three chapters judge: \cref{ch:t2-resultats} gives the results of milestone J1, \cref{ch:t2-epreuve} the independent trial and the round of corrections, \cref{ch:t2-discussion} the discussion, the limits and the future work, before the conclusion.

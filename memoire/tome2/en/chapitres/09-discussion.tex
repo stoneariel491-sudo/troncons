@@ -1,0 +1,220 @@
+% Tome~II, chapter "Discussion, limits and future work", then the conclusion of Volume~II
+% (writer "results"). Sources: the two previous chapters, idees/biomimetisme-genome-des-poids.md,
+% REPRISE.md (order of the work decided with Stone), decisions/ARCHITECTURE.md (§ 7.3, J2).
+\ifdefined\GrapheResVitesse\else\input{\Racine/figures/tome2/resultats-figures}\fi
+
+\chapter{Discussion, limits and future work}\label{ch:t2-discussion}
+
+\begin{origine}
+\textbf{Where we start}: a program that holds nine whole criteria out of the eleven judged (C7 holds on its ceiling and fails on its gap, C8 awaits another instrument, C9 is published without being judged), an independent trial and a round of corrections (\cref{ch:t2-resultats,ch:t2-epreuve}).
+\textbf{This chapter establishes} what Volume~II says in sum; what Volume~I's predictions were worth against the measurements; the struck-out numbers and the ideas killed by numbers, gathered; the limits of the method; then the work to come, every step with the measurement that will judge it: the base + complement split (J2), the \texttt{D:} disk without BitLocker, the compatible gate for relais, and Stone's biomimetic study, the weight genome.
+\textbf{What remains} is to do it, in the order decided with Stone.
+\end{origine}
+
+\section{What Volume~II establishes}\label{t2d-sec:bilan}
+
+\begin{enumerate}
+\item \textbf{A \SI{63.4}{\Go} model runs with \SI{384}{\Mo} of memory} on a machine that has 16, and its memory does not follow its size: $+\SI{3.7}{\Mo}$ for $+\SI{51.3}{\Go}$ of model (\cref{t2res-sec:memoire}). The reading of ``without RAM or anything'' that Volume~I retained is verified by measurement.
+\item \textbf{Lossless coding costs the output nothing}: logits equal to the bit between the coded and the raw file over \num{5120} steps, from one build and one order of computation to another (\cref{t2res-sec:exactitude}).
+\item \textbf{troncons is faster than the best baseline measured}: $\times 2.22$ in generation, integrity guard included, and $\times 7$ at prefill (\cref{t2res-sec:vitesse}).
+\item \textbf{It is closer to the exact mathematics than llama.cpp}, and, with an f32 KV cache, equal to them up to the format: the whole measurable gap came from the f16 rounding of the cache (\cref{t2res-sec:kv}).
+\item \textbf{The method worked}: the independent trial found two serious and five medium defects the lots had not seen, and the round corrected or measured them in one morning, every correction with a control that fails on the old binary (\cref{t2e-sec:ronde}).
+\end{enumerate}
+
+\section{Volume~I's predictions, against the measurements}\label{t2d-sec:predictions}
+
+Volume~I computed before building. \Cref{t2d-tab:predictions} confronts its numbers with the program's; a prediction that landed right is not a proof, a prediction that landed wrong is information.
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[Volume~I's predictions and Volume~II's measurements]{Volume~I's predictions and Volume~II's measurements (gpt-oss-120b, mode A0 unless stated).}
+\label{t2d-tab:predictions}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.27\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+Quantity & Volume~I (computed or estimated) & Volume~II (measured) \\
+\midrule
+VRAM cache hit rate & $h_v = 0.590$ (LRU scenario fitted on one point, \SI{4.8}{\Go} cache) & $h = 0.591$ (326 slots, \SI{4.3}{\Go}) \\
+speed in A0 & marker \num{2.15} tokens/s (fitted LRU); \num{0.99} (uniform); \num{3.32} (Belady) & \numrange{2.18}{2.19} (lot O); \num{1.965} guard included \\
+host memory & A0: \SI{1.9}{\Go}; minimal window of A's advocate: \SI{0.64}{\Go} & \SI{0.384}{\Go}, under the minimal window \\
+limiting stage & the disk (157 against 58 and \SI{36}{\milli\second}, scenario with warm cache) & the disk: \SIrange{68}{72}{\percent} of the serial floor \\
+disk throughput & \SI{2.82}{\Go\per\second} in random \SI{16}{\Mio} reads (depth 1); \SI{2.58}{\Go\per\second} in random \SI{4}{\Mio} reads (depth 4) & \SIrange{1.85}{1.89}{\Go\per\second} at the chunk length (lot E's slow regime); \SI{1.55}{\Go\per\second} useful in the engine \\
+lossless coding rate & $r = 1.1026$ on the experts & a \SI{12.03}{\Mo} chunk for a \SI{13.25}{\Mo} expert: $r \approx 1.10$ \\
+decoder on the card & \SI{82}{\Go\per\second} under CUDA, on a large stream & \SIrange{0.85}{0.92}{\milli\second} per single expert, i.e.\ \SIrange{14}{16}{\Go\per\second} of output: a single expert does not fill the card [hyp.]; \SI{10}{\percent} of a token's time \\
+llama.cpp baseline & estimated; exploration \num{0.49} & \barre{0.568}; \num{0.884} (\texttt{fit -t 16}) \\
+\bottomrule
+\end{tabularx}
+\sourcefig{Volume~I (abstract, chapters ``The machine'', ``Formulation'', ``Architecture''); \cref{ch:t2-resultats}.}
+\end{table}
+
+Two lessons. First, the only number of Volume~I that really moved is the one it had not measured itself: the baseline, estimated then measured too fast. Second, the disk throughput in the engine is \barre{a third of what Volume~I measured in large sequential blocks} a little more than half (\SI{1.55}{\Go\per\second} useful) to two thirds (\SI{1.85}{\Go\per\second}, disk alone at the chunk length) of what Volume~I measured in random \SI{16}{\Mio} reads (\SI{2.82}{\Go\per\second}) \calc: not because the disk changed, but because the engine reads chunks in the disk's slow regime and does not have enough reads in flight (\cref{t2res-sec:c5}). This is the nearest lever.
+
+\section{The struck-out numbers}\label{t2d-sec:barres}
+
+When a measurement contradicted a published number, even our own, the sentence was struck out where it stood, and what replaced it was said (\cref{t2d-tab:barres}). It is the trace that the method worked.
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[The struck-out numbers of Volume~II]{The numbers struck out during construction, the trial and the round, and what replaced them.}
+\label{t2d-tab:barres}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.3\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.15\linewidth}@{}}
+\toprule
+Struck out & Replaced by, and why & Where \\
+\midrule
+\barre{C6: $\times 3.85$ over the baseline} & $\times 2.79$ to $2.89$ (trial, \texttt{fit -t 10}), then $\times 2.22$ (round, \texttt{fit -t 16}, guard included): the baseline ran at 6 threads & \cref{t2res-sec:base} \\
+\barre{$\times 2.79$ to $2.89$} & $\times 2.22$: the baseline had not been swept beyond 10 threads & \cref{t2res-sec:c6} \\
+\barre{best 120b baseline: fit, 0.568} & \texttt{fit -t 16}, \num{0.884}: $+54\,\%$, a real gap & \cref{t2res-tab:base} \\
+``six times closer to the truth'' (not struck, requalified) & including llama.cpp's YaRN ramp, \num{55}\,\% of its gap: a modelling choice & \cref{t2res-sec:fidelite} \\
+\barre{C2: 100\,\% of corruptions detected} (in production) & true in control mode only; true in production since the guard & \cref{t2e-sec:garde} \\
+\barre{digest: 2 GB/s per core} (estimated) & \num{1.07} to \SI{1.10}{\Go\per\second} per thread, measured & \cref{t2res-sec:garde} \\
+\barre{f32 KV: 604 MB instead of 302, $-7\,\%$} & $+\SI{156}{\Mo}$, $-3.6\,\%$ of slots: the first calculation forgot the ring of the windowed layers & \cref{t2res-sec:kv} \\
+\barre{C5 threshold on the median of the two D passes} & one discarded warm-up D pass: the first, cold, moved the threshold by \SI{25}{\percent} & \cref{t2e-sec:seance} \\
+\barre{engine byte count} (residents counted twice, $+\SI{1.69}{\Go}$) & corrected in the code; gap to the process constant, \SI{19.92}{\Mo} & \cref{t2e-sec:m2-m5} \\
+\barre{time of the trial's threshold: 02:40} & 02:26, the commit's time & \cref{t2e-sec:faux} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{The ideas killed by numbers}\label{t2d-sec:tuees}
+
+The SOCLE asks that an idea be killed by numbers, not by opinion, and that failures be kept with their reason (\cref{t2d-tab:tuees}).
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[The ideas killed by numbers]{The ideas tried during J1, J1+ and the round, and the number that judged them.}
+\label{t2d-tab:tuees}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.34\linewidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+Idea & The number that judges it \\
+\midrule
+Prefetch by the next layer's router & $-11\,\%$: \num{69}\,\% of predictions right; the \num{31}\,\% wrong ones cost more disk than overlap gives back \mes \\
+\SI{12}{\Mio} reads & $+30\,\%$ in median, but a noise of \SI{16.2}{\percent} between the B passes (threshold \SI{35.4}{\percent}; \barre{21\,\%} dispersion): neither established nor killed \mes \\
+A randomly corrupted copy as the only break of C3 & insufficient: a wrong median, invisible to the decoder, was needed to show wrong logits \mes \\
+Comparing two speeds on two different texts & not to be done: the f32-KV text does not loop, $h$ \num{0.435} against \num{0.590}; the cost of the KV is measured on one trace \calc \\
+Draining prefetches while refusing any foreign completion & failure, corrected: the current layer's reads finish during the drain \\
+Assembling the text by decoding each token alone & display failure: UTF-8 characters split between two tokens come out wrong \\
+Building the binary while a driver launches it twice & not to be done: the two C3 passes must run on the same binary \\
+Calling \texttt{nvcc} through \texttt{cmd /C} from \texttt{Command::arg} & failure: quotes protected by backslashes, which \texttt{cmd} does not read \\
+Checking the guard before every product (instead of the end of the step) & not tried: computed at about \SI{6}{\milli\second} $\times$ 30 layers per step, $-40\,\%$ \calc \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{moteur/REPRISE-O.md} (recipes of J1, J1+ and the round).}
+\end{table}
+
+\section{The limits}\label{t2d-sec:limites}
+
+\begin{itemize}
+\item \textbf{One machine, shared.} Everything is measured on Stone's laptop, the target; but other agents were measuring at the same time, and the disk varied by \SI{20}{\percent} from one session to another without a measured cause (the NVMe temperature cannot be read without administrator rights).
+\item \textbf{An encrypted disk.} Every speed number carries BitLocker, which decrypts every byte on the processor and refuses the I/O bypass; the unencrypted \texttt{D:} disk (\cref{t2d-sec:disque}) will tell what it costs on a real model.
+\item \textbf{One target model}, gpt-oss, in native MXFP4. The format and the engine are written for a mixture of experts whose expert is the slowest dimension of each tensor; another model will need another coder, and perhaps other kernels.
+\item \textbf{One speed task} (a 708-token prompt, 256 greedy tokens): the cache hit rate, hence the speed, depends on the text (\cref{t2res-sec:kv}).
+\item \textbf{An NVIDIA card required}: choosing CUDA for J1 closes the door to other cards until the Vulkan port.
+\item \textbf{A short judging window on the 120b}: C4 bears on 255 positions and the prompt; lot R's reference over the ten windows of the 120b is missing.
+\item \textbf{Two pending decisions}: until the arbiter decides seam N, C7 and C8, two criteria out of twelve stay ``fails'' or ``instrument to change''.
+\end{itemize}
+
+\section{Future work}\label{t2d-sec:futurs}
+
+The order was decided with Stone on 15 October, then taken up again on the morning of the 16th (``on fini une tache proprement puis ln enchaine l'autre'', \emph{we finish one task cleanly then chain the next}): the milestone and its trial, this Volume~II, then a full pause and a restart by Stone (the \texttt{D:} disk), then the study of the weight genome, then the compatible gate for relais (\fichier{REPRISE.md}). \Cref{t2d-fig:jalons} places each piece of work with respect to the milestones.
+
+\begin{figure}[ht]
+\centering
+\SchemaResJalons
+\caption[The milestones and the work to come]{The milestones of troncons and the work to come. In green, what holds; in orange, the milestone of the contribution; dashed, what feeds a milestone.}
+\label{t2d-fig:jalons}
+\end{figure}
+
+\subsection{First of all: a single series, and the arbiter's decisions}
+
+Three short moves would close the weaknesses of this volume: one palindrome series, guarded troncons against \texttt{fit -t 16} (and 20 threads, and \texttt{--mlock}), for a C6 without between-session noise; lot R's f64 reference over the ten windows of the 120b, for a C4 over \num{5120} positions; and the arbiter's decisions (f32 KV by default, tail criterion for C4, C7 at a fixed window, C8 by the process instrument), which would make the milestone clean.
+
+\subsection{The \texttt{D:} disk without BitLocker}\label{t2d-sec:disque}
+
+\paragraph{The gesture.} It is the only one that falls to Stone, on his machine: a tool already written and committed (\fichier{outils/preparer-disque-D.ps1}, launched by a desktop shortcut that asks for administrator rights) checks that no agent is running, turns off the page file of \texttt{C:}, restarts, shrinks \texttt{C:} by \SI{200}{\Go} (at least 150), creates an unencrypted \texttt{D:} volume ``Modeles'', checks that \texttt{C:} stays encrypted and \texttt{D:} is not, puts the page file back in every case, and restarts. Model weights are public files; nothing personal needs to be encrypted there. \texttt{C:} stays encrypted, and the BitLocker recovery key has been saved since 15 October.
+
+\paragraph{What it could give back, posed.} The disk holds \SIrange{68}{72}{\percent} of the serial floor. On pass 03 of the round (no guard), the engine reads \SI{0.710}{\Go} of chunks per token, and the other stages cost together $80.7 + 50.5 + 15.3 + 3.5 = \SI{150.0}{\milli\second}$. If the bytes read stay the same and only the disk throughput $W$ changes \calc:
+\[
+t_{\text{serial}}(W) = \frac{\SI{0.710}{\Go}}{W} + \SI{150.0}{\milli\second},
+\]
+\[
+\begin{array}{@{}lll@{}}
+W = \SI{1.893}{\Go\per\second} \text{ (measured, \texttt{C:})} & \Rightarrow \SI{525}{\milli\second}, & \num{1.90} \text{ token/s},\\
+W = \SI{2.82}{\Go\per\second} \text{ (Volume~I, large blocks)} & \Rightarrow \SI{402}{\milli\second}, & \num{2.49} \text{ tokens/s},\\
+W = \SI{6.0}{\Go\per\second} \text{ (manufacturer's rating)} & \Rightarrow \SI{268}{\milli\second}, & \num{3.73} \text{ tokens/s}.
+\end{array}
+\]
+With perfect overlap, the bound would be the slowest stage: at \SI{6.0}{\Go\per\second}, the disk would take \SI{118}{\milli\second} and the link \SI{81}{\milli\second}, so at most \num{8.5} tokens/s; the link would again be nearly the maximum, as Volume~I announced. These are bounds, not predictions: Intel RST VMD stays on the path, its share of the \SI{53}{\percent} lost is not separated, and the measurement will decide.
+
+\paragraph{What will be redone on \texttt{D:}.} The models and the \texttt{.trc} files will be moved there (digests checked), then the disk and milestone benches redone identically: the difference between \texttt{C:} and \texttt{D:}, same sessions, same files, will give for the first time the cost of BitLocker on a real model. The throughput of an unbuffered read depends on its length, in two regimes (lot E): the read length will be judged again on \texttt{D:}.
+
+\subsection{J2: the base + complement split}\label{t2d-sec:j2}
+
+\paragraph{What is ready.} The \texttt{.trc} format already stores the streams of a chunk by refinement level, every level prefix being decodable alone; the stream kinds of the base and the complement are specified to the bit; and the arbiter's F1 measurement showed that the split, with a rich context for the complement, costs only $+0.31\,\%$ of bytes against the single level (\fichier{decisions/ARCHITECTURE.md}, § 3). The cache already knows the levels (\texttt{Base}, \texttt{Exact}), unused before J2. Volume~I proved that the exact refinement of a native 4-bit code costs nothing in entropy.
+
+\paragraph{What it can give.} Serve the base alone, without its complement, at the misses where a byte is expensive: B3 promised $\times 1.74$ in throughput ($\times 1.78$ with the bits measured by F1), at the price of \num{48.5}\,\% of expert uses served by the base, for an estimated KL of \numrange{0.05}{0.12} \calc.
+
+\paragraph{The gates, taken over without loosening them} (§ 7.3 of the architecture). \emph{Q-instrument}: the exact re-expression must fall back to KL $\le 7\cdot10^{-5}$ and \num{100}\,\% of top choices, otherwise the bench is wrong. \emph{Q1}: KL of B against the exact mode of the same engine $\le \num{0.0055}$, a threshold inherited from Qwen3.5-4B that will be struck out and replaced in the open by the gap between engines measured on gpt-oss. \emph{Q2}: the (KL, bytes read per token) point of B must pass under the frontier of uniform requantisations by at least two standard errors. \emph{Speed}: a B mode is worth it if it beats the exact mode of the same engine by more than two noises and 3\,\%. What this volume changes: B's judge will be the exact mode of the same engine, which \cref{t2res-prop:c3} makes reproducible to the bit, and, if the arbiter adopts the f32 KV, an exact mode itself equal to the truth up to the format. The Q0 bench (the quality of B without an engine) and the base mode of the kernels remain to be done.
+
+\subsection{The compatible gate for relais}\label{t2d-sec:relais}
+
+relais is Stone's automation tool, driven by an agent running on free local models; it is the mission troncons interrupted (``on vas continuer la suite relais plus tard on doit faire tomber se levier d'abord'', \emph{we will continue relais later, we must bring down this lever first}). The gate would be a local service speaking the OpenAI-compatible chat completions protocol, on top of \texttt{troncons generer} and the harmony format the engine already produces, so that relais can call gpt-oss-120b like any other model. What it would cost in use, posed with the measured speeds \calc: a \num{1000}-token prompt prefills in $1000/27 \approx \SI{37}{\second}$; a 300-token answer is generated in $300/1.965 \approx \SI{153}{\second}$. It is slow for a conversation, acceptable for an automation task running on its own, which is relais's use case. Two requirements follow: stream the tokens as they come (and assemble the UTF-8 bytes split between two tokens, a known defect), and keep the engine open between requests, opening costing \SIrange{2}{3}{\second}.
+
+\subsection{The weight genome: Stone's biomimetic study}\label{t2d-sec:genome}
+
+\paragraph{The idea, in his words.} On 15 October, Stone wrote (in French, typing errors included):
+\begin{quote}\itshape
+J'ai penser à du biomimetisme informatique par exemple simjler une forme de molecule d'adn virtuel qui peut stocker une grande qua tutoriel d'informations en quelque sorte creer une nouvelle convention differentes du bit une transcription et implémentation
+\end{quote}
+(\emph{I thought of computer biomimetics, for instance simulating a kind of virtual DNA molecule that can store a large quantity of information, in a way creating a new convention different from the bit, a transcription and implementation}), then, the same day: ``j'ai la certitude que ce qu'on cherche se trouve dans du biomimetisme'' (\emph{I am certain that what we are looking for lies in biomimetics}). This conviction is the working hypothesis of the study; measurement will judge it (\fichier{idees/biomimetisme-genome-des-poids.md}).
+
+\paragraph{What does not work: changing the alphabet.} DNA writes with four letters, exactly $\log_2 4 = 2$ bits per letter. Writing with four symbols rather than two creates no room: every message has a minimum size, its entropy, and no alphabet goes below it (Shannon \cite{shannon1948}). On a computer, a ``virtual molecule'' is stored in bits. The strength of DNA is not its alphabet; it is in its \emph{mechanisms}.
+
+\paragraph{What may work: copying the mechanisms.} Several are already in troncons without bearing the name: expression on demand (the cell transcribes only the genes it needs: experts are decoded only at the moment of computation, then freed); epigenetics (marks say which genes are active: the cache keeps frequently called experts near the computation); families before detail (purines and pyrimidines before exact identity: the base before the complement, J2). The study adds four, each with a measurable hypothesis on gpt-oss.
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[The mechanisms of the living and their measurable hypotheses]{The mechanisms of the living retained for the study, and the hypothesis each poses on the weights of gpt-oss.}
+\label{t2d-tab:genome}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.17\linewidth}>{\raggedright\arraybackslash}p{0.27\linewidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+Mechanism & In the living & Measurable hypothesis on gpt-oss \\
+\midrule
+The recipe rather than the result & DNA carries the program that builds the body, not its shape & an expert is represented by a pseudo-random generator seed and a few coefficients, which the card ``transcribes'' at the moment of computation; SeedLM does it with shift registers \cite{shafipour2024seedlm}, hypernetworks with a network that generates another's weights \cite{ha2016hypernetworks} \\
+Gene duplication & a new gene is born from a copy of an old one, then mutates \cite{ohno1970} & the experts of a layer, or of neighbouring layers, are related: a ``parent'' expert and, for each descendant, a short ``mutation'' cost fewer bits than whole experts \\
+Predictive coding & the cortex transmits only the gap between what it expected and what arrives \cite{rao1999} & predict each weight from its neighbours, its parent or its row, and store only the gap: fewer bits when the prediction is good \\
+Synaptic pruning & the young brain removes useless connections \cite{huttenlocher1979} & a share of an expert's weights can be removed without changing the output beyond the judge's threshold \cite{lecun1989obd,han2015deepcompression} \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{idees/biomimetisme-genome-des-poids.md}, § 3 and § 5 bis; sources reread on 2026-10-16.}
+\end{table}
+
+\paragraph{Why this machine lends itself to it, posed.} Volume~I's roof theorem says that speed is bounded by the throughput of the slowest stage divided by the bytes it must pass; this volume measured that this stage is the disk. A weight genome \emph{spends computation to save bytes}, exactly the trade the machine asks for: the card waits for the disk, with a budget of about 926 operations per compressed byte at the disk's throughput (Volume~I; \barre{214}, the budget at the link's throughput, 12.2\,GB/s, which does not apply when the disk limits). Let us put a number on what it would give if it held. Today an expert is read at \num{3.8431} bits per weight losslessly (F1 measurement). If a representation reached $b'$ bits per weight at equal quality, the bytes read from disk and copied over the link would be multiplied by $b'/3.8431$, and the rest unchanged. For $b' = 2$, on pass 03 of the round \calc:
+\[
+t_{\text{serial}} = 0.520 \times (375.1 + 80.7) + 50.5 + 15.3 + 3.5 = \SI{306.5}{\milli\second}, \quad \text{i.e.\ a floor of} \ \num{3.26} \text{ tokens/s, against a floor of } \num{1.90}
+\]
+Both numbers are serial floors, with no overlap (\cref{t2res-sec:c5}): pass 03 measures \num{2.18} tokens/s, above its floor, and only a measured engine will judge the genome. It is an ``if'', and the study must judge it.
+
+\paragraph{The plan of the study} (\fichier{idees/biomimetisme-genome-des-poids.md}, § 5). (1) Read the state of the art at the source (generator seeds, hypernetworks, trellis codes, computer biomimetics). (2) Measure on the real weights of gpt-oss-20b, on the processor, the bits per weight obtained against the reconstruction error, for each mechanism. (3) Measure transcription: a kernel that regenerates an expert from its recipe, and its throughput, against the disk's \SI{1.89}{\Go\per\second}. (4) Judge the quality of the text against the exact reference, threshold declared beforehand. (5) Write it, in a chapter of its own. The success criterion, to be declared before measuring: fewer bits per weight read from disk than today's lossless coding, a quality loss under the judge's threshold, and a transcription faster than the read it replaces. An understood failure says where to look: every failure will be analysed (which share of the weights is noise, which has structure) instead of stopping at the verdict.
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{The gains of the \texttt{D:} disk} are bounds computed under the assumption that only the disk bytes change; Intel RST VMD and the read-length regime may take back a share.
+\item \textbf{The gain of a 2-bit genome} is a calculation under an ``if'': the weights of a trained model may look like noise, and noise does not summarise; the recipe could then only approximate the weights, with a loss.
+\item \textbf{Transcription may cost more than it gives back}: if regenerating an expert takes longer than reading it, the gain disappears; today's decoder already takes \SI{10}{\percent} of a token's time.
+\item \textbf{The gate for relais} is costed with the speeds of a single task; a long prompt or another text change the cache hit rate.
+\item \textbf{The gains of J2} are the architecture's, estimated under a linearity valid for small errors; Q0 has not yet measured the quality of B.
+\item \textbf{The summary inherits the weaknesses of the two previous chapters}, first C6 across two sessions and C4 on one window.
+\end{itemize}
+\end{faux}
+
+% ---------------------------------------------------------------------------------------------
+\chapter*{Conclusion}\label{t2d-ch:conclusion}
+\addcontentsline{toc}{chapter}{Conclusion}
+\markboth{Conclusion}{Conclusion}
+
+On 15 October 2026, Stone asked for ``une vrai solution pour prendre un modele ultra lourd quelcoque d'une ai le faire tourner proprement sans ram ni rien'' (\emph{a real solution to take any ultra-heavy AI model and run it cleanly without RAM or anything}). Volume~I had measured the machine, proved the roof of the problem and chosen, by calculation, an exact architecture that prepares the contribution. This Volume~II built the program and submitted it to a judge who had not written it.
+
+The result fits in four numbers, each reread by a second path. A \SI{63.4}{\Go} model, four times the RAM and eight times the card's memory, runs with \SI{384}{\Mo} of memory, the same to within \SI{3.7}{\Mo} as for a model five times smaller. Its outputs are identical to the bit, over \num{5120} steps, whether its experts are read compressed or raw. It produces \num{1.965} tokens per second with its integrity guard, \num{2.22} times the best measured configuration of llama.cpp, and prefills seven times faster. And, with an f32 KV cache, it computes what the model computes in exact mathematics, up to the file format.
+
+What this volume has not yet done is said as clearly: the research contribution, the base + complement split, awaits its quality bench and milestone J2; two criteria await a decision of the arbiter; the ratio to the baseline crosses two sessions; and the root cause of the only hang observed is unknown. About ten numbers were struck out on the way (\cref{t2d-tab:barres}), among them the first speed ratio, which compared troncons with a badly tuned baseline. The method found them, which was its job.
+
+What comes next is decided: a pause, the \texttt{D:} disk without BitLocker, which will tell what encryption costs on a real model; then the study of the weight genome, Stone's intuition that the living already knows how to store a lot in little, to be judged by numbers; then the gate that will give this engine back to relais, the mission it had interrupted. The lever Stone wanted brought down first has come down: the memory of an AI no longer depends on its size.

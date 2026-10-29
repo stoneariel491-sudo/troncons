@@ -1,0 +1,20 @@
+# La sonde de l'étude genome/predictif-elagage : entrées réelles des experts (capture) et passe avant
+# de référence f64 à poids altérés (KL contre la référence). Hors de l'espace de travail du moteur
+# (table [workspace] vide) : elle n'en touche ni le Cargo.toml ni le Cargo.lock.
+[package]
+name = "sonde-predictif-elagage"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+trc-reference = { path = "../../../../moteur/crates/trc-reference" }
+trc-juge = { path = "../../../../moteur/crates/trc-juge" }
+anyhow = "=1.0.104"
+rayon = "=1.12.0"
+
+[profile.release]
+opt-level = 3
+debug = "line-tables-only"

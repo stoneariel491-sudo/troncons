@@ -1,0 +1,86 @@
+{
+  "a_contre_verite": {
+    "dp_rms": 0.01966696383926151,
+    "kl_incertitude": 0.0021151667520797443,
+    "kl_max": 3.008433530566609,
+    "kl_mediane": 0.0018407485434405774,
+    "kl_min": -5.643377006278555e-6,
+    "kl_moyenne": 0.02057025012338115,
+    "kl_p90": 0.031078906420117347,
+    "kl_p99": 0.4111866708914194,
+    "kl_p999": 1.3670136667468715,
+    "ln_rapport_ppl": 0.002981291752235826,
+    "ln_rapport_ppl_incertitude": 0.005187741007544964,
+    "meme_premier": 0.9188235294117647,
+    "meme_premier_incertitude": 0.005409364155002428,
+    "meme_premier_wilson95": [
+      0.9075827168016061,
+      0.9288043629924373
+    ],
+    "n": 2550,
+    "ppl_p": 460.24497527909875,
+    "ppl_q": 461.61914721381913
+  },
+  "apparie": {
+    "kl_difference_b_moins_a": 0.00036283066368729546,
+    "kl_ecart_type": 0.0018560688037055852,
+    "premier_difference_b_moins_a": 0.000392156862745098,
+    "premier_ecart_type": 0.0056432560181302535
+  },
+  "b_contre_verite": {
+    "dp_rms": 0.01910127527175236,
+    "kl_incertitude": 0.0023465929624867875,
+    "kl_max": 3.215985882414759,
+    "kl_mediane": 0.0015178210185912812,
+    "kl_min": -0.000022583395217861385,
+    "kl_moyenne": 0.020933080787068476,
+    "kl_p90": 0.027466085827980307,
+    "kl_p99": 0.33825848386632107,
+    "kl_p999": 1.5880689285184224,
+    "ln_rapport_ppl": 0.018229237350762872,
+    "ln_rapport_ppl_incertitude": 0.005278594838988379,
+    "meme_premier": 0.9192156862745098,
+    "meme_premier_incertitude": 0.005397433692001186,
+    "meme_premier_wilson95": [
+      0.9079975684713462,
+      0.9291726452925417
+    ],
+    "n": 2550,
+    "ppl_p": 460.24497527909875,
+    "ppl_q": 468.7118278418932
+  },
+  "commande": [
+    "~\\dev\\cibles\\troncons-R\\release\\juge.exe",
+    "comparer",
+    "--verite",
+    "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+    "--a",
+    "~/dev/essais/troncons/genome/genome/kl10-base-8.kld",
+    "--b",
+    "~/dev/essais/troncons/genome/genome/kl10-recette-ponderee-exc-264.kld",
+    "--fenetres",
+    "10",
+    "--json",
+    "~/dev/active/troncons/mesures/genome/genome/kl/comparer10-base-contre-recette.json",
+    "--csv",
+    "~/dev/active/troncons/mesures/genome/genome/kl/comparer10-base-contre-recette.csv"
+  ],
+  "duree_s": 9.7768835,
+  "fenetres": 10,
+  "fin_unix": 1792238273,
+  "kl_inverse": {
+    "a": 0.02009114222427796,
+    "b": 0.020391620613058496,
+    "difference": 0.00030047838878054803,
+    "ecart_type": 0.0017932407618116387
+  },
+  "outil": "juge comparer",
+  "positions": 2550,
+  "regle": "littéral : KL_B ≤ KL_A et premier_B ≥ premier_A ; statistique : d̄ ≤ 2σ(d̄) et ē ≥ −2σ(ē) (différences appariées, mêmes positions, même vérité)",
+  "verdicts": {
+    "litteral_kl": false,
+    "litteral_premier": true,
+    "statistique_kl": true,
+    "statistique_premier": true
+  }
+}

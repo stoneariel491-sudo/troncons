@@ -1,0 +1,18 @@
+# trc-modele (lot O) : gpt-oss sur la carte, hyperparamètres, tampons et passe avant d'un jeton
+# (ARCHITECTURE.md § 5.8), écrite sur les seuls noyaux du lot K (couture N, § 5.6).
+[package]
+name = "trc-modele"
+description = "gpt-oss sur la carte : hyperparamètres lus dans le .trc, résidents montés en VRAM, cache KV, et la passe avant d'un jeton par les noyaux de trc-noyaux"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+# Couture D (§ 2.4) : sha2 (empreintes des résidents au chargement), anyhow (erreurs).
+[dependencies]
+trc-format = { path = "../trc-format" }
+trc-cuda = { path = "../trc-cuda" }
+trc-es = { path = "../trc-es" }
+trc-noyaux = { path = "../trc-noyaux" }
+sha2.workspace = true
+anyhow.workspace = true

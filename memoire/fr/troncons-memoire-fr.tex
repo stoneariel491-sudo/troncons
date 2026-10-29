@@ -1,0 +1,50 @@
+% Mémoire de troncons, version française.
+% Construction : depuis memoire/, ./construire.sh (ou latexmk -lualatex dans ce dossier).
+\documentclass[11pt, a4paper, twoside, openright, parskip=false, headings=big,
+               chapterprefix=true, numbers=noenddot, bibliography=totoc,
+               listof=totoc]{scrbook}
+\newif\ifanglais
+\anglaisfalse
+\input{../commun/preambule}
+
+\title{troncons : faire tourner un modèle bien plus grand que la mémoire}
+\author{Stone}
+\date{15 octobre 2026}
+
+\begin{document}
+\frontmatter
+\input{../commun/page-titre}
+\input{../commun/resumes}
+\tableofcontents
+\listoffigures
+\listoftables
+\lstlistoflistings
+\input{../commun/notations}
+
+\mainmatter
+\part{Le problème}
+\input{chapitres/01-introduction}
+\input{chapitres/02-etat-de-l-art}
+\input{chapitres/03-machine}
+\input{chapitres/04-formulation}
+
+\part{Les leviers, mesurés}
+\input{chapitres/05-quantification}
+\input{chapitres/06-entropie}
+\input{chapitres/07-chargement}
+\input{chapitres/08-sparsite}
+\input{chapitres/09-modeles}
+
+\part{Vers le système}
+\input{chapitres/10-a-venir}
+\input{chapitres/11-discussion}
+\input{chapitres/12-travaux-futurs}
+
+\appendix
+\input{chapitres/A-protocoles}
+\input{chapitres/B-outils}
+\input{chapitres/C-journaux}
+
+\backmatter
+\printbibliography[heading=bibintoc, title={Bibliographie}]
+\end{document}

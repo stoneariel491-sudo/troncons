@@ -1,0 +1,110 @@
+% Engendré par memoire/outils/tome2_annexes.py : ne pas modifier à la main.
+\begingroup\small
+\begin{longtable}{@{}p{0.39\linewidth}p{0.48\linewidth}r@{}}
+\toprule
+\EF{Tool}{Outil} & \EF{Its own description (first line, quoted as written, in French)}{Sa propre description (première ligne, citée)} & \EF{Lines}{Lignes} \\
+\midrule
+\endhead
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{O: the troncons program}{O : le programme troncons}}} \\
+\fichier{moteur/bins/troncons/src/main.rs} & {\footnotesize troncons : le programme (ARCHITECTURE.md § 5.10).} & \num{683} \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{F: the coder}{F : le codeur}}} \\
+\fichier{moteur/bins/trc-codeur/src/main.rs} & {\footnotesize trc-codeur : le codeur GGUF → .trc de troncons et la vérification C1 (lot F).} & \num{125} \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{E: the path bench}{E : le banc du chemin}}} \\
+\fichier{moteur/bins/banc-chemin/src/main.rs} & {\footnotesize banc-chemin : le banc du lot E.} & \num{223} \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{K: the kernel bench}{K : le banc des noyaux}}} \\
+\fichier{moteur/crates/trc-noyaux/banc/banc_k.cu} & {\footnotesize Banc du lot K (étapes K1 et K2) : témoins, cassures et débits des noyaux du moteur, sur les poids réels de gpt-oss, par un chemin indépendant des lots F et E.} & \num{1376} \\
+\fichier{moteur/crates/trc-noyaux/banc/construire.bat} & {\footnotesize Construit le banc du lot K (banc\_k.exe) et l'image des noyaux seule, hors du depot. CUDA 13.1.2 depaquete sans installation (SOCLE, section La machine). …} & \num{12} \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{O: the cache simulator}{O : le simulateur du cache}}} \\
+\fichier{moteur/crates/trc-cache/src/bin/rejouer.rs} & {\footnotesize rejouer : le simulateur du cache en ligne de commande (témoin O1, courbes de succès).} & \num{119} \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{O: engine examples}{O : exemples du moteur}}} \\
+\fichier{moteur/crates/trc-ordo/examples/debit_empreinte.rs} & {\footnotesize Débit de empreinte64 (préfixe de SHA-256, crate sha2 0.10.9) sur des tampons de la taille d'un tronçon, sur un fil puis sur n fils …} & \num{47} \\
+\fichier{moteur/crates/trc-ordo/examples/memoire_unitaire.rs} & {\footnotesize Coûts unitaires en ensemble de travail (WS) des structures du moteur qui croissent avec le modèle (constat M4 de l'épreuve J1 : le terme de 0,5 Mo de C7 ne comptait que le répertoire). …} & \num{37} \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{R: the judge program}{R : le programme du juge}}} \\
+\fichier{moteur/crates/trc-juge/src/bin/juge.rs} & {\footnotesize juge : le programme du lot R.} & \num{572} \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{E: byte-path measurements}{E : mesures du chemin des octets}}} \\
+\fichier{mesures/moteur/E/analyse_e0.py} & {\footnotesize Analyse d'une séance E0 (journaux de banc-chemin) : verdicts contre les seuils déclarés, CSV.} & \num{216} \\
+\fichier{mesures/moteur/E/analyse_e1.py} & {\footnotesize Analyse de la mesure E1 du lot E (débit du lecteur, disque seul) : verdicts contre les seuils déclarés avant la première passe mesurée (moteur/REPRISE-E.md, « E1, débit du lecteur sur le …} & \num{117} \\
+\fichier{mesures/moteur/E/analyse_e2.py} & {\footnotesize Analyse de l'étape E2 du lot E : verdicts contre les critères déclarés avant toute ligne de code d'E2 (moteur/REPRISE-E.md, « E2 », commit 6b59ff3), CSV des figures du mémoire.} & \num{211} \\
+\fichier{mesures/moteur/E/balayage_longueurs.py} & {\footnotesize Balayage du débit du lecteur sans tampon contre la longueur d'une lecture (lot E, diagnostic d'E2).} & \num{115} \\
+\fichier{mesures/moteur/E/construire.bat} & {\footnotesize Construit banc-chemin (lot E) en release, cible propre au lot, -j 4 (cinq lots compilent en meme temps). Argument 1 (facultatif) : (rien) …} & \num{32} \\
+\fichier{mesures/moteur/E/pilote_e0.py} & {\footnotesize Pilote des essais E0 du lot E (ARCHITECTURE.md § 6.5) : une séance complète, journalisée.} & \num{192} \\
+\fichier{mesures/moteur/E/pilote_e1.py} & {\footnotesize Pilote de la mesure E1 du lot E : débit du lecteur sans tampon, disque seul (banc-chemin lecteur).} & \num{191} \\
+\fichier{mesures/moteur/E/pilote_e2.py} & {\footnotesize Pilote de l'étape E2 du lot E : le chemin disque → VRAM décodé sur gpt-oss-20b (banc-chemin chemin).} & \num{184} \\
+\fichier{mesures/moteur/E/serie_nvvn.py} & {\footnotesize Série N V V N du lot E (déclarée dans moteur/REPRISE-E.md avant la mesure) : banc-chemin chemin tel que spécifié (N, lecture de longueur0) contre la variante E2-V (V, --longueur-lecture), …} & \num{84} \\
+\fichier{mesures/moteur/E/temoins_des_temoins.py} & {\footnotesize Témoin des témoins de l'étape E1 (lot E) : chaque témoin de trc-cuda et de trc-es doit tomber quand on force sa condition à faux, puis tenir une fois restauré (SOCLE, « Le niveau exigé »).} & \num{67} \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{F: format measurements}{F : mesures du format}}} \\
+\fichier{mesures/moteur/F/casser_copie.py} & {\footnotesize Cassure C1 sur une vraie copie du fichier (§ 6.5 : « une médiane faussée dans une copie → inexact détecté »). …} & \num{36} \\
+\fichier{mesures/moteur/F/casser_lecture.py} & {\footnotesize Témoin des témoins de la lecture sans tampon de trc-codeur (gguf::lire\_dans), F3.} & \num{83} \\
+\fichier{mesures/moteur/F/casser_temoins_f1.py} & {\footnotesize Témoin des témoins de F1 (SOCLE : « force sa condition à faux, relance, vérifie que l'instrument tombe, puis restaure »).} & \num{72} \\
+\fichier{mesures/moteur/F/comparer_f1.py} & {\footnotesize Juge des taux du lot F contre les seuils déclarés (mesures/moteur/F/00-seuils-declares.md).} & \num{70} \\
+\fichier{mesures/moteur/F/lancer.ps1} & {\footnotesize Lance trc-codeur en priorité « sous la normale » (machine partagée), sorties redirigées, et note l'alimentation (Win32\_Battery.BatteryStatus : 2 = sur secteur) avant et après. Usage …} & \num{17} \\
+\fichier{mesures/moteur/F/lancer_py.ps1} & {\footnotesize Lance un outil Python du lot F en priorité « sous la normale » (machine partagée), sorties redirigées sous journaux/, alimentation (Win32\_Battery.BatteryStatus …} & \num{18} \\
+\fichier{mesures/moteur/F/second_chemin_c1.py} & {\footnotesize Second chemin de C1 (lot F), sur le fichier .trc et son GGUF source.} & \num{684} \\
+\fichier{mesures/moteur/F/vers_csv.py} & {\footnotesize Données des figures du lot F, tirées des journaux de trc-codeur verifier (les octets viennent des fichiers .trc eux-mêmes) …} & \num{83} \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{K: kernel measurements}{K : mesures des noyaux}}} \\
+\fichier{mesures/moteur/K/attendre_et_mesurer.ps1} & {\footnotesize Attend que la carte soit libre (aucun llama-*, aucun traceur, aucun verrou), puis lance le pilote des bancs de débit du lot K (pilote\_bancs.ps1, qui revérifie tout et prend le verrou). …} & \num{30} \\
+\fichier{mesures/moteur/K/k3_biais_attention.py} & {\footnotesize \textemdash} & \num{29} \\
+\fichier{mesures/moteur/K/k3_vers_csv.py} & {\footnotesize K3 : les CSV des figures du mémoire, tirés des journaux commités sous k3/ (aucun chiffre recopié).} & \num{69} \\
+\fichier{mesures/moteur/K/pilote_bancs.ps1} & {\footnotesize Pilote des bancs de débit du lot K (étapes K1 et K2), en séries A B B A de processus.} & \num{105} \\
+\fichier{mesures/moteur/K/temoin-k3/src/chaine.rs} & {\footnotesize Mode chaine : la passe avant entière de gpt-oss enchaînée sur la carte par les seuls noyaux de K1 à K3, contre Reference::evaluer (f64), sur des jetons réels.} & \num{376} \\
+\fichier{mesures/moteur/K/temoin-k3/src/main.rs} & {\footnotesize Témoin K3 : les douze noyaux de la passe avant, chacun contre trc-reference.} & \num{1171} \\
+\fichier{mesures/moteur/K/temoin-trc/src/main.rs} & {\footnotesize Témoin K1 sur un vrai fichier .trc du lot F.} & \num{432} \\
+\fichier{mesures/moteur/K/vers_csv.py} & {\footnotesize Données des figures et tableaux du lot K pour le mémoire (CSV), tirées des journaux commités.} & \num{137} \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{O: round of corrections}{O : ronde de corrections}}} \\
+\fichier{mesures/moteur/O/corrections/analyse_base.py} & {\footnotesize Bloc 6 de seuils-declares.md : la base llama.cpp balayée (M2), et C6 recalculé.} & \num{71} \\
+\fichier{mesures/moteur/O/corrections/analyse_kv.py} & {\footnotesize Bloc 5 de seuils-declares.md (M5) : le cache KV en f32 contre f16, jugé contre la vérité f64 du juge.} & \num{114} \\
+\fichier{mesures/moteur/O/corrections/analyse_ronde.py} & {\footnotesize Analyse de la séance « vitesse » de la ronde de corrections (blocs 3 et 5 de seuils-declares.md).} & \num{102} \\
+\fichier{mesures/moteur/O/corrections/construire-avec-vcvars.bat} & {\footnotesize Ronde de corrections J1, constat m2 : la recette du SOCLE (vcvars64.bat d abord) sur trc-noyaux, arbre de travail du depot, cible a part. Usage : construire-avec-vcvars.bat [sans]} & \num{16} \\
+\fichier{mesures/moteur/O/corrections/pilote_ronde.py} & {\footnotesize Pilote des séances de la ronde de corrections J1 (blocs 3, 5 et 6 de seuils-declares.md).} & \num{100} \\
+\fichier{mesures/moteur/O/corrections/rejouer_g1.py} & {\footnotesize Bloc 4 de seuils-declares.md : la passe figée de l'épreuve (G1) rejouée sous la même charge.} & \num{91} \\
+\fichier{mesures/moteur/O/corrections/temoin_garde.py} & {\footnotesize Témoins de la garde de production (constat M1 de l'épreuve J1), sur le 20b, passes courtes.} & \num{104} \\
+\fichier{mesures/moteur/O/corrections/temoin_sortie.py} & {\footnotesize Témoin des constats G1 et G2 de l'épreuve J1 : le programme rend-il la main, avec son erreur, sans laisser d'enfant vivant ?} & \num{136} \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{O: engine measurements}{O : mesures du moteur}}} \\
+\fichier{mesures/moteur/O/analyse_o4.py} & {\footnotesize Verdicts de la séance O4 = J1 (C5, C7, C8, C10) depuis les journaux de pilote\_o4.py.} & \num{89} \\
+\fichier{mesures/moteur/O/casser_mediane.py} & {\footnotesize Cassure de C3 (lot O) : une copie de gpt-oss-20b.trc où une seule médiane d'un seul expert change.} & \num{62} \\
+\fichier{mesures/moteur/O/casser_tests.py} & {\footnotesize Cassures des témoins unitaires de trc-cache : chaque témoin qui peut tomber est forcé à faux une fois (SOCLE, « le niveau exigé »), dans une copie jetable de la crate, et l'on vérifie qu'il …} & \num{137} \\
+\fichier{mesures/moteur/O/courbe_dense.py} & {\footnotesize Courbe dense du succès du cache global (LRU et Belady) contre le nombre d'emplacements, sur les traces réelles de gpt-oss-20b, par rejouer (trc-cache) …} & \num{66} \\
+\fichier{mesures/moteur/O/pilote_j1plus.py} & {\footnotesize Pilote de la seconde séance du 120b (lot O) : diagnostic D-C7, variante L12, préchargement (J1+), C12 sur le fichier brut, et la conversation harmony publiée.} & \num{199} \\
+\fichier{mesures/moteur/O/pilote_o3.py} & {\footnotesize Pilote de l'étape O3 du lot O : C3 (codé contre brut, au bit), le compte du cache contre rejouer.} & \num{201} \\
+\fichier{mesures/moteur/O/pilote_o4.py} & {\footnotesize Pilote de l'étape O4 = J1 du lot O : vitesse (C5), fenêtre bornée (C7), octets lus (C8), VRAM (C10).} & \num{126} \\
+\fichier{mesures/moteur/O/temoin-o2/src/main.rs} & {\footnotesize Témoin O2 : la passe avant de trc-modele contre la chaîne du lot K, ligne pour ligne.} & \num{273} \\
+\fichier{mesures/moteur/O/temoin_o1.py} & {\footnotesize Témoin O1 du lot O : le simulateur du moteur (trc-cache, rejouer) contre les simulateurs Python des études 04 et gpt-oss, compté à l'unité (ARCHITECTURE.md § 6.5, ligne O1).} & \num{236} \\
+\fichier{mesures/moteur/O/vers_csv_o.py} & {\footnotesize Données des figures du mémoire pour les étapes O2 à O4 du lot O, tirées des journaux commités.} & \num{81} \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{R: reference measurements}{R : mesures de la référence}}} \\
+\fichier{mesures/moteur/R/bascules.py} & {\footnotesize Les bascules de routage entre deux passes de la référence (lot R, R1, reprise du 2026-10-15).} & \num{90} \\
+\fichier{mesures/moteur/R/r0_ecart.py} & {\footnotesize R0 : l'écart entre moteurs sur gpt-oss-20b (ARCHITECTURE.md § 6.5, lot R).} & \num{295} \\
+\fichier{mesures/moteur/R/r1_reference.py} & {\footnotesize R1 : la référence f64 de gpt-oss, et son jugement contre llama.cpp (ARCHITECTURE.md § 6.5, lot R).} & \num{226} \\
+\fichier{mesures/moteur/R/rampe_yarn.py} & {\footnotesize Second chemin de la rampe de YaRN de gpt-oss (figure R-M3 du mémoire ; lot R).} & \num{69} \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{Trial J1 (the independent judge)}{Épreuve J1 (le juge indépendant)}}} \\
+\fichier{mesures/moteur/epreuve-J1/analyse_c8.py} & {\footnotesize C8 refait par le juge, deux instruments.} & \num{36} \\
+\fichier{mesures/moteur/epreuve-J1/analyse_seance.py} & {\footnotesize Analyse de la séance de l'épreuve (pilote\_epreuve.py) : verdicts des seuils de seuils-declares.md.} & \num{134} \\
+\fichier{mesures/moteur/epreuve-J1/base_kld_invite.py} & {\footnotesize Fabrique un .kld de base d'UNE fenêtre de n jetons donnés (format de llama-perplexity), pour que troncons evaluer passe ces jetons depuis la position 0 et écrive l'argmax de chaque …} & \num{22} \\
+\fichier{mesures/moteur/epreuve-J1/comparer_c3.py} & {\footnotesize C3 par le chemin du juge : .kld et empreintes de logits, codé contre brut, et contre le lot O.} & \num{61} \\
+\fichier{mesures/moteur/epreuve-J1/comparer_invite.py} & {\footnotesize Argmax position par position : vérité numpy (argmax\_toutes) contre l'empreinte CSV de troncons.} & \num{39} \\
+\fichier{mesures/moteur/epreuve-J1/comparer_kld.py} & {\footnotesize Juge de l'épreuve : KL(vérité ‖ fichier) et premier choix, position par position.} & \num{99} \\
+\fichier{mesures/moteur/epreuve-J1/comparer_routage.py} & {\footnotesize Routage de troncons (trace du moteur, une ligne par pas, L groupes de k experts) contre celui de la vérité numpy (routage[L, P, k]) …} & \num{31} \\
+\fichier{mesures/moteur/epreuve-J1/construire-avec-vcvars.bat} & {\footnotesize Epreuve J1, constat m2 : la recette du SOCLE (vcvars d'abord) sur la seule crate trc-noyaux.} & \num{9} \\
+\fichier{mesures/moteur/epreuve-J1/construire.bat} & {\footnotesize Epreuve J1 : construit troncons depuis un clone propre, cible propre au juge, -j 4.} & \num{10} \\
+\fichier{mesures/moteur/epreuve-J1/decodeur_s4.py} & {\footnotesize Épreuve indépendante du jalon J1, geste 1 (decisions/ARCHITECTURE.md § 8.1).} & \num{613} \\
+\fichier{mesures/moteur/epreuve-J1/ecart_logp.py} & {\footnotesize Écart des log-probabilités entre la vérité numpy du juge et un .kld, hors plancher du format.} & \num{43} \\
+\fichier{mesures/moteur/epreuve-J1/echantillonner_fil.py} & {\footnotesize Diagnostic d'un processus bloqué (lancé par le juge) : où tourne le fil donné ?} & \num{63} \\
+\fichier{mesures/moteur/epreuve-J1/gptoss_numpy.py} & {\footnotesize Une troisième passe avant de gpt-oss, en numpy f64, écrite par le juge de l'épreuve J1.} & \num{283} \\
+\fichier{mesures/moteur/epreuve-J1/normalisation_kld.py} & {\footnotesize Témoin de l'instrument du juge : log Σ exp(log q) de chaque entrée d'un .kld (0 si normalisé).} & \num{46} \\
+\fichier{mesures/moteur/epreuve-J1/pile_fil.py} & {\footnotesize Diagnostic d'un fil bloqué : adresses de retour de troncons.exe trouvées sur sa pile, nommées.} & \num{89} \\
+\fichier{mesures/moteur/epreuve-J1/pilote_epreuve.py} & {\footnotesize Épreuve indépendante de J1 (§ 8.3 à 8.5) : vitesse, RAM, VRAM et base llama.cpp, par mes commandes.} & \num{304} \\
+\fichier{mesures/moteur/epreuve-J1/temoin_compteurs_es.py} & {\footnotesize Témoin de l'instrument C8 du juge : GetProcessIoCounters compte-t-il une lecture sans tampon ?} & \num{61} \\
+\fichier{mesures/moteur/epreuve-J1/verdict_c4.py} & {\footnotesize C4 par la vérité du juge : comparaison appariée (troncons contre llama.cpp, mêmes positions).} & \num{35} \\
+\fichier{mesures/moteur/epreuve-J1/verifier_vocab.py} & {\footnotesize § 4.13 : le compagnon <nom>.vocab.gguf est un GGUF v3 valide, n\_tenseurs = 0, toutes les paires du source octet pour octet, aucune donnée. Lecteur GGUF de decodeur\_s4.py (écrit ici). …} & \num{19} \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries\EF{The thesis, Volume~II}{Le mémoire du Tome~II}}} \\
+\fichier{memoire/outils/tome2_annexes.py} & {\footnotesize Produit les tables des annexes du Tome II depuis le dépôt lui-même, et vérifie l'annexe des outils.} & \num{263} \\
+\fichier{memoire/outils/tome2_chemin_noyaux.py} & {\footnotesize Données des figures des chapitres « Le chemin des octets » et « Les noyaux sur la carte » (Tome II).} & \num{249} \\
+\fichier{memoire/outils/tome2_format.py} & {\footnotesize Données des chapitres « Architecture » et « Format .trc » du Tome II (memoire/tome2/).} & \num{158} \\
+\fichier{memoire/outils/tome2_juge.py} & {\footnotesize Second chemin du juge technique du Tome II (memoire/tome2/JUGEMENT.md).} & \num{152} \\
+\fichier{memoire/outils/tome2_reference_cache.py} & {\footnotesize Données des figures et chiffres refaits des chapitres « La référence exacte et le juge » et « Le cache, l'ordonnanceur et le moteur » du Tome II.} & \num{279} \\
+\fichier{memoire/outils/tome2_reprise.py} & {\footnotesize Reprise du jugement du Tome II : refait, depuis les CSV commités, chaque chiffre que la reprise publie ou corrige (objections G1 et m1 à m21 de memoire/tome2/JUGEMENT.md), et vérifie dans …} & \num{175} \\
+\fichier{memoire/outils/tome2_resultats.py} & {\footnotesize Données des chapitres « Résultats », « L'épreuve » et « Discussion » du Tome II.} & \num{332} \\
+\midrule
+\EF{Total}{Total} & \EF{83 tools}{83 outils} & \num{14504} \\
+\bottomrule
+\end{longtable}
+\endgroup

@@ -1,0 +1,698 @@
+{
+ "outil": "mesures/moteur/epreuve-J1/decodeur_s4.py",
+ "debut": "2026-10-16T02:16:35",
+ "commande": [
+  "decodeur_s4.py",
+  "~/dev/modeles/trc/gpt-oss-120b.trc",
+  "~/dev/modeles/gguf/gpt-oss-120b-MXFP4.gguf",
+  "journaux/s4-gptoss120b-casse-lut.json",
+  "--n",
+  "2",
+  "--graine",
+  "20261016",
+  "--casser",
+  "lut"
+ ],
+ "graine": 20261016,
+ "casser": "lut",
+ "gguf": {
+  "chemin": "~/dev/modeles/gguf/gpt-oss-120b-MXFP4.gguf",
+  "version": 3,
+  "n_tenseurs": 687,
+  "n_kv": 36,
+  "alignement": 32,
+  "taille": 63387346208
+ },
+ "magie": true,
+ "entete": {
+  "version": [
+   1,
+   0
+  ],
+  "drapeaux": 1,
+  "alignement": 4096,
+  "taille_entete": 4096,
+  "taille_fichier_declaree": 57730662400,
+  "taille_fichier_reelle": 57730662400,
+  "sha256_source": "582bd40f6886200101f4c4ed9f25f3fe80cc14c86e9e2b37746cd8904a0c622d",
+  "taille_source": 63387346208,
+  "L": 36,
+  "E": 128,
+  "k": 4,
+  "matrices": 3,
+  "lignes": [
+   2880,
+   2880,
+   2880,
+   0
+  ],
+  "colonnes": [
+   2880,
+   2880,
+   2880,
+   0
+  ],
+  "poids_bloc": 32,
+  "octets_bloc": 17,
+  "type_ggml": 39,
+  "niveaux": 1,
+  "classes_echelle": 3,
+  "partition": [
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0
+  ],
+  "reserve_123": 0,
+  "reserve_132": 0,
+  "sections": [
+   [
+    4096,
+    12980522
+   ],
+   [
+    12988416,
+    2301059336
+   ],
+   [
+    2314051584,
+    224656
+   ],
+   [
+    2314276864,
+    294920
+   ],
+   [
+    2314575872,
+    55416086528
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "zeros_264_4088": true,
+  "empreinte_lue": "62bbd58a98dc8afb",
+  "empreinte_calculee": "62bbd58a98dc8afb",
+  "empreinte_ok": true,
+  "taille_ok": true,
+  "sections_alignees": true,
+  "sections_reservees_nulles": true,
+  "drapeaux_connus": true,
+  "taille_source_egale_gguf": true
+ },
+ "meta": {
+  "n_paires": 39,
+  "n_kv_gguf": 36,
+  "empreinte_ok": true,
+  "zeros_apres": true,
+  "longueur_section": 12980522,
+  "fin_utile": 12980522,
+  "ajoutees": [
+   [
+    "troncons.codeur.version",
+    "trc-codeur 0.1.0"
+   ],
+   [
+    "troncons.codeur.date",
+    "2026-10-15"
+   ],
+   [
+    "troncons.source.nom",
+    "gpt-oss-120b-MXFP4.gguf"
+   ]
+  ],
+  "paires_gguf_octet_pour_octet": true,
+  "section_multiple_4096": false
+ },
+ "residents": {
+  "n_tenseurs": 471,
+  "reserve": 0,
+  "debut_donnees_absolu": 13049856,
+  "longueur_section": 2301059336,
+  "fin_derniere_relative": 2300997888,
+  "empreinte_table_trouvee_a": {
+   "fin_exacte": true,
+   "aligne_8": true,
+   "aligne_256": true
+  },
+  "n_attendus": 471,
+  "memes_noms_meme_ordre": true,
+  "memes_noms_ensemble": true,
+  "defauts_forme": [],
+  "octets_residents": 2300997888
+ },
+ "tables": {
+  "n_enregistrements": 432,
+  "reserve": 0,
+  "empreinte_ok": true,
+  "zeros_apres": true,
+  "sommes_differentes_de_4096": [],
+  "sortes_contextes_charges": {
+   "0x03/0/2": 108,
+   "0x04/0/2": 108,
+   "0x04/1/2": 108,
+   "0x04/2/2": 108
+  }
+ },
+ "repertoire": {
+  "entrees": 4608,
+  "empreinte_ok": true,
+  "defauts": [],
+  "n_defauts": 0,
+  "premier_troncon_au_debut_de_TRONCONS": true,
+  "fin_dernier_troncon": 57730662400,
+  "fin_section_TRONCONS": 57730662400,
+  "fin_fichier": 57730662400
+ },
+ "tires": [
+  [
+   12,
+   54
+  ],
+  [
+   25,
+   109
+  ]
+ ],
+ "troncons": [
+  {
+   "couche": 12,
+   "expert": 54,
+   "decalage": 21442121728,
+   "longueur0": 12001280,
+   "utiles0": 11997648,
+   "entete_partie": {
+    "magie": "0x30435254",
+    "couche": 12,
+    "expert": 54,
+    "niveau": 0,
+    "n_matrices": 3,
+    "n_flux": 12,
+    "utiles": 11997648,
+    "reserve_zeros": true
+   },
+   "zeros_apres_utiles": true,
+   "entete_ok": true,
+   "empreinte_partie_ok": true,
+   "flux": [
+    [
+     1,
+     0,
+     255,
+     256,
+     2880,
+     2880
+    ],
+    [
+     2,
+     0,
+     255,
+     3136,
+     11520,
+     11520
+    ],
+    [
+     3,
+     0,
+     0,
+     14656,
+     36896,
+     259200
+    ],
+    [
+     4,
+     0,
+     255,
+     51552,
+     3964384,
+     4147200
+    ],
+    [
+     1,
+     1,
+     255,
+     4015936,
+     2880,
+     2880
+    ],
+    [
+     2,
+     1,
+     255,
+     4018816,
+     11520,
+     11520
+    ],
+    [
+     3,
+     1,
+     0,
+     4030336,
+     34304,
+     259200
+    ],
+    [
+     4,
+     1,
+     255,
+     4064640,
+     3967024,
+     4147200
+    ],
+    [
+     1,
+     2,
+     255,
+     8031664,
+     2880,
+     2880
+    ],
+    [
+     2,
+     2,
+     255,
+     8034544,
+     11520,
+     11520
+    ],
+    [
+     3,
+     2,
+     0,
+     8046064,
+     32800,
+     259200
+    ],
+    [
+     4,
+     2,
+     255,
+     8078864,
+     3918784,
+     4147200
+    ]
+   ],
+   "flux_alignes_16": true,
+   "flux_reserves_nuls": true,
+   "contextes_fixes": [
+    [
+     1,
+     255
+    ],
+    [
+     2,
+     255
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     255
+    ]
+   ],
+   "ordre_flux_conforme_4_8": true,
+   "bilans": [
+    {
+     "matrice": 0,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 17910,
+      "octets_serialises": 36892,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 17910
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1973801,
+      "octets_serialises": 3964382,
+      "voies_hors_L": 4032,
+      "tuiles_fin_differente_du_debut_suivant": 126,
+      "mots_lus": 1979137
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 1,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 16613,
+      "octets_serialises": 34298,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 16613
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1975117,
+      "octets_serialises": 3967014,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1975117
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 2,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 15859,
+      "octets_serialises": 32790,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 15859
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1951000,
+      "octets_serialises": 3918780,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1951000
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    }
+   ],
+   "voies_hors_L": 4032,
+   "empreinte_origine_ok": false,
+   "secondes_decodage": 0.779,
+   "egal_gguf_octet_pour_octet": false,
+   "octets_differents": 3262607,
+   "premier_octet_different": 7012,
+   "tient": false
+  },
+  {
+   "couche": 25,
+   "expert": 109,
+   "decalage": 42107637760,
+   "longueur0": 12013568,
+   "utiles0": 12013168,
+   "entete_partie": {
+    "magie": "0x30435254",
+    "couche": 25,
+    "expert": 109,
+    "niveau": 0,
+    "n_matrices": 3,
+    "n_flux": 12,
+    "utiles": 12013168,
+    "reserve_zeros": true
+   },
+   "zeros_apres_utiles": true,
+   "entete_ok": true,
+   "empreinte_partie_ok": true,
+   "flux": [
+    [
+     1,
+     0,
+     255,
+     256,
+     2880,
+     2880
+    ],
+    [
+     2,
+     0,
+     255,
+     3136,
+     11520,
+     11520
+    ],
+    [
+     3,
+     0,
+     0,
+     14656,
+     33136,
+     259200
+    ],
+    [
+     4,
+     0,
+     255,
+     47792,
+     3945408,
+     4147200
+    ],
+    [
+     1,
+     1,
+     255,
+     3993200,
+     2880,
+     2880
+    ],
+    [
+     2,
+     1,
+     255,
+     3996080,
+     11520,
+     11520
+    ],
+    [
+     3,
+     1,
+     0,
+     4007600,
+     22496,
+     259200
+    ],
+    [
+     4,
+     1,
+     255,
+     4030096,
+     3968336,
+     4147200
+    ],
+    [
+     1,
+     2,
+     255,
+     7998432,
+     2880,
+     2880
+    ],
+    [
+     2,
+     2,
+     255,
+     8001312,
+     11520,
+     11520
+    ],
+    [
+     3,
+     2,
+     0,
+     8012832,
+     37712,
+     259200
+    ],
+    [
+     4,
+     2,
+     255,
+     8050544,
+     3962624,
+     4147200
+    ]
+   ],
+   "flux_alignes_16": true,
+   "flux_reserves_nuls": true,
+   "contextes_fixes": [
+    [
+     1,
+     255
+    ],
+    [
+     2,
+     255
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     255
+    ]
+   ],
+   "ordre_flux_conforme_4_8": true,
+   "bilans": [
+    {
+     "matrice": 0,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 16031,
+      "octets_serialises": 33134,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 16031
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1964314,
+      "octets_serialises": 3945408,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1964314
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 1,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 10710,
+      "octets_serialises": 22492,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 10710
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1975774,
+      "octets_serialises": 3968328,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1975774
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 2,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 18315,
+      "octets_serialises": 37702,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 18315
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1972916,
+      "octets_serialises": 3962612,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1972916
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    }
+   ],
+   "voies_hors_L": 0,
+   "empreinte_origine_ok": true,
+   "secondes_decodage": 0.783,
+   "egal_gguf_octet_pour_octet": true,
+   "tient": true
+  }
+ ],
+ "n_tiennent": 1,
+ "fin": "2026-10-16T02:16:37"
+}

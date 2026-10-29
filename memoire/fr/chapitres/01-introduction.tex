@@ -1,0 +1,87 @@
+\chapter{Introduction et motivation}\label{ch:intro}
+
+\section{La mission}\label{sec:mission}
+
+Ce mémoire répond à une demande écrite par Stone le 15 octobre 2026. La voici en ses mots exacts, fautes comprises, parce que ce sont eux qui font foi et que tout le reste n'en est qu'une lecture :
+
+\begin{quote}\itshape
+j'ai aussi une mission je veux de la recherche scientique et de l'implémentation prend les meilleurs avancées au monde en stockage optimisation et domaine connexes ( enfin les plus utiles) et fait en sorte de tout les assemblées dans le but de produire et d'implémenter une vrai solution pour prendre un modele ultra lourd quelcoque d'une ai le faire tourner proprement sans ram ni rien en fait un moyen de compresser à l'extreme puis décompresser en un temps record au besoin à l'instant exacte du noeud bref tu sais ce qui manque et tu sais quoi faire je ne veux pas que des recherches déja existante je veux que tu fasse une vrai recherche de spécialiste puis tu implémente la solution fonctionnelle avec une team d'ingénieur si ce qu'on cherche n,existe pas alors tant mieux creer le ceci est ta mission principale on vas continuer la suite relais plus tard on doit faire tomber se levier d'abord
+\end{quote}
+
+Elle a une source plus ancienne, dans deux phrases du 2 et du 4 octobre 2026 :
+
+\begin{quote}\itshape
+est ce qu'il existe sinon on peut inventer un genre d'appel instanté en d,autre terme une nouvelle facon de compreser les données et en sommes elles apparaisse directement lorsqu'on a en besoin et disparaisse apr;es
+\end{quote}
+\begin{quote}\itshape
+en fait je pense un peut à des chuncks comme dans minecraft un genre de manière d'ingénieurie ultra poussé qui peut faire disparaitre la charge d'une ai quand elle n'est plus utile et recharger une autre en instantané direcr en fait je pense au sens de faire tourner une ai uniquement lorsqu'elle est nécessaire et pas le tout en meme temps et une ai occupe de l'espace uniquement loesque active
+\end{quote}
+
+L'image des « chunks » de Minecraft est exacte et donne son nom au projet. Dans ce jeu, le monde est découpé en tronçons de $16 \times 16$ colonnes ; seuls ceux qui entourent le joueur sont chargés en mémoire, les autres dorment sur le disque, et le moteur charge et décharge en continu à mesure que le joueur avance. Un modèle de langue est un monde de poids que le calcul parcourt couche après couche, jeton après jeton : \emph{troncons} veut charger, autour du point où le calcul se trouve, le tronçon de poids qui lui sert, et rien d'autre.
+
+\section{D'où l'on part}\label{sec:depart}
+
+\paragraph{La machine.} Un portable ordinaire : un processeur Intel i7-13620H, \textbf{16\,Go de RAM sur un seul module}, une carte NVIDIA RTX~4060 Laptop de \textbf{8\,Go}, un disque NVMe de 1\,To dont 404\,Go libres, chiffré par BitLocker. Après le système, l'écran et le contexte, il reste environ 6,5\,Go de VRAM et 11\,Go de RAM pour des poids, soit 17,5\,Go au total. Le \cref{ch:machine} en mesure chaque étage.
+
+\paragraph{Les modèles.} Les modèles ouverts de 2025--2026 qui comptent sont des mélanges d'experts de 20 milliards à 2,8 billions de paramètres (\cref{ch:modeles}). Le premier visé, gpt-oss-120b, pèse 63,4\,Go dans son format d'origine : \textbf{3,6 fois} toute la mémoire utile de la machine. D'autres pèsent cinq à vingt fois plus.
+
+\paragraph{Ce qui existe.} Les moteurs qui font tourner un modèle plus gros que la mémoire (\cref{ch:etat}) savent déplacer des poids, mais ils raisonnent sur des débits de fiche technique, sur des stations de travail à 128 ou 192\,Go de RAM, sur des formats décodés par CUDA, et presque tous sous Linux. Aucun n'est fait pour un portable Windows de 16\,Go dont le disque chiffré livre moins de la moitié de son débit annoncé.
+
+\section{Ce que veut dire « sans RAM ni rien »}\label{sec:lecture}
+
+Au pied de la lettre, la demande est impossible : tout calcul lit ses opérandes dans une mémoire, et une multiplication de matrices exige que la matrice soit, au moins par morceaux, dans les registres de l'unité qui calcule. La lecture retenue, à confirmer par Stone et jamais à lui substituer, est la suivante.
+
+\begin{definition}[Exécution à fenêtre bornée]\label{def:fenetre}
+Une exécution d'un modèle de $P$ octets de poids est \emph{à fenêtre bornée} si sa mémoire de pointe (RAM et VRAM) est majorée par une constante $M_{\text{fenêtre}}$ qui ne dépend pas de $P$, mais seulement de la taille du plus grand tronçon de poids dont un calcul a besoin à la fois et de la profondeur de préchargement.
+\end{definition}
+
+Sous cette lecture, « sans RAM » veut dire que \textbf{la mémoire occupée ne dépend plus de la taille du modèle}. La difficulté change alors de nature : elle n'est plus de faire tenir le modèle, mais de faire passer, à chaque jeton, les octets dont il a besoin par le plus lent des étages qui le séparent des unités de calcul. Le juge est la physique, chiffrée au \cref{thm:toit} :
+\[
+\text{jetons/s} \;\le\; \min_i \frac{W_i}{O_i},
+\]
+où $W_i$ est le débit mesuré de l'étage $i$ et $O_i$ le nombre d'octets qu'un jeton doit lui faire traverser. Les quatre leviers de ce mémoire agissent chacun sur un terme de cette inégalité : compresser à l'extrême réduit $O_i$ (\cref{ch:quant}), et le codage sans perte le réduit encore d'un taux $r$ en amont du décodeur (\cref{ch:entropie}) ; décompresser sur la carte change l'étage où passent les octets compressés (\cref{sec:toit}) ; un cache qui réussit garde les octets dans un étage plus rapide (\cref{ch:chargement}) ; le décodage spéculatif rend plusieurs jetons par lecture (\cref{ch:sparsite}).
+
+\section{La question de recherche}
+
+\begin{center}
+\begin{tcolorbox}[enhanced, width=0.92\linewidth, colback=Fond, colframe=Accent, boxrule=0.6pt, arc=1pt]
+\emph{Sur une machine grand public dont la mémoire est plusieurs fois plus petite que le modèle, quel assemblage de représentation des poids, de placement, de chargement et de calcul maximise les jetons par seconde à qualité mesurée, et que manque-t-il au monde pour l'atteindre ?}
+\end{tcolorbox}
+\end{center}
+
+« Je ne veux pas que des recherches déjà existantes » : l'état de l'art se lit à fond, mais le livrable est une contribution, un assemblage ou un mécanisme qui n'existe pas encore, prouvé par la mesure, et un programme qui marche. Cette première partie pose les fondations ; l'architecture, l'implémentation et les résultats viendront dans les chapitres annoncés au \cref{ch:avenir}.
+
+\section{Ce que cette première partie apporte}\label{sec:contributions}
+
+\begin{enumerate}
+\item \textbf{Un toit mesuré, et démontré.} Chaque étage de la machine est mesuré avec un témoin qui peut tomber (\cref{ch:machine}) : le disque livre 2,82\,Go/s, 47\,\% de son annonce, parce que le volume est chiffré et passe par Intel RST VMD ; le lien hôte-carte 12,2\,Go/s ; la VRAM 251,3\,Go/s. On démontre la borne de débit d'une chaîne d'étages, son régime permanent par un lemme d'atelier à tâches identiques, et deux corollaires qui tranchent l'architecture : au-delà d'un facteur de compression $r^\star = 4{,}33$, compresser est perdu si le processeur décompresse, et ne l'est jamais si la carte décompresse.
+\item \textbf{Le régime batterie.} Sur batterie, la machine est une autre machine : limite de puissance de la carte abaissée de 80 à 52,6\,W, mémoire de la carte à 6\,GHz au lieu de 8, et tout ce qui passe par le processeur divisé par 4 à 6. Aucun banc d'inférence publié ne note la source d'alimentation.
+\item \textbf{Le premier décodeur de treillis portable.} Un treillis à décalage, la famille de codes la plus proche de la borne de Shannon à 2 bits, décodé dans un shader Vulkan à 124\,Go/s équivalents, aussi vite que le scalaire 4 bits en lisant deux fois moins d'octets (\cref{ch:quant}).
+\item \textbf{Une règle de partage des bits selon l'étage}, démontrée par le lagrangien, puis corrigée par les débits mesurés : une matrice résidente en VRAM mérite 2,18 bits de plus qu'une matrice lue par le lien, 3,24 de plus qu'une matrice lue du disque.
+\item \textbf{La mesure, à octets égaux, de l'échelle de llama.cpp sur Qwen3.5} : avec le meilleur 2 bits portable, rapetisser vaut mieux que comprimer jusqu'à environ 3,2 bits par poids.
+\item \textbf{Les échelles du MXFP4, codées par la médiane de leur ligne} : un codage sans perte par champs, décodé exactement, qui rend un taux de 1,1026 sur les 60,9\,Go d'experts de gpt-oss-120b là où zstd prend 1,04 ; un décodeur rANS entrelacé, démontré exact, à 70\,Go/s sous Vulkan et 82 sous CUDA ; la mesure que décoder dans le produit est 3,7 fois plus lent, d'où la règle de décoder à l'arrivée du tronçon ; et le calcul exact qui explique les 3,86 bits des codes de 4 bits et réfute, pour les formats par petits groupes, les entropies de « 0,6 à 1 bit » publiées (\cref{ch:entropie}).
+\item \textbf{Le succès de cache impliqué par une mesure publiée}, qui lit la localité dans une mesure qui ne la publie pas (\cref{ch:chargement}).
+\item \textbf{Le théorème d'amortissement de la spéculation} et la condition exacte sous laquelle elle paie pour un mélange d'experts lu du disque, qu'un routage indépendant ne satisfait jamais ; et la mesure que sparsité des activations et spéculation ne se composent pas sur un modèle SwiGLU (\cref{ch:sparsite}).
+\item \textbf{Un inventaire de 49 modèles lus dans leurs en-têtes} et un protocole de jugement dont une mesure a déjà corrigé une hypothèse (\cref{ch:modeles}).
+\item \textbf{L'équation du jeton et ses élasticités}, démontrées : sur cette machine, le disque tient le maximum, et tout levier qui ne touche pas les octets lus du disque est de l'ornement ; la condition de la spéculation corrigée par la réutilisation des experts, $\alpha > 1 - \rho$ (\cref{ch:formulation}).
+\item \textbf{Le raffinement exact d'un code 4 bits natif}, qui ne coûte rien en entropie et dont la base bat la troncature de 0,27 bit ; trois architectures candidates, la correction d'un gain annoncé à tort, et la décision de construire d'abord l'architecture exacte (\cref{ch:avenir}).
+\end{enumerate}
+
+\section{La méthode}\label{sec:methode}
+
+Le niveau exigé tient en quelques règles, appliquées à chaque nombre (annexe~\ref{ann:protocoles}) :
+\begin{itemize}
+\item chaque mesure a son \textbf{témoin}, un cas dont la réponse est connue d'avance, et tout témoin neuf doit pouvoir échouer : on force sa condition à faux, on vérifie que l'instrument tombe, on restaure ;
+\item un \textbf{seuil} ne se pose pas au jugé : il dérive d'une grandeur nommée et se déclare avant la mesure ;
+\item un coût ne se fonde jamais sur une seule passe : \textbf{séries ABBA}, avec l'écart d'un programme à lui-même comme bruit de référence ;
+\item tout chiffre dont on dépend est refait par un \textbf{second chemin} indépendant ;
+\item quand une mesure contredit un chiffre publié, même le nôtre, \textbf{la phrase est barrée} et l'on dit ce qui a changé : jamais de retrait silencieux ; ce mémoire en garde plusieurs, \barre{comme celle-ci}, à leur place ;
+\item chaque nombre porte sa provenance : \mes{} mesuré ici, \calc{} calculé, \litt{} littérature non reproduite ;
+\item ce qui produit un chiffre publié est commité, outils et journaux, et chaque figure se régénère depuis ses données par un script commité (annexe~\ref{ann:journaux}).
+\end{itemize}
+
+Chaque chapitre s'ouvre sur ce qui était acquis au départ, ce qu'il établit et ce qui reste, et se ferme sur ce qui pourrait être faux.
+
+\section{Plan du mémoire}
+
+La première partie pose le problème : l'état de l'art (\cref{ch:etat}), la machine et sa physique (\cref{ch:machine}), la formulation du problème en équations (\cref{ch:formulation}). La deuxième mesure les leviers un par un : la quantification extrême (\cref{ch:quant}), la compression sans perte à la vitesse du calcul (\cref{ch:entropie}), le chargement à la demande (\cref{ch:chargement}), la sparsité et le décodage spéculatif (\cref{ch:sparsite}), les modèles visés (\cref{ch:modeles}). La troisième prépare le système : ce qui vient (\cref{ch:avenir}), la discussion et les limites (\cref{ch:discussion}), les travaux futurs (\cref{ch:futurs}). Les annexes donnent les protocoles de mesure, les outils et les journaux.

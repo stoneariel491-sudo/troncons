@@ -1,0 +1,148 @@
+{
+  "alimentation": {
+    "ACLineStatus": 1,
+    "BatteryFlag": 1,
+    "BatteryLifePercent": 80,
+    "secteur": true
+  },
+  "base": "~/dev/essais/troncons/genome/juge/base-juge-20b.kld",
+  "commande": "evaluer --flux --modele ~/dev/modeles/trc/gpt-oss-20b-v12.trc --base ~/dev/essais/troncons/genome/juge/base-juge-20b.kld --fenetres 10 --sortie ~/dev/essais/troncons/genome/juge/moteur-20b-v12-bis.kld --empreintes ~/dev/active/troncons/outils/genome/construction/juge/../../../../mesures/genome/construction/juge/logits/evaluer-20b-v12-bis.csv --journal ~/dev/active/troncons/outils/genome/construction/juge/../../../../mesures/genome/construction/juge/logits/evaluer-20b-v12-bis.json",
+  "compteurs": {
+    "acces": 6723,
+    "defauts_disque": 6723,
+    "emplacements": 362,
+    "evictions": 6361,
+    "experts_decodes": 6723,
+    "experts_verifies": 0,
+    "flux_conflits_evites": 0,
+    "garde_attente_s": 0.09049719999999999,
+    "garde_lignes": 5120,
+    "garde_octets": 78065721680,
+    "garde_octets_ouverture": 615333888,
+    "garde_troncons": 6723,
+    "h_vram": 0.0,
+    "lectures_enchassement": 5120,
+    "lectures_troncons": 6723,
+    "ms_copie_carte": 0.0,
+    "ms_decodage_carte": 0.0,
+    "octets_copies_cache": 78079320064,
+    "octets_disque_cache": 78079320064,
+    "octets_dma": 78079320064,
+    "octets_lus": 80038948864,
+    "octets_lus_enchassement": 41943040,
+    "octets_lus_troncons": 78079320064,
+    "pas": 0,
+    "pf_emis": 0,
+    "pf_octets": 0,
+    "pf_utiles": 0,
+    "s_attente_routeur": 0.0,
+    "s_fin_jeton": 0.0,
+    "s_lectures": 0.0,
+    "s_pas": 364.8713424,
+    "succes_ram": 0,
+    "succes_vram": 0,
+    "tiedes": 0
+  },
+  "date_utc": "2026-10-22T08:43:50Z",
+  "disque": {
+    "octets_comptes_moteur": {
+      "dont_chargement_residents": 1302351872,
+      "lecteur": 80038948864,
+      "ouverture_tamponnee": 13224527,
+      "total": 80052173391
+    },
+    "processus": {
+      "lectures": 11976,
+      "octets_ecrits": 1025782973,
+      "octets_lus": 80057247312,
+      "octets_lus_depuis_le_depart": 80061465905
+    }
+  },
+  "empreinte_csv_sha256": "fc427e9ff3bf0e71c5038c44378523bf4f3ff2224514aaf0afde91c2e395469b",
+  "fenetres": 10,
+  "flux": true,
+  "flux_experts": 6723,
+  "flux_positions": 5120,
+  "moteur": {
+    "arrivees": 12,
+    "brut": false,
+    "carte": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "casser_garde": null,
+    "chargement": {
+      "empreintes_verifiees": 314,
+      "lectures": 78,
+      "octets_lus": 1302351872,
+      "octets_tenseurs": 1302341376,
+      "secondes": 1.4334673,
+      "tenseurs": 314
+    },
+    "contexte": 4096,
+    "couches": 24,
+    "couches_d_avance": 3,
+    "emplacements": 362,
+    "enchassement_en_ram": false,
+    "etapes_memoire": [
+      {
+        "ensemble_travail": 5799936,
+        "etape": "avant"
+      },
+      {
+        "ensemble_travail": 19189760,
+        "etape": "fichier"
+      },
+      {
+        "ensemble_travail": 129961984,
+        "etape": "contexte_flux"
+      },
+      {
+        "ensemble_travail": 131137536,
+        "etape": "noyaux"
+      },
+      {
+        "ensemble_travail": 132018176,
+        "etape": "modele"
+      },
+      {
+        "ensemble_travail": 132255744,
+        "etape": "luts"
+      },
+      {
+        "ensemble_travail": 278679552,
+        "etape": "fenetre_et_tampons"
+      },
+      {
+        "ensemble_travail": 278908928,
+        "etape": "emplacements_cache_evenements"
+      }
+    ],
+    "experts": 32,
+    "fichier": "~/dev/modeles/trc/gpt-oss-20b-v12.trc",
+    "garde": true,
+    "k": 4,
+    "kv_f32": false,
+    "longueur_arrivee": 11755520,
+    "longueur_lecture": null,
+    "octets_emplacement": 13254144,
+    "octets_epingles": 141893632,
+    "octets_vram_moteur": 6350913200,
+    "ouverture_s": 2.6403187,
+    "prechargement": false,
+    "profondeur_es": 4,
+    "ram_tiede_go": 0.0,
+    "rapide": false,
+    "temoin": false,
+    "tiedes": 0,
+    "vocab": 201088,
+    "vram_plafond_mio": 7179
+  },
+  "n_ctx": 512,
+  "outil": "troncons evaluer",
+  "pas": 0,
+  "pas_s": 0.0,
+  "positions_notees": 2550,
+  "positions_par_fenetre": 512,
+  "ppl_positions_notees": 394.5931532697567,
+  "secondes": 365.0588055,
+  "sortie": "~/dev/essais/troncons/genome/juge/moteur-20b-v12-bis.kld",
+  "version": "0.1.0"
+}

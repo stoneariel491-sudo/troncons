@@ -1,0 +1,86 @@
+{
+  "a_contre_verite": {
+    "dp_rms": 0.015399104768959072,
+    "kl_incertitude": 0.0017104597386825079,
+    "kl_max": 1.9678565097585616,
+    "kl_mediane": 0.002929223658395661,
+    "kl_min": 0.0001539944627353545,
+    "kl_moyenne": 0.022605733427487767,
+    "kl_p90": 0.04045933622747251,
+    "kl_p99": 0.38228454259156347,
+    "kl_p999": 0.9940761841185524,
+    "ln_rapport_ppl": -0.017049065758199866,
+    "ln_rapport_ppl_incertitude": 0.006054730312503532,
+    "meme_premier": 0.8960784313725491,
+    "meme_premier_incertitude": 0.006044229427875742,
+    "meme_premier_wilson95": [
+      0.8836324311361681,
+      0.9073328784068881
+    ],
+    "n": 2550,
+    "ppl_p": 460.24497527909875,
+    "ppl_q": 452.46473976042927
+  },
+  "apparie": {
+    "kl_difference_b_moins_a": 0.0038640118507830613,
+    "kl_ecart_type": 0.00235921928060446,
+    "premier_difference_b_moins_a": 0.00784313725490196,
+    "premier_ecart_type": 0.005460975235071647
+  },
+  "b_contre_verite": {
+    "dp_rms": 0.014944057961210748,
+    "kl_incertitude": 0.0026703310159856305,
+    "kl_max": 3.971407390186773,
+    "kl_mediane": 0.0027603520238347343,
+    "kl_min": 0.0000676560011407838,
+    "kl_moyenne": 0.026469745278270753,
+    "kl_p90": 0.039396049840276476,
+    "kl_p99": 0.4665100608744457,
+    "kl_p999": 1.424535526024744,
+    "ln_rapport_ppl": -0.01145049263449227,
+    "ln_rapport_ppl_incertitude": 0.006006042776536374,
+    "meme_premier": 0.903921568627451,
+    "meme_premier_incertitude": 0.005837049938128315,
+    "meme_premier_wilson95": [
+      0.89186829870074,
+      0.9147596902392083
+    ],
+    "n": 2550,
+    "ppl_p": 460.24497527909875,
+    "ppl_q": 455.0050009757978
+  },
+  "commande": [
+    "~\\dev\\cibles\\troncons-R\\release\\juge.exe",
+    "comparer",
+    "--verite",
+    "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+    "--a",
+    "~/dev/essais/troncons/lot-R/r0/carte_cmoe.kld",
+    "--b",
+    "~/dev/essais/troncons/lot-R/r0/processeur.kld",
+    "--fils",
+    "4",
+    "--json",
+    "mesures/moteur/R/r2/comparer-ref-carte-processeur-20b.json",
+    "--csv",
+    "mesures/moteur/R/r2/comparer-ref-carte-processeur-20b.csv"
+  ],
+  "duree_s": 10.0863927,
+  "fenetres": 10,
+  "fin_unix": 1792110154,
+  "kl_inverse": {
+    "a": 0.0228314953495921,
+    "b": 0.02545082991809719,
+    "difference": 0.002619334568505082,
+    "ecart_type": 0.0018236016004165325
+  },
+  "outil": "juge comparer",
+  "positions": 2550,
+  "regle": "littéral : KL_B ≤ KL_A et premier_B ≥ premier_A ; statistique : d̄ ≤ 2σ(d̄) et ē ≥ −2σ(ē) (différences appariées, mêmes positions, même vérité)",
+  "verdicts": {
+    "litteral_kl": false,
+    "litteral_premier": true,
+    "statistique_kl": true,
+    "statistique_premier": true
+  }
+}

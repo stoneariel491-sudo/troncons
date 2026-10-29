@@ -1,0 +1,19 @@
+% Sources du Tome II, ajoutées à celles que le préambule commun charge déjà (commun, 01-machine,
+% quantification, 03-entropie, 04-chargement, 05-sparsite, 06-modeles, 07-synthese,
+% decisions-partisan-b, etat-de-l-art : le Tome II cite cover2006, shannon1948, belady1966 de
+% commun.bib et duda2013ans, giesen2014interleaved, ocpmx2023 de 03-entropie.bib).
+%
+% Chaque clé n'est définie qu'une fois dans l'ensemble chargé : biber refuse les doublons
+% (« Duplicate ») et construire.sh tombe. Les doublons trouvés à l'intégration (2026-10-16) ont été
+% retirés du fichier chargé après l'autre, avec une ligne de commentaire à leur place.
+% Deux fichiers ne sont pas chargés, faute de clé qui ne soit ailleurs : moteur-epreuve-J1.bib (sa
+% seule clé citée, wilson1927, est dans moteur-R.bib) et mesures-gpt-oss.bib (belady1966,
+% mattson1970, merity2016wikitext sont dans commun, moteur-O et moteur-R).
+\addbibresource{\Racine/sources/moteur-E.bib}
+\addbibresource{\Racine/sources/moteur-F.bib}
+\addbibresource{\Racine/sources/moteur-K.bib}
+\addbibresource{\Racine/sources/moteur-O.bib}
+\addbibresource{\Racine/sources/moteur-R.bib}
+\addbibresource{\Racine/sources/tome2-architecture-format.bib}
+\addbibresource{\Racine/sources/tome2-reference-cache.bib}
+\addbibresource{\Racine/sources/tome2-resultats.bib}

@@ -1,0 +1,26 @@
+# Journal du traceur de 120b, deux relevés (2026-10-15)
+## Relevé 1 (12:09, arrêté à 15:15 pendant la génération de prose-fr) : sortie console retrouvée dans les fichiers de tâche de la session (les lignes « alimentation », « architecture » et « [genre] N jetons » de ce relevé n y étaient plus)
+[prose-en] lecture : 562.6 s (4.2 jetons/s), désaccords tri/top-k 0 sur 85608, ordre différent 0
+[prose-en] génération : 256 jetons en 542.9 s (0.47 jetons/s), invite 142.6 s ; relecture : 8268/9216 choix (jeton, couche) identiques, 32 jetons entièrement identiques
+[prose-fr] lecture : 632.0 s (4.6 jetons/s), désaccords tri/top-k 0 sur 103932, ordre différent 0
+
+## Relevé 2, reprise (15:16 à 16:46) : dialogue et code en lecture seule, puis l'invite de la base
+alimentation : 2 (2 = secteur) 2026-10-15 15:16:04
+architecture gpt-oss : 36 couches, 128 experts, k = 4
+llama_kv_cache_iswa: using full-size SWA cache (ref: https://github.com/ggml-org/llama.cpp/pull/13194#issuecomment-2868343055)
+impl:      CUDA0 MoE cache size =  4084.61 MiB for 58092.19 MiB of host experts
+impl: 36 layers, mxfp4:   323 slots (7.0%)
+[dialogue] 2862 jetons
+[dialogue] lecture : 1599.5 s (1.8 jetons/s), désaccords tri/top-k 0 sur 103032, ordre différent 0
+[code] 2542 jetons
+[code] lecture : 1314.3 s (1.9 jetons/s), désaccords tri/top-k 0 sur 91512, ordre différent 0
+alimentation : 2 2026-10-15 16:05:35
+architecture gpt-oss : 36 couches, 128 experts, k = 4
+llama_kv_cache_iswa: using full-size SWA cache (ref: https://github.com/ggml-org/llama.cpp/pull/13194#issuecomment-2868343055)
+impl:      CUDA0 MoE cache size =  4084.61 MiB for 58092.19 MiB of host experts
+impl: 36 layers, mxfp4:   323 slots (7.0%)
+[wiki] 708 jetons
+[wiki] lecture : 512.2 s (1.4 jetons/s), désaccords tri/top-k 0 sur 25488, ordre différent 0
+[wiki] génération : 256 jetons en 1147.8 s (0.22 jetons/s), invite 360.7 s ; relecture : 7794/9216 choix (jeton, couche) identiques, 47 jetons entièrement identiques
+llama_moe_cache: ubatch <= 8: hits = 14446, misses = 22418, hit rate = 39.19%, uploaded = 282619.50 MiB
+alimentation : 2 2026-10-15 16:46:26

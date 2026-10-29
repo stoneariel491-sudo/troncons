@@ -1,0 +1,81 @@
+% Sources de l'étude 07 (synthèse : l'équation du jeton, la carte de l'existant, les architectures).
+% Toutes consultées le 2026-10-15, métadonnées relues par l'API d'arXiv. Les sources des études 01
+% à 06 sont dans leurs propres fichiers ; ces entrées ne portent que ce que l'étude 07 ajoute.
+
+@online{choi2025slicemoe,
+  author       = {Choi, Yuseon and Kim, Sangjin and Oh, Jungjun and Park, Gwangtae and Kim, Byeongcheol and Yoo, Hoi-Jun},
+  title        = {{SliceMoE}: Bit-Sliced Expert Caching under Miss-Rate Constraints for Efficient {MoE} Inference},
+  eprint       = {2512.12990},
+  eprinttype   = {arXiv},
+  date         = {2025-12-15},
+  note         = {v5 du 2026-09-08. Résumé seul lu : cache d'experts par tranches de bits, troncature compatible (AMAT), DeepSeek-V2-Lite et Qwen1.5-MoE ; latence ×1,64 à ×1,81 (éditeur, non reproduit).},
+  urldate      = {2026-10-15}
+}
+
+@online{xie2025trace,
+  author       = {Xie, Rui and Ul Haq, Asad and Fang, Yunhua and Ma, Linsen and Engineer, Zirak Burzin and Liu, Liu and Zhang, Tong},
+  title        = {{TRACE}: Unlocking Effective {CXL} Bandwidth via Lossless Compression and Precision Scaling},
+  eprint       = {2509.03377},
+  eprinttype   = {arXiv},
+  date         = {2025-09-03},
+  note         = {v3 du 2026-01-30. Résumé seul lu : plans de bits par canal codés sans perte, lecture proportionnelle à la précision, dans un contrôleur CXL matériel ; BF16 réduit de 25,2 \% sans perte (éditeur, non reproduit).},
+  urldate      = {2026-10-15}
+}
+
+@online{babaoglu2026dropbydrop,
+  author       = {Babaoglu, Liza and Chen, Shuangyi and Khisti, Ashish},
+  title        = {Multi-Bitwidth Quantization for {LLMs} Using Additive Codebooks},
+  eprint       = {2606.12876},
+  eprinttype   = {arXiv},
+  date         = {2026-06-11},
+  note         = {v2 du 2026-09-26. Résumé seul lu : la source gaussienne est raffinable sans pénalité de débit sous une erreur quadratique pondérée ; un seul modèle sert plusieurs largeurs de bits.},
+  urldate      = {2026-10-15}
+}
+
+@online{kleinegger2026matgptq,
+  author       = {Kleinegger, Maximilian and Crnčević, Elvir and Alistarh, Dan},
+  title        = {{MatGPTQ}: Efficient and Accurate Inference over Nested Quantized Models},
+  eprint       = {2602.03537},
+  eprinttype   = {arXiv},
+  date         = {2026-02-03},
+  note         = {v2 du 2026-09-30. Résumé seul lu ; code annoncé IST-DASLab/MatGPTQ, licence non vérifiée.},
+  urldate      = {2026-10-15}
+}
+
+@online{park2025anybcq,
+  author       = {Park, Gunho and Bae, Jeongin and Kwon, Beomseok and Kim, Byeongwook and Kwon, Se Jung and Lee, Dongsoo},
+  title        = {{AnyBCQ}: Hardware Efficient Flexible Binary-Coded Quantization for Multi-Precision {LLMs}},
+  eprint       = {2510.10467},
+  eprinttype   = {arXiv},
+  date         = {2025-10-12},
+  note         = {v2 du 2026-02-02. Résumé seul lu.},
+  urldate      = {2026-10-15}
+}
+
+@article{equitz1991successive,
+  author       = {Equitz, William H. R. and Cover, Thomas M.},
+  title        = {Successive Refinement of Information},
+  journaltitle = {IEEE Transactions on Information Theory},
+  volume       = {37},
+  number       = {2},
+  pages        = {269--275},
+  date         = {1991}
+}
+
+@online{hf2026llama33gguf,
+  author       = {{bartowski}},
+  title        = {{Llama-3.3-70B-Instruct-GGUF}},
+  url          = {https://huggingface.co/bartowski/Llama-3.3-70B-Instruct-GGUF},
+  date         = {2024-12-07},
+  urldate      = {2026-10-15},
+  note         = {Révision b6c5c9f ; tailles exactes par l'API (IQ3\_XXS : 27\,469\,499\,360 octets). Licence Llama 3.3 Community.}
+}
+
+@online{hf2026llama32gguf,
+  author       = {{bartowski}},
+  title        = {{Llama-3.2-1B-Instruct-GGUF}},
+  url          = {https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF},
+  date         = {2024-10-08},
+  urldate      = {2026-10-15},
+  note         = {Révision 067b946 ; Q4\_K\_M : 807\,694\,464 octets. Licence Llama 3.2 Community.}
+}

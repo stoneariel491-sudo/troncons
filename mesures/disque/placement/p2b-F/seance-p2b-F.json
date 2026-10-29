@@ -1,0 +1,917 @@
+{
+ "seance": "p2b-F",
+ "debut": "2026-10-22 07:11:34",
+ "passes": [
+  {
+   "nom": "p2b-F-01-copier-F20",
+   "commande": [
+    "~/AppData/Local/Programs/Python/Python313/python.exe",
+    "-I",
+    "-X",
+    "utf8",
+    "~/dev/active/troncons/outils/disque/placement/placer.py",
+    "copier",
+    "~/dev/modeles/trc/gpt-oss-20b.trc",
+    "~/dev/essais/troncons/placement/F20.trc",
+    "--mode",
+    "filet",
+    "--journal",
+    "~/dev/active/troncons/mesures/disque/placement/p2b-F/p2b-F-01-copier-F20.json"
+   ],
+   "code": 0,
+   "secondes": 372.1739492416382,
+   "alimentation": "2",
+   "autres_avant": [],
+   "autres_apres": [],
+   "sous_charge": false,
+   "smart_avant": {
+    "t": 1792667696.6458538,
+    "temperature_c": 50,
+    "unites_lues": 422998869,
+    "unites_ecrites": 136923489,
+    "lectures_hote": 3836816526,
+    "ecritures_hote": 1780290623,
+    "tmt1_n": 375,
+    "tmt2_n": 14,
+    "tmt1_s": 11057,
+    "tmt2_s": 89,
+    "capteurs_c": [
+     53
+    ],
+    "pct_usure": 6,
+    "reserve_pct": 100
+   },
+   "smart_apres": {
+    "t": 1792668068.8213584,
+    "temperature_c": 62,
+    "unites_lues": 423021972,
+    "unites_ecrites": 136946768,
+    "lectures_hote": 3836948088,
+    "ecritures_hote": 1780409702,
+    "tmt1_n": 375,
+    "tmt2_n": 14,
+    "tmt1_s": 11057,
+    "tmt2_s": 89,
+    "capteurs_c": [
+     68
+    ],
+    "pct_usure": 6,
+    "reserve_pct": 100
+   },
+   "smart_ecart": {
+    "octets_lus_disque": 11828736000,
+    "octets_ecrits_disque": 11918848000,
+    "temp_avant": 50,
+    "temp_apres": 62,
+    "tmt_transitions": 0,
+    "tmt_secondes": 0
+   },
+   "derniere_ligne": "placer.py copier filet : 11.157 Go en 371.9 s (30 Mo/s), 95 extents, LCN moyen 0.497"
+  },
+  {
+   "nom": "p2b-F-02-lire-disque-F20",
+   "commande": [
+    "~/AppData/Local/Programs/Python/Python313/python.exe",
+    "-I",
+    "-X",
+    "utf8",
+    "~/dev/active/troncons/outils/disque/placement/lire.py",
+    "~/dev/essais/troncons/placement/F20.trc",
+    "--plan",
+    "disque",
+    "--sortie",
+    "~/dev/active/troncons/mesures/disque/placement/p2b-F/p2b-F-02-lire-disque-F20"
+   ],
+   "code": 0,
+   "secondes": 6.868102073669434,
+   "alimentation": "2",
+   "autres_avant": [],
+   "autres_apres": [],
+   "sous_charge": false,
+   "smart_avant": {
+    "t": 1792668078.1334507,
+    "temperature_c": 61,
+    "unites_lues": 423022151,
+    "unites_ecrites": 136946997,
+    "lectures_hote": 3836949682,
+    "ecritures_hote": 1780412503,
+    "tmt1_n": 375,
+    "tmt2_n": 14,
+    "tmt1_s": 11057,
+    "tmt2_s": 89,
+    "capteurs_c": [
+     65
+    ],
+    "pct_usure": 6,
+    "reserve_pct": 100
+   },
+   "smart_apres": {
+    "t": 1792668085.0031703,
+    "temperature_c": 63,
+    "unites_lues": 423040177,
+    "unites_ecrites": 136947453,
+    "lectures_hote": 3837024679,
+    "ecritures_hote": 1780414391,
+    "tmt1_n": 375,
+    "tmt2_n": 14,
+    "tmt1_s": 11057,
+    "tmt2_s": 89,
+    "capteurs_c": [
+     70
+    ],
+    "pct_usure": 6,
+    "reserve_pct": 100
+   },
+   "smart_ecart": {
+    "octets_lus_disque": 9229312000,
+    "octets_ecrits_disque": 233472000,
+    "temp_avant": 61,
+    "temp_apres": 63,
+    "tmt_transitions": 0,
+    "tmt_secondes": 0
+   },
+   "derniere_ligne": "lire.py : F20.trc disque qd 4 : 768 lectures, 9.226 Go en 4.22 s : 2.187 Go/s ; médiane 21.5 ms ; disque lu 9.227 Go ; écrit 233 Mo ; 61→63 °C"
+  },
+  {
+   "nom": "p2b-F-03-empreinte-F20",
+   "commande": [
+    "~/AppData/Local/Programs/Python/Python313/python.exe",
+    "-I",
+    "-X",
+    "utf8",
+    "~/dev/active/troncons/outils/disque/placement/placer.py",
+    "empreinte",
+    "~/dev/essais/troncons/placement/F20.trc",
+    "--attendu",
+    "e8bd6ae13288344d0ab29b70dd311e0045769624651b56e943ca39a878c7169f",
+    "--journal",
+    "~/dev/active/troncons/mesures/disque/placement/p2b-F/p2b-F-03-empreinte-F20.json"
+   ],
+   "code": 0,
+   "secondes": 20.771076440811157,
+   "alimentation": "2",
+   "autres_avant": [],
+   "autres_apres": [],
+   "sous_charge": false,
+   "smart_avant": {
+    "t": 1792668093.8822415,
+    "temperature_c": 62,
+    "unites_lues": 423040179,
+    "unites_ecrites": 136947455,
+    "lectures_hote": 3837024808,
+    "ecritures_hote": 1780414496,
+    "tmt1_n": 375,
+    "tmt2_n": 14,
+    "tmt1_s": 11057,
+    "tmt2_s": 89,
+    "capteurs_c": [
+     65
+    ],
+    "pct_usure": 6,
+    "reserve_pct": 100
+   },
+   "smart_apres": {
+    "t": 1792668114.659696,
+    "temperature_c": 60,
+    "unites_lues": 423061972,
+    "unites_ecrites": 136947458,
+    "lectures_hote": 3837112727,
+    "ecritures_hote": 1780414607,
+    "tmt1_n": 375,
+    "tmt2_n": 14,
+    "tmt1_s": 11057,
+    "tmt2_s": 89,
+    "capteurs_c": [
+     69
+    ],
+    "pct_usure": 6,
+    "reserve_pct": 100
+   },
+   "smart_ecart": {
+    "octets_lus_disque": 11158016000,
+    "octets_ecrits_disque": 1536000,
+    "temp_avant": 62,
+    "temp_apres": 60,
+    "tmt_transitions": 0,
+    "tmt_secondes": 0
+   },
+   "derniere_ligne": "SHA-256 e8bd6ae13288344d0ab29b70dd311e0045769624651b56e943ca39a878c7169f ~/dev/essais/troncons/placement/F20.trc (0.54 Go/s) : ÉGALE à l’attendue"
+  },
+  {
+   "nom": "p2b-F-04-carte-F20",
+   "commande": [
+    "~/AppData/Local/Programs/Python/Python313/python.exe",
+    "-I",
+    "-X",
+    "utf8",
+    "~/dev/active/troncons/outils/disque/placement/carte.py",
+    "projeter",
+    "~/dev/essais/troncons/placement/F20.trc",
+    "--json",
+    "~/dev/active/troncons/mesures/disque/placement/p2b-F/carte-F20.json"
+   ],
+   "code": 0,
+   "secondes": 0.20440435409545898,
+   "alimentation": "2",
+   "autres_avant": [],
+   "autres_apres": [],
+   "sous_charge": false,
+   "smart_avant": {
+    "t": 1792668123.4626918,
+    "temperature_c": 60,
+    "unites_lues": 423061973,
+    "unites_ecrites": 136947459,
+    "lectures_hote": 3837112742,
+    "ecritures_hote": 1780414676,
+    "tmt1_n": 375,
+    "tmt2_n": 14,
+    "tmt1_s": 11057,
+    "tmt2_s": 89,
+    "capteurs_c": [
+     67
+    ],
+    "pct_usure": 6,
+    "reserve_pct": 100
+   },
+   "smart_apres": {
+    "t": 1792668123.6687326,
+    "temperature_c": 60,
+    "unites_lues": 423061974,
+    "unites_ecrites": 136947460,
+    "lectures_hote": 3837112750,
+    "ecritures_hote": 1780414680,
+    "tmt1_n": 375,
+    "tmt2_n": 14,
+    "tmt1_s": 11057,
+    "tmt2_s": 89,
+    "capteurs_c": [
+     67
+    ],
+    "pct_usure": 6,
+    "reserve_pct": 100
+   },
+   "smart_ecart": {
+    "octets_lus_disque": 512000,
+    "octets_ecrits_disque": 512000,
+    "temp_avant": 60,
+    "temp_apres": 60,
+    "tmt_transitions": 0,
+    "tmt_secondes": 0
+   },
+   "derniere_ligne": "{\"fichier\": \"~/dev/essais/troncons/placement/F20.trc\", \"taille\": 11157405696, \"grappe\": 4096, \"grappes_volume\": 242283857, \"extents\": 95, \"grappes\": 2723976, \"couverture_ok\": true, \"extent_median_o\": 127827968, \"extent_min_o\": 8388608, \"extent_max_o\": 166281216, \"lcn_min_frac\": 0.015402577976955352, \"lcn_max_frac\": 0.983429102335943, \"lcn_moyen_frac\": 0.4973908771791728, \"creation\": 1792667696.8636303, \"ecriture\": 1792668068.7612054, \"troncons\": 768, \"lectures_coupees\": 73, \"morceaux_total\": 841, \"morceaux_par_lecture_max\": 2, \"octets_lus_par_lecture_moyen\": 12013664.0, \"phase_disque\": {\"graine\": 20261017, \"n\": 768, \"lectures_coupees\": 73, \"morceaux\": 841, \"octets\": 9226493952, \"saut_lcn_abs_median\": 44566862, \"sauts_negatifs\": 380}}"
+  },
+  {
+   "nom": "p2b-F-05-disque-A20",
+   "commande": [
+    "~/dev/cibles/troncons-codon/release/troncons.exe",
+    "disque",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-20b.trc",
+    "--n",
+    "1500",
+    "--graine",
+    "20261017",
+    "--repos",
+    "5",
+    "--journal",
+    "~/dev/active/troncons/mesures/disque/placement/p2b-F/p2b-F-05-disque-A20.json"
+   ],
+   "code": 0,
+   "secondes": 11.802835464477539,
+   "alimentation": "2",
+   "autres_avant": [],
+   "autres_apres": [],
+   "sous_charge": false,
+   "smart_avant": {
+    "t": 1792668132.7012675,
+    "temperature_c": 60,
+    "unites_lues": 423061974,
+    "unites_ecrites": 136947461,
+    "lectures_hote": 3837112773,
+    "ecritures_hote": 1780414742,
+    "tmt1_n": 375,
+    "tmt2_n": 14,
+    "tmt1_s": 11057,
+    "tmt2_s": 89,
+    "capteurs_c": [
+     63
+    ],
+    "pct_usure": 6,
+    "reserve_pct": 100
+   },
+   "smart_apres": {
+    "t": 1792668144.5058725,
+    "temperature_c": 60,
+    "unites_lues": 423080111,
+    "unites_ecrites": 136947463,
+    "lectures_hote": 3837189935,
+    "ecritures_hote": 1780414841,
+    "tmt1_n": 375,
+    "tmt2_n": 14,
+    "tmt1_s": 11057,
+    "tmt2_s": 89,
+    "capteurs_c": [
+     67
+    ],
+    "pct_usure": 6,
+    "reserve_pct": 100
+   },
+   "smart_ecart": {
+    "octets_lus_disque": 9286144000,
+    "octets_ecrits_disque": 1024000,
+    "temp_avant": 60,
+    "temp_apres": 60,
+    "tmt_transitions": 0,
+    "tmt_secondes": 0
+   },
+   "derniere_ligne": "troncons disque : 768 tronçons, 9.226 Go en 5.25 s : 1.758 Go/s"
+  },
+  {
+   "nom": "p2b-F-06-disque-F20",
+   "commande": [
+    "~/dev/cibles/troncons-codon/release/troncons.exe",
+    "disque",
+    "--modele",
+    "~/dev/essais/troncons/placement/F20.trc",
+    "--n",
+    "1500",
+    "--graine",
+    "20261017",
+    "--repos",
+    "5",
+    "--journal",
+    "~/dev/active/troncons/mesures/disque/placement/p2b-F/p2b-F-06-disque-F20.json"
+   ],
+   "code": 0,
+   "secondes": 10.174440622329712,
+   "alimentation": "2",
+   "autres_avant": [],
+   "autres_apres": [],
+   "sous_charge": false,
+   "smart_avant": {
+    "t": 1792668153.4932282,
+    "temperature_c": 58,
+    "unites_lues": 423080135,
+    "unites_ecrites": 136947465,
+    "lectures_hote": 3837190242,
+    "ecritures_hote": 1780414898,
+    "tmt1_n": 375,
+    "tmt2_n": 14,
+    "tmt1_s": 11057,
+    "tmt2_s": 89,
+    "capteurs_c": [
+     60
+    ],
+    "pct_usure": 6,
+    "reserve_pct": 100
+   },
+   "smart_apres": {
+    "t": 1792668163.6692007,
+    "temperature_c": 58,
+    "unites_lues": 423098225,
+    "unites_ecrites": 136947466,
+    "lectures_hote": 3837265550,
+    "ecritures_hote": 1780414946,
+    "tmt1_n": 375,
+    "tmt2_n": 14,
+    "tmt1_s": 11057,
+    "tmt2_s": 89,
+    "capteurs_c": [
+     65
+    ],
+    "pct_usure": 6,
+    "reserve_pct": 100
+   },
+   "smart_ecart": {
+    "octets_lus_disque": 9262080000,
+    "octets_ecrits_disque": 512000,
+    "temp_avant": 58,
+    "temp_apres": 58,
+    "tmt_transitions": 0,
+    "tmt_secondes": 0
+   },
+   "derniere_ligne": "troncons disque : 768 tronçons, 9.226 Go en 4.20 s : 2.195 Go/s"
+  },
+  {
+   "nom": "p2b-F-07-disque-B20",
+   "commande": [
+    "~/dev/cibles/troncons-codon/release/troncons.exe",
+    "disque",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-20b-v12.trc",
+    "--n",
+    "1500",
+    "--graine",
+    "20261017",
+    "--repos",
+    "5",
+    "--journal",
+    "~/dev/active/troncons/mesures/disque/placement/p2b-F/p2b-F-07-disque-B20.json"
+   ],
+   "code": 0,
+   "secondes": 9.632837057113647,
+   "alimentation": "2",
+   "autres_avant": [],
+   "autres_apres": [],
+   "sous_charge": false,
+   "smart_avant": {
+    "t": 1792668172.60111,
+    "temperature_c": 57,
+    "unites_lues": 423098226,
+    "unites_ecrites": 136947467,
+    "lectures_hote": 3837265578,
+    "ecritures_hote": 1780415003,
+    "tmt1_n": 375,
+    "tmt2_n": 14,
+    "tmt1_s": 11057,
+    "tmt2_s": 89,
+    "capteurs_c": [
+     59
+    ],
+    "pct_usure": 6,
+    "reserve_pct": 100
+   },
+   "smart_apres": {
+    "t": 1792668182.2354727,
+    "temperature_c": 58,
+    "unites_lues": 423115727,
+    "unites_ecrites": 136947495,
+    "lectures_hote": 3837336053,
+    "ecritures_hote": 1780415196,
+    "tmt1_n": 375,
+    "tmt2_n": 14,
+    "tmt1_s": 11057,
+    "tmt2_s": 89,
+    "capteurs_c": [
+     64
+    ],
+    "pct_usure": 6,
+    "reserve_pct": 100
+   },
+   "smart_ecart": {
+    "octets_lus_disque": 8960512000,
+    "octets_ecrits_disque": 14336000,
+    "temp_avant": 57,
+    "temp_apres": 58,
+    "tmt_transitions": 0,
+    "tmt_secondes": 0
+   },
+   "derniere_ligne": "troncons disque : 768 tronçons, 8.921 Go en 3.65 s : 2.442 Go/s"
+  },
+  {
+   "nom": "p2b-F-08-disque-B20",
+   "commande": [
+    "~/dev/cibles/troncons-codon/release/troncons.exe",
+    "disque",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-20b-v12.trc",
+    "--n",
+    "1500",
+    "--graine",
+    "20261017",
+    "--repos",
+    "5",
+    "--journal",
+    "~/dev/active/troncons/mesures/disque/placement/p2b-F/p2b-F-08-disque-B20.json"
+   ],
+   "code": 0,
+   "secondes": 9.680567026138306,
+   "alimentation": "2",
+   "autres_avant": [],
+   "autres_apres": [],
+   "sous_charge": false,
+   "smart_avant": {
+    "t": 1792668191.2984107,
+    "temperature_c": 56,
+    "unites_lues": 423115729,
+    "unites_ecrites": 136947505,
+    "lectures_hote": 3837336108,
+    "ecritures_hote": 1780415314,
+    "tmt1_n": 375,
+    "tmt2_n": 14,
+    "tmt1_s": 11057,
+    "tmt2_s": 89,
+    "capteurs_c": [
+     57
+    ],
+    "pct_usure": 6,
+    "reserve_pct": 100
+   },
+   "smart_apres": {
+    "t": 1792668200.9815905,
+    "temperature_c": 57,
+    "unites_lues": 423133195,
+    "unites_ecrites": 136947506,
+    "lectures_hote": 3837406191,
+    "ecritures_hote": 1780415343,
+    "tmt1_n": 375,
+    "tmt2_n": 14,
+    "tmt1_s": 11057,
+    "tmt2_s": 89,
+    "capteurs_c": [
+     62
+    ],
+    "pct_usure": 6,
+    "reserve_pct": 100
+   },
+   "smart_ecart": {
+    "octets_lus_disque": 8942592000,
+    "octets_ecrits_disque": 512000,
+    "temp_avant": 56,
+    "temp_apres": 57,
+    "tmt_transitions": 0,
+    "tmt_secondes": 0
+   },
+   "derniere_ligne": "troncons disque : 768 tronçons, 8.921 Go en 3.63 s : 2.459 Go/s"
+  },
+  {
+   "nom": "p2b-F-09-disque-F20",
+   "commande": [
+    "~/dev/cibles/troncons-codon/release/troncons.exe",
+    "disque",
+    "--modele",
+    "~/dev/essais/troncons/placement/F20.trc",
+    "--n",
+    "1500",
+    "--graine",
+    "20261017",
+    "--repos",
+    "5",
+    "--journal",
+    "~/dev/active/troncons/mesures/disque/placement/p2b-F/p2b-F-09-disque-F20.json"
+   ],
+   "code": 0,
+   "secondes": 10.150429010391235,
+   "alimentation": "2",
+   "autres_avant": [],
+   "autres_apres": [],
+   "sous_charge": false,
+   "smart_avant": {
+    "t": 1792668209.8967881,
+    "temperature_c": 56,
+    "unites_lues": 423133197,
+    "unites_ecrites": 136947509,
+    "lectures_hote": 3837406232,
+    "ecritures_hote": 1780415562,
+    "tmt1_n": 375,
+    "tmt2_n": 14,
+    "tmt1_s": 11057,
+    "tmt2_s": 89,
+    "capteurs_c": [
+     56
+    ],
+    "pct_usure": 6,
+    "reserve_pct": 100
+   },
+   "smart_apres": {
+    "t": 1792668220.0497742,
+    "temperature_c": 56,
+    "unites_lues": 423151260,
+    "unites_ecrites": 136947510,
+    "lectures_hote": 3837481266,
+    "ecritures_hote": 1780415593,
+    "tmt1_n": 375,
+    "tmt2_n": 14,
+    "tmt1_s": 11057,
+    "tmt2_s": 89,
+    "capteurs_c": [
+     62
+    ],
+    "pct_usure": 6,
+    "reserve_pct": 100
+   },
+   "smart_ecart": {
+    "octets_lus_disque": 9248256000,
+    "octets_ecrits_disque": 512000,
+    "temp_avant": 56,
+    "temp_apres": 56,
+    "tmt_transitions": 0,
+    "tmt_secondes": 0
+   },
+   "derniere_ligne": "troncons disque : 768 tronçons, 9.226 Go en 4.22 s : 2.189 Go/s"
+  },
+  {
+   "nom": "p2b-F-10-disque-A20",
+   "commande": [
+    "~/dev/cibles/troncons-codon/release/troncons.exe",
+    "disque",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-20b.trc",
+    "--n",
+    "1500",
+    "--graine",
+    "20261017",
+    "--repos",
+    "5",
+    "--journal",
+    "~/dev/active/troncons/mesures/disque/placement/p2b-F/p2b-F-10-disque-A20.json"
+   ],
+   "code": 0,
+   "secondes": 11.133683681488037,
+   "alimentation": "2",
+   "autres_avant": [],
+   "autres_apres": [],
+   "sous_charge": false,
+   "smart_avant": {
+    "t": 1792668229.045025,
+    "temperature_c": 55,
+    "unites_lues": 423151261,
+    "unites_ecrites": 136947513,
+    "lectures_hote": 3837481301,
+    "ecritures_hote": 1780415732,
+    "tmt1_n": 375,
+    "tmt2_n": 14,
+    "tmt1_s": 11057,
+    "tmt2_s": 89,
+    "capteurs_c": [
+     57
+    ],
+    "pct_usure": 6,
+    "reserve_pct": 100
+   },
+   "smart_apres": {
+    "t": 1792668240.18023,
+    "temperature_c": 56,
+    "unites_lues": 423169325,
+    "unites_ecrites": 136947517,
+    "lectures_hote": 3837556444,
+    "ecritures_hote": 1780415930,
+    "tmt1_n": 375,
+    "tmt2_n": 14,
+    "tmt1_s": 11057,
+    "tmt2_s": 89,
+    "capteurs_c": [
+     62
+    ],
+    "pct_usure": 6,
+    "reserve_pct": 100
+   },
+   "smart_ecart": {
+    "octets_lus_disque": 9248768000,
+    "octets_ecrits_disque": 2048000,
+    "temp_avant": 55,
+    "temp_apres": 56,
+    "tmt_transitions": 0,
+    "tmt_secondes": 0
+   },
+   "derniere_ligne": "troncons disque : 768 tronçons, 9.226 Go en 5.17 s : 1.784 Go/s"
+  },
+  {
+   "nom": "p2b-F-11-lire-tout-F20",
+   "commande": [
+    "~/AppData/Local/Programs/Python/Python313/python.exe",
+    "-I",
+    "-X",
+    "utf8",
+    "~/dev/active/troncons/outils/disque/placement/lire.py",
+    "~/dev/essais/troncons/placement/F20.trc",
+    "--plan",
+    "tout",
+    "--sortie",
+    "~/dev/active/troncons/mesures/disque/placement/p2b-F/p2b-F-11-lire-tout-F20"
+   ],
+   "code": 0,
+   "secondes": 4.510900974273682,
+   "alimentation": "2",
+   "autres_avant": [],
+   "autres_apres": [],
+   "sous_charge": false,
+   "smart_avant": {
+    "t": 1792668249.1236095,
+    "temperature_c": 55,
+    "unites_lues": 423169328,
+    "unites_ecrites": 136947521,
+    "lectures_hote": 3837556547,
+    "ecritures_hote": 1780416027,
+    "tmt1_n": 375,
+    "tmt2_n": 14,
+    "tmt1_s": 11057,
+    "tmt2_s": 89,
+    "capteurs_c": [
+     56
+    ],
+    "pct_usure": 6,
+    "reserve_pct": 100
+   },
+   "smart_apres": {
+    "t": 1792668253.635922,
+    "temperature_c": 56,
+    "unites_lues": 423187352,
+    "unites_ecrites": 136947523,
+    "lectures_hote": 3837631489,
+    "ecritures_hote": 1780416110,
+    "tmt1_n": 375,
+    "tmt2_n": 14,
+    "tmt1_s": 11057,
+    "tmt2_s": 89,
+    "capteurs_c": [
+     63
+    ],
+    "pct_usure": 6,
+    "reserve_pct": 100
+   },
+   "smart_ecart": {
+    "octets_lus_disque": 9228288000,
+    "octets_ecrits_disque": 1024000,
+    "temp_avant": 55,
+    "temp_apres": 56,
+    "tmt_transitions": 0,
+    "tmt_secondes": 0
+   },
+   "derniere_ligne": "lire.py : F20.trc tout qd 4 : 768 lectures, 9.226 Go en 4.23 s : 2.181 Go/s ; médiane 21.8 ms ; disque lu 9.228 Go ; écrit 1 Mo ; 55→56 °C"
+  },
+  {
+   "nom": "p2b-F-12-lire-tout-A20",
+   "commande": [
+    "~/AppData/Local/Programs/Python/Python313/python.exe",
+    "-I",
+    "-X",
+    "utf8",
+    "~/dev/active/troncons/outils/disque/placement/lire.py",
+    "~/dev/modeles/trc/gpt-oss-20b.trc",
+    "--plan",
+    "tout",
+    "--sortie",
+    "~/dev/active/troncons/mesures/disque/placement/p2b-F/p2b-F-12-lire-tout-A20"
+   ],
+   "code": 0,
+   "secondes": 5.525772333145142,
+   "alimentation": "2",
+   "autres_avant": [],
+   "autres_apres": [],
+   "sous_charge": false,
+   "smart_avant": {
+    "t": 1792668262.6560931,
+    "temperature_c": 55,
+    "unites_lues": 423187361,
+    "unites_ecrites": 136947526,
+    "lectures_hote": 3837631854,
+    "ecritures_hote": 1780416328,
+    "tmt1_n": 375,
+    "tmt2_n": 14,
+    "tmt1_s": 11057,
+    "tmt2_s": 89,
+    "capteurs_c": [
+     57
+    ],
+    "pct_usure": 6,
+    "reserve_pct": 100
+   },
+   "smart_apres": {
+    "t": 1792668268.1837306,
+    "temperature_c": 56,
+    "unites_lues": 423205382,
+    "unites_ecrites": 136947527,
+    "lectures_hote": 3837706803,
+    "ecritures_hote": 1780416383,
+    "tmt1_n": 375,
+    "tmt2_n": 14,
+    "tmt1_s": 11057,
+    "tmt2_s": 89,
+    "capteurs_c": [
+     64
+    ],
+    "pct_usure": 6,
+    "reserve_pct": 100
+   },
+   "smart_ecart": {
+    "octets_lus_disque": 9226752000,
+    "octets_ecrits_disque": 512000,
+    "temp_avant": 55,
+    "temp_apres": 56,
+    "tmt_transitions": 0,
+    "tmt_secondes": 0
+   },
+   "derniere_ligne": "lire.py : gpt-oss-20b.trc tout qd 4 : 768 lectures, 9.226 Go en 5.26 s : 1.755 Go/s ; médiane 27.1 ms ; disque lu 9.227 Go ; écrit 1 Mo ; 55→56 °C"
+  },
+  {
+   "nom": "p2b-F-13-lire-tout-A20",
+   "commande": [
+    "~/AppData/Local/Programs/Python/Python313/python.exe",
+    "-I",
+    "-X",
+    "utf8",
+    "~/dev/active/troncons/outils/disque/placement/lire.py",
+    "~/dev/modeles/trc/gpt-oss-20b.trc",
+    "--plan",
+    "tout",
+    "--sortie",
+    "~/dev/active/troncons/mesures/disque/placement/p2b-F/p2b-F-13-lire-tout-A20"
+   ],
+   "code": 0,
+   "secondes": 5.412473678588867,
+   "alimentation": "2",
+   "autres_avant": [],
+   "autres_apres": [],
+   "sous_charge": false,
+   "smart_avant": {
+    "t": 1792668277.221637,
+    "temperature_c": 55,
+    "unites_lues": 423205383,
+    "unites_ecrites": 136947529,
+    "lectures_hote": 3837706817,
+    "ecritures_hote": 1780416451,
+    "tmt1_n": 375,
+    "tmt2_n": 14,
+    "tmt1_s": 11057,
+    "tmt2_s": 89,
+    "capteurs_c": [
+     56
+    ],
+    "pct_usure": 6,
+    "reserve_pct": 100
+   },
+   "smart_apres": {
+    "t": 1792668282.6361222,
+    "temperature_c": 57,
+    "unites_lues": 423223404,
+    "unites_ecrites": 136947529,
+    "lectures_hote": 3837781765,
+    "ecritures_hote": 1780416471,
+    "tmt1_n": 375,
+    "tmt2_n": 14,
+    "tmt1_s": 11057,
+    "tmt2_s": 89,
+    "capteurs_c": [
+     63
+    ],
+    "pct_usure": 6,
+    "reserve_pct": 100
+   },
+   "smart_ecart": {
+    "octets_lus_disque": 9226752000,
+    "octets_ecrits_disque": 0,
+    "temp_avant": 55,
+    "temp_apres": 57,
+    "tmt_transitions": 0,
+    "tmt_secondes": 0
+   },
+   "derniere_ligne": "lire.py : gpt-oss-20b.trc tout qd 4 : 768 lectures, 9.226 Go en 5.14 s : 1.796 Go/s ; médiane 26.1 ms ; disque lu 9.227 Go ; écrit 0 Mo ; 55→57 °C"
+  },
+  {
+   "nom": "p2b-F-14-lire-tout-F20",
+   "commande": [
+    "~/AppData/Local/Programs/Python/Python313/python.exe",
+    "-I",
+    "-X",
+    "utf8",
+    "~/dev/active/troncons/outils/disque/placement/lire.py",
+    "~/dev/essais/troncons/placement/F20.trc",
+    "--plan",
+    "tout",
+    "--sortie",
+    "~/dev/active/troncons/mesures/disque/placement/p2b-F/p2b-F-14-lire-tout-F20"
+   ],
+   "code": 0,
+   "secondes": 4.494688272476196,
+   "alimentation": "2",
+   "autres_avant": [],
+   "autres_apres": [],
+   "sous_charge": false,
+   "smart_avant": {
+    "t": 1792668291.540143,
+    "temperature_c": 55,
+    "unites_lues": 423223420,
+    "unites_ecrites": 136947563,
+    "lectures_hote": 3837782179,
+    "ecritures_hote": 1780417872,
+    "tmt1_n": 375,
+    "tmt2_n": 14,
+    "tmt1_s": 11057,
+    "tmt2_s": 89,
+    "capteurs_c": [
+     57
+    ],
+    "pct_usure": 6,
+    "reserve_pct": 100
+   },
+   "smart_apres": {
+    "t": 1792668296.0365703,
+    "temperature_c": 57,
+    "unites_lues": 423241441,
+    "unites_ecrites": 136947564,
+    "lectures_hote": 3837857044,
+    "ecritures_hote": 1780417889,
+    "tmt1_n": 375,
+    "tmt2_n": 14,
+    "tmt1_s": 11057,
+    "tmt2_s": 89,
+    "capteurs_c": [
+     63
+    ],
+    "pct_usure": 6,
+    "reserve_pct": 100
+   },
+   "smart_ecart": {
+    "octets_lus_disque": 9226752000,
+    "octets_ecrits_disque": 512000,
+    "temp_avant": 55,
+    "temp_apres": 57,
+    "tmt_transitions": 0,
+    "tmt_secondes": 0
+   },
+   "derniere_ligne": "lire.py : F20.trc tout qd 4 : 768 lectures, 9.226 Go en 4.22 s : 2.185 Go/s ; médiane 21.7 ms ; disque lu 9.227 Go ; écrit 1 Mo ; 55→57 °C"
+  }
+ ],
+ "fin": "2026-10-22 07:25:00"
+}

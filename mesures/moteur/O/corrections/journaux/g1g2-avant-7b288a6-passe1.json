@@ -1,0 +1,70 @@
+{
+ "outil": "temoin_sortie.py",
+ "date": "2026-10-16T06:16:03",
+ "exe": "~/dev/cibles/troncons-O/avant-7b288a6/troncons.exe",
+ "cas": [
+  {
+   "cas": "absent",
+   "commande": "~/dev/cibles/troncons-O/avant-7b288a6/troncons.exe generer --modele ~/dev/modeles/trc/n-existe-pas.trc --vocab ~/dev/modeles/trc/gpt-oss-20b.vocab.gguf --invite ~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt -n 4 --repos 0",
+   "pid": 40520,
+   "mur_s": 90.111,
+   "tue_a_s": null,
+   "bloque_au_dela_de_s": 90.0,
+   "code": 1,
+   "erreur_dernieres_lignes": [
+    "print_info: EOG token             = 200012 '<|call|>'",
+    "print_info: max token length      = 256",
+    "llama_model_load: vocab only - skipping tensors",
+    "troncons : erreur : ouverture de ~/dev/modeles/trc/n-existe-pas.trc: lecture ou écriture : Le fichier spécifié est introuvable. (os error 2): Le fichier spécifié est introuvable. (os error 2)"
+   ],
+   "orphelins_smi": [
+    {
+     "pid": 30740,
+     "ligne": "\"nvidia-smi\" --query-gpu=memory.used --format=csv,noheader,nounits -lms 250"
+    }
+   ]
+  },
+  {
+   "cas": "corrompu",
+   "commande": "~/dev/cibles/troncons-O/avant-7b288a6/troncons.exe generer --modele ~/dev/modeles/trc/casse/gpt-oss-20b-casse-E2.trc --vocab ~/dev/modeles/trc/gpt-oss-20b.vocab.gguf --invite ~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt -n 32 --flux --repos 0",
+   "pid": 34960,
+   "mur_s": 90.02,
+   "tue_a_s": null,
+   "bloque_au_dela_de_s": 90.0,
+   "code": 1,
+   "erreur_dernieres_lignes": [
+    "print_info: EOG token             = 200012 '<|call|>'",
+    "print_info: max token length      = 256",
+    "llama_model_load: vocab only - skipping tensors",
+    "troncons : erreur : couche 2, expert 19 : décodage faux (32 voies hors de L, 0 erreurs de format, 1 pointeurs de tuile faux)"
+   ],
+   "orphelins_smi": [
+    {
+     "pid": 42320,
+     "ligne": "\"nvidia-smi\" --query-gpu=memory.used --format=csv,noheader,nounits -lms 250"
+    }
+   ]
+  },
+  {
+   "cas": "tue",
+   "commande": "~/dev/cibles/troncons-O/avant-7b288a6/troncons.exe generer --modele ~/dev/modeles/trc/gpt-oss-20b.trc --vocab ~/dev/modeles/trc/gpt-oss-20b.vocab.gguf --invite ~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt -n 256 --repos 0",
+   "pid": 6284,
+   "mur_s": 8.012,
+   "tue_a_s": 8.006890999997267,
+   "bloque_au_dela_de_s": null,
+   "code": 1,
+   "erreur_dernieres_lignes": [
+    "llama_model_loader: - kv  34:               general.quantization_version u32              = 2",
+    "llama_model_loader: - kv  35:                          general.file_type u32              = 38",
+    "print_info: file format = GGUF V3 (latest)",
+    "print_info: file type   = MXFP4 MoE"
+   ],
+   "orphelins_smi": []
+  }
+ ],
+ "verdicts": {
+  "absent": "tombe",
+  "corrompu": "tombe",
+  "tue": "tient"
+ }
+}

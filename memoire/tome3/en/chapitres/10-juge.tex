@@ -1,0 +1,437 @@
+% Volume~III, chapter 10: the judge of the construction (English version). Translator EN2, 2026-10-29, from
+% memoire/tome3/fr/chapitres/10-juge.tex (writer D, as corrected: G6, the opening); same labels, same macros,
+% same numbers.
+% Figures: genome/JUGEMENT-construction.md (with its corrections of 2026-10-27), genome/construction-juge-pour-
+% le-memoire.md, genome/JUGEMENT-placement.md (R1), mesures/genome/construction/juge/ (thresholds declared
+% beforehand: 00-seuils-declares.md, commit 1f5fe0f; logs J-T0, J-T1, fenetres-*, logits/, kl/, vitesse/; figures/),
+% and the numbers of the figures (memoire/figures/tome3/donnees/juge-nombres.tex, written by a committed script).
+% Plan and reserves: memoire/tome3/PLAN-redaction.md § 10.
+
+\chapter{The judge of the construction}\label{t3jug:ch}
+
+\begin{origine}
+\textbf{At the start}, two lots that call themselves finished, and figures produced by their authors alone, on the windows where their mechanisms were tuned. Lot A publishes a lossless \texttt{.trc} v1.2 format (the sign of a zero folded, \SI{1.80}{\Go} fewer on the 120b), logits identical to the bit on R1, and a J1 of the 120b 1.45 times faster in v1.2, which it did not itself attribute to the format (\cref{t3cod:ch}); the placement judge has since attributed it to the v1.2 format, through the pattern of its read requests, specific to this disk (reserve R1, \cref{t3cod:sec:motif} and \cref{t3jug:sec:r1}). Lot B publishes the synonymous genome on the 768 experts of the 20b, the rule B2 that keeps $\lambda = 0$ narrowly, a fast mode in the engine and two speed gains, $\times 1.24$ and $\times 2.00$ (\cref{t3sno:ch}). The SOCLE requires the work to be reread by a judge that did not do it.
+\textbf{This chapter establishes}, by a judge's own paths (a decoder of the format written from its description alone, a GGUF reader of its own, a KL computed by its code, ten windows of text that the lots never saw, a speed session with three files), what holds, what falls, and what is true but wrongly attributed; and it poses in full the five derivations on which its verdicts rest.
+\textbf{What remains} is the decision on the mixed miss policy, another corpus, and the exact variable of the read pattern that makes the speed of this disk (\cref{t3jug:sec:reste}).
+Sources: \fichier{genome/JUGEMENT-construction.md}, \fichier{genome/construction-juge-pour-le-memoire.md}, \fichier{genome/JUGEMENT-placement.md}, \fichier{mesures/genome/construction/juge/} (thresholds: \fichier{00-seuils-declares.md}) and \fichier{outils/genome/construction/juge/}.
+\end{origine}
+
+\begin{enbref}
+A judge redoes. It does not reread the others' computations: it makes other ones, by paths that share with those of the lots only what they must share, the description of the format and the files judged. The judge of the construction wrote neither the decision on the v1.2 format, nor the coder, nor the fast companion, nor the engine. It declared its thresholds on 22 October 2026 around 4 a.m., when none of its tools had yet read one byte of a model. Its verdict fits in two sentences. The construction delivers what it promised \emph{in bytes and in quality}: the zero-synonym codon is lossless and exact to the bit on two models and on new text; the synonymous genome $\lambda = 0$ beats the frontier and $\lambda = 1$ on this new text, more clearly than on the text where it had been chosen. It does not deliver the speed gain announced for the fast mode: the two published ratios are reproduced, but they mostly measured the way this disk reads the old format. This chapter shows how the judge separates it, and why it can be believed.
+\end{enbref}
+
+\section{What the judge redid, and by which path}\label{t3jug:sec:chemins}
+
+\paragraph{Its tools.} Everything is under \fichier{outils/genome/construction/juge/}; the engine, \texttt{juge} and \texttt{genome-capture} are built by the judge from \texttt{main} (commit \texttt{f136e27}) in its own target. Its decoder of the format (\texttt{decodeur\_juge.py}, Python and numpy) reads the header, MÉTA, RÉSIDENTS, TABLES, RÉPERTOIRE and the chunk parts from the specification alone (\fichier{decisions/ARCHITECTURE.md}, §§ 4.2 to 4.12 and 4.16), and the GGUF through its own reader (v3: pairs, tensor information, alignment). It opened neither the crates of the format, nor the codec, nor the decoder of trial J1, nor the tools of lot A before writing it. A single error at the first run, in its MÉTA reader: \texttt{self.p += self.u64()} loses the 8 bytes of the length, because Python reads \texttt{self.p} before calling \texttt{u64}. Corrected and stated in commit \texttt{f136e27}, it touched only the check of MÉTA, not the decoding.
+
+\paragraph{Its verdicts}, figure by figure (\cref{t3jug:tab:chemins}).
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[What the judge redid, and by which path]{What the judge of the construction redid, by which path, and its verdict \mes. The attributions struck through are struck through in the judgement itself.}
+\label{t3jug:tab:chemins}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.28\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.24\linewidth}>{\raggedright\arraybackslash}p{0.13\linewidth}@{}}
+\toprule
+Published figure & Judge's path & Result & Verdict \\
+\midrule
+sizes of the \texttt{.trc} v1.2, gain \num{0.12791} and \num{0.12562} bit & its reader of the format, whole files & given again to the byte & holds \\
+C1 in value, $768 + \num{4608}$ experts & its decoder, 96 drawn experts and 40 v1.0 controls & 96/96, 40/40; three breaks fall & holds \\
+no v1.2 table with a slot for an 8 & its reader of the tables & 0 out of 540 (540 out of 540 in v1.0) & holds \\
+logits to the bit, 20b and 120b & ten \emph{new} windows, its script, a new break & 0/\num{5120} and 0/\num{5120}; break 512/512 & holds \\
+J1: 2.89 against 1.99 tokens/s, $r = 1.454$ & three-file session & 2.889 against 2.004, $r = 1.442$ & holds; attribution corrected (R1) \\
+KL of R1; B2 $-\num{0.0204} \pm \num{0.0097}$ & its KL on the files of lot B & given again & holds \\
+B2: $\lambda = 0$ better (\num{2.09}\,$\sigma$) & new windows, engine & $-\num{0.0303} \pm \num{0.0084}$, \num{3.6}\,$\sigma$ & holds, strengthened \\
+$\lambda = 0$ better than the frontier & new windows, substituted reference & $-\num{0.1565} \pm \num{0.0334}$, \num{4.7}\,$\sigma$ & holds \\
+S3-K: fast engine = substituted reference & new windows & \num{0.0037}; \SI{97.8}{\percent} & holds \\
+``the tail falls too'', $\lambda = 0$ against $\lambda = 1$ & new windows & 99th $-\SI{5}{\percent}$; 99.9th $+\SI{6}{\percent}$ & struck through (M2) \\
+``the tail falls too'', against the frontier & new windows, substituted reference & 99th $-\SI{26}{\percent}$, 99.9th $-\SI{18}{\percent}$ & holds \\
+20b $\times 1.24$, gain of the fast mode & three-file session & $r(R/A) = \num{1.220}$; $r(R/B) = \num{0.942}$ & struck through (G2) \\
+120b $\times 2.00$, gain of the fast mode & three-file session & $r(R/A) = \num{1.851}$; $r(R/B) = \num{1.284}$ & struck through (G1) \\
+cause of the $\times 1.24$: the file cache & reading of \texttt{trc-es}, disk stage & unbuffered reads; disk R/A \num{1.39} & struck through (G2) \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{genome/JUGEMENT-construction.md}, §§ 1 and 8.}
+\end{table}
+
+\section{The \texttt{.trc} v1.2 through the judge's decoder}\label{t3jug:sec:jt}
+
+\subsection{Vectorised rANS decoding is normative decoding}\label{t3jug:sec:vectorise}
+
+An rANS stream of the format is cut into independent tiles of 32 lanes \parencite{duda2013ans,giesen2014interleaved}. Normative decoding (specification § 4.9.2) goes through the macro-steps $m$ of a tile, then its sub-steps $k$, then its lanes $l = 0, \dots, 31$ \emph{in order}. In Python, a code matrix of $\num{2880} \times \num{2880}$ weights would require \num{4147200} sequential steps; the judge does them in \num{1024} iterations (256 macro-steps $\times$ 4 sub-steps), on an array of $T \times 32$ states at once. It must then be proved that this form is normative decoding.
+
+\paragraph{Notation.} A tile has 32 lanes of states $x_l \in [L, 2^{32})$ and a pointer $p$ into the shared array \texttt{mots}. A step of lane $l$ computes, with the table $c$ of the context of its word: $\text{slot} = x_l \bmod M$; $s = \mathrm{sym}_c(\text{slot})$; $y_l = f_c(s)\,\lfloor x_l / M\rfloor + \text{slot} - \mathrm{cum}_c(s)$; if $y_l < L$, $x_l \leftarrow 2^{16} y_l + \texttt{mots}[p]$ and $p \leftarrow p + 1$, otherwise $x_l \leftarrow y_l$. The format fixes $M = 2^{12}$ and $L = 2^{16}$ (Volume~II, chapter on the format).
+
+\begin{lemme}[J1: the lanes are independent within a sub-step]\label{t3jug:lem:j1}
+At sub-step $(m, k)$, $y_l$ depends only on $x_l$ and on the table of the context of word $32m + l$.
+\end{lemme}
+\begin{proof}
+The only inputs of the computation of $y_l$ are $x_l$, the slot (a function of $x_l$) and the table; no other lane enters it, and the pointer $p$ intervenes only afterwards, in the renormalisation.
+\end{proof}
+
+\begin{proposition}[J2: the assignment of the words is a prefix sum]\label{t3jug:prop:j2}
+Let $r_l = [y_l < L]$ and $R_l = \sum_{l' \le l} r_{l'}$. Sequential processing $l = 0, \dots, 31$ gives every lane $l$ such that $r_l = 1$ the word $\texttt{mots}[p_0 + R_l - 1]$, where $p_0$ is the pointer at the start of the sub-step, and leaves the pointer at $p_0 + R_{31}$.
+\end{proposition}
+\begin{proof}
+By induction on $l$. Before lane $l$, the pointer is $p_0 + R_{l-1}$ (with $R_{-1} = 0$): each of the preceding lanes that renormalised advanced it by one. If $r_l = 1$, the lane reads $\texttt{mots}[p_0 + R_{l-1}] = \texttt{mots}[p_0 + R_l - 1]$ and brings the pointer to $p_0 + R_l$; otherwise it stays at $p_0 + R_{l-1} = p_0 + R_l$. At the end, it is $p_0 + R_{31}$.
+\end{proof}
+
+\begin{remarque}[A single word per lane and per sub-step]
+The proposition assumes that a lane that renormalises reads only one word. This is true: before the step, $x_l \ge L = 2^{16}$, so $y_l \ge \lfloor x_l / 2^{12}\rfloor \ge 2^{4}$ since $f_c(s) \ge 1$ and $\text{slot} - \mathrm{cum}_c(s) \ge 0$; if $y_l < L$, the new state $2^{16} y_l + w \ge 2^{20} \ge L$. Volume~II poses the same argument in the lemma of the vectorised decoder of trial J1.
+\end{remarque}
+
+By lemma J1, all the $y_l$ of a sub-step are computed before any write; by proposition J2, the new states too, by the prefix sum \texttt{cumsum(renouvelle)} along the lane axis. The tiles being independent (each starts from its beginning and its 32 states), the decoder processes the $T \times 32$ lanes of all the tiles of a stream at each sub-step. The end of tile (every lane back on $L$) is checked at the end. A code matrix is thus decoded in about \SI{0.5}{\second}, a whole expert in \SIrange{1.8}{2.1}{\second}, checks included \mes.
+
+\subsection{J-T0: the four whole files}\label{t3jug:sec:jt0}
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[J-T0: the four files, through the judge's reader]{J-T0: the four \texttt{.trc} files, read in full by the judge's reader \mes. Structural faults: header, fingerprints of the header, of MÉTA, of the RÉSIDENTS table, of TABLES and of the RÉPERTOIRE, entries, declared size equal to the size on disk.}
+\label{t3jug:tab:jt0}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+& 20b v1.0 & 20b v1.2 & 120b v1.0 & 120b v1.2 \\
+\midrule
+structural faults & 0 & 0 & 0 & 0 \\
+file (bytes) & \num{11157405696} & \textbf{\num{10851844096}} & \num{57730662400} & \textbf{\num{55930175488}} \\
+chunk parts, aligned & \num{9226493952} & \textbf{\num{8920932352}} & \num{55416086528} & \textbf{\num{53615599616}} \\
+useful bytes of the chunks & \num{9224936032} & \num{8919387648} & \num{55406705152} & \num{53606030768} \\
+largest chunk & \num{12144640} & \num{11755520} & \num{12251136} & \num{11878400} \\
+CODES\_CTX tables with a slot for an 8 & 216 out of 216 & \textbf{0 out of 216} & 324 out of 324 & \textbf{0 out of 324} \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/genome/construction/juge/J-T0-fichiers.json}.}
+\end{table}
+
+The gain on the aligned parts is \num{0.12791} bit per expert weight on the 20b and \num{0.12562} on the 120b; threshold A-C2 of lot A ($\ge \num{0.12}$, taken as is) holds on both \mes. The computation, for the 20b: $8 \times (\num{9226493952} - \num{8920932352}) = 8 \times \num{305561600}$ bits, divided by the $24 \times 32 \times 3 \times \num{2880}^2 = \num{19110297600}$ expert weights, make \num{0.12791} \calc. The eight sizes of lot A are given again to the byte, and its 540 tables too (540 out of 540 in v1.0, 0 in v1.2). The fingerprint of the RÉSIDENTS table lies at the exact end of the data area, without padding: the description (``after the data area'') reads that way, and the file obeys it.
+
+\subsection{J-T1: 96 drawn experts, decoded by the judge}\label{t3jug:sec:jt1}
+
+The draw is written in the file \fichier{tirage-experts.json}, committed before any decoding (commit \texttt{93a88a5}). It takes 32 experts of the 20b then 64 of the 120b, without replacement, by \texttt{Generator(\allowbreak PCG64(\allowbreak 20261022))}. For each, in v1.2, eight checks: (a) each lane of each tile ends on $L$; (b) the reconstructed blocks $[e, qs]$ equal byte for byte to the blocks of the GGUF canonicalised by the judge's code (nibble 8 $\to$ 0); (c) the biases equal to the bit; (d) each weight equal \emph{in value} to the weight of the non-canonicalised GGUF; (e) the fingerprint of the reconstructed canonical expert equal to \texttt{empreinte\_canonique}; (f) the fingerprint of the GGUF blocks as they are equal to \texttt{empreinte\_origine}; (g) the fingerprint of the part equal to that of the directory; (h) no nibble 8.
+
+\begin{itemize}
+\item \textbf{96 experts out of 96 hold the eight checks} \mes.
+\item \textbf{The control} (answer known in advance): the 32 experts of the 20b and the first 8 drawn from the 120b, decoded in \emph{v1.0}, return the GGUF as it is (40 out of 40); and for each, the nibbles that change between the v1.0 decoded and the v1.2 decoded are exactly the $-0$ of the GGUF (L19 E109 of the 120b: \num{1746601} changed, \num{1746601} $-0$) \mes.
+\item \textbf{The breaks} all fall: a word of the CODES\_CTX stream changed (lanes outside $L$, bytes, values and canonical fingerprint false); the canonicalisation removed from the GGUF reader (bytes and canonical fingerprint on the GGUF side false; the fingerprint of the decoded, which does not read the GGUF, holds: the judge had announced it as falling, and says so); one bit of the first bias of matrix 2 (bias, fingerprint of the part and canonical fingerprint false) \mes.
+\item The share of the $-0$ in the sample, $\num{6.42} \pm \SI{0.11}{\percent}$ (20b) and $\num{6.33} \pm \SI{0.10}{\percent}$ (120b), against \SI{6.393}{\percent} and \SI{6.279}{\percent} over the files: at \num{0.3} and \num{0.5} standard deviation.
+\end{itemize}
+The figure of these decodings (\cref{fig:t3-jcons-codon}) is in the chapter on the codon, with which it forms the verdict on lot A.
+
+\subsection{What the v1.0 \texorpdfstring{$\to$}{->} v1.2 control proves}\label{t3jug:sec:temoin}
+
+Let $D_0(x)$ and $D_2(x)$ be the decoded nibbles of expert $x$ in v1.0 and v1.2, $G(x)$ those of the GGUF, and $\kappa(g) = g$ if $g \ne 8$, $0$ otherwise (code 8 is the $-0$ of E2M1). The control measures $D_0(x) = G(x)$, and check (b) measures $D_2(x) = \kappa(G(x))$. Then
+\[
+\{ i : D_0(x)_i \ne D_2(x)_i \} = \{ i : G(x)_i \ne \kappa(G(x)_i) \} = \{ i : G(x)_i = 8 \}:
+\]
+the set of changed nibbles is \emph{exactly} that of the $-0$, which the log checks expert by expert. This is the measured form of the sentence ``v1.2 changes only the sign of the zeros'', and, with (d), of ``v1.2 is lossless in value''.
+
+\paragraph{Verdict J-T: holds.} The \texttt{.trc} v1.2 is exactly what the format describes, and each drawn expert is the expert of the GGUF to the bit, up to the sign of the zeros.
+
+\section{The new windows, and the experts they call}\label{t3jug:sec:fenetres}
+
+\paragraph{The draw.} The lots evaluated on R1, the first ten windows of 512 tokens of wiki.test (tokens 0 to \num{5119}) \parencite{merity2016wikitext}, and calibrated the synonymous genome on windows 10 to 21 (tokens \num{5120} to \num{11263}). The judge sets aside the first \num{120000} bytes of \texttt{wiki.test.raw} (SHA-256 \texttt{173c87a5}…\texttt{dd08}), which count \num{27680} tokens: they cover R1, the calibration, and twice as much margin \mes. Beyond them it draws ten paragraph line starts (seed $\num{20261022} + 1$), more than \num{12000} bytes apart from one another: at bytes \num{767283}, \num{511976}, \num{615155}, \num{854814}, \num{1148495}, \num{1228294}, \num{1098980}, \num{1240966}, \num{421030} and \num{358205}. Each extract (\numrange{9.0}{10.4} KB) goes through \texttt{llama-perplexity} (processor only, options of the base, one window), and the ten files are merged into a single \texttt{base-juge-20b.kld}. Its size is checked by computation: $20 + 4 \times \num{5120} + \num{2550} \times \num{402184} = \num{1025589700}$ bytes, the size of R1; each window is equal to its source byte for byte, and a shifted window does not equal it (break) \mes\,\calc. The format of \texttt{llama-perplexity} merges by simple concatenation of the tokens then of the entries: all the tools of the project read the merged file without change.
+
+\paragraph{The reference.} The f64 reference of these windows (\texttt{juge reference --yarn openai}, the call of R1) took \SI{2168}{\second} and routed \num{755} distinct experts (R1: 734). KL(llama.cpp processor $\Vert$ f64 reference) is \num{0.0339} there (R1: \num{0.0255}): slightly harder windows, nothing abnormal \mes.
+
+\paragraph{The experts seen.} \Cref{fig:t3-jcons-experts} draws the map: each cell of the $24 \times 32$ grid of the 20b, coloured according to the windows that routed tokens to it under the exact reference. 732 experts are routed by both sets, 2 by R1 alone, 23 by the new windows alone (\num{465} calls out of \num{490560}), and 11 by neither; $732 + 2 + 23 + 11 = 768$ \mes\,\calc. Lot B counted 36 to 39 unrouted on R1 under substitution; the new windows judge part of them (the substituted f64 pass $\lambda = 0$ loads 756 experts there).
+
+\begin{figure}[tbp]
+\centering
+\GrapheJconsExperts
+\LegendeFigure{JconsExperts}
+\label{fig:t3-jcons-experts}
+\end{figure}
+
+\paragraph{What the map says, and what it does not.} The 11 struck-out cells are not ``unverified'' experts: their decoding is verified in value, like that of the 757 others (criterion C1 of lot A, 768 experts out of 768, \cref{t3cod:ch}). They lack a KL, not a measurement: no KL measurement of the construction called them, under the routing of the reference. A change confined to these 11 experts would move no KL of \crefrange{t3cod:ch}{t3jug:ch} measured with this routing; but a variant whose routing flips could call them. The first caption of the figure said more than that; the second judge of the figures had it rewritten.
+
+\section{J-C1: the logits to the bit on the new windows}\label{t3jug:sec:jc1}
+
+\texttt{troncons evaluer --flux --empreintes}, ten new windows, engine built by the judge; comparison by its script, not by that of lot A. Threshold taken from lot A (proposition A1, criterion A-C1): 0 differing logit fingerprints out of \num{5120} steps per model, and the output \texttt{.kld} equal byte for byte (SHA-256).
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[J-C1: the logits to the bit on the new windows]{J-C1: v1.2 against v1.0, logits on ten new windows \mes.}
+\label{t3jug:tab:jc1}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.27\linewidth}>{\raggedright\arraybackslash}p{0.22\linewidth}@{}}
+\toprule
+& 20b & 120b \\
+\midrule
+v1.2 against v1.0: differing logit fingerprints & \textbf{0 out of \num{5120}} & \textbf{0 out of \num{5120}} \\
+output \texttt{.kld} & equal (\texttt{1aff1a6a}…\texttt{29ef}) & equal (\texttt{709367e7}…\texttt{8a73}) \\
+control: v1.2 evaluated twice & identical CSVs (\texttt{fc427e9f}…\texttt{469b}) & --- \\
+break: the sign of the bias of row 0 of gate flipped for the 32 experts of layer 0, \texttt{--sans-garde}, window 0 & \textbf{512 out of 512 differing}, from position 0; 73 first choices changed & --- \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{mesures/genome/construction/juge/logits/comparer-*.json}, \fichier{logits/evaluer-*.\{csv,json,log\}}.}
+\end{table}
+
+\paragraph{Verdict J-C1: holds}, on two models and on a text that no one had seen. Proposition A1 of lot A (\cref{t3cod:ch}) is true of the real engine. The break was chosen to touch every position (each position routes four experts of layer 0 out of 32, and all have their bias flipped); the broken copy is erased afterwards.
+
+\section{J-K: the KL of the synonymous genome outside R1}\label{t3jug:sec:kl}
+
+\subsection{The judge's KL, and its control}\label{t3jug:sec:kljuge}
+
+For each scored position, the judge computes
+\[
+\mathrm{KL}(P \Vert Q) = \sum_{i \,:\, \log p_i > -16} p_i\,(\log p_i - \log q_i),
+\]
+$P$ and $Q$ decoded from their 16-bit coding, without renormalisation: this is the convention of lot R (Volume~II, the reference and the judge), where a file against itself returns 0 \parencite{kullback1951}. \textbf{Control}: on a pair published by lot B (R1, $\lambda = 0$), its KL is \num{0.131752831} against \num{0.131752832} for \texttt{juge kl} ($1.1 \cdot 10^{-8}$ relative, threshold $10^{-6}$); \textbf{break}: $Q$ shifted by one position, \num{1.634} \mes. R1 recomputed by its code from the files of lot B: frontier \num{0.26399}, $\lambda = 1$ \num{0.15216}, $\lambda = 0$ \num{0.13175}; paired $-\num{0.11183} \pm \num{0.02962}$, $-\num{0.02040} \pm \num{0.00974}$ ($\bar d + 2\sigma = -\num{0.00092}$), $-\num{0.13224} \pm \num{0.02343}$: the figures of lot B are given again to four digits and more \mes.
+
+On the new windows, two paths: the \emph{engine} (\texttt{troncons evaluer --flux --rapide} on the companions, the product as it is served) and the \emph{substituted f64 reference} (\texttt{genome-capture kl --sub}, the lots' path). The truth is the f64 reference of the new windows.
+
+\subsection{The numbers}\label{t3jug:sec:klnombres}
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[J-K: the KL on the new windows]{J-K: the KL against the f64 reference on ten new windows (\num{2550} positions), the 768 experts substituted \mes. Perplexity of the reference: \num{392.5}.}
+\label{t3jug:tab:jk}
+\begin{tabular}{@{}lccccccc@{}}
+\toprule
+New windows & KL & $\sigma$ naive & $\sigma$ windows & median & 99.9th pc. & first choice & perplexity \\
+\midrule
+exact engine, v1.2 & \num{0.00437} & \num{0.0008} & \num{0.0021} & \num{0.00003} & \num{0.557} & \SI{98.0}{\percent} & \num{394.0} \\
+$\lambda = 0$, fast engine & \textbf{\num{0.1448}} & \num{0.0060} & \num{0.0164} & \num{0.0608} & \num{3.61} & \textbf{\SI{71.7}{\percent}} & \num{402.1} \\
+$\lambda = 0$, substituted f64 & \num{0.1446} & \num{0.0059} & \num{0.0165} & \num{0.0617} & \num{3.51} & \SI{71.3}{\percent} & \num{399.5} \\
+$\lambda = 1$, fast engine & \num{0.1751} & \num{0.0062} & \num{0.0186} & \num{0.0755} & \num{3.40} & \SI{67.6}{\percent} & \num{453.7} \\
+frontier, substituted f64 & \num{0.3011} & \num{0.0074} & \num{0.0415} & \num{0.1917} & \num{4.30} & \SI{51.5}{\percent} & \num{239.8} \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/genome/construction/juge/kl/kl-neuf-*.json}; $\lambda = 1$ through the substituted reference: not run (\cref{t3jug:sec:faux}).}
+\end{table}
+
+\paragraph{The declared verdicts.}
+\begin{itemize}
+\item \textbf{J-K2, B2 redone outside R1} (the rule of lot B, taken as is): through the engine, $\bar d = \mathrm{KL}_{\lambda=0} - \mathrm{KL}_{\lambda=1} = -\num{0.0303}$, $\sigma$ by windows \num{0.0084}, $\bar d + 2\sigma = -\num{0.0136} < 0$ (\num{3.62}\,$\sigma$, against \num{2.09} on R1); nine windows out of ten (window 0 against, $+\num{0.016}$); $\lambda = 0$ has less KL on \num{1858} positions out of \num{2550}; first choice $+\num{4.1} \pm \num{1.1}$ points. The judge's prediction (``equal'') is refuted.
+\item \textbf{J-K1, $\lambda = 0$ against the frontier}, through the substituted reference: $-\num{0.1565} \pm \num{0.0334}$ (\num{4.7}\,$\sigma$), all ten windows, \num{2297} positions out of \num{2550}, first choice $+\num{19.8} \pm \num{3.2}$ points; ratio $\lambda = 0$ over frontier \num{0.480} (R1: \num{0.499}). Holds, as predicted.
+\item \textbf{J-K3, the fast engine against the substituted f64} (thresholds S3-K of lot B): \num{0.0037} $\le$ \num{0.011} and \SI{97.8}{\percent} $\ge$ \SI{95}{\percent}, holds; the two paths return the same KL against the truth, \num{0.1448} and \num{0.1446}, paired difference $+\num{0.0002} \pm \num{0.0006}$.
+\item \textbf{J-K4, the exact mode}: KL \num{0.00437}, first choice \SI{98.0}{\percent} (R1: \num{0.00368} and \SI{97.2}{\percent}); llama.cpp on the processor gives \num{0.0339} there. The form of C4 holds against llama.cpp on the processor; against llama.cpp on the card, the exact comparator of C4, not measured here.
+\end{itemize}
+
+\paragraph{A single path for $\lambda = 1$.} The $\lambda = 1$ substituted reference was not run on the new windows (time: 47 to \SI{52}{\minute} per pass under the machine's load, and the disk placement stream was waiting for calm for its session). B2 is therefore judged there by the engine alone. The judge justifies this by two measured agreements: the two paths return the same KL for $\lambda = 0$ to within \num{0.0002} on these windows, and for $\lambda = 1$ on R1 (\num{0.1522} by both, lot B). Mixing the paths in a paired difference ($\lambda = 1$ engine against frontier f64: $-\num{0.1260} \pm \num{0.0366}$) is published for information only; it is the panel with hollow diamonds of \cref{fig:t3-syno-foret}.
+
+\paragraph{What else the new windows say.} \emph{The level}: $\lambda = 0$ gives \num{0.1448} on the new windows and \num{0.1318} on R1; the exact engine \num{0.0044} and \num{0.0037}; the llama.cpp reference \num{0.0339} and \num{0.0255}. These windows are harder for everyone, by 10 to \SI{33}{\percent}; the synonymous genome does not degrade there more than the rest \calc. \emph{The tail} and \emph{the perplexity}: two sentences of lot B fall, struck through in \cref{t3sno:ch} (findings M2 and M3). \emph{The experts}: the new windows bring into play 23 experts that R1 had never routed; their share of the calls is small (\SI{0.1}{\percent}), and the KL of $\lambda = 0$ includes them.
+
+\subsection{The uncertainty of a mean KL: by positions or by windows}\label{t3jug:sec:sigma}
+
+The 255 scored positions of a window share their past, hence their routing flips: they are not independent. Two standard deviations of the mean stand against each other:
+\[
+\sigma_f = \frac{s(\bar K_1, \dots, \bar K_{10})}{\sqrt{10}},
+\qquad
+\sigma_n = \frac{s(K_1, \dots, K_{\num{2550}})}{\sqrt{\num{2550}}},
+\]
+the first on the ten window means, the second on the positions as if they were independent. Their ratio defines the \emph{design effect} and the number of effective positions:
+\[
+\mathrm{deff} = \left(\frac{\sigma_f}{\sigma_n}\right)^2,\qquad n_{\text{eff}} = \frac{n}{\mathrm{deff}} .
+\]
+
+\begin{proposition}[The design effect of a cluster sample]\label{t3jug:prop:deff}
+Let there be $n$ clusters (the windows) of $m$ positions, each position of variance $s^2$, two positions of the same cluster with correlation $\rho$, and two positions of different clusters independent. Then the variance of the overall mean is $\dfrac{s^2}{nm}\,\bigl(1 + (m - 1)\rho\bigr)$, and $\mathrm{deff} = 1 + (m - 1)\rho$.
+\end{proposition}
+\begin{proof}
+The mean of a cluster, $\bar K_g = \frac1m \sum_{i} K_{gi}$, has variance $\frac{1}{m^2}\bigl(m s^2 + m(m-1)\rho s^2\bigr) = \frac{s^2}{m}\bigl(1 + (m-1)\rho\bigr)$: $m$ variances and $m(m-1)$ covariances. The clusters being independent, the mean of the $n$ means has $n$ times less variance. The naive variance, which ignores the covariances, is $s^2/(nm)$; the quotient is $1 + (m-1)\rho$.
+\end{proof}
+
+\paragraph{On R1, frontier.} $\sigma_f = \num{0.0376}$, $\sigma_n = \num{0.0066}$: $\mathrm{deff} \approx 32$ and $n_{\text{eff}} \approx 79$ \calc. A window of 255 positions is therefore worth about eight independent positions ($255/32$), and by the proposition, the mean correlation of two positions of the same window is $\rho \approx (32 - 1)/254 \approx \num{0.12}$ \calc. \Cref{fig:t3-jcons-fenetres} shows where it comes from: some windows are harder than others for all the variants at once (the frontier ranges from \num{0.136} to \num{0.459} from one window of R1 to another), and the exact mode stays far below all of them (from \num{0.0002} to \num{0.0219}).
+
+\begin{figure}[tbp]
+\centering
+\GrapheJconsFenetres
+\LegendeFigure{JconsFenetres}
+\label{fig:t3-jcons-fenetres}
+\end{figure}
+
+\paragraph{For a paired difference}, the design effect is much smaller, because pairing removes the difficulty specific to each window, common to both variants: for $\lambda = 0$ against $\lambda = 1$ on R1, $\sigma_f = \num{0.00974}$ and $\sigma_n = \num{0.00385}$, $\mathrm{deff} \approx \num{6.4}$ \calc\ (\fichier{mesures/genome/construction/synonyme/kl/B2-synonyme-l1-contre-l0-768.json}). This is why the lots are right to judge by paired differences, and why an absolute KL published with $\sigma_n$ looks three to six times more precise than it is (finding M1). The judge's recipe: publish an absolute KL with its $\sigma$ by windows.
+
+\subsection{Redoing a result at two standard deviations}\label{t3jug:sec:refaire}
+
+Why did the judge predict ``equal''? Take a paired difference measured at $z = \bar d/\sigma$ standard deviations, and suppose that the true difference is exactly $\bar d$, and that the second series of ten windows has the same $\sigma$. The new estimator roughly follows $\mathcal{N}(\bar d, \sigma^2)$; with $\bar d = -z\sigma$, the probability that it passes the threshold $\bar d' + 2\sigma < 0$ again is
+\[
+P\bigl(\bar d' < -2\sigma\bigr) = \Phi\!\left(\frac{-2\sigma + z\sigma}{\sigma}\right) = \Phi(z - 2).
+\]
+For $z = \num{2.09}$, $\Phi(\num{0.09}) \approx \num{0.54}$ \calc: barely more than one chance in two. And if the true difference is smaller than $\bar d$, which is likely for a result kept \emph{because it} passed the threshold, the probability falls. The prediction followed this computation; the measurement refuted it, $z = \num{3.62}$ on the new windows. The judge did not change its prediction afterwards: it was declared, and the measurement decided.
+
+\section{J-V: speed, and what it separates}\label{t3jug:sec:vitesse}
+
+\subsection{The trap}\label{t3jug:sec:piege}
+
+Each of the two lots compared a new file with an old file: lot A the v1.2, written on 17 October, with the original v1.0, written on the 15th; lot B its companions, written on the 17th and the 22nd, with the same original v1.0. Lot A saw the trap and said so: two v1.0 files identical to the bit were read at \num{1.74} and \SI{1.34}{\Go\per\second}. Lot B did not see it. If two files of the same model are read at different speeds for a reason that is not their mechanism, a speed ratio between them does not measure the mechanism.
+
+\subsection{The three-file session}\label{t3jug:sec:plan}
+
+The judge puts the three files of each model into a single session: A the original v1.0, B the v1.2 (same writer as the companions, written like them after the 15th), R the fast companion, in the order
+\[
+\text{A B R R B A A B R R B A} .
+\]
+
+\begin{proposition}[The plan balances a linear drift]\label{t3jug:prop:plan}
+If the speed of a pass of rank $i$ of file X is $v_X\,(1 + a + b\,i)$, the ratio of the means of the four passes of two files is $v_X / v_Y$, without a drift term. A quadratic drift, for its part, is not balanced.
+\end{proposition}
+\begin{proof}
+The ranks are A $\{1, 6, 7, 12\}$, B $\{2, 5, 8, 11\}$, R $\{3, 4, 9, 10\}$; their sums are all 26, their means $\bar\imath = \num{6.5}$. The mean of the four passes of X is $v_X\,(1 + a + b\,\bar\imath) = v_X\,(1 + a + 6.5\,b)$, the same factor for the three files, which disappears from the ratio. The sums of the squares of the ranks are $1 + 36 + 49 + 144 = 230$, $4 + 25 + 64 + 121 = 214$ and $9 + 16 + 81 + 100 = 206$: a term in $c\,i^2$ would leave a bias.
+\end{proof}
+The rule reads \emph{medians} of four passes, that is the mean of the two in the middle. Under a monotone drift that dominates the noise, the middle passes are those of ranks 6 and 7 for A, 5 and 8 for B, 4 and 9 for R, whose mean is again \num{6.5}: the median is balanced in this case too \calc.
+
+\paragraph{The decomposition.} With three files from the same session,
+\[
+r(R/A) = r(R/B) \cdot r(B/A) .
+\]
+$r(B/A)$ measures what lot A measured, $r(R/A)$ what lot B measured, and $r(R/B)$ what the fast mode is worth against an exact file that the disk stage reads at the same speed. The ceiling that a smaller format can return, with the disk limiting, is the ratio of the bytes read per step ($o_A / o_B = 1/\num{0.9671} = \num{1.034}$ for v1.2); any $r(B/A)$ beyond it comes from something other than the bytes. The disk stage alone (\texttt{troncons disque --n 1500}, the instrument of lot A) runs first, A B R R B A, and says which of the factors is not the mechanism.
+
+\paragraph{The threshold.} With $\sigma = \max(\sigma_A, \sigma_B, \sigma_R)$, relative standard deviations of the four passes, a published gain $g$ is a gain of the fast mode if $r(R/B) \ge g\,(1 - 2\sigma)$; $(1 - 2\sigma)$ is the lower bound of a ratio of medians at two standard deviations of its noise. The conditions: mains power at each pass; reading of the other streams before and after each pass (more than \SI{5}{\percent} of a core or more than \SI{8}{\Mo} read in \SI{3}{\second}: ``under load'', the pass does not conclude); start on two empty readings one minute apart; lock held. \textbf{None of the 36 passes was under load} \mes.
+
+\subsection{The 120b}\label{t3jug:sec:v120}
+
+Settings of J1 for the three files: \texttt{mesurer --flux --emplacements 326}, wiki-3000 prompt, 256 tokens.
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[J-V: the three-file session of the 120b]{J-V, the 120b: the three-file session \mes.}
+\label{t3jug:tab:v120}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+& A, original v1.0 & B, v1.2 & R, fast frontier \\
+\midrule
+generation, tokens/s & \num{1.995} · \num{1.785} · \num{2.013} · \num{2.019} & \num{2.892} · \num{2.886} · \num{2.900} · \num{2.868} & \num{3.712} · \num{3.709} · \num{3.698} · \num{3.719} \\
+median; relative $\sigma$ & \textbf{\num{2.004}}; \SI{5.8}{\percent} & \textbf{\num{2.889}}; \SI{0.5}{\percent} & \textbf{\num{3.711}}; \SI{0.2}{\percent} \\
+chunk bytes per step & \SI{710.1}{\Mo} & \SI{686.8}{\Mo} ($\times\,\num{0.9671}$) & \SI{468.5}{\Mo} \\
+per-byte rate, generation & \SI{1.42}{\Go\per\second} & \SI{1.98}{\Go\per\second} & \SI{1.74}{\Go\per\second} \\
+VRAM hits & \num{0.590} & \num{0.590} & \num{0.607} \\
+text (256 tokens) & \texttt{e4c6dbac}… & \texttt{e4c6dbac}… (the same) & \texttt{2cf1d474}… (that of lot B) \\
+peak memory & \SI{388.7}{\Mo} & \SI{382.3}{\Mo} & \SI{342.4}{\Mo} \\
+\textbf{disk stage alone} (2 passes) & \textbf{\num{1.772} · \num{1.744}} GB/s & \textbf{\num{2.394} · \num{2.422}} & \textbf{\num{2.324} · \num{2.279}} \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/genome/construction/juge/vitesse/seance-120b.\{json,log\}}, \fichier{vitesse/analyse-120b.json}, \fichier{figures/vitesse-passes.csv}, \fichier{figures/disque-passes.csv}.}
+\end{table}
+
+\begin{itemize}
+\item \textbf{J-V1 (A-C3 of lot A, taken up)}: $r(B/A) = \num{1.442}$, $\sigma = \SI{5.8}{\percent}$: no regression, gain announced; lot A published \num{1.454}. J1 is reproduced; the bytes fall by only \SI{3.3}{\percent} (ceiling $+\SI{3.4}{\percent}$), and the disk stage reads B \num{1.37} times faster than A.
+\item \textbf{J-V2}: $r(R/B) = \num{1.284}$; threshold $2.00 \times (1 - 2\sigma) = \num{1.769}$, with $\sigma = \num{0.05764}$ (rounded to 5.8\,\% in the judgement; \fichier{mesures/genome/construction/juge/vitesse/analyse-120b.json}): \textbf{the $\times 2.00$ is not a gain of the fast mode.} Against an exact file read at the same speed by the disk stage, the fast frontier mode returns $\times 1.28$ in generation, for a ceiling of the bytes of $686.8/468.5 = \times 1.47$ \calc. The judge's prediction ($\times 1.38$) was too high: the throughput per byte of the companion (\SI{1.74}{\Go\per\second}) stays below that of v1.2 (\num{1.98}), shorter reads (\SI{8.3}{\Mo} instead of \num{11.9} per chunk) [hyp. for the cause].
+\item \textbf{Where the rest of the $\times 2.00$ comes from}: $r(R/A) = \num{1.851}$ here (lot B measured 2.00 with other settings). Lot B split its ratio into $\times 1.524$ of bytes and a $\times 1.31$ of throughput per byte ``that the counters do not separate'' (\cref{t3sno:prop:b3}). The disk stage alone returns R/A $= \num{1.309}$: this $\times 1.31$ is \barre{the state of file A} the v1.0 read pattern of file A (corrected on 27 October, reserve R1), not the mode.
+\end{itemize}
+
+\subsection{The 20b}\label{t3jug:sec:v20}
+
+Settings of session s2 of lot B: \texttt{mesurer}, default slots, 256 tokens.
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[J-V: the three-file session of the 20b]{J-V, the 20b: the three-file session \mes.}
+\label{t3jug:tab:v20}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+& A, original v1.0 & B, v1.2 & R, fast $\lambda = 0$ \\
+\midrule
+generation, median; $\sigma$ & \textbf{\num{9.395}}; \SI{0.4}{\percent} & \textbf{\num{12.175}}; \SI{0.2}{\percent} & \textbf{\num{11.466}}; \SI{0.6}{\percent} \\
+prefill (708 tokens) & \SI{10.9}{\jps} & \SI{13.7}{\jps} & \SI{16.9}{\jps} \\
+chunk bytes per step & \SI{116.4}{\Mo} & \SI{112.5}{\Mo} & \SI{115.1}{\Mo} \\
+VRAM hits & \num{0.899} & \num{0.899} & \num{0.856} \\
+per-byte rate, generation & \SI{1.09}{\Go\per\second} & \SI{1.37}{\Go\per\second} & \SI{1.32}{\Go\per\second} \\
+text & \texttt{1b14e44a}… & \texttt{1b14e44a}… (the same) & \texttt{18be41e4}… (that of lot B) \\
+\textbf{disk stage alone} & \textbf{\num{1.786} · \num{1.775}} GB/s & \textbf{\num{2.461} · \num{2.443}} & \textbf{\num{2.475} · \num{2.472}} \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/genome/construction/juge/vitesse/seance-20b.\{json,log\}}, \fichier{vitesse/analyse-20b.json}.}
+\end{table}
+
+\begin{itemize}
+\item $r(R/A) = \num{1.220}$: the measurement of lot B (\num{1.241}) is reproduced to within \SI{1.7}{\percent}.
+\item \textbf{J-V3}: $r(R/B) = \num{0.942}$; threshold $1.241 \times (1 - 2 \times 0.0056) = \num{1.227}$: \textbf{the $\times 1.24$ is not a gain of the fast mode.} Against v1.2, the fast mode $\lambda = 0$ generates \SI{6}{\percent} more slowly: it reads as many bytes per step (ceiling $\times 0.98$), because its routing, lossy, misses the VRAM more often. It wins only in prefill ($\times 1.23$), where the text is imposed.
+\item \textbf{The cause proposed by lot B is impossible}: the engine reads each chunk without buffering (\texttt{trc-es}, \texttt{FILE\_FLAG\_NO\_BUFFERING | FILE\_FLAG\_OVERLAPPED}), and the placement stream measured that the disk reads \numrange{1.0000}{1.0057} times the bytes requested. The judge's declared prediction already held it false ``by construction''; the session judged it. The disk stage reads R \num{1.39} times faster than A, B \num{1.38} times.
+\item $r(B/A) = \num{1.296}$ on the 20b: v1.2 also runs \SI{30}{\percent} faster than its v1.0, for \SI{3.4}{\percent} fewer bytes; same cause, the disk stage.
+\end{itemize}
+
+\subsection{What makes the disk stage: reserve R1}\label{t3jug:sec:r1}
+
+The judge of the construction had first attributed the gap of the disk stage to the physical state of the files, after a reading of the disk placement stream: \barre{it is the state of the files, not the format (+3.4 \% at most)}. The placement judge overturned this reading on 27 October (\fichier{genome/JUGEMENT-placement.md}, §§ 0, 5.3, 5.6, 5.7), and the judgement of the construction carries the correction at every place, strike-throughs included. On this disk (NVMe behind Intel RST VMD, under BitLocker), the gap between v1.0 and v1.2 follows \emph{the pattern of read requests that the format imposes}: one and the same file read with the boundaries of the other format changes speed, and the exact variable of the pattern is not isolated (\cref{t3cod:sec:motif}).
+
+What this fixes, for the whole volume:
+\begin{itemize}
+\item \textbf{The $\times 1.44$ of J1 is a gain of the v1.2 format}, through the pattern of its read requests, \emph{specific to this disk}; it comes neither from its \SI{3.3}{\percent} fewer bytes, nor from ``the state of the file''. It does not carry over to another disk without being remeasured there.
+\item \textbf{The verdicts on the fast mode keep their meaning}: B and R both have a fast pattern (about 11.6 and \SI{8.3}{\Mo} per request), A the slow pattern of v1.0 (about \SI{12.0}{\Mo}); $r(R/B)$ compares two fast patterns. Wherever the judgement wrote ``with a file of comparable age'' and ``the state of file A'', read ``with a comparable read pattern'' and ``the v1.0 pattern of file A''.
+\item \textbf{The lever that works today} is to recode the v1.0 files as v1.2 ($\times 1.30$ to $\times 1.44$ between two files of the same model). The chapter on the codon develops it (\cref{t3cod:ch}); the disk placement is the subject of a chapter of Volume~II, ``The disk stage'', by decision of the placement judge.
+\end{itemize}
+
+\section{The reading: what is false, too good, or wrongly attributed}\label{t3jug:sec:lecture}
+
+The judge read the two deliverables sentence by sentence against their logs, and looked, for each figure of their ``In brief'' sections, for the committed file that carries it. Two findings are \emph{serious}: they change what the project would do next. The others are minor: they overturn no conclusion, but they make a figure look better than it is.
+
+\paragraph{G1, the ``120b $\times 2.00$'' of the fast mode.} Well measured, false as a gain of the mode: the exact file of the comparison is the v1.0 of 15 October, which the disk stage reads 1.31 times more slowly than the companion at equal bytes per read; against v1.2, the fast mode returns $\times 1.28$. Lot B had isolated this $\times 1.31$ and left it ``not measured''; it is measured. \emph{What this changes}: the specification built the mixed miss policy on this gain; $\times 1.28$ for a KL of \num{0.14} is not $\times 2.00$ for the same KL.
+
+\paragraph{G2, the ``20b $\times 1.24$''.} Same correct measurement, same false attribution, and here the fast mode gains nothing in generation. Lot B had the two facts needed to see it: the engine read almost the same bytes per step, and the first B pass, just after the companion was written and after an A pass, was twice as slow as the following ones (\num{5.46} against \num{11.8} tokens/s), which no read cache explains. \emph{What this changes}: on the 20b, the fast mode is a prefill mode, not a generation mode.
+
+\paragraph{The minor findings.} M1: the $\pm$ of the absolute KLs of lot B are naive, three to six times too narrow (\cref{t3jug:sec:sigma}); the paired verdicts, for their part, are right. M2: ``the tail falls too'' with $\lambda = 0$ is not reproduced against $\lambda = 1$, and is reproduced against the frontier. M3: the direction of the perplexity of $\lambda = 0$ reverses outside R1. M4: the speed rule of lot B looked only at the noise of the A passes; with $\sigma = \max(\sigma_A, \sigma_B)$ ($\sigma_B = \SI{31}{\percent}$), the gain would not have been announced. M5: ``the gain does not melt, it grows'' compared two variants; at equal variant, the sentence stays true.
+
+\paragraph{What else the judge checked, and which holds.} The per-tensor gain of lot A equals twice the share of the $-0$ to within $\num{-0.000167}$ … $\num{0.000161}$ bit over the 180 tensors (shares \SI{6.393}{\percent} and \SI{6.279}{\percent}, recomputed); the eight passes of session s2 of lot A give again \num{1.988} and \num{2.890} tokens/s and $r = \num{1.454}$; the sixteen passes of s2 of lot B give again \num{9.54}, \num{11.84}, \num{1.98} and \num{3.97} tokens/s and their bytes per step; the struck-through correction of the synthesis (the KL \num{0.0262} is that of $\lambda = 0$) is right; no attribution line nor e-mail address in the documents of the two lots.
+
+\section{What holds according to the judge, and what is struck through}\label{t3jug:sec:bilan}
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[What holds according to the judge of the construction]{What holds according to the judge of the construction, and by which path it redid it \mes.}
+\label{t3jug:tab:tient}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.06\linewidth}>{\raggedright\arraybackslash}p{0.36\linewidth}@{}}
+\toprule
+Figure & Lot & Judge's path \\
+\midrule
+\texttt{.trc} v1.2: \num{10851844096} and \num{55930175488} bytes, $-\num{1800486912}$ bytes; \num{0.12791} and \num{0.12562} bit per weight & A & its reader of the format, whole files \\
+each v1.2 expert is the expert of the GGUF up to the sign of the zeros; no 8; three fingerprints & A & its decoder, 96 drawn experts; v1.0 control 40 out of 40 \\
+no v1.2 table can produce an 8 (0 out of 540) & A & its reader of the tables \\
+logits identical to the bit, v1.2 against v1.0, on both models & A & ten new windows; break 512 out of 512 \\
+J1 of the 120b: v1.2 1.44 times faster than the original v1.0, \barre{for the files, not for the format} through the format, by the pattern of its requests, on this disk (reserve R1) & A & three-file session: \num{1.442} \\
+$\lambda = 0$ beats $\lambda = 1$ (B2) & B & new windows, engine: $-\num{0.0303} \pm \num{0.0084}$ (\num{3.6}\,$\sigma$) \\
+the engine serves the fast mode as faithfully as the substituted f64 & B & new windows: \num{0.0037}; \SI{97.8}{\percent} \\
+the exact mode is unchanged, and close to the f64 & A, B & new windows: \num{0.0044}; \SI{98.0}{\percent} \\
+R1: \num{0.2640}, \num{0.1522}, \num{0.1318}; paired $-\num{0.1118}$, $-\num{0.0204}$, $-\num{0.1322}$ & B & its KL on their files \\
+$\lambda = 0$ better than the frontier, and its tail lower & B & new windows, substituted f64: $-\num{0.1565} \pm \num{0.0334}$ (\num{4.7}\,$\sigma$); 99th $-\SI{26}{\percent}$, 99.9th $-\SI{18}{\percent}$ \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{genome/JUGEMENT-construction.md}, § 8, with the correction of 27 October (§ 6.1).}
+\end{table}
+
+\paragraph{What is struck through}, each time where it was published (the judge carried its strike-throughs into deliverable 07 and into its note for the thesis, without removing anything: \emph{answer by delegation of 2026-10-22, reversible}):
+\begin{itemize}
+\item \barre{120b $\times 2.00$ (gain of the fast mode)} $\to$ $\times 1.28$ against an exact file read at the same speed by the disk stage; the $\times 2.00$ remains true as a comparison of two files.
+\item \barre{20b $\times 1.24$ (gain of the fast mode)} $\to$ $\times 0.94$ in generation against v1.2; $\times 1.23$ in prefill.
+\item \barre{cause: the system's file cache} $\to$ impossible (unbuffered reads); measured cause: the disk stage, \barre{the physical state of the exact file} the v1.0 read pattern (R1).
+\item \barre{with $\lambda = 0$, the tail also falls at the 99.9th percentile, against $\lambda = 1$} $\to$ not reproduced outside R1; not a measurable quantity at \num{2550} positions.
+\item \barre{$\lambda = 0$ distorts the distribution in a privileged direction} $\to$ the direction of the perplexity reverses on other windows.
+\item The $\pm$ of the absolute KLs are not struck through: they are \emph{requalified}, as naive.
+\end{itemize}
+
+\section{What the judge's method teaches}\label{t3jug:sec:recettes}
+
+\begin{itemize}
+\item \textbf{A three-file session separates the format, the mode and the file}: $r(R/A) = r(R/B)\cdot r(B/A)$, and the disk stage measured in the same session says which of the factors is not the mechanism. One hour per model; it brought down two figures.
+\item \textbf{Before attributing a speed gain to a mechanism, measure the disk stage of each file in the same session}: one minute.
+\item \textbf{A judge's decoder written from the description alone, in another language, vectorised by prefix sum}: two seconds per expert, right to the bit at the first attempt on the decoding.
+\item \textbf{New windows drawn far from the region already seen, merged into a single file} that all the tools read without change.
+\item \textbf{Do not compare a 99.9th percentile of \num{2550} positions from one variant to another}: it rests on two or three positions.
+\item \textbf{The text of a lock counts}: the judge's first lock said ``pas une séance de vitesse'' (\emph{not a speed session}), and the leads stream, which looked for the word ``vitesse'' (\emph{speed}), paused for nothing.
+\item \textbf{Stopping a bash loop that launches a native program under Windows does not kill the program}: the f64 pass in progress finished on its own, and its complete output was kept.
+\end{itemize}
+
+\section{What remains}\label{t3jug:sec:reste}
+
+\begin{enumerate}
+\item \textbf{The mixed miss policy} is to be taken up with $r(R/B)$: on the 120b, $\times 1.28$ in generation for a KL of \num{0.14} (proxy); on the 20b, nothing in generation. Simulate it on the traces before building it.
+\item \textbf{The speed lever that the construction found is not a mechanism of the genome}: it is the pattern of read requests of the format on this disk. The exact variable remains to be isolated, at the disk stage, by patterns declared beforehand (placement judge, § 12).
+\item \textbf{Another corpus} (code, dialogue) for the KL of the synonymous genome, and the synonymous mutation of the 120b.
+\item The judge's heavy files (about \SI{13}{\Go} of \texttt{.kld} outside the repository) can be regenerated by the committed tools; they can be erased whenever Stone wishes.
+\end{enumerate}
+
+\section{What could be wrong}\label{t3jug:sec:faux}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{One session per model, a single morning} (22 October, from 6:17 to 7:11 for the engine). The ratios $r(R/B)$ rest on the fact, measured in the same session, that B and R are read at the same speed at the disk stage (R/B $= \num{0.956}$ and \num{1.009}, below the separation threshold of \SI{11.8}{\percent}); if this were no longer true on another day, the session would have to be redone, not the figure reused.
+\item \textbf{The settings are not all those of lot B}: on the 120b, those of J1 for the three files; the judge's $r(R/A)$ (\num{1.85}) differs from that of the lot (2.00) for this reason at least. What judges the attribution is $r(R/B)$, measured with the same settings for R and B.
+\item \textbf{The new windows are from wiki.test}, like R1 and the calibration: another text, not another kind of text.
+\item \textbf{The judge's decoder reads the same description as the authors of the coder.} A shared misreading would not be seen by comparing the decoded bytes… except that it would have been: the GGUF is read by a reader with nothing of the \texttt{.trc} format, and the fingerprints are SHA-256 computed on the judge's side \parencite{fips180-4}. What is not covered: the parts of the format that neither v1.0 nor v1.2 exercise (levels, raw, columns).
+\item \textbf{96 experts out of \num{5376} (\SI{1.8}{\percent})} by the judge's path. The probability that a defect touching at least \SI{5}{\percent} of the experts of a model escapes 32 draws is $0.95^{32} \approx \SI{19}{\percent}$ (20b), and at 64 draws $0.95^{64} \approx \SI{3.75}{\percent}$ (120b) \calc{} (the source writes 3.7\,\%, a rounding too low). The verifier of lot A, for its part, covers \SI{100}{\percent} of the experts; the draw judges this verifier, it does not replace it.
+\item \textbf{The judge's KL shares the convention of lot R} (cut at $\log p > -16$, without renormalisation): independent of the code, not of the convention. The paired differences hardly depend on it.
+\item \textbf{The judge's predictions were wrong twice} (B2 ``equal'', measured \num{3.6}\,$\sigma$; $r(R/B)$ of the 120b $\approx 1.38$, measured \num{1.28}); they were declared beforehand, and the measurement decided.
+\item \textbf{$\lambda = 1$ through the substituted reference was not run} on the new windows; B2 is judged there only by the engine, the frontier only by the substituted reference.
+\item \textbf{The engine and \texttt{genome-capture}} that the judge ran are built from the same code as those of the lots: it judges the files and the claims, not a second engine. The second path for the logits remains the f64 reference of lot R.
+\item \textbf{Reserve R1 itself}: the read pattern is established on this disk, by the placement judge, at the disk stage; the exact variable is not isolated, and another reading could replace it again. The verdicts of this chapter depend only on what the disk stage measures in the session, not on its explanation.
+\end{itemize}
+\end{faux}

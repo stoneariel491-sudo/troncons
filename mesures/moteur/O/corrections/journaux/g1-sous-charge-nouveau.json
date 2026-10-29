@@ -1,0 +1,75 @@
+{
+ "outil": "rejouer_g1.py",
+ "exe": "~/dev/cibles/troncons-O/ronde/troncons.exe",
+ "exe_sha256": "0f4d2d37a7c3086287d35f4bea4cba4ef8e90d54fb940c0228baa936cd50ec07",
+ "debut": "2026-10-16T07:20:18",
+ "alimentation_avant": "2",
+ "charge": {
+  "commande": [
+   "~\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+   "-I",
+   "-X",
+   "utf8",
+   "~\\dev\\active\\troncons\\mesures\\moteur\\epreuve-J1\\gptoss_numpy.py",
+   "~/dev/modeles/gguf/gpt-oss-120b-MXFP4.gguf",
+   "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+   "~\\dev\\essais\\troncons\\lot-O\\ronde\\g1\\nouveau-numpy.npz",
+   "--fenetre",
+   "0",
+   "--positions",
+   "511"
+  ],
+  "pid": 33388,
+  "mur_s": 1523.6,
+  "code": 0
+ },
+ "moteur": {
+  "commande": [
+   "~/dev/cibles/troncons-O/ronde/troncons.exe",
+   "evaluer",
+   "--modele",
+   "~/dev/modeles/trc/gpt-oss-120b-brut.trc",
+   "--base",
+   "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+   "--fenetres",
+   "10",
+   "--positions",
+   "512",
+   "--flux",
+   "--brut",
+   "--sortie",
+   "~\\dev\\essais\\troncons\\lot-O\\ronde\\g1\\nouveau.kld",
+   "--empreintes",
+   "~\\dev\\essais\\troncons\\lot-O\\ronde\\g1\\nouveau-empreintes.csv",
+   "--journal",
+   "~\\dev\\essais\\troncons\\lot-O\\ronde\\g1\\nouveau.json"
+  ],
+  "pid": 32460,
+  "depart_apres_charge_s": 60.0,
+  "mur_s": 361.0,
+  "code": 0,
+  "fige_arrete": false,
+  "battements": 360,
+  "fenetres_finies": 10,
+  "erreur": null,
+  "dernieres_lignes": [
+   "troncons : préremplissage par flux, couche 33/36 (25.0 s ; 30870 lectures de tronçons ; 0 conflits d'arrivée évités)",
+   "troncons : préremplissage par flux, couche 34/36 (25.6 s ; 30946 lectures de tronçons ; 0 conflits d'arrivée évités)",
+   "troncons : préremplissage par flux, couche 35/36 (26.3 s ; 31023 lectures de tronçons ; 0 conflits d'arrivée évités)",
+   "troncons : préremplissage par flux, couche 36/36 (27.0 s ; 31102 lectures de tronçons ; 0 conflits d'arrivée évités)",
+   "troncons evaluer : fenêtre 10/10 (358 s)",
+   "troncons evaluer : 0 pas en 358 s (0.00 pas/s), h = 0.000, PPL des positions notées 422.206"
+  ],
+  "compteurs": {
+   "flux_conflits_evites": 0,
+   "garde_troncons": 31102,
+   "lectures_troncons": 31102,
+   "garde_attente_s": 4.377399500000004
+  },
+  "ppl": 422.20558522791305,
+  "kld_sha256": "5b212fe9ac9aac934cdb4fe2d50932b03e88c0704e5569715153351832bcd7be",
+  "kld_egal_lot_O": true
+ },
+ "fin": "2026-10-16T07:45:42",
+ "alimentation_apres": "2"
+}

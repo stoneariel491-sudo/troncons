@@ -1,0 +1,364 @@
+% Sources de l'étude 05 (sparsité, prédiction, décodage spéculatif),
+% reprises de fondations/05-sparsite.md § 11. Produit par memoire/outils/bib_etudes.py.
+
+@online{leviathan2023,
+  author     = {Leviathan, Yaniv and Kalman, Matan and Matias, Yossi},
+  title      = {Fast Inference from Transformers via Speculative Decoding},
+  date       = {2022-11-30},
+  eprint     = {2211.17192},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2211.17192},
+  urldate    = {2026-10-15},
+  note       = {ICML 2023 ; dernière version 2023-05-18}
+}
+
+@online{chen2023spec,
+  author     = {Chen, Charlie and others},
+  title      = {Accelerating Large Language Model Decoding with Speculative Sampling},
+  date       = {2023-02-02},
+  eprint     = {2302.01318},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2302.01318},
+  urldate    = {2026-10-15}
+}
+
+@online{medusa2024,
+  author     = {Cai, Tianle and others},
+  title      = {{Medusa}: Simple {LLM} Inference Acceleration Framework with Multiple Decoding Heads},
+  date       = {2024-01-19},
+  eprint     = {2401.10774},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2401.10774},
+  urldate    = {2026-10-15},
+  note       = {dernière version 2024-06-14}
+}
+
+@online{eagle2_2024,
+  author     = {Li, Yuhui and others},
+  title      = {{EAGLE-2}: Faster Inference of Language Models with Dynamic Draft Trees},
+  date       = {2024-06-24},
+  eprint     = {2406.16858},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2406.16858},
+  urldate    = {2026-10-15},
+  note       = {dernière version 2024-06-30}
+}
+
+@online{eagle3_2025,
+  author     = {Li, Yuhui and others},
+  title      = {{EAGLE-3}: Scaling up Inference Acceleration of Large Language Models via Training-Time Test},
+  date       = {2025-03-03},
+  eprint     = {2503.01840},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2503.01840},
+  urldate    = {2026-10-15},
+  note       = {dernière version 2025-04-23}
+}
+
+@online{gloeckle2024,
+  author     = {Gloeckle, Fabian and others},
+  title      = {Better and Faster Large Language Models via Multi-token Prediction},
+  date       = {2024-04-30},
+  eprint     = {2404.19737},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2404.19737},
+  urldate    = {2026-10-15}
+}
+
+@online{dflash2026,
+  author     = {Chen and Liang and Liu},
+  title      = {{DFlash}: Block Diffusion Drafting for Speculative Decoding},
+  date       = {2026-02-05},
+  eprint     = {2602.06036},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2602.06036},
+  urldate    = {2026-10-15},
+  note       = {ICML 2026 ; dernière version 2026-05-28}
+}
+
+@online{lookahead2024,
+  author     = {Fu, Yichao and others},
+  title      = {Break the Sequential Dependency of {LLM} Inference Using Lookahead Decoding},
+  date       = {2024-02-03},
+  eprint     = {2402.02057},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2402.02057},
+  urldate    = {2026-10-15}
+}
+
+@online{layerskip2024,
+  author     = {Elhoushi, Mostafa and others},
+  title      = {{LayerSkip}: Enabling Early Exit Inference and Self-Speculative Decoding},
+  date       = {2024-04-25},
+  eprint     = {2404.16710},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2404.16710},
+  urldate    = {2026-10-15},
+  note       = {ACL 2024 ; dernière version 2024-10-18}
+}
+
+@online{qspec2024,
+  author     = {Zhao, Juntao and others},
+  title      = {{QSpec}: Speculative Decoding with Complementary Quantization Schemes},
+  date       = {2024-10-15},
+  eprint     = {2410.11305},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2410.11305},
+  urldate    = {2026-10-15},
+  note       = {EMNLP 2025 ; dernière version 2025-10-02}
+}
+
+@online{subspec2025,
+  author     = {Wang and others},
+  title      = {Substitute Speculative Decoding for Offloaded {LLMs} ({SubSpec})},
+  date       = {2025-09-22},
+  eprint     = {2509.18344},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2509.18344},
+  urldate    = {2026-10-15},
+  note       = {NeurIPS 2025 ; dernière version 2025-10-08}
+}
+
+@online{shadowspec2026,
+  author     = {Chan and others},
+  title      = {{ShadowSpec}},
+  date       = {2026},
+  url        = {https://icml.cc/virtual/2026/75131},
+  urldate    = {2026-10-15},
+  note       = {ICML 2026, atelier AdaptFM}
+}
+
+@online{stree2025,
+  author     = {Wu and others},
+  title      = {{STree}: Speculative Tree Decoding for Hybrid State-Space Models},
+  date       = {2025-05-20},
+  eprint     = {2505.14969},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2505.14969},
+  urldate    = {2026-10-15},
+  note       = {NeurIPS 2025 ; dernière version 2025-10-27}
+}
+
+@online{specexec2024,
+  author     = {Svirschevski, Ruslan and others},
+  title      = {{SpecExec}: Massively Parallel Speculative Decoding for Interactive {LLM} Inference on Consumer Devices},
+  date       = {2024-06-04},
+  eprint     = {2406.02532},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2406.02532},
+  urldate    = {2026-10-15},
+  note       = {dernière version 2024-11-30}
+}
+
+@online{sequoia2024,
+  author     = {Chen, Zhuoming and others},
+  title      = {{Sequoia}: Scalable, Robust, and Hardware-aware Speculative Decoding},
+  date       = {2024-02-19},
+  eprint     = {2402.12374},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2402.12374},
+  urldate    = {2026-10-15},
+  note       = {dernière version 2025-07-05}
+}
+
+@online{specinfer2023,
+  author     = {Miao, Xupeng and others},
+  title      = {{SpecInfer}: Accelerating Generative Large Language Model Serving with Tree-based Speculative Inference and Verification},
+  date       = {2023-05-16},
+  eprint     = {2305.09781},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2305.09781},
+  urldate    = {2026-10-15}
+}
+
+@online{triforce2024,
+  author     = {Sun, Hanshi and others},
+  title      = {{TriForce}: Lossless Acceleration of Long Sequence Generation with Hierarchical Speculative Decoding},
+  date       = {2024-04-18},
+  eprint     = {2404.11912},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2404.11912},
+  urldate    = {2026-10-15},
+  note       = {COLM 2024 ; dernière version 2024-08-04}
+}
+
+@online{dovetail2024,
+  author     = {Zhang and others},
+  title      = {{Dovetail}: A {CPU/GPU} Heterogeneous Speculative Decoding for {LLM} Inference},
+  date       = {2024-12-25},
+  eprint     = {2412.18934},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2412.18934},
+  urldate    = {2026-10-15},
+  note       = {dernière version 2025-09-09}
+}
+
+@online{specoffload2025,
+  author     = {Zhuge and others},
+  title      = {{SpecOffload}: Unlocking Latent {GPU} Capacity for {LLM} Inference on Resource-Constrained Devices},
+  date       = {2025-05-15},
+  eprint     = {2505.10259},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2505.10259},
+  urldate    = {2026-10-15},
+  note       = {dernière version 2025-05-21}
+}
+
+@online{cascade2025,
+  author     = {Saxena and others},
+  title      = {Utility-Driven Speculative Decoding for Mixture-of-Experts ({Cascade})},
+  date       = {2025-06-17},
+  eprint     = {2506.20675},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2506.20675},
+  urldate    = {2026-10-15}
+}
+
+@online{moesd2025,
+  author     = {Huang and others},
+  title      = {{MoESD}: Speculative Decoding for Sparse {MoE}},
+  date       = {2025-05-26},
+  eprint     = {2505.19645},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2505.19645},
+  urldate    = {2026-10-15},
+  note       = {NeurIPS 2025 ; dernière version 2026-02-16}
+}
+
+@online{moespec2026,
+  author     = {McDanel and others},
+  title      = {{MoE-Spec}: Expert Budgeting for Speculative Decoding of Mixture-of-Experts},
+  date       = {2026-02-17},
+  eprint     = {2602.16052},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2602.16052},
+  urldate    = {2026-10-15}
+}
+
+@online{acceptmoe2026,
+  author     = {Liang and others},
+  title      = {{AcceptMoE}: Acceptance-aware Expert Budgets for Offloaded Speculative Decoding},
+  date       = {2026-08-04},
+  eprint     = {2608.02989},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2608.02989},
+  urldate    = {2026-10-15}
+}
+
+@online{ecospec2026,
+  author     = {Xie and others},
+  title      = {Less Experts, Faster Decoding ({EcoSpec})},
+  date       = {2026-07-14},
+  eprint     = {2607.12696},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2607.12696},
+  urldate    = {2026-10-15}
+}
+
+@online{evict2026,
+  author     = {Pan and others},
+  title      = {Making Every Verified Token Count ({EVICT})},
+  date       = {2026-05-01},
+  eprint     = {2605.00342},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2605.00342},
+  urldate    = {2026-10-15},
+  note       = {dernière version 2026-09-05}
+}
+
+@online{draftexpert2026,
+  author     = {Han},
+  title      = {{DraftExpert}: Distilled Draft Experts for On-Demand {MoE} Inference},
+  date       = {2026-07-27},
+  eprint     = {2607.24434},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2607.24434},
+  urldate    = {2026-10-15}
+}
+
+@online{dejavu2023,
+  author     = {Liu, Zichang and others},
+  title      = {{Deja Vu}: Contextual Sparsity for Efficient {LLMs} at Inference Time},
+  date       = {2023-10-26},
+  eprint     = {2310.17157},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2310.17157},
+  urldate    = {2026-10-15},
+  note       = {ICML 2023}
+}
+
+@online{relustrikes2023,
+  author     = {Mirzadeh, Iman and others},
+  title      = {{ReLU} Strikes Back: Exploiting Activation Sparsity in Large Language Models},
+  date       = {2023-10-06},
+  eprint     = {2310.04564},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2310.04564},
+  urldate    = {2026-10-15}
+}
+
+@online{cats2024,
+  author     = {Lee, Je-Yong and others},
+  title      = {{CATS}: Contextually-Aware Thresholding for Sparsity in Large Language Models},
+  date       = {2024-04-12},
+  eprint     = {2404.08763},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2404.08763},
+  urldate    = {2026-10-15},
+  note       = {dernière version 2024-11-03}
+}
+
+@online{teal2024,
+  author     = {Liu, James and others},
+  title      = {Training-Free Activation Sparsity in Large Language Models ({TEAL})},
+  date       = {2024-08-26},
+  eprint     = {2408.14690},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2408.14690},
+  urldate    = {2026-10-15},
+  note       = {ICLR 2025 ; dernière version 2025-02-25}
+}
+
+@online{rsparse2025,
+  author     = {Zhang and others},
+  title      = {{R-Sparse}: Rank-Aware Activation Sparsity for Efficient {LLM} Inference},
+  date       = {2025-04-28},
+  eprint     = {2504.19449},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2504.19449},
+  urldate    = {2026-10-15},
+  note       = {ICLR 2025}
+}
+
+@online{polar2025,
+  author     = {Shrestha and others},
+  title      = {Polar Sparsity: High Throughput Batched {LLM} Inferencing with Scalable Contextual Sparsity},
+  date       = {2025-05-20},
+  eprint     = {2505.14884},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2505.14884},
+  urldate    = {2026-10-15},
+  note       = {NeurIPS 2025 ; dernière version 2025-11-11}
+}
+
+@online{turbosparse2024,
+  author     = {Song, Yixin and others},
+  title      = {Turbo Sparse: Achieving {LLM} {SOTA} Performance with Minimal Activated Parameters},
+  date       = {2024-06-10},
+  eprint     = {2406.05955},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2406.05955},
+  urldate    = {2026-10-15},
+  note       = {dernière version 2024-06-11}
+}
+
+@online{sparseverif2025,
+  author     = {Wang and others},
+  title      = {Accelerate Speculative Decoding with Sparse Computation in Verification},
+  date       = {2025-12-26},
+  eprint     = {2512.21911},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2512.21911},
+  urldate    = {2026-10-15}
+}
+

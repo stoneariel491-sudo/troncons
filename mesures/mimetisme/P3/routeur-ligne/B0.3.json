@@ -1,0 +1,149 @@
+{
+  "alimentation": {
+    "ACLineStatus": 1,
+    "BatteryFlag": 1,
+    "BatteryLifePercent": 80,
+    "secteur": true
+  },
+  "base": "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+  "commande": "evaluer --modele ~/dev/modeles/trc/gpt-oss-20b.trc --base ~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld --fenetres 10 --positions 512 --emplacements 238 --sortie ~/dev/essais/troncons/mimetisme/P3/routeur-ligne/B0.3.kld --empreintes ~/dev/active/troncons/mesures/mimetisme/P3/routeur-ligne/B0.3-empreintes.csv --trace ~/dev/active/troncons/mesures/mimetisme/P3/routeur-ligne/B0.3.trace --journal ~/dev/active/troncons/mesures/mimetisme/P3/routeur-ligne/B0.3.json --biais-cache 0.3",
+  "compteurs": {
+    "acces": 491520,
+    "defauts_disque": 50911,
+    "emplacements": 238,
+    "evictions": 50673,
+    "experts_decodes": 50911,
+    "experts_verifies": 0,
+    "flux_conflits_evites": 0,
+    "garde_attente_s": 20.415958299999964,
+    "garde_lignes": 5120,
+    "garde_octets": 611235335392,
+    "garde_octets_ouverture": 615333888,
+    "garde_troncons": 50911,
+    "h_vram": 0.8964213053385417,
+    "lectures_enchassement": 5120,
+    "lectures_troncons": 50911,
+    "ms_copie_carte": 53085.48524016142,
+    "ms_decodage_carte": 36099.16883072257,
+    "octets_copies_cache": 611338694656,
+    "octets_disque_cache": 611338694656,
+    "octets_dma": 611338694656,
+    "octets_lus": 613298323456,
+    "octets_lus_enchassement": 41943040,
+    "octets_lus_troncons": 611338694656,
+    "pas": 5120,
+    "pf_emis": 0,
+    "pf_octets": 0,
+    "pf_utiles": 0,
+    "s_attente_routeur": 133.30701070000057,
+    "s_fin_jeton": 30.819582300000018,
+    "s_lectures": 352.1832335999984,
+    "s_pas": 561.2689398999986,
+    "succes_ram": 0,
+    "succes_vram": 440609,
+    "tiedes": 0
+  },
+  "date_utc": "2026-10-27T15:24:20Z",
+  "disque": {
+    "octets_comptes_moteur": {
+      "dont_chargement_residents": 1302351872,
+      "lecteur": 613298323456,
+      "ouverture_tamponnee": 13224527,
+      "total": 613311547983
+    },
+    "processus": {
+      "lectures": 56162,
+      "octets_ecrits": 1027315400,
+      "octets_lus": 613316621904,
+      "octets_lus_depuis_le_depart": 613320833033
+    }
+  },
+  "empreinte_csv_sha256": "ff9107b143ec780ca6fd333f8b7b230cf6d7eb1cccc74c15519493934e6e4fff",
+  "fenetres": 10,
+  "flux": false,
+  "flux_experts": 0,
+  "flux_positions": 0,
+  "moteur": {
+    "arrivees": 12,
+    "biais_cache": 0.30000001192092896,
+    "brut": false,
+    "carte": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "casser_garde": null,
+    "chargement": {
+      "empreintes_verifiees": 314,
+      "lectures": 78,
+      "octets_lus": 1302351872,
+      "octets_tenseurs": 1302341376,
+      "secondes": 1.4768634,
+      "tenseurs": 314
+    },
+    "contexte": 4096,
+    "couches": 24,
+    "couches_d_avance": 3,
+    "emplacements": 238,
+    "enchassement_en_ram": false,
+    "etapes_memoire": [
+      {
+        "ensemble_travail": 5148672,
+        "etape": "avant"
+      },
+      {
+        "ensemble_travail": 18538496,
+        "etape": "fichier"
+      },
+      {
+        "ensemble_travail": 128454656,
+        "etape": "contexte_flux"
+      },
+      {
+        "ensemble_travail": 129699840,
+        "etape": "noyaux"
+      },
+      {
+        "ensemble_travail": 130572288,
+        "etape": "modele"
+      },
+      {
+        "ensemble_travail": 130793472,
+        "etape": "luts"
+      },
+      {
+        "ensemble_travail": 281432064,
+        "etape": "fenetre_et_tampons"
+      },
+      {
+        "ensemble_travail": 281640960,
+        "etape": "emplacements_cache_evenements"
+      }
+    ],
+    "experts": 32,
+    "fichier": "~/dev/modeles/trc/gpt-oss-20b.trc",
+    "garde": true,
+    "k": 4,
+    "kv_f32": false,
+    "longueur_arrivee": 12144640,
+    "longueur_lecture": null,
+    "octets_emplacement": 13254144,
+    "octets_epingles": 146563072,
+    "octets_vram_moteur": 4712068784,
+    "ouverture_s": 2.6988409,
+    "prechargement": false,
+    "profondeur_es": 4,
+    "ram_tiede_go": 0.0,
+    "rapide": false,
+    "temoin": false,
+    "tiedes": 0,
+    "vocab": 201088,
+    "vram_plafond_mio": 7179
+  },
+  "n_ctx": 512,
+  "outil": "troncons evaluer",
+  "pas": 5120,
+  "pas_s": 8.763202675810527,
+  "positions_notees": 2550,
+  "positions_par_fenetre": 512,
+  "ppl_positions_notees": 503.10384137523585,
+  "secondes": 584.2612786,
+  "sortie": "~/dev/essais/troncons/mimetisme/P3/routeur-ligne/B0.3.kld",
+  "version": "0.1.0"
+}

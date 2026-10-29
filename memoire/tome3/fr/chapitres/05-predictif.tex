@@ -1,0 +1,294 @@
+% Tome~III, chapitre 5 : codage prédictif et élagage synaptique (version française).
+% Rédacteur A, 2026-10-29. Plan et réserves : memoire/tome3/PLAN-redaction.md § 05.
+% Chaque nombre vient d'un fichier commité, nommé à côté de lui : genome/predictif-elagage-pour-le-memoire.md
+% (le livrable du sujet), genome/REPRISE-predictif-elagage.md, mesures/genome/predictif-elagage/
+% (resume-12.csv, taux-reel-*.json, contextes-*.json, debit-distorsion-12.*, plans/, kl/, sortie-experts-*),
+% genome/05-synthese.md § 1.1 (le protocole P3). Les comparaisons appariées ont été relues dans
+% kl/comparer-*.json. Aucune figure n'est tracée (III-5.1 et III-5.2 proposées, non tracées) : tableaux.
+\chapter{Codage prédictif et élagage synaptique}\label{t3pre:ch}
+
+\begin{origine}
+\textbf{Au départ}, sur les 12 tenseurs d'experts de la frontière (gpt-oss-20b, couches 0, 8, 16 et 23, gate, up et down ; 3\,185\,049\,600 poids), le codage sans perte lit 3,8431 bits par poids (A\_ctx), et la base de B 2,6441 bits pour 4,2920\,\% d'erreur quadratique relative ; le contexte d'échelle $\kappa$ (sous, égale, au-dessus de la médiane de la ligne) est déjà dans le format. La lecture prédisait que le codage prédictif sans perte ne gagnerait que ce que le voisin apporte (0,005 bit), et que l'élagage dépendrait de la sortie, pas des poids (\cref{t3que:tab:pronostic}).
+\textbf{Ce chapitre établit} le gain exact des codons synonymes du E2M1, démontré et mesuré au codec réel sur les deux modèles entiers ; que le codage prédictif sans perte, au sens strict, ne retire presque rien, sauf un prédicteur : la classe d'énergie de la \emph{colonne d'entrée} ; un système sans perte en valeur, zéro fondu et colonne, à \textbf{3,6844 bits} contre 3,8434, décodé exactement ; le cadre débit-distorsion où l'élagage synaptique n'est que le régime de débit nul d'un remplissage inverse ; que la métrique de la frontière est fausse pour juger une perte ; et que la sortie des experts puis la KL contre la référence font tomber tout ce qui remplit à travers les échelles absolues, même à erreur d'expert égale, pour ne laisser qu'un point avec perte : des partitions relatives à la ligne, tenseur par tenseur, à \textbf{0,911 fois les bits} de la base et \textbf{KL statistiquement égale}.
+\textbf{Il reste} les noyaux de carte des tables par contexte, la rétroaction d'erreur sur l'alphabet des cellules, un critère de sensibilité jugé par jeton ou contre la KL, et la mesure sur les 24 couches puis sur le 120b.
+Sources : \fichier{genome/predictif-elagage-pour-le-memoire.md} (le livrable du sujet) ; \fichier{genome/REPRISE-predictif-elagage.md} ; \fichier{mesures/genome/predictif-elagage/} (\texttt{resume-12.csv}, \texttt{taux-reel-*.json}, \texttt{contextes-*.json}, \texttt{debit-distorsion-12.*}, \texttt{plans/}, \texttt{sortie-experts-*}, \texttt{kl/}) ; \fichier{genome/05-synthese.md} §\,1.1 ; outils sous \fichier{outils/genome/predictif-elagage/}.
+\end{origine}
+
+\begin{enbref}
+Deux gestes du système nerveux ont servi de guides, comme analogies. La rétine ne transmet pas l'image, elle transmet ce qui la distingue de ce que ses voisins prédisaient : c'est le codage prédictif~\cite{rao1999}, et un neurone de l'œil de la mouche ajuste même sa réponse à la loi de ses entrées pour en tirer le plus d'information~\cite{genome-pe-laughlin1981}. Le cerveau en développement, lui, fabrique trop de synapses puis retire celles que l'activité ne sollicite pas : c'est l'élagage synaptique~\cite{huttenlocher1979}. Transposés aux poids, le premier geste demande ce que les voisins d'un code disent de lui, et la réponse est : presque rien, sauf la colonne par laquelle il lit son entrée. Le second geste se formule exactement en théorie du débit : fixer un prix du bit, et laisser disparaître les synapses qui ne le paient pas. Il gagne beaucoup sur les métriques de poids, et presque tout ce gain s'évanouit quand on juge sur le texte. Ce qui tient est modeste et solide : un signe de zéro qu'on cesse de payer, une carte de colonnes, et une base qui économise 9\,\% de bits sans dégrader la divergence au-delà du bruit de la mesure.
+\end{enbref}
+
+\section{Les codons synonymes du E2M1}\label{t3pre:sec:codons}
+
+\paragraph{Le fait} \mes. Sur les 12 tenseurs, $P(+0) = 0{,}068\,46$ et $P(-0) = 0{,}068\,48$ ; plus largement, $P(+c) = P(-c)$ à $10^{-4}$ près pour chaque magnitude. Par tenseur, $P(+0)$ et $P(-0)$ diffèrent de moins de $10^{-4}$, de 0,059 à 0,098 chacun (\fichier{histo-12-gptoss20b.npz}). Le quantificateur qui a produit le MXFP4 de gpt-oss garde le signe de la valeur d'origine même quand sa magnitude s'arrondit à zéro. Or E2M1 a deux codes pour zéro, \texttt{0b0000} et \texttt{0b1000} ; ggml les lit tous deux comme l'entier 0, la référence f64 comme $+0$ et $-0$, qui ne changent aucune somme non nulle (\cref{t3ecl:prop:zero}).
+
+\paragraph{Le parallèle biologique, comme image.} Les codons synonymes du code génétique (\cref{t3int:sec:genome}) diffèrent souvent par leur troisième base, la position « bancale » de Crick~\cite{genome-pe-crick1966wobble}, et une mutation qui passe de l'un à l'autre est silencieuse. Les deux codes $\pm0$ sont deux codons synonymes ; l'information qui les distingue n'a aucun phénotype. Canoniser tout $-0$ en $+0$ avant le codage entropique revient à réduire l'usage des codons à un seul codon par sens.
+
+\begin{proposition}[Le gain exact du fondu]\label{t3pre:prop:fondu}
+Soit $C$ le code de 4 bits d'un poids et $V = v(C)$ sa valeur, $v(c) = (-1)^{c_3} K[c \mathbin{\&} 7]$, injective sauf sur $\{0, 8\}$. Soit $S$ le bit de signe. Alors
+\begin{equation}\label{t3pre:eq:fondu}
+H(C) = H(V) + P(V = 0)\, H(S \mid V = 0).
+\end{equation}
+Le même énoncé vaut conditionnellement à tout contexte que le décodeur connaît (classe d'échelle $\kappa$, octet voisin).
+\end{proposition}
+
+\begin{proof}
+$V$ est une fonction de $C$, donc $H(V \mid C) = 0$ et $H(C, V) = H(C)$. Par la règle de chaîne, $H(C, V) = H(V) + H(C \mid V)$. Sachant $V = v \ne 0$, $C$ est déterminé ($v$ injective hors de 0) : $H(C \mid V = v) = 0$. Sachant $V = 0$, $C \in \{0, 8\}$ est déterminé par $S$ : $H(C\mid V = 0) = H(S \mid V = 0)$. D'où $H(C\mid V) = \sum_v P(V = v)\,H(C\mid V = v) = P(V = 0)\,H(S\mid V = 0)$. Remplacer partout $H(\cdot)$ par $H(\cdot\mid\kappa)$ ne change aucun pas.
+\end{proof}
+
+Fondre 8 dans 0 remplace $C$ par $C'$ de même valeur, et $H(C') = H(V)$ : le gain est $P(V = 0)\,H(S\mid V = 0)$, soit à peu près $P(V = 0)$ bit quand le signe est une pièce juste. \textbf{Calcul posé} \calc : $P(V = 0) = 0{,}068\,46 + 0{,}068\,48 = 0{,}136\,94$ ; $H(S\mid V = 0) = h(0{,}068\,46/0{,}136\,94) = h(0{,}499\,93) = 1{,}0000$ bit, $h$ l'entropie binaire ; gain $= 0{,}136\,94$ bit par poids. Mesuré par l'entropie conditionnelle (contexte $\kappa$, tables par tenseur) : 0,136\,939 \mes ; par le codec réel : 0,1370 \mes. La forme du gain par octet, qui sert au format, est reprise au \cref{t3cod:ch}.
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X r r r >{\raggedright\arraybackslash}X@{}}
+\toprule
+Tenseurs & sans perte au bit & zéro fondu & gain & journal \\
+\midrule
+12 de la frontière (20b) & 3,8434 & \textbf{3,7064} & 0,1370 & \fichier{taux-reel-12-gptoss20b.json} \\
+72, toutes couches (20b) & 3,8509 & \textbf{3,7230} & 0,1280 & \fichier{taux-reel-toutes-gptoss20b.json} \\
+108, toutes couches (120b, 60,9\,Go) & 3,8549 & \textbf{3,7292} & 0,1257 & \fichier{taux-reel-toutes-gptoss120b.json} \\
+\bottomrule
+\end{tabularx}
+\caption[Le codon synonyme du zéro au codec réel, sur les deux modèles]{Le codon synonyme du zéro au codec réel (rANS de l'étude 03, comptabilité de l'arbitre, A\_flux), en bits par poids \mes. La ligne « sans perte au bit » retrouve exactement A\_flux de l'arbitre (3,8434) : second chemin du même codec. Journaux sous \fichier{mesures/genome/predictif-elagage/}.}
+\label{t3pre:tab:codons}
+\end{table}
+
+\paragraph{Les témoins.} Chaque flux est décodé et comparé octet à octet, aucune voie hors de son état final ; chaque demi-octet décodé rend la valeur d'origine ($d = o$, ou $o = 8$ et $d = 0$). Cassure (8 envoyé sur 1) : le témoin de valeur tombe (\fichier{taux-reel-12-gptoss20b-casse.json}). De bout en bout, la référence f64 à poids reconstruits (crochet \texttt{alterer\_expert}) rend, pour le plan identité, des entrées \texttt{.kld} identiques octet pour octet à la référence (510 entrées) et \texttt{juge kl} = 0 exactement (\fichier{kl/identite-2f-octets.json}) ; le plan zéro fondu donne des valeurs identiques, donc la même sortie. Ces mesures rejoignent celles de l'éclaireur par un autre chemin (\cref{t3ecl:tab:zero}) et les étendent au 120b entier.
+
+\section{Le codage prédictif sans perte : ce que les voisins disent d'un code}\label{t3pre:sec:predictif}
+
+\paragraph{Le cadre.} Pour un alphabet discret, « prédire puis coder l'écart » s'écrit exactement : coder le code avec une loi conditionnée par un contexte $X$ que le décodeur connaît. Le gain est l'information mutuelle
+\begin{equation}\label{t3pre:eq:im}
+I(C ; X \mid \kappa) = H(C \mid \kappa) - H(C \mid \kappa, X).
+\end{equation}
+L'estimateur par fréquences est biaisé vers le bas ; par le développement de Miller~\cite{miller1955bias}, avec des tables par tenseur, le biais sur le gain vaut $(K_X - K_\kappa)(16 - 1)/(2 N_t \ln 2)$ bit par symbole, $K$ le nombre de contextes et $N_t = 265\,420\,800$ poids par tenseur. \textbf{Seuil déclaré avant} : 0,015 bit par poids, le coût d'en-tête d'un flux de plus (0,40\,\% de 3,84 bits, étude 03).
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabular}{l r r l}
+\toprule
+Prédicteur, en plus de $\kappa$ & $H$ (bits par poids) & gain & verdict \\
+\midrule
+aucun ($\kappa$ seul) & 3,7923 & — & référence \\
+$\delta$ exact ($\pm 2$) & 3,7915 & 0,0007 & écarté \\
+octet entier (paire de demi-octets du bloc) & 3,7885 & 0,0037 & déjà dans A\_ctx \\
+code de gauche & 3,7846 & 0,0076 & écarté \\
+code du dessus (ligne précédente) & 3,7831 & 0,0091 & écarté \\
+expert parent (même place, expert $e - 1$) & 3,7879 & 0,0043 & écarté \\
+gauche $\times$ dessus (867 contextes) & 3,7922 & 0,0000 & écarté (tables) \\
+contrainte du maximum de bloc & 3,7921 & 0,0001 & écarté \\
+\textbf{classe de la colonne d'entrée (quartile)} & \textbf{3,7608} & \textbf{0,0314} & \textbf{retenu} \\
+\bottomrule
+\end{tabular}
+\caption[Ce que les voisins disent d'un code]{Le codage prédictif sans perte : ce que chaque contexte retire de l'entropie d'un code, 12 tenseurs, tables comprises \mes. Seuil déclaré : 0,015 bit. Données : \fichier{mesures/genome/predictif-elagage/contextes-gptoss20b.json}.}
+\label{t3pre:tab:contextes}
+\end{table}
+
+\paragraph{Lecture} (\cref{t3pre:tab:contextes}).
+\begin{itemize}
+\item \textbf{Les voisins ne prédisent presque rien.} Sachant l'échelle de son bloc, un code MXFP4 est un tirage presque indépendant ; ce que la littérature appelle la « dépendance spatiale » des poids est ici sous 0,01 bit.
+\item \textbf{L'expert parent ne prédit rien} (0,004) : les experts d'une couche ne sont pas des copies mutées les uns des autres au niveau des codes, ce que le \cref{t3dup:ch} chiffre sur les valeurs, avec permutation.
+\item \textbf{Chaque bloc contient au moins un grand code} ($|\mathrm{E2M1}| \ge 2$) : 0 bloc sur 99\,532\,800 en est privé ; la règle OCP de l'échelle ($2^{\lfloor\log_2 \max\rfloor - 2}$) est bien suivie, mais la contrainte ne vaut que $10^{-4}$ bit : un bloc a presque toujours plusieurs grands codes.
+\item \textbf{La colonne d'entrée porte une structure.} Certaines colonnes ont, en moyenne sur toutes les lignes et tous les experts d'un tenseur, des poids plus grands relativement à l'échelle de leur bloc. Le rapport entre la colonne la plus énergique et la médiane va de 1,11 (blk.0 down) à 2,93 (blk.23 gate), en racine d'énergie. Les entrées de gate et up sont l'état caché, dont certains canaux portent des activations aberrantes ; l'entraînement y a répondu par des poids de taille différente. C'est un fait d'entrée, partagé par les 32 experts : une carte de 2 bits par colonne et par tenseur (720 octets) suffit. C'est la même statistique que le parent de hasard du \cref{t3dup:ch} reprenait à 88 à 94\,\% dans la couche 0.
+\end{itemize}
+
+\paragraph{Les témoins, et une correction barrée.} Contexte égal au code lui-même : $H = 0$ (tient). Contexte « gauche » permuté au hasard : gain de $6{,}33\cdot10^{-5}$ pour un biais attendu de $6{,}26\cdot10^{-5}$ (tient, \fichier{contextes-temoin-corrige.json}). Le livrable porte une première formule, barrée : « \barre{Biais attendu $(51 - 1)\cdot15/(2N\ln 2) = 5{,}4\cdot10^{-6}$ avec $N$ poolé, témoin tombé.} » Corrigé le 2026-10-16 : les tables sont par tenseur, le biais se calcule avec $N_t$ et $51 - 3$ paramètres ajoutés ; avec l'ancienne formule (la cassure du témoin corrigé), le témoin tombe bien (\fichier{contextes-temoin-corrige-casse.json}).
+
+\paragraph{Le codec réel, $\kappa \times$ colonne.} Flux de demi-octets séparés par contexte, alphabet de 16, zéro fondu, carte et tables comptées (\fichier{taux-reel-colonne-12-gptoss20b.json}) \mes : \textbf{3,6844 bits par poids}, contre 3,7103 pour le même découpage en $\kappa$ seul (gain réel de la colonne : 0,0259) et 3,7064 pour l'alphabet octet en $\kappa$. Par tenseur, la colonne ne rend rien sur blk.23.ffn\_down (3,6744 $\to$ 3,6741 : l'entrée de down est la sortie d'une SwiGLU, sans canal aberrant) et l'essentiel sur gate et up. Le système sans perte en valeur, zéro fondu et colonne, lit donc \textbf{3,6844 bits contre 3,8434}, soit $-4{,}1\,\%$ \calc, et le \cref{t3syn:ch} montre où ce gain vit (presque tout à la couche 0).
+
+\section{L'élagage et la quantification prédictive bornée : le cadre débit-distorsion}\label{t3pre:sec:cadre}
+
+\paragraph{Le problème.} Remplacer chaque code $c$, dans un bloc d'échelle $e$, par une cellule $s$ d'une partition $P_k$ des 16 codes ordonnés sur la droite réelle ($-12, \ldots, -1, -0, +0, +1, \ldots, +12$ en grandeurs E2M1 doublées $K$), choisie selon un contexte $k$ que le décodeur connaît, reconstruite par $\hat w = r_{k,s}\, 2^{e-128}$. Débit : $H(s \mid k)$, une table par tenseur et par contexte. Distorsion : la somme des $(w - \hat w)^2$. C'est un quantificateur à contrainte d'entropie sur une source discrète~\cite{genome-pe-chou1989ecvq,genome-pe-farvardin1984}.
+
+\begin{lemme}[Le centre optimal d'une cellule]\label{t3pre:lem:centre}
+Pour une cellule fixée, la reconstruction qui minimise $\sum_i 4^{\,e_i - 128}(K_i - r)^2$ est le centre de gravité pondéré $r^\ast = B/A$, et l'erreur restante vaut $C - B^2/A$, avec $A = \sum_i 4^{e_i}$, $B = \sum_i 4^{e_i} K_i$, $C = \sum_i 4^{e_i} K_i^2$ (à un facteur $4^{-128}$ près).
+\end{lemme}
+
+\begin{proof}
+La fonction $r \mapsto C - 2rB + r^2 A$ est un trinôme en $r$, de dérivée $2(Ar - B)$, nulle en $B/A$ ; $A > 0$ en fait un minimum, où la valeur est $C - 2B^2/A + B^2/A = C - B^2/A$. (Le cas vectoriel est celui de Chou, Lookabaugh et Gray~\cite{genome-pe-chou1989ecvq}.)
+\end{proof}
+
+\begin{lemme}[La programmation dynamique exacte]\label{t3pre:lem:dp}
+Avec un multiplicateur $\mu$, le coût d'une partition en intervalles des 16 positions ordonnées est une somme de termes qui ne dépendent chacun que de leur cellule, $c(i, j) = D_{[i,j]}/E + \mu\, n_{[i,j]} \bigl(-\log_2 (n_{[i,j]}/n_k)\bigr)$, $E$ l'énergie du contexte, $n$ les effectifs. La meilleure partition s'obtient exactement par la récurrence
+\begin{equation}\label{t3pre:eq:dp}
+J(0) = 0, \qquad J(j) = \min_{0 \le i < j}\ J(i) + c(i, j - 1),
+\end{equation}
+en $16 \times 17 / 2 = 136$ évaluations de cellule, au lieu des $2^{15}$ partitions.
+\end{lemme}
+
+\begin{proof}
+Une partition en intervalles de $\{0, \ldots, j-1\}$ se termine par un dernier intervalle $[i, j-1]$, précédé d'une partition de $\{0, \ldots, i-1\}$. Le coût étant additif par cellule, le coût minimal se décompose comme~\eqref{t3pre:eq:dp} (principe de Bellman). Il y a une cellule possible par paire $i \le j$ des 16 positions, soit 136, chacune évaluée une fois par le \cref{t3pre:lem:centre} sur des sommes cumulées. C'est la segmentation d'histogramme de Muresan et Effros~\cite{genome-pe-muresan2002}, et de Wu et Zhang~\cite{genome-pe-wu1993}. Les cellules sont des intervalles parce que, pour la distorsion quadratique, une cellule optimale est convexe sur la droite.
+\end{proof}
+
+\begin{proposition}[Le remplissage inverse, et l'élagage comme son régime de débit nul]\label{t3pre:prop:remplissage}
+Un $\mu$ commun à tous les contextes réalise le minimum de la distorsion totale sous contrainte de débit total : aux points où chaque contexte est sur sa courbe $D_k(R_k)$ convexe, la condition de Karush-Kuhn-Tucker est $-\partial D_k/\partial R_k = \mu$ pour tout contexte actif, et un contexte dont la pente à débit nul est plus faible que $\mu$ reste à débit nul. Les contextes de faible énergie (échelle $e$ petite, colonne peu active) atteignent leur débit nul les premiers : une seule cellule, tout le contexte reconstruit par son centre, presque zéro.
+\end{proposition}
+
+\begin{proof}
+On minimise $\sum_k D_k(R_k)$ sous $\sum_k R_k \le R$, $R_k \ge 0$, avec des $D_k$ convexes décroissantes. Le lagrangien $\sum_k D_k(R_k) + \mu(\sum_k R_k - R) - \sum_k \nu_k R_k$ donne, à l'optimum, $D_k'(R_k) + \mu - \nu_k = 0$, $\nu_k \ge 0$, $\nu_k R_k = 0$. Pour un contexte actif ($R_k > 0$), $\nu_k = 0$ et $-D'_k(R_k) = \mu$ ; pour un contexte inactif, $-D'_k(0) = \mu - \nu_k \le \mu$. La convexité rend ces conditions suffisantes. C'est le remplissage inverse de~\cite[th. 10.3.3]{cover2006}, transposé à une source discrète par contextes. Un contexte de faible énergie a une pente $-D'_k(0)$ proportionnelle à son énergie : il devient inactif le premier.
+\end{proof}
+
+\textbf{L'élagage synaptique apparaît ainsi comme le régime de débit nul du remplissage inverse} : on ne choisit pas d'élaguer, on choisit un prix du bit, et les synapses qui ne le paient pas disparaissent. C'est le geste d'Optimal Brain Damage~\cite{lecun1989obd} et de Deep Compression~\cite{han2015deepcompression}, écrit sur nos cellules.
+
+\paragraph{La métrique, et pourquoi celle de la frontière est fausse ici.} La première passe utilisait l'erreur globale de la frontière, $\sum (w - \hat w)^2 / \sum w^2$ sur les 12 tenseurs. Or la part de l'énergie par tenseur est extrêmement inégale \mes : blk.23.ffn\_down 91,5\,\%, blk.16.ffn\_down 8,0\,\%, blk.8.ffn\_down 0,40\,\%, les neuf autres ensemble 0,015\,\%. Un $\mu$ commun sous cette métrique vide les neuf petits tenseurs : 0,32 bit « à 4,29\,\% » (\fichier{ecsq\_e\_metrique\_globale}, pour mémoire), absurde. \textbf{Métrique retenue} : la moyenne sur les tenseurs de leur erreur relative propre, chaque matrice comptant autant ; la base y vaut 4,3367\,\% (de 4,05 à 4,80\,\% par tenseur).
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X r r r@{}}
+\toprule
+Famille, à erreur moyenne par tenseur égale à la base (4,337\,\%) & bits par poids & rapport à la base & part élaguée \\
+\midrule
+base (frontière, même instrument) & 2,632 & 1 & — \\
+élagage par magnitude (le reste exact, zéro fondu) & 2,665 & 1,012 & — \\
+partitions libres, contexte $\kappa$ & 2,359 & 0,896 & — \\
+partitions libres, $\delta$ de ligne borné à $\pm 3$ & 2,353 & 0,894 & — \\
+zone morte seule, contexte $e$ (élagage lagrangien) & 2,318 & 0,881 & — \\
+\textbf{partitions libres, contexte $e$ (remplissage inverse)} & \textbf{2,019} & \textbf{0,767} & 31\,\% \\
+\bottomrule
+\end{tabularx}
+\caption[Le cadre débit-distorsion, en erreur de poids]{Les familles du cadre débit-distorsion, en erreur de poids \mes. Entropies idéales, plus les échelles (0,0375) et les tables ; la base au même instrument vaut 2,6321, contre 2,6441 au codec réel (écart de 0,46\,\%). Données : \fichier{mesures/genome/predictif-elagage/debit-distorsion-12.json} et \texttt{.csv}.}
+\label{t3pre:tab:rd}
+\end{table}
+
+\paragraph{Pourquoi l'élagage par magnitude perd} (\cref{t3pre:tab:rd}). Élaguer, c'est fondre les petites magnitudes dans le symbole zéro ; le débit ne baisse que de l'entropie de ces symboles, tandis que tous les autres codes gardent leurs 3 bits et plus. À erreur égale, il vaut mieux grossir \emph{toutes} les cellules un peu que d'en vider quelques-unes. Les petites magnitudes portent peu d'énergie, mais aussi peu de bits : 50\,\% des poids les plus petits d'un tenseur ne portent que 4,3\,\% de son énergie, et leur retrait ne retire qu'environ la moitié des bits qu'il faudrait. Le remplissage inverse par $e$, lui, gagne 23\,\% de bits sur la métrique des poids ; la \cref{t3pre:sec:sortie} dit ce qu'il en reste.
+
+\section{L'élagage dépendant de l'activité}\label{t3pre:sec:activite}
+
+\paragraph{Le cadre.} Pour une matrice $W$ et des entrées $x$ de covariance $\Sigma$, par~\eqref{t3que:eq:sortie},
+\begin{equation}\label{t3pre:eq:diag}
+\E\,\|\Delta W x\|^2 = \mathrm{tr}(\Delta W\, \Sigma\, \Delta W^\top) = \sum_{i,j,j'} \Delta W_{ij}\Delta W_{ij'}\Sigma_{jj'} \ \approx\ \sum_{i,j} \Delta W_{ij}^2\, \Sigma_{jj},
+\end{equation}
+approximation diagonale, exacte en moyenne si les erreurs de colonnes différentes sont décorrélées. La sensibilité d'un poids est $s_j = \E[x_j^2]$, l'activité de sa colonne. C'est le critère de Wanda ($|W_{ij}|\cdot\|X_j\|$)~\cite{genome-pe-sun2023wanda}, voisin de celui de SparseGPT~\cite{genome-pe-frantar2023sparsegpt}, et le terme diagonal d'OBD. L'analogie biologique est explicite : dans le cerveau en développement, l'élagage synaptique dépend de l'activité, une synapse peu sollicitée est retirée la première.
+
+\paragraph{Le système.} Les masses du \cref{t3pre:lem:centre} deviennent $A = \sum 4^{e} s_j$ ; le contexte devient $(e, q)$, $q$ le quartile d'activité de la colonne dans l'expert (carte de 2 bits par colonne et par matrice d'expert, 0,0007 bit par poids, comptée). Les $s_j$ viennent des fenêtres 0 à 4 du corpus du lot R, capturées par la référence f64 (entrées de gate et up : l'état normé routé vers l'expert ; entrée de down : la SwiGLU calculée avec les poids exacts).
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X r r r@{}}
+\toprule
+Famille & erreur de sortie prédite & bits par poids & rapport à la base (2,632) \\
+\midrule
+base & 4,489\,\% & 2,632 & 1 \\
+partitions par $e$ (métrique des poids) & 4,494\,\% & 2,022 & 0,768 \\
+partitions par $e$, masses pondérées par l'activité & 4,461\,\% & 2,005 & 0,762 \\
+partitions par $(e, q)$ & 4,487\,\% & 1,695 & 0,644 \\
+\bottomrule
+\end{tabularx}
+\caption[L'élagage dépendant de l'activité, erreur prédite]{L'élagage dépendant de l'activité, à erreur de sortie \emph{prédite} par~\eqref{t3pre:eq:diag} \mes~\calc. À ce point, 40,9\,\% des poids sont fondus dans la cellule qui contient zéro. Données : \fichier{mesures/genome/predictif-elagage/plans/debit-sensibilite-12.json}.}
+\label{t3pre:tab:activite}
+\end{table}
+
+\paragraph{Une prédiction, barrée.} Le livrable annonçait parmi ses résultats : « \barre{L'élagage dépendant de l'activité : 1,695 bit ($\times 0{,}644$) à erreur égale.} » Il l'a barré le 2026-10-17 (\fichier{genome/predictif-elagage-pour-le-memoire.md} §\,0, point 7) : c'est une erreur \emph{prédite} par l'approximation diagonale (\cref{t3pre:tab:activite}) ; mesuré, ce plan casse l'expert et la KL (0,271, \cref{t3pre:sec:kl}).
+
+\section{Les entrées réelles, et l'erreur à la sortie des experts}\label{t3pre:sec:sortie}
+
+\paragraph{Les entrées} \mes. La référence f64 (\texttt{trc-reference}, chemin par lots) a tourné sur les 10 fenêtres de 512 jetons du corpus du lot R avec un crochet de capture (\texttt{sonde capture}, \fichier{capture-entrees-20b.json}, 2\,828\,s) : pour les couches 0, 8, 16 et 23, l'état normé après l'attention de chaque position routée vers chaque expert, 20\,440 vecteurs de 2\,880 par couche (235,5\,Mo en f32, hors dépôt). Calibration des plans qui lisent les activations : fenêtres 0 à 4 ; évaluation : fenêtres 5 à 9.
+
+\paragraph{La mesure} (\fichier{sortie\_experts.py}) : pour chaque expert, sortie exacte $y = W_d\,\mathrm{swiglu}(W_g x + b_g, W_u x + b_u) + b_d$ et sortie reconstruite $\hat y$ (les trois matrices du plan), erreurs relatives sommées sur les experts (pondération par les jetons) puis moyennées sur les quatre couches. Témoins : plans identité et zéro fondu, erreur nulle exactement (tient).
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X r r r r r r@{}}
+\toprule
+Plan & bits réels & gate & up & down seul & \textbf{expert entier} & rapport \\
+\midrule
+base (frontière) & 2,6444 & 1,16\,\% & 2,52\,\% & 2,72\,\% & \textbf{5,57\,\%} & 1 \\
+partitions par $\kappa$ & 2,3743 & 1,12\,\% & 2,70\,\% & 2,37\,\% & \textbf{5,48\,\%} & 0,98 \\
+zone morte par $e$ & 2,3283 & 1,44\,\% & 2,15\,\% & 2,51\,\% & 34,8\,\% & 6,2 \\
+partitions par $e$ (poids) & 2,0178 & 1,03\,\% & 2,65\,\% & 2,38\,\% & 22,0\,\% & 4,0 \\
+partitions par $\delta$ de ligne ($\pm3$) & 2,353 (idéal) & 1,14\,\% & 2,67\,\% & 2,42\,\% & 5,48\,\% & 0,98 \\
+\textbf{partitions par $e$, masses hebbiennes} & \textbf{2,1815} & 0,92\,\% & 2,38\,\% & 2,45\,\% & \textbf{5,70\,\%} & 1,02 \\
+partitions par $(e,$ ligne, colonne$)$, hebbiennes & 1,7556 & 2,36\,\% & 4,30\,\% & 6,41\,\% & 9,23\,\% & 1,66 \\
+partitions par $(e,$ activité de colonne$)$ & 1,6942 & — & — & — & (KL 0,271) & — \\
+\bottomrule
+\end{tabularx}
+\caption[L'erreur à la sortie des experts]{L'erreur relative à la sortie des experts, entrées réelles (fenêtres 5 à 9), moyenne des quatre couches \mes. Bits réels : \texttt{taux\_plan}, décodage exact (la base y donne 2,6444 contre 2,6441 publié par l'arbitre : second chemin). Données : \fichier{mesures/genome/predictif-elagage/sortie-experts-12.json}, \fichier{sortie-experts-12-hebb.json}, synthèse \fichier{resume-12.csv}.}
+\label{t3pre:tab:sortie}
+\end{table}
+
+Par couche, l'erreur d'expert (0 / 8 / 16 / 23) vaut \mes : base 5,1 / 7,6 / 6,7 / 2,9\,\% ; $\kappa$ 6,1 / 7,6 / 6,5 / 1,8\,\% ; hebbien par $e$ 5,1 / 8,3 / 7,1 / 2,3\,\% ; hebbien $(e,$ ligne, colonne$)$ 6,4 / 17,8 / 9,5 / 3,2\,\%.
+
+\paragraph{Ce que la mesure a révélé} (\cref{t3pre:tab:sortie}). Les plans qui remplissent à travers les échelles absolues gardent chaque matrice sous 3\,\% d'erreur relative, et l'expert entier devient faux à 22 à 35\,\%. La cause : la quantité que mesure l'erreur relative d'une matrice n'est pas celle qui compte. Une ligne $i$ de gate ou de up agit sur la sortie à travers la colonne $i$ de down, et l'entraînement répartit librement l'échelle entre les deux : le chemin up a une symétrie de réétalonnage, $u_i \to c\,u_i$ et $W_d[:, i] \to W_d[:, i]/c$ ne changent presque rien (presque, parce que la borne de $u$ dans la SwiGLU n'est pas homogène, \cref{t3dup:prop:permutation}). Une ligne de petite échelle dans gate peut donc peser lourd en sortie, et le remplissage inverse par matrice vide précisément ces lignes.
+
+\paragraph{La sensibilité hebbienne.} Elle répond au premier ordre (\fichier{histo\_hebb.py}). En linéarisant la sortie autour des poids exacts,
+\begin{equation}\label{t3pre:eq:hebb}
+\E\,\|\Delta y\|^2 \approx \sum_{i,j} \Delta W_{ij}^2\, r_i\, s_j, \qquad s_j = \E[x_j^2], \quad r_i = \|W_d[:, i]\|^2\, \E\Bigl[\Bigl(\frac{\partial a_i}{\partial g_i}\Bigr)^2\Bigr]
+\end{equation}
+(ou $\partial a_i / \partial u_i$ pour la matrice up), $a$ l'activation intermédiaire. Le premier facteur, $s_j$, est l'activité de l'entrée (présynaptique) ; le second, $r_i$, l'influence de la sortie (postsynaptique) ; le poids d'une synapse est leur produit, le produit de Hebb. La factorisation $\E[(\partial a/\partial g)^2 x^2] \approx \E[(\partial a/\partial g)^2]\,\E[x^2]$ néglige leur corrélation, et l'approximation diagonale~\eqref{t3pre:eq:diag} celle des colonnes : deux hypothèses que la mesure juge.
+
+\subsection{L'élagage hebbien : ce qui tient, ce qui sur-ajuste}
+
+\begin{itemize}
+\item \textbf{Masses hebbiennes, contexte $e$ seul} (aucune carte envoyée : $r_i$ et $s_j$ ne servent qu'au codeur, pour choisir les partitions et les centres) : \textbf{2,1815 bits réels, erreur d'expert 5,70\,\%} contre 5,57\,\% pour la base à 2,6444, soit 0,825 fois les bits pour la même erreur à 2\,\% près \mes. Le même remplissage inverse sans la sensibilité hebbienne cassait l'expert (22\,\%) : c'est bien la symétrie d'échelle gate/up $\leftrightarrow$ down qui le cassait, et l'influence postsynaptique qui la répare.
+\item \textbf{Avec cartes de lignes et de colonnes} (16 classes, 9\,273 cellules) : prédit 4,33\,\%, mesuré \textbf{9,23\,\%}, la couche 8 à 17,8\,\%. La prédiction ne tient pas : les quartiles de $r_i$ et $s_j$ sont estimés sur environ 320 entrées par expert (fenêtres 0 à 4), et la factorisation de~\eqref{t3pre:eq:hebb} néglige leur corrélation ; un plan qui donne zéro bit aux classes jugées inactives paie au prix fort toute erreur d'estimation. Sur-ajustement mesuré, pas supposé.
+\item \textbf{Variante relative à la ligne} ($\delta \times$ ligne $\times$ colonne) : 1,9619 bits réels, KL 0,091, différence appariée $+0{,}027 \pm 0{,}004$ contre la base (\fichier{kl/comparer-base-hebb\_d\_lc-f5-9.json}) : perd.
+\end{itemize}
+
+\section{La KL contre la référence f64}\label{t3pre:sec:kl}
+
+\paragraph{Le protocole (P3 de la ronde).} Fenêtres 5 à 9 (1\,275 positions notées), seules les 12 matrices de la frontière altérées, c'est-à-dire \textbf{128 experts sur 768} (4 couches entières sur 24 ; \fichier{genome/05-synthese.md} §\,1.1), sonde \texttt{alterer} puis \texttt{juge kl} du lot R contre la tranche de la référence (\fichier{kl\_tranche.py}, empreinte dans \fichier{kl/tranche-ref-f5-9.json}). Témoin de la chaîne : plan identité, entrées \texttt{.kld} identiques octet pour octet à la référence, KL = 0 exactement. La KL absolue de ce protocole ne se compare pas à celle de l'éclaireur (P1, 32 experts) : quatre fois plus d'experts y sont remplacés. Ce qui se compare est le rapport à la base du même protocole et, mieux, la différence appariée position par position, avec la règle du lot R (égal si $\bar d \le 2\sigma(\bar d)$ et $\bar e \ge -2\sigma(\bar e)$ pour le premier choix).
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X r r r r >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X@{}}
+\toprule
+Plan & bits réels & KL moyenne & $\pm$ & médiane & 99\textsuperscript{e} centile & même premier choix \\
+\midrule
+base (frontière) & 2,6444 & 0,0636 & 0,0050 & 0,0227 & 0,777 & 81,6\,\% \\
+hebbien par $e$ & 2,1815 & 0,195 & 0,009 & 0,075 & 1,54 & 60,8\,\% \\
+hebbien $(e,$ ligne, colonne$)$ & 1,7556 & 0,192 & 0,008 & — & — & 59,4\,\% \\
+hebbien $(\delta,$ ligne, colonne$)$ & 1,9619 & 0,091 & 0,005 & — & — & 73,4\,\% \\
+partitions par $e$ (poids) & 2,0178 & 0,309 & 0,011 & 0,209 & 1,83 & 58,5\,\% \\
+partitions par $(e,$ activité de colonne$)$ & 1,6942 & 0,271 & 0,009 & 0,188 & 1,51 & 57,1\,\% \\
+partitions par $\kappa$ (erreur moyenne égale) & 2,3743 & 0,0804 & 0,0063 & 0,0263 & 1,10 & 78,4\,\% \\
+\textbf{partitions par $\kappa$, chaque tenseur à l'erreur de la base} & \textbf{2,4079} & \textbf{0,0702} & 0,0059 & 0,0235 & 0,911 & 79,5\,\% \\
+\bottomrule
+\end{tabularx}
+\caption[La KL des plans de quantification et d'élagage]{La KL contre la référence f64 (protocole P3 : 128 experts sur 768, 1\,275 positions) \mes. Données : \fichier{mesures/genome/predictif-elagage/kl/kl-12-*-f5-9.json}, synthèse \fichier{resume-12.csv}.}
+\label{t3pre:tab:kl}
+\end{table}
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X l r l@{}}
+\toprule
+Plan, contre la base & KL, différence appariée & premier choix (points) & verdict du juge \\
+\midrule
+partitions par $\kappa$, erreur moyenne égale & $+0{,}0167 \pm 0{,}0049$ (3,4\,$\sigma$) & $-3{,}2 \pm 1{,}0$ & pire \\
+\textbf{partitions par $\kappa$, tenseur par tenseur} & $\mathbf{+0{,}0066 \pm 0{,}0053}$ (1,2\,$\sigma$) & $-2{,}1 \pm 1{,}1$ & \textbf{égal} \\
+hebbien par $e$ & $+0{,}131 \pm 0{,}007$ & $-20{,}8 \pm 1{,}4$ & pire \\
+hebbien $(e,$ ligne, colonne$)$ & $+0{,}128 \pm 0{,}007$ & $-22{,}2 \pm 1{,}4$ & pire \\
+hebbien $(\delta,$ ligne, colonne$)$ & $+0{,}027 \pm 0{,}004$ & $-8{,}2 \pm 1{,}2$ & pire \\
+\bottomrule
+\end{tabularx}
+\caption[Les comparaisons appariées des plans]{Les comparaisons appariées des plans contre la base, mêmes 1\,275 positions, même vérité (\texttt{juge comparer}) \mes. Données : \fichier{mesures/genome/predictif-elagage/kl/comparer-base-*-f5-9.json}.}
+\label{t3pre:tab:apparie}
+\end{table}
+
+\paragraph{Ce que la KL tranche} (\cref{t3pre:tab:kl,t3pre:tab:apparie}).
+\begin{itemize}
+\item \textbf{Tout plan qui remplit à travers les échelles absolues perd}, de 3 à 5 fois la KL de la base : partitions par $e$ (0,309), élagage par activité de colonne (0,271), hebbien par $e$ (0,195). Les plans qui cassent l'expert cassent le modèle.
+\item \textbf{Même à erreur d'expert égale.} L'hebbien par $e$ fait 5,70\,\% d'erreur d'expert contre 5,57\,\% pour la base, et trois fois sa KL (appariée $+0{,}131 \pm 0{,}007$, premier choix $-20{,}8$ points). L'erreur relative moyenne à la sortie d'un expert, pondérée par $\|y\|^2$, ne suffit pas à juger : elle est tenue par les jetons et les dimensions de grande sortie ; le remplissage inverse à travers les échelles concentre l'erreur sur ce qui est petit (blocs et lignes de petite échelle, 23\,\% des poids fondus dans zéro), que la norme RMS des couches suivantes ramène à l'échelle et que la KL voit. La leçon du sujet : à la sortie, il faudrait juger l'erreur relative \emph{par jeton}, ou la KL directement, pas l'énergie totale.
+\item \textbf{À erreur moyenne égale, le plan $\kappa$ ne vaut pas la base en KL} ($+0{,}0167 \pm 0{,}0049$, 3,4\,$\sigma$) : il déplace l'erreur vers la couche 0 (6,1\,\% d'erreur d'expert contre 5,1\,\%), et une erreur tôt dans le réseau pèse plus dans la KL. D'où le plan « chaque tenseur à l'erreur de la base » (\fichier{plans.py --par-tenseur}, un $\mu$ par tenseur : domination tenseur par tenseur), à \textbf{2,4079 bits réels, 0,911 fois la base}. Apparié contre la base : $+0{,}0066 \pm 0{,}0053$ (1,2\,$\sigma$), premier choix $-2{,}1 \pm 1{,}1$ point. \textbf{Statistiquement égal à la base} par la règle du lot R ; littéralement un peu au-dessus.
+\end{itemize}
+
+C'est le point avec perte que le sujet retient : 9\,\% de bits en moins que la base de la frontière, à KL égale dans le bruit de la mesure. La lecture prudente est celle du livrable lui-même : la différence appariée centrale reste positive, et avec plus de positions elle pourrait devenir significative. Le \cref{t3syn:ch} place ce point sur la frontière commune de la ronde, sous le nom « partitions par $\kappa$, égale par la règle ».
+
+\section{Ce qui reste}\label{t3pre:sec:reste}
+
+\begin{itemize}
+\item \textbf{Les noyaux de carte} : un décodeur à table par $(\kappa,$ colonne$)$ ou par $(e, q)$, et la reconstruction par table de centres (4 à 16 registres) ; leur branchement dans le codeur du format. La part sans perte (zéro fondu et colonne) est entrée dans le format v1.2 (\cref{t3cod:ch}).
+\item \textbf{La rétroaction d'erreur} (GPTQ, le « codage prédictif en boucle fermée ») sur l'alphabet des cellules, avec la hessienne complète des entrées réelles ; et un critère de sensibilité jugé par jeton, ou appris contre la KL, puisque l'énergie moyenne a trompé.
+\item \textbf{Le plan $\kappa$ dominé} + colonne + zéro fondu sur les 24 couches, et sa KL ; puis gpt-oss-120b.
+\end{itemize}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{Les débits avec perte sont des entropies idéales}, pas un codec, sauf là où la colonne « bits réels » le dit ; l'écart du codec réel mesuré sur la base est de 0,46\,\%, et il peut être plus grand pour des tables à beaucoup de contextes (2\,077 cellules en $e$, 3\,808 en $(e, q)$) et des cellules rares.
+\item \textbf{L'approximation diagonale} de la sensibilité~\eqref{t3pre:eq:diag} néglige les corrélations entre colonnes d'entrée, et la factorisation hebbienne~\eqref{t3pre:eq:hebb} celles entre entrée et dérivée ; la mesure exacte à la sortie les juge, et en a fait tomber une prédiction (barrée).
+\item \textbf{Les entrées} : 10 fenêtres de 512 jetons d'un seul corpus ; environ 640 entrées par expert et par couche, environ 320 pour calibrer : les quartiles d'activité d'un expert peu routé sont bruités.
+\item \textbf{La KL n'altère que 4 couches sur 24} ; l'effet sur les 24 n'est pas mesuré (la KL croîtrait, pour la base comme pour le plan). Elle porte sur 1\,275 positions d'un seul corpus, et l'avantage de 9\,\% du plan $\kappa$ dominé est à KL statistiquement \emph{égale}, pas meilleure (différence centrale $+0{,}0066$).
+\item \textbf{Le gain des codons synonymes} suppose que tout moteur lise $\pm0$ comme 0 : vrai de ggml (table entière) et de la référence ; pour les noyaux de troncons, c'est la proposition A1 du \cref{t3cod:ch} et sa mesure.
+\item \textbf{Aucune figure} ne porte ce chapitre : les deux proposées (III-5.1, III-5.2) ne sont pas tracées, et les tableaux en tiennent lieu.
+\end{itemize}
+\end{faux}

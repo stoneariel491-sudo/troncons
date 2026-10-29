@@ -1,0 +1,247 @@
+\chapter{Architecture: the candidates, the decision, what comes next}\label{ch:avenir}
+
+\begin{origine}
+\textbf{Where we start}: the token equation (\cref{ch:formulation}) and four measured levers. No architecture had been chosen.
+\textbf{This chapter establishes} three candidate architectures, opposed by their angle and computed on the same throughputs (\fichier{fondations/07-ce-qui-manque.md}, § 4); the new mechanism of the second one, the exact refinement of a native 4-bit code, with its proven proposition and its measurement on the real weights; the correction of a number that wrongly favoured it, struck out in place; the debate of the two advocates and the arbiter's decision; and the first, still provisional, measurements of the target model.
+\textbf{What remains} are the implementation chapter (milestone J1) and the results chapter, which can only be written with a running program.
+Sources: \fichier{fondations/07-ce-qui-manque.md}, \fichier{decisions/partisan-A.md}, \fichier{decisions/partisan-B.md}, \fichier{decisions/ARCHITECTURE.md} (commit \texttt{f0b0fea}), \fichier{mesures/} (measurement agent, study not yet delivered when this chapter is written).
+\end{origine}
+
+\section{Three angles}\label{sec:trois-angles}
+
+The three candidates share the machine, the judge (\cref{sec:protocole-jugement}) and the token equation; all make the GPU decode (\cref{cor:sans-croisement}). They differ by their angle:
+\begin{description}
+\item[A] reduces the bytes \emph{without losing anything} and relies on the GPU alone;
+\item[B] trades precision, \emph{only where a byte is expensive}: at a cache miss;
+\item[C] \emph{reads less often} instead of reading less: one read of the weights amortized over several tokens by tree verification.
+\end{description}
+\Cref{fig:architectures-plafonds} puts them on one axis, together with the estimated llama.cpp baseline.
+
+\begin{figure}[ht]
+\centering
+\GrapheArchitectures
+\caption[Ceilings of the candidate architectures]{Ceilings of the candidate architectures on gpt-oss-120b, three locality scenarios (\cref{hyp:beta}); the black tick is the serial floor of the LRU scenario \calc. The row struck in red is study 07's number for B1, which did not count the complements (\cref{sec:correction-b1}). The llama.cpp baseline is estimated, not measured.}
+\label{fig:architectures-plafonds}
+\sourcefig{\fichier{fondations/journaux/07-synthese/csv/architectures-gptoss120b.csv} and \fichier{decisions/journaux/csv/b-complements-gptoss120b.csv}, extracted by \fichier{memoire/outils/donnees_figures.py}.}
+\end{figure}
+
+\section{A: everything through the GPU, bytes coded end to end, lossless}\label{sec:archi-a}
+
+\paragraph{The model.} gpt-oss-120b MXFP4, already on the machine, checksum verified; development twin: gpt-oss-20b (12.1\,GB, also larger than the VRAM). No download.
+
+\paragraph{The byte path} (\cref{fig:chemin-a}). The disk delivers experts coded by the rANS coder of the entropy study ($r = 1.1026$), at the size of one expert matrix: in the gpt-oss files the expert is the slowest dimension of each tensor, so every expert matrix is a contiguous block of 4{,}406{,}400 bytes, readable in one piece without rewriting the file \mes{} (\fichier{fondations/journaux/07-synthese/inventaire-gptoss.json}). Pinned RAM holds the arrival buffers and a warm cache of \emph{coded} experts; DMA carries coded bytes; the GPU decodes on arrival and keeps a cache of \emph{decoded} experts, because the product fused with the decoder is 3.7 times slower than the raw product (\cref{ch:formulation}, \cref{sec:temoins-equation}).
+
+\begin{figure}[ht]
+\centering
+\SchemaCheminA
+\caption[The byte path of architecture A]{The byte path of candidate architecture A. The CPU only reads and keeps the queues; the GPU decodes and computes. Measured throughputs (\cref{tab:grandeurs}).}
+\label{fig:chemin-a}
+\end{figure}
+
+\paragraph{The timeline of a token} (\cref{fig:chrono-a}). During layer $\ell$, the disk queue receives the misses predicted for $\ell+1$ by the router of $\ell+1$ applied to the residual of $\ell$ (96\,\% right one layer ahead \litt, \cref{ch:chargement}). The disk is busy all the time and the GPU waits for it: about 1\,ms of GPU per layer against 4.4\,ms of disk on average. The ceiling assumes the queue never runs dry; the floor, that no read is issued before the router of its layer has spoken.
+
+\begin{figure}[ht]
+\centering
+\SchemaChronoA
+\caption[Timeline of a token in A]{Timeline of a token in candidate architecture A: three successive layers. The disk never stops; the GPU computes about a quarter of the time and waits the rest. This is the regime of \cref{prop:elasticites}.}
+\label{fig:chrono-a}
+\end{figure}
+
+\begin{table}[ht]
+\centering\small
+\caption[Ceilings of A]{Ceilings of candidate architecture A on gpt-oss-120b, disk at 2.58\,GB/s, 11\,GB warm cache \calc. The same path without coding ($r = 1$) gives 1.81 / 5.42 / 8.98.}
+\label{tab:plafonds-a}
+\begin{tabular}{@{}lccrr@{}}
+\toprule
+Scenario & $h_v$ / $h_r$ / $h_s$ & $T_{\mathrm{D}}$ / $T_{\mathrm{P}}$ / $T_{\mathrm{G}}$ (ms) & Ceiling & Serial floor \\
+\midrule
+uniform ($\beta = 1$) & 0.079 / 0.199 / 0.723 & 485 / 131 / 59 & 2.05 & 1.47 \\
+fitted LRU ($\beta = 0.207$) & 0.590 / 0.176 / 0.234 & 157 / 58 / 36 & \textbf{6.24} & 3.93 \\
+fitted Belady ($\beta = 0.117$) & 0.744 / 0.118 / 0.139 & 93 / 36 / 29 & 10.34 & 6.17 \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{fondations/journaux/07-synthese/csv/architectures-gptoss120b.csv}, rows \texttt{A\_sans\_perte} and \texttt{A\_brut\_r1}.}
+\end{table}
+
+\paragraph{Peak memory.} VRAM $\approx 7.5$\,GB: the always-read tensors (1.69\,GB), a 4.8\,GB expert cache, the KV cache, activations and decoding buffers ($\approx 1$\,GB). The display goes through the integrated GPU: all 8{,}188\,MiB of the card are available. RAM: from 1.9 to 12.3\,GB depending on the warm cache, and 0.64\,GB in the minimal window of the advocate of A (\cref{sec:fenetre-chiffree}).
+
+\paragraph{Quality.} Exact by construction, with a double witness: each decoded chunk is compared with its checksum (the rANS decoder is bit-exact on the 108 tensors of gpt-oss-120b \mes); and the logits of A must be \emph{bit-identical} to those of the same engine reading uncoded experts. Against llama.cpp, the comparison is to the measured gap between two correct engines (\cref{sec:protocole-jugement}).
+
+\paragraph{What it gives up.} The CPU stays nearly idle (computing warm experts on it would only help the link, which does not hold the maximum: 58\,ms against 157); the whole forward pass of gpt-oss has to be written (attention with sinks and a sliding window every other layer, YaRN RoPE, router, clamped SwiGLU); speed remains bounded by locality.
+
+\section{B: precision by stage}\label{sec:archi-b}
+
+\subsection{The mechanism}
+
+An E2M1 code (the nibble of MXFP4) carries a sign $s$ and a magnitude $m \in \{0, 0.5, 1, 1.5, 2, 3, 4, 6\}$, multiplied by the E8M0 scale of its block of 32 (\cref{ch:quant}). We split it into two rANS-coded streams (\cref{fig:base-complement}):
+\begin{itemize}
+\item the \textbf{base} $b = (s, \mathrm{class}(m))$, with four magnitude classes;
+\item the \textbf{complement}, the position of $m$ within its class, coded with one table per class.
+\end{itemize}
+At a cache miss, the disk reads only the base and the GPU serves it, each class replaced by its centre; when the expert enters the cache, reading the complement makes it exact.
+
+\begin{figure}[ht]
+\centering
+\SchemaBaseComplement
+\caption[Base and complement of an E2M1 code]{Base and complement of an E2M1 code, best four-class partition \mes. Top: the eight magnitudes to scale and their 3-bit codes; below them, the class centres (E2M1 units). Bottom: the split of a 4-bit code.}
+\label{fig:base-complement}
+\sourcefig{\fichier{fondations/journaux/07-synthese/raffinement-mxfp4-gptoss20b.json} (tool \fichier{outils/07-synthese/raffinement\_mxfp4.py}).}
+\end{figure}
+
+\begin{proposition}[Exact refinement costs nothing in entropy]\label{prop:raffinement}
+Let $X$ be a discrete random variable (the code) and $B = f(X)$ a deterministic function of $X$ (the base). Then
+\begin{equation}\label{eq:raffinement}
+H(X) \;=\; H(B) + H(X \mid B).
+\end{equation}
+An ideal entropy coder that codes $B$, then $X$ given $B$, therefore writes as many bits as if it coded $X$ in one piece.
+\end{proposition}
+
+\begin{proof}
+By the chain rule, $H(X, B) = H(X) + H(B \mid X) = H(B) + H(X \mid B)$. Since $B$ is a function of $X$, knowing $X$ fixes $B$: $H(B \mid X) = 0$. Hence $H(X) = H(B) + H(X \mid B)$. The optimal code of $X$ given $B$ reaches $H(X \mid B)$ on average, that of $B$ reaches $H(B)$, and the sum is $H(X)$.
+\end{proof}
+
+This is the trivial case, for a discrete source and a lossless top layer, of the successive refinement of Equitz and Cover~\cite{equitz1991successive}; the continuous result is proven by Drop-by-Drop~\cite{babaoglu2026dropbydrop} \litt. What is new here is not the identity: it is its use on a \emph{native} 4-bit format (the model was trained in it, so the exact layer is the original itself), tied to the stage, chosen for its distortion rather than by truncation, and its measurement. The neighbours read in full by the advocate of B confirm it: SliceMoE truncates the low-order bits of an integer~\cite{choi2025slicemoecorps}, HOBBIT keeps two separate copies~\cite{tang2024hobbit} \litt.
+
+\subsection{The measurement on the real weights}
+
+\begin{table}[ht]
+\centering\small
+\caption[Base layers of an E2M1 code]{Base layers of an E2M1 code, 12 tensors of gpt-oss-20b (layers 0, 8, 16, 23; gate, up, down; 3{,}185{,}049{,}600 weights) \mes. $H(\text{code}) = 3.860$ bits; base plus complement equals it within $10^{-9}$ on every row (witness of \cref{prop:raffinement}).}
+\label{tab:bases}
+\begin{tabular}{@{}p{0.28\linewidth}p{0.27\linewidth}rrr@{}}
+\toprule
+Base & Magnitude classes & $H$(base) & $H$(compl.) & Relative error \\
+\midrule
+sign + 2 bits, best partition & \{0, 0.5\} \{1, 1.5, 2\} \{3, 4\} \{6\} & \textbf{2.642} & 1.218 & \textbf{4.29\,\%} \\
+sign + 2 bits, truncation (``Matryoshka'') & \{0, 0.5\} \{1, 1.5\} \{2, 3\} \{4, 6\} & 2.907 & 0.953 & 4.47\,\% \\
+sign + 1 bit & \{0 \ldots\ 1.5\} \{2 \ldots\ 6\} & 1.957 & 1.903 & 16.4\,\% \\
+\emph{reference: MXFP4 on a Gaussian} & & & & \emph{1.33\,\%} \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{fondations/journaux/07-synthese/raffinement-mxfp4-gptoss20b.json}; break: \fichier{raffinement-mxfp4-gptoss20b-casse.json}.}
+\end{table}
+
+Three readings of \cref{tab:bases}. \textbf{Truncation loses 0.27 bit per weight at equal error}: the levels of the format are not uniform, and cutting low-order bits groups the magnitudes badly. \textbf{The 1-bit base is killed by the number}: 16.4\,\% error, twelve times the format's own noise. \textbf{The class centres} are centroids weighted by the square of the E8M0 scale, hence optimal in the real domain: 0.237, 1.424, 3.419, 6.0; the decoder keeps them in four registers, and the product on the base costs as much as MXFP4. With scales and headers, the base reads at 2.684 bits per weight against 3.855 for lossless: $3.855/2.684 = 1.436$ times fewer bytes per miss \calc.
+
+\subsection{The number that had to be struck out}\label{sec:correction-b1}
+
+Study 07 defined two variants: \textbf{B1} (VRAM and RAM keep exact experts; a miss reads the base alone and serves it; the complement is read only if the expert enters the cache) and \textbf{B2} (RAM keeps only bases). It put B1 at \barre{8.88 tokens/s, i.e.\ $\times 1.42$ over the ceiling of A in the fitted-LRU scenario}.
+
+The advocate of B found the error, against his own side: the tool did not count the bytes of the complements. Yet under LRU every miss enters the cache, so every miss eventually reads its complement. Counted, \textbf{the ceiling of B1 falls back to that of A}: 6.16 tokens/s against 6.24, because the disk reads base and complement, 3.906 bits against 3.855; the gain of B1 only lives in the serial floor, 3.93 $\to$ \textbf{4.83} tokens/s ($+23\,\%$), because the complement leaves the critical path \calc{} (\fichier{decisions/partisan-B.md}, § 2). The arbiter redid it by an independent path, importing no one else's tool: the struck number reproduces (8.879, witness W4), the corrected one too (6.161 and 4.827, witness W5), and the break that zeroes the complements makes W5 alone fall \calc{} (\fichier{decisions/journaux/arbitre/verif-plafonds.json}, \fichier{verif-plafonds-casse.json}). The $\times 1.42$ is struck out in study 07 itself.
+
+\subsection{Where B really gains: B3 and the \texorpdfstring{$\lambda$}{lambda} knob}
+
+The real throughput gain of B is \textbf{B3}: RAM keeps bases (1.44 times more warm experts), VRAM an exact hot set, and a share $\lambda$ of the out-of-VRAM uses demands exact weights (the complement is then read). At $\lambda = 0$, the ceiling is 10.89 tokens/s ($\times 1.74$ over A, fitted LRU), at the cost of 48.5\,\% of expert uses served by the base; it meets A near $\lambda \approx 0.67$ (\cref{fig:b3-lambda}). The knob $\lambda$ is the miss policy by router weight: serve the base to experts that weigh little, exact weights to the others.
+
+\begin{figure}[ht]
+\centering
+\GrapheBtroisLambda
+\caption[B3: throughput against exactness]{Architecture B3 on gpt-oss-120b: ceiling against the share $\lambda$ of the out-of-VRAM uses that demand exact weights \calc. At $\lambda = 0$, $\times 1.74$ over A (fitted LRU); the LRU curve crosses A near $\lambda \approx 0.67$.}
+\label{fig:b3-lambda}
+\sourcefig{\fichier{decisions/journaux/csv/b3-lambda-gptoss120b.csv} (tool \fichier{outils/decisions/partisan\_b.py}).}
+\end{figure}
+
+\paragraph{Quality, the unknown that decides.} Through HIGGS linearity (small errors, loss $\approx$ weighted sum of relative squared errors \litt), the advocate of B estimates the KL divergence of B3 without a policy between 0.05 and 0.12, i.e.\ 9 to 22 times the budget $\kappa = 0.0055$ of \cref{def:probleme}; with a policy that serves the base only to experts carrying a tenth of the routing energy, B1 would land between 0.002 and 0.006 \emph{(assumption)}. These are not measurements. They can be made without an engine: a base ``snapped'' onto existing E2M1 values (0, 1.5, 3, 6) leaves a valid MXFP4 file that llama.cpp reads as is, at 5.91\,\% error instead of 4.29\,\% (bench Q0).
+
+\section{C: reading less often}\label{sec:archi-c}
+
+A dense model reads all its weights at every pass, but a verification pass of $n$ tokens costs almost the same time as long as $n < n^\star = F\,b/(2\,W_{\mathrm{eff}})$ (\cref{prop:coude}). For Llama-3.3-70B IQ3\_XXS (27{,}469{,}499{,}360 bytes, Llama 3.3 Community licence), with $F \approx 8$\,Tflop/s usable (assumption: 60\,\% of the 13.4 measured in f16), $b = 26.9/70.6 = 0.381$ byte per parameter and $W_{\mathrm{eff}} = 26.9\,\text{GB}/3.79\,\text{s} = 7.10$\,GB/s:
+\[
+n^\star = \frac{8\cdot10^{12} \times 0.381}{2 \times 7.10\cdot10^{9}} \approx 215 \quad \calc.
+\]
+A tree of 64 to 128 nodes is free in compute. Without speculation, 0.26 token/s; with SpecExec's tree (9.7 tokens per pass, measured on a desktop RTX 4060 with a 70B GPTQ \litt), \textbf{2.50} tokens/s (serial floor 1.68) \calc. That is below A in the LRU scenario, for 28.3\,GB of download, a tree engine to write, and a Llama 3 that quantizes badly (+76\,\% perplexity at 2.07 bits \litt, \cref{ch:quant}).
+
+\section{The debate and the decision}\label{sec:decision}
+
+The project's decision cycle sets two advocates who do not read each other against each other, then an arbiter who settles with measurements of his own.
+\begin{description}
+\item[The advocate of A] (\fichier{decisions/partisan-A.md}): A is not an alternative to B, it is its \emph{floor} (B serving all its misses exact \emph{is} A) and its \emph{judge} (B's quality budget is measured against A; without a bit-exact A, an ordinary engine error eats the whole budget). He concedes: an A alone would make a good engineering report, not a research paper.
+\item[The advocate of B] (\fichier{decisions/partisan-B.md}): B is the only mechanism that does not exist yet, and that is what Stone asks for; he corrects B1's number against his own side, and proposes to measure B's quality first, without an engine.
+\end{description}
+
+\paragraph{The arbiter's decision} (\fichier{decisions/ARCHITECTURE.md}; answer by delegation of 2026-10-15, reversible). We build \textbf{troncons}, an engine of our own, in Rust with CUDA kernels launched through the driver API.
+
+\begin{table}[ht]
+\centering\small
+\caption[The milestones decided]{The milestones decided by the arbiter.}
+\label{tab:jalons}
+\begin{tabular}{@{}lp{0.5\linewidth}p{0.3\linewidth}@{}}
+\toprule
+Milestone & Content & Entry gate \\
+\midrule
+\textbf{J1} & exact A on gpt-oss-120b: \texttt{.trc} format v1.0, IOCP reads at expert size, DMA from pinned memory, rANS decoding on the GPU, expert cache in VRAM, full forward pass; modes A0 and A & none \\
+J1+ & prefetching (router of $\ell+1$ on the residual of $\ell$), SLRU cache & J1 \\
+\textbf{Q0} & quality of B without an engine, by static files judged by llama.cpp, in parallel from day one & the GPU free for 2 to 4\,h \\
+\textbf{J2} & B in the engine: two-level format v1.1, B1 (latency), B3 (throughput, policy $\lambda$) & J1 holds and Q0 has not killed B \\
+J3 & unencrypted disk, speculation if $\rho$ allows, Vulkan port & future decision \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+His reasons, in numbers: B first means A plus four modules, without a day gained on the first working program, and B1 no longer gains anything at the ceiling; A alone does not meet the demand for a contribution; C caps at 2.50 against 6.24. \textbf{CUDA rather than Vulkan for J1}, by the measurements: the rANS decoder is 14.9\,\% faster under CUDA (80.8 and 82.1 against 70.2 and 71.6\,GB/s, ABBA \mes); copy--compute overlap (hidden share 0.98 to 1.01) and pinned memory ($+21\,\%$) were only measured with CUDA streams; wgpu offers neither host-memory import nor a second queue. The price, stated: the program requires an NVIDIA GPU; the measured WGSL kernels remain the second path.
+
+\paragraph{The arbiter's measurement F1: what the split costs.} The advocates disagreed on the format: a single stream in v1 (A), or the base + complement split as the only format (B). The arbiter measured it with the real rANS coder, expert by expert, each stream decoded and compared byte for byte, thresholds declared before the run (\cref{fig:f1}). Results \mes: the table chosen \emph{per lane} by the scale class of the block equals the three class streams of the entropy study (3.8431 against 3.8434 bits per weight, threshold S2 holds) with no reassembly; the split conditioned on the scale class costs $+0.41\,\%$ (threshold S1 of $0.40\,\%$, the header cost of one more stream, missed by 0.01 point); the rANS-coded complement is 0.970 times its raw packing (S3); the base error (4.2920\,\%) and that of the snapped base (5.913\,\%) are recovered by this second path (S4). After the first pass, the arbiter declared a variant and its threshold S1bis (the same 0.40\,\%) before the second: the complement also conditioned on the class of the neighbouring nibble and, for the high nibble, on the already decoded low complement. It costs $+0.31\,\%$: \textbf{S1bis holds}. Hence the rule: v1.0 of J1 takes the per-lane table (a single level, the simplest kernel); \textbf{the two-level v1.1 becomes the only format of J2}, where A pays 0.31\,\% more bytes, below the read noise. With the bits measured by F1, the completed B1 rises to 6.22 tokens/s (serial 4.87) against 6.24 for A, and B3 to 11.10 ($\times 1.78$) \calc{} (\fichier{decisions/journaux/arbitre/verif-plafonds.json}, section \texttt{avec\_F1}). The arbiter sums it up: the advocate of A was right about the order, the advocate of B about the final format.
+
+\begin{figure}[ht]
+\centering
+\GrapheFun
+\caption[Measurement F1: bits per weight of each format variant]{The arbiter's measurement F1: bits per weight written by each format variant, 12 tensors of gpt-oss-20b, real rANS coder, exact decoding \mes. The total is printed at the end of each bar; the base + complement split costs $+0.41\,\%$, $+0.31\,\%$ with the rich context kept for J2.}
+\label{fig:f1}
+\sourcefig{\fichier{decisions/journaux/arbitre/decoupe-gptoss20b.json} (pass 2; tool \fichier{outils/arbitre/decoupe/}).}
+\end{figure}
+
+\paragraph{The \texttt{.trc} format} (\cref{fig:troncon}). One self-contained file per model, little-endian, aligned on 4{,}096 bytes (what unbuffered reads on Windows require); \textbf{one chunk per expert}, in one piece, so that a miss costs one request; streams ordered by \textbf{refinement level}, any prefix that stops at the end of a level decoding on its own. In J1, one level; the stream kinds of B are reserved now, so that J2 changes neither the reader, nor the cache, nor the scheduler. The name comes from the project: a \emph{tronçon} (chunk) is the part of a model that one reads, decodes, serves and forgets, Stone's ``chunks like in minecraft''.
+
+\begin{figure}[ht]
+\centering
+\SchemaTroncon
+\caption[A chunk of the .trc format]{A chunk of the \texttt{.trc} format: one expert in one piece, its refinement levels aligned on 4\,KiB. In v1.0 (J1), a single level; in v1.1 (J2), the base then the complement, and a miss in B reads only the prefix.}
+\label{fig:troncon}
+\sourcefig{\fichier{decisions/ARCHITECTURE.md} (§ 4, principles) and \fichier{decisions/journaux/arbitre/decoupe-gptoss20b-passe1.json} (sizes).}
+\end{figure}
+
+\paragraph{The success criteria of J1}, declared before any construction and derived from named measurements: logits of the coded path bit-identical to those of the raw path of the same engine; an engine at least as close to the exact mathematics of the model (double-precision reference) as llama.cpp; peak RAM $\le 1.9$\,GB in mode A0, equal within 0.5\,MB between gpt-oss-20b and gpt-oss-120b (the witness of \cref{def:fenetre}); VRAM under $8{,}188 - 909$\,MiB; tokens/s at least $0.8$ times the serial floor recomputed with the hit rate counted by the engine.
+
+\section{The first measurements of the target model}\label{sec:premieres-mesures}
+
+The measurement agent works on the GPU while this chapter is being written; its study is not delivered, but its series and traces are committed with their witnesses. Two figures are drawn from them, to be read as provisional.
+
+\paragraph{The llama.cpp baseline on gpt-oss-20b} (\cref{fig:base-20b}). ABBA series of four passes, on mains power, llama.cpp b11515: experts on the CPU, 11.38 tokens/s in generation; placement fitted by llama.cpp's tool (ten expert layers out of 24 on the GPU), 18.92; expert cache of 4{,}096\,MiB, 10.15, at 84.59\,\% hits according to llama.cpp's log \mes. The gap of the fitted placement over experts on the CPU is real ($+66\,\%$, above the noise of 0.30); that of the cache is within the noise (\fichier{mesures/base-gpt-oss/20b/resume.csv}). On gpt-oss-120b, a single-pass exploration, not retained by the agent itself, gives 0.49 token/s with experts on the CPU and 295\,GB read in 12 minutes 46 seconds (\fichier{mesures/REPRISE-gpt-oss.md}): around the low end of the range estimated for the baseline (0.14 to 0.81 in the uniform scenario).
+
+\begin{figure}[ht]
+\centering
+\GrapheBaseVingt
+\caption[llama.cpp baseline on gpt-oss-20b]{llama.cpp b11515 baseline on gpt-oss-20b, generation, three configurations, ABBA series of four passes on mains power \mes. Bars: minimum and maximum. Provisional measurement of the measurement agent.}
+\label{fig:base-20b}
+\sourcefig{\fichier{mesures/base-gpt-oss/20b/resume.csv}, extracted by \fichier{memoire/outils/donnees_figures.py}.}
+\end{figure}
+
+\paragraph{Locality on gpt-oss-20b} (\cref{fig:localite-mesuree}). Real routing traces (four text genres, reading and generation), replayed by the instrument of the loading study; exact witness: a replica of llama.cpp's cache policy replayed on these traces gives back, hit for hit, the numbers of llama.cpp's log. On the generation trace:
+\begin{itemize}
+\item \textbf{The shape of \cref{hyp:beta} does not hold, but its order of magnitude does.} At small budgets the measured hit rate is below the assumption (per-layer cache, 15\,\%: LRU 0.627 against $0.15^{0.2075} = 0.675$; Belady 0.686 against 0.801); at large ones, above (40\,\%: LRU 0.882 against 0.827; Belady 0.935 against 0.899) \calc{} on \mes. The real curve is steeper than a power law fitted at one point.
+\item \textbf{A global LRU cache below $L\,k$ slots returns zero} (96 slots for 24 layers with 4 active experts): each layer evicts the experts of the next before they are used. This cyclic pathology is avoided by Belady and LFU.
+\item \textbf{Token-to-token reuse is $\rho = 0.577$}, against 0.125 under uniform chance and 0.223 under chance with the real popularity (\fichier{mesures/localite-gpt-oss/20b/localite-gpt-oss-20b.json}); the instrument measures it as the share of the experts of a token already chosen by the previous token, in the same layer, i.e.\ the $\rho$ of \cref{prop:spec-rho}. On gpt-oss-20b, speculation would thus pay from $\alpha > 0.42$, far from the $0.875$ that independence imposes \calc. It remains to be measured on the 120b.
+\end{itemize}
+
+\begin{figure}[ht]
+\centering
+\GrapheLocaliteMesuree
+\caption[Measured locality on gpt-oss-20b against the assumptions]{Expert-cache hit rate on the real routing traces of gpt-oss-20b (generation trace) \mes, against the fitted scenarios of \cref{ch:formulation} (dashed). The per-layer cache has no point below one expert per layer; global LRU returns zero below $L\,k = 96$ slots. Provisional measurement of the measurement agent, on the 20b and not on the 120b.}
+\label{fig:localite-mesuree}
+\sourcefig{\fichier{mesures/localite-gpt-oss/20b/courbes-gpt-oss-20b.csv}, extracted by \fichier{memoire/outils/donnees_figures.py}.}
+\end{figure}
+
+\section{What comes next}\label{sec:ce-qui-vient}
+
+The next chapters of this part will be written with the program, whose construction started while this one was being written: when this thesis is built, package K has committed the kernels of the per-lane-table decoder and of the MXFP4 GEMV with an independent bench, package E the reading of WDDM hardware scheduling, package R the judge's counters and their witnesses (\texttt{git} log, 2026-10-15). \textbf{Implementation}: the modules of troncons and their seams, the \texttt{.trc} format to the bit, the CUDA kernels and their witnesses, each work package closed by a break that falls. \textbf{Results}: tokens/s, peak RAM and VRAM, bytes read (system counter), physical efficiency (measured over ceiling) on gpt-oss-120b, against the llama.cpp baseline measured in ABBA; then, at milestone J2, the quality of B against A. \Cref{ch:futurs} gives the order.
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{All the ceilings of this chapter depend on \cref{hyp:beta}}, whose shape the first measurement on gpt-oss-20b contradicts; they must be recomputed with the measured curve of the 120b.
+\item \textbf{The decision is an answer by delegation, reversible}: it changes by a written, dated decision in \fichier{decisions/ARCHITECTURE.md}, and this chapter will follow.
+\item \textbf{The quality of B is only estimated}, by a linearity valid for small errors; 4.29\,\% on one expert is not small.
+\item \textbf{The base layer is measured on 12 tensors of gpt-oss-20b}, not on the 120b; the code entropies of the two models differ by 0.001 bit, which makes a gap unlikely, but it is not measured.
+\item \textbf{The neighbours of B} (SliceMoE, TRACE, MatGPTQ, AnyBCQ) are not all read in full; one of them may do, in its body, part of what this chapter calls new.
+\item \textbf{The measurements of \cref{sec:premieres-mesures} are provisional}: the study that carries them is not delivered, and the machine was shared during the series.
+\end{itemize}
+\end{faux}

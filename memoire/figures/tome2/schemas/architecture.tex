@@ -1,0 +1,178 @@
+% Schémas du chapitre « Architecture et structure du programme » (Tome II).
+% Les dépendances dessinées sont celles des Cargo.toml de moteur/ (relevées par
+% memoire/outils/tome2_format.py dans memoire/figures/donnees/tome2/caisses.csv) ; les lots et les
+% coutures sont ceux de decisions/ARCHITECTURE.md § 5 et § 6.
+% Commandes définies par \providecommand (chargement double sans erreur). Styles préfixés « t2a ».
+
+\tikzset{
+  t2a caisse/.style={draw=#1!75!black, fill=#1!13, rounded corners=1.5pt, align=center,
+    font=\sffamily\scriptsize, inner sep=2.5pt, minimum height=0.62cm, minimum width=1.9cm},
+  t2a binaire/.style={t2a caisse=#1, line width=1.1pt, font=\sffamily\scriptsize\bfseries},
+  t2a dep/.style={-{Latex[length=1.6mm]}, black!55, line width=0.5pt},
+  t2a flux/.style={-{Latex[length=2mm]}, line width=0.9pt},
+  t2a note/.style={font=\sffamily\scriptsize, text=black!70, align=left},
+  t2a materiel/.style={draw=#1!75!black, fill=#1!22, align=center, font=\sffamily\scriptsize,
+    minimum height=0.75cm, minimum width=2.0cm, inner sep=2pt},
+}
+% Couleurs des lots (une par lot, dans tous les schémas du chapitre).
+\colorlet{LotF}{Echelle}
+\colorlet{LotE}{Ram}
+\colorlet{LotK}{Calcul}
+\colorlet{LotR}{Index}
+\colorlet{LotO}{Accent}
+
+% ---------------------------------------------------------------------------------------------
+% Le graphe des dépendances internes de l'espace de travail (Cargo.toml), par niveau.
+\providecommand{\TdArchCaisses}{%
+\begin{tikzpicture}[x=1cm, y=1.3cm]
+  % Niveau 0 : les feuilles (aucune dépendance interne).
+  \node[t2a caisse=LotF] (format) at (0,0) {trc-format};
+  \node[t2a caisse=LotE] (es)     at (2.45,0) {trc-es};
+  \node[t2a caisse=LotE] (cuda)   at (4.9,0) {trc-cuda};
+  \node[t2a caisse=LotO] (cache)  at (7.35,0) {trc-cache};
+  \node[t2a caisse=LotR] (ref)    at (9.8,0) {trc-reference};
+  \node[t2a caisse=LotR] (jetons) at (12.25,0) {trc-jetons};
+  % Niveau 1.
+  \node[t2a caisse=LotF] (codec)  at (0,1) {trc-codec};
+  \node[t2a caisse=LotK] (noyaux) at (4.9,1) {trc-noyaux};
+  \node[t2a caisse=LotR] (juge)   at (11.0,1) {trc-juge};
+  % Niveau 2.
+  \node[t2a binaire=LotF] (codeur) at (0,2) {trc-codeur};
+  \node[t2a caisse=LotO] (modele)  at (3.7,2) {trc-modele};
+  % Niveau 3.
+  \node[t2a binaire=LotE] (banc)   at (1.4,3) {banc-chemin};
+  \node[t2a caisse=LotO] (ordo)    at (6.3,3) {trc-ordo};
+  % Niveau 4.
+  \node[t2a binaire=LotO] (troncons) at (9.4,4) {troncons};
+  % Arêtes : « A → B » se lit « A dépend de B » (lu dans le Cargo.toml de A).
+  \foreach \fa/\fz in {codec/format, noyaux/cuda, juge/ref, juge/jetons, codeur/format, codeur/codec,
+      modele/format, modele/cuda, modele/es, modele/noyaux, ordo/cache, ordo/cuda, ordo/es,
+      ordo/format, ordo/modele, ordo/noyaux, troncons/ordo, troncons/juge, troncons/jetons}
+    \draw[t2a dep] (\fa) -- (\fz);
+  \foreach \fz in {cache, cuda, es, format}
+    \draw[t2a dep, LotO!45] (troncons) -- (\fz);
+  \foreach \fz in {cuda, es, format, noyaux}
+    \draw[t2a dep, LotE!50] (banc) -- (\fz);
+  % Légende des lots, sous le graphe.
+  \begin{scope}[shift={(-0.9,-0.95)}]
+    \foreach \fn/\fk/\ft in {0/LotF/{F \EF{format, coder}{format, codeur}}, 1/LotE/{E \EF{byte path}{chemin des octets}},
+        2/LotK/{K \EF{kernels}{noyaux}}, 3/LotR/{R \EF{reference, judge}{référence, juge}}, 4/LotO/{O \EF{cache, engine}{cache, moteur}}} {%
+      \filldraw[draw=\fk!75!black, fill=\fk!13] (2.95*\fn,0) rectangle ++(0.3,0.22);
+      \node[anchor=west, font=\sffamily\scriptsize] at (2.95*\fn+0.36,0.11) {\ft};
+    }
+    \node[anchor=west, font=\sffamily\scriptsize] at (0,-0.35) {\EF{Thick border: executable. An arrow A $\to$ B reads ``A depends on B'' (its Cargo.toml).}{Bord épais : exécutable. Une flèche A $\to$ B se lit « A dépend de B » (son Cargo.toml).}};
+  \end{scope}
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------------------------------
+% Le schéma d'ensemble : hors ligne (le codeur), en ligne (le moteur), et la machine dessous.
+\providecommand{\TdArchEnsemble}{%
+\begin{tikzpicture}[x=1cm, y=1cm]
+  % Hors ligne.
+  \node[font=\sffamily\small\bfseries, anchor=west] at (-0.9,6.55) {\EF{Offline, once per model}{Hors ligne, une fois par modèle}};
+  \node[t2a materiel=Disque] (gguf) at (0,5.6) {GGUF\\\EF{(MXFP4, 63.4\,GB)}{(MXFP4, 63,4\,Go)}};
+  \node[t2a binaire=LotF, minimum width=2.6cm] (codeur) at (3.2,5.6) {trc-codeur\\{\normalfont\tiny coder, vocab, verifier}};
+  \node[t2a materiel=Disque] (trc) at (6.4,5.6) {.trc \EF{(57.7\,GB)}{(57,7\,Go)}\\+ .vocab.gguf};
+  \draw[t2a flux, Disque] (gguf) -- (codeur); \draw[t2a flux, Disque] (codeur) -- (trc);
+  \node[t2a note, anchor=west, text width=5.0cm] at (8.0,5.6) {\EF{rANS-coded experts, one chunk per expert, fingerprints everywhere; check C1 (4\,608/4\,608).}{experts codés par rANS, un tronçon par expert, empreintes partout ; contrôle C1 (4\,608/4\,608).}};
+  % En ligne.
+  \node[font=\sffamily\small\bfseries, anchor=west] at (-0.9,4.45) {\EF{Online, every token}{En ligne, à chaque jeton}};
+  \node[t2a binaire=LotO, minimum width=2.6cm] (prog) at (0,3.5) {troncons\\{\normalfont\tiny generer, evaluer, mesurer, disque}};
+  \node[t2a caisse=LotO, minimum width=2.6cm] (ordo) at (3.2,3.5) {trc-ordo\\{\tiny Moteur, garde}};
+  \node[t2a caisse=LotO] (cache) at (3.2,2.3) {trc-cache\\{\tiny LRU, rejouer}};
+  \node[t2a caisse=LotO] (modele) at (6.0,3.5) {trc-modele\\{\tiny gpt-oss}};
+  \node[t2a caisse=LotK] (noyaux) at (8.8,3.5) {trc-noyaux\\{\tiny 20 \EF{kernels}{noyaux}}};
+  \node[t2a caisse=LotE] (cuda) at (11.6,3.5) {trc-cuda\\{\tiny nvcuda.dll}};
+  \node[t2a caisse=LotE] (es) at (6.0,2.3) {trc-es\\{\tiny IOCP}};
+  \node[t2a caisse=LotF] (format) at (8.8,2.3) {trc-format\\{\tiny \EF{reader}{lecteur}}};
+  \node[t2a caisse=LotR] (jetons) at (0,2.3) {trc-jetons\\{\tiny llama.dll}};
+  \node[t2a caisse=LotR] (juge) at (0,1.2) {trc-juge\\{\tiny KL, \EF{counters}{compteurs}}};
+  \foreach \fa/\fz in {prog/ordo, ordo/cache, ordo/modele, modele/noyaux, noyaux/cuda, ordo/es, ordo/format, prog/jetons, prog/juge}
+    \draw[t2a dep] (\fa) -- (\fz);
+  \draw[t2a dep] (modele) to[bend left=18] (cuda);
+  % La machine.
+  \node[font=\sffamily\small\bfseries, anchor=west] at (-0.9,0.15) {\EF{The machine}{La machine}};
+  \node[t2a materiel=Disque] (d) at (0.4,-0.8) {NVMe, BitLocker\\\EF{unbuffered reads}{lectures sans tampon}};
+  \node[t2a materiel=Ram] (r) at (3.6,-0.8) {\EF{pinned RAM}{RAM épinglée}\\\EF{window $d \cdot k$ buffers}{fenêtre de $d \cdot k$ tampons}};
+  \node[t2a materiel=Pcie] (p) at (6.6,-0.8) {PCIe 4.0 $\times$8\\\EF{one copy engine}{un moteur de copie}};
+  \node[t2a materiel=Vram] (v) at (9.4,-0.8) {VRAM\\\EF{arrival, slots}{arrivée, emplacements}};
+  \node[t2a materiel=Calcul] (c) at (12.2,-0.8) {SM\\\EF{decode, GEMV}{décodage, GEMV}};
+  \foreach \fa/\fz in {d/r, r/p, p/v, v/c} \draw[t2a flux] (\fa) -- (\fz);
+  \draw[densely dotted, LotE!80!black, line width=0.6pt] (es) -- (d.north);
+  \draw[densely dotted, LotE!80!black, line width=0.6pt] (cuda) -- (p.north);
+  \draw[densely dotted, LotE!80!black, line width=0.6pt] (cuda) -- (v.north);
+  \draw[densely dotted, LotK!80!black, line width=0.6pt] (noyaux) -- (c.north);
+  \node[t2a note, anchor=west, text width=8.4cm] at (4.6,4.45) {\EF{the engine reads the .trc through trc-format (structure, fingerprints) and trc-es (chunks)}{le moteur lit le .trc par trc-format (structure, empreintes) et trc-es (tronçons)}};
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------------------------------
+% Les cinq lots et leurs coutures gelées.
+\providecommand{\TdArchLots}{%
+\begin{tikzpicture}[x=1cm, y=1cm,
+    lot/.style={draw=##1!75!black, fill=##1!13, rounded corners=2pt, align=center, font=\sffamily\scriptsize,
+      minimum width=3.3cm, minimum height=1.25cm, inner sep=3pt},
+    couture/.style={font=\sffamily\scriptsize\bfseries, fill=white, inner sep=1.5pt, draw=black!40, rounded corners=1pt}]
+  \node[lot=LotF] (F) at (0,2.6) {\textbf{F} \EF{format and coder}{format et codeur}\\{\tiny trc-format, trc-codec, trc-codeur}};
+  \node[lot=LotE] (E) at (-3.6,0) {\textbf{E} \EF{byte path}{chemin des octets}\\{\tiny trc-cuda, trc-es, banc-chemin}};
+  \node[lot=LotK] (K) at (0,-2.6) {\textbf{K} \EF{kernels}{noyaux}\\{\tiny trc-noyaux}};
+  \node[lot=LotO] (O) at (3.6,0) {\textbf{O} \EF{cache, scheduler, engine}{cache, ordonnanceur, moteur}\\{\tiny trc-cache, trc-ordo, trc-modele, troncons}};
+  \node[lot=LotR] (R) at (8.0,0) {\textbf{R} \EF{reference, judge}{référence, juge}\\{\tiny trc-reference, trc-jetons, trc-juge}};
+  \draw[t2a flux] (F) -- node[couture] {F} (E);
+  \draw[t2a flux] (F) -- node[couture] {F} (K);
+  \draw[t2a flux] (F) -- node[couture] {F} (O);
+  \draw[t2a flux] (F.east) to[out=0, in=110] node[couture, pos=0.45] {F} (R.north);
+  \draw[t2a flux] (E) -- node[couture] {C} (K);
+  \draw[t2a flux] (E.south east) to[out=-30, in=-150] node[couture, pos=0.5] {C} (O.south west);
+  \draw[t2a flux] (K) -- node[couture] {N} (O);
+  \draw[t2a flux, {Latex[length=2mm]}-{Latex[length=2mm]}] (O) -- node[couture] {A} (R);
+  \draw[t2a flux] (O.south east) to[out=-40, in=-140] node[couture, pos=0.5] {J} (R.south west);
+  \draw[t2a flux] (E.south) .. controls (-3.6,-4.1) and (8.0,-4.1) .. node[couture, pos=0.7] {J} (R.south);
+  \node[t2a note, anchor=north west, text width=12.6cm] at (-5.3,-4.3) {%
+    \EF{F: the .trc format to the bit (§ 4 of the specification). C: the API of trc-cuda. N: the kernels' binary interface, buffer layouts and the determinism rule. A: the cache API and the routing-trace format. J: the format of measurement logs. D, not drawn, binds everyone: the dependencies and their exact versions. An arrow goes from the lot that defines the seam to the lot that uses it.}%
+       {F : le format .trc au bit près (§ 4 de la spécification). C : l'API de trc-cuda. N : l'interface binaire des noyaux, la disposition des tampons et la règle de déterminisme. A : l'API du cache et le format des traces de routage. J : le format des journaux de mesure. D, non dessinée, lie tout le monde : les dépendances et leurs versions exactes. Une flèche va du lot qui définit la couture au lot qui s'en sert.}};
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------------------------------
+% La chaîne d'exactitude : quelles égalités, prouvées par qui, font l'égalité au bit des logits.
+\providecommand{\TdArchChaine}{%
+\begin{tikzpicture}[x=1cm, y=1cm,
+    etat/.style={draw=##1!75!black, fill=##1!12, rounded corners=1.5pt, align=center, font=\sffamily\scriptsize,
+      minimum width=2.0cm, minimum height=0.9cm, inner sep=2pt},
+    lien/.style={font=\sffamily\tiny, align=center, fill=white, inner sep=1pt}]
+  \node[etat=Disque] (g) at (0,0) {GGUF\\\EF{expert $x$}{expert $x$}};
+  \node[etat=LotF] (t) at (3.0,1.1) {.trc \EF{coded}{codé}\\\EF{chunk of $x$}{tronçon de $x$}};
+  \node[etat=LotF] (b) at (3.0,-1.1) {.trc \EF{raw}{brut}\\\EF{raw streams}{flux bruts}};
+  \node[etat=LotE] (a) at (6.0,1.1) {\EF{arrival buffer}{tampon d'arrivée}\\(VRAM)};
+  \node[etat=LotE] (a2) at (6.0,-1.1) {\EF{arrival buffer}{tampon d'arrivée}\\(VRAM)};
+  \node[etat=LotK] (s) at (9.0,1.1) {\EF{slot}{emplacement}\\SoA};
+  \node[etat=LotK] (s2) at (9.0,-1.1) {\EF{slot}{emplacement}\\SoA};
+  \node[etat=LotO] (l) at (12.0,1.1) {logits\\\EF{coded run}{passe codée}};
+  \node[etat=LotO] (l2) at (12.0,-1.1) {logits\\\EF{raw run}{passe brute}};
+  \draw[t2a flux] (g) -- node[lien, above, sloped] {C1} (t);
+  \draw[t2a flux] (g) -- node[lien, below, sloped] {\EF{copy}{copie}} (b);
+  \draw[t2a flux] (t) -- node[lien, above=1pt] {C2\\\EF{fingerprint}{empreinte}} (a);
+  \draw[t2a flux] (b) -- node[lien, below=1pt] {C2} (a2);
+  \draw[t2a flux] (a) -- node[lien, above=1pt] {K1\\\texttt{decoder}} (s);
+  \draw[t2a flux] (a2) -- node[lien, below=1pt] {\texttt{copier}\\\texttt{\_brut}} (s2);
+  \draw[t2a flux] (s) -- node[lien, above=1pt] {N\\\EF{determ.}{déterm.}} (l);
+  \draw[t2a flux] (s2) -- node[lien, below=1pt] {N} (l2);
+  \draw[Signe, line width=1pt, {Latex}-{Latex}] (s) -- node[lien, text=Signe] {\EF{equal}{égaux}\\\EF{bytes}{octets}} (s2);
+  \draw[Signe, line width=1pt, {Latex}-{Latex}] (l) -- node[lien, text=Signe] {C3\\0 bit} (l2);
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------------------------------
+% La chaîne de construction des noyaux : du source CUDA au module chargé par le pilote.
+\providecommand{\TdArchConstruction}{%
+\begin{tikzpicture}[x=1cm, y=1cm,
+    etape/.style={draw=##1!75!black, fill=##1!12, rounded corners=1.5pt, align=center, font=\sffamily\scriptsize,
+      minimum height=0.95cm, inner sep=3pt}]
+  \node[etape=LotK] (cu) at (0,0) {\texttt{noyaux.cu}\\{\tiny commun, decodeur,}\\{\tiny gemv, passe .cuh}};
+  \node[etape=Echelle] (nvcc) at (3.0,0) {\texttt{build.rs}\\\texttt{nvcc -arch=sm\_89}\\{\tiny CUDA 13.1.2}};
+  \node[etape=Mant] (fat) at (6.0,0) {fatbin\\{\tiny cubin sm\_89 + PTX}};
+  \node[etape=Accent] (exe) at (9.0,0) {\texttt{include\_bytes!}\\\EF{in the executable}{dans l'exécutable}};
+  \node[etape=Calcul] (mod) at (12.1,0) {\texttt{cuModuleLoadData}\\\EF{driver 591.91}{pilote 591.91}};
+  \foreach \fa/\fz in {cu/nvcc, nvcc/fat, fat/exe, exe/mod} \draw[t2a flux] (\fa) -- (\fz);
+  \node[t2a note, anchor=north, text width=12.8cm] at (6.0,-0.75) {%
+    \EF{At build time only: \texttt{nvcc} is called directly when \texttt{cl.exe} is on the PATH (the former \texttt{cmd /C} line broke the recipe, minor finding m2 of the trial). At run time: no CUDA runtime DLL, the driver alone loads the image. Left of the executable box: the build machine; right: any machine with an NVIDIA driver supporting CUDA 13.1.}%
+       {À la construction seulement : \texttt{nvcc} est appelé directement quand \texttt{cl.exe} est dans le PATH (l'ancienne ligne \texttt{cmd /C} cassait la recette, constat mineur m2 de l'épreuve). À l'exécution : aucune DLL d'exécution de CUDA, le pilote seul charge l'image. À gauche de la case de l'exécutable, la machine de construction ; à droite, toute machine dont le pilote NVIDIA porte CUDA 13.1.}};
+\end{tikzpicture}}

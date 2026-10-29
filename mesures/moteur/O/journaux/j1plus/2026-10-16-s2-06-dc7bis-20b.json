@@ -1,0 +1,205 @@
+{
+  "alimentation": {
+    "ACLineStatus": 1,
+    "BatteryFlag": 1,
+    "BatteryLifePercent": 80,
+    "secteur": true
+  },
+  "commande": "generer --modele ~/dev/modeles/trc/gpt-oss-20b.trc --vocab ~/dev/modeles/trc/gpt-oss-20b.vocab.gguf --journal ~/dev/active/troncons/mesures/moteur/O/journaux/j1plus/2026-10-16-s2-06-dc7bis-20b.json --sortie ~/dev/active/troncons/mesures/moteur/O/journaux/j1plus/2026-10-16-s2-06-dc7bis-20b.txt --trace ~/dev/active/troncons/mesures/moteur/O/journaux/j1plus/2026-10-16-s2-06-dc7bis-20b.trace --invite ~/dev/active/troncons/mesures/moteur/O/journaux/j1plus/invite-courte.txt -n 1 --longueur-lecture 12582912 --sans-vram",
+  "compteurs_generation": {
+    "acces": 0,
+    "defauts_disque": 0,
+    "emplacements": 362,
+    "evictions": 0,
+    "experts_decodes": 0,
+    "experts_verifies": 0,
+    "h_vram": 0.0,
+    "lectures_enchassement": 0,
+    "lectures_troncons": 0,
+    "ms_copie_carte": 0.0,
+    "ms_decodage_carte": 0.0,
+    "octets_copies_cache": 0,
+    "octets_disque_cache": 0,
+    "octets_dma": 0,
+    "octets_lus": 0,
+    "octets_lus_enchassement": 0,
+    "octets_lus_troncons": 0,
+    "pas": 0,
+    "pf_emis": 0,
+    "pf_octets": 0,
+    "pf_utiles": 0,
+    "s_attente_routeur": 0.0,
+    "s_fin_jeton": 0.0,
+    "s_lectures": 0.0,
+    "s_pas": 0.0,
+    "succes_ram": 0,
+    "succes_vram": 0,
+    "tiedes": 0
+  },
+  "compteurs_prefill": {
+    "acces": 480,
+    "defauts_disque": 293,
+    "emplacements": 362,
+    "evictions": 0,
+    "experts_decodes": 293,
+    "experts_verifies": 0,
+    "h_vram": 0.38958333333333334,
+    "lectures_enchassement": 5,
+    "lectures_troncons": 293,
+    "ms_copie_carte": 347.50764721632004,
+    "ms_decodage_carte": 142.8603518307209,
+    "octets_copies_cache": 3519696896,
+    "octets_disque_cache": 3519696896,
+    "octets_dma": 3519696896,
+    "octets_lus": 3686244352,
+    "octets_lus_enchassement": 40960,
+    "octets_lus_troncons": 3686203392,
+    "pas": 5,
+    "pf_emis": 0,
+    "pf_octets": 0,
+    "pf_utiles": 0,
+    "s_attente_routeur": 0.34501540000000014,
+    "s_fin_jeton": 0.023610199999999998,
+    "s_lectures": 1.2504559,
+    "s_pas": 1.6446042,
+    "succes_ram": 0,
+    "succes_vram": 187,
+    "tiedes": 0
+  },
+  "compteurs_total": {
+    "acces": 480,
+    "defauts_disque": 293,
+    "emplacements": 362,
+    "evictions": 0,
+    "experts_decodes": 293,
+    "experts_verifies": 0,
+    "h_vram": 0.38958333333333334,
+    "lectures_enchassement": 5,
+    "lectures_troncons": 293,
+    "ms_copie_carte": 347.50764721632004,
+    "ms_decodage_carte": 142.8603518307209,
+    "octets_copies_cache": 3519696896,
+    "octets_disque_cache": 3519696896,
+    "octets_dma": 3519696896,
+    "octets_lus": 4988596224,
+    "octets_lus_enchassement": 40960,
+    "octets_lus_troncons": 3686203392,
+    "pas": 5,
+    "pf_emis": 0,
+    "pf_octets": 0,
+    "pf_utiles": 0,
+    "s_attente_routeur": 0.34501540000000014,
+    "s_fin_jeton": 0.023610199999999998,
+    "s_lectures": 1.2504559,
+    "s_pas": 1.6446042,
+    "succes_ram": 0,
+    "succes_vram": 187,
+    "tiedes": 0
+  },
+  "date_utc": "2026-10-16T04:55:28Z",
+  "disque": {
+    "duree_s": 3.3152894,
+    "octets_lus_pdh": 5010822046.218084,
+    "repos_octets_s": null
+  },
+  "flux": false,
+  "generation_jetons_s": 0.0,
+  "generation_s": 0.0000127,
+  "invite": {
+    "fichier": "~/dev/active/troncons/mesures/moteur/O/journaux/j1plus/invite-courte.txt",
+    "octets": 24,
+    "sha256": "bbaff4d2ecd5892d4a442b0f53131641bf6e6f284761dd20fc0664bc97145762"
+  },
+  "jetons": [
+    12650
+  ],
+  "jetons_invite": 5,
+  "jetons_produits": 1,
+  "memoire": {
+    "fin_ensemble_travail": 381972480,
+    "fin_pointe_ensemble_travail": 381980672,
+    "pointe_engagee": 6866345984,
+    "pointe_ensemble_travail": 381947904
+  },
+  "moteur": {
+    "arrivees": 12,
+    "brut": false,
+    "carte": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "chargement": {
+      "empreintes_verifiees": 314,
+      "lectures": 78,
+      "octets_lus": 1302351872,
+      "octets_tenseurs": 1302341376,
+      "secondes": 1.4190621,
+      "tenseurs": 314
+    },
+    "contexte": 4096,
+    "couches": 24,
+    "couches_d_avance": 3,
+    "emplacements": 362,
+    "enchassement_en_ram": false,
+    "etapes_memoire": [
+      {
+        "ensemble_travail": 108417024,
+        "etape": "avant"
+      },
+      {
+        "ensemble_travail": 121503744,
+        "etape": "fichier"
+      },
+      {
+        "ensemble_travail": 226213888,
+        "etape": "contexte_flux"
+      },
+      {
+        "ensemble_travail": 227147776,
+        "etape": "noyaux"
+      },
+      {
+        "ensemble_travail": 228061184,
+        "etape": "modele"
+      },
+      {
+        "ensemble_travail": 228179968,
+        "etape": "luts"
+      },
+      {
+        "ensemble_travail": 381284352,
+        "etape": "fenetre_et_tampons"
+      },
+      {
+        "ensemble_travail": 381489152,
+        "etape": "emplacements_cache_evenements"
+      }
+    ],
+    "experts": 32,
+    "fichier": "~/dev/modeles/trc/gpt-oss-20b.trc",
+    "k": 4,
+    "longueur_arrivee": 12582912,
+    "longueur_lecture": 12582912,
+    "octets_emplacement": 13254144,
+    "octets_epingles": 151822336,
+    "octets_vram_moteur": 6360841904,
+    "ouverture_s": 1.6201993,
+    "prechargement": false,
+    "profondeur_es": 4,
+    "ram_tiede_go": 0.0,
+    "temoin": false,
+    "tiedes": 0,
+    "vocab": 201088,
+    "vram_plafond_mio": 7179
+  },
+  "outil": "troncons generer",
+  "pas_generation": 0.0,
+  "prefill_jetons_s": 3.0402337234399104,
+  "prefill_s": 1.6446104,
+  "temps_cumules_generation_s": [],
+  "texte": " Paris",
+  "texte_sha256": "3ca6a054807c4570e33544afebd6d8bb79f6cdd96a48f19490a57919f499e801",
+  "version": "0.1.0",
+  "vram": {
+    "echantillons": 0,
+    "pointe_mio": null,
+    "premiere_mio": null
+  }
+}

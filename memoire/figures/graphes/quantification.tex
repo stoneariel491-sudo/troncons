@@ -1,0 +1,108 @@
+% Graphes du chapitre « Quantification extrême ». Les séries lisent les CSV de l'étude 02
+% (fondations/journaux/02-quantification/csv/, produits par outils/quant-csv-memoire.py) ou
+% leurs versions traduites (memoire/figures/donnees/quant-*.csv). Aucune valeur à la main.
+
+% Distorsion contre débit sur la source N(0,1).
+\newcommand{\GrapheMSE}{%
+\begin{tikzpicture}
+\begin{semilogyaxis}[memoire, width=\linewidth, height=0.64\linewidth,
+  xlabel={\EF{bits per weight $R$}{bits par poids $R$}}, ylabel={\EF{MSE for $\sigma^2=1$ (log scale)}{MSE pour $\sigma^2=1$ (échelle log.)}},
+  xmin=0.85, xmax=3.15, ymin=0.012, ymax=0.5, legend pos=north east,
+  log ticks with fixed point, ytick={0.02,0.05,0.1,0.2,0.4}]
+\addplot[black, no markers, domain=0.85:3.15, samples=60] {2^(-2*x)};
+\addlegendentry{\EF{Shannon bound $2^{-2R}$}{borne de Shannon $2^{-2R}$}}
+\addplot[black!45, dashed, no markers, domain=1.5:3.15, samples=40] {2.7207*2^(-2*x)};
+\addlegendentry{\EF{Panter--Dite (high resolution)}{Panter-Dite (haute résolution)}}
+\addplot[only marks, SerieF, mark=square*, erreurs] table[x=bits, y=mse, y error=et] {\CsvQuant/fig-q1-lloyd.csv};
+\addlegendentry{\EF{Lloyd--Max (optimal scalar)}{Lloyd-Max (scalaire optimal)}}
+\addplot[only marks, SerieD, mark=triangle*, mark size=2.6pt, erreurs] table[x=bits, y=mse, y error=et] {\CsvQuant/fig-q1-vq8.csv};
+\addlegendentry{\EF{VQ dim.~8, random codebook}{VQ dim.~8, livre aléatoire}}
+\addplot[only marks, SerieB, mark=diamond*, mark size=2.9pt, erreurs] table[x=bits, y=mse, y error=et] {\CsvQuant/fig-q1-iq2xxs.csv};
+\addlegendentry{IQ2\_XXS (llama.cpp)}
+\addplot[only marks, SerieA, mark=*, mark size=2pt, erreurs] table[x=bits, y=mse, y error=et] {\CsvQuant/fig-q1-treillis.csv};
+\addlegendentry{\EF{shift-register trellis, $L=16$}{treillis à décalage, $L=16$}}
+\end{semilogyaxis}
+\end{tikzpicture}}
+
+% GEMV 16 384 x 16 384 sur la RTX 4060 : Go/s équivalents par format, Vulkan et DirectX 12.
+\newcommand{\GrapheGEMVQuant}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, ybar=1pt, bar width=10pt, width=\linewidth, height=0.56\linewidth,
+  ylabel={\EF{equivalent GB/s}{Go/s équivalents}}, ymin=0, ymax=290, xmin=-0.6, xmax=5.6,
+  xtick={0,...,5}, xticklabels={\EF{read only}{lecture seule}, \EF{scalar 4 b}{scalaire 4 b},
+    \EF{scalar 2 b}{scalaire 2 b}, \EF{trellis (sum)}{treillis (somme)}, \EF{trellis (dot4)}{treillis (dot4)},
+    \EF{trellis (dot4 v2)}{treillis (dot4 v2)}},
+  x tick label style={rotate=22, anchor=east, font=\small}, legend pos=north east,
+  nodes near coords, nodes near coords style={font=\tiny}, major x grid style={draw=none}]
+\addplot[fill=Accent!70, draw=Accent] table[x=i, y=go_s] {\Donnees/quant-gemv-vulkan.csv};
+\addlegendentry{Vulkan}
+\addplot[fill=SerieD!60, draw=SerieD] table[x=i, y=go_s] {\Donnees/quant-gemv-dx12.csv};
+\addlegendentry{DirectX 12}
+\draw[Vram, dashed] (axis cs:-0.6,256) -- (axis cs:5.6,256) node[pos=0.5, above, font=\scriptsize] {VRAM 256};
+\end{axis}
+\end{tikzpicture}}
+
+% Perplexité contre octets lus par jeton, Qwen3.5 4B et 9B (échelle llama.cpp mesurée ici).
+\newcommand{\GrapheEchelle}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=\linewidth, height=0.64\linewidth,
+  xlabel={\EF{GB read per token}{Go lus par jeton}}, ylabel={\EF{perplexity (wikitext-2, $40\times512$ tokens)}{perplexité (wikitext-2, $40\times512$ jetons)}},
+  xmin=1.2, xmax=5.6, ymin=6.5, ymax=17, legend pos=north east,
+  nodes near coords, point meta=explicit symbolic,
+  nodes near coords style={font=\scriptsize, anchor=south west}]
+\addplot[only marks, SerieA, mark=*, erreurs] table[x=go, y=ppl, y error=et, meta=etiquette] {\CsvQuant/fig-q3-4B.csv};
+\addlegendentry{Qwen3.5-4B}
+\addplot[only marks, SerieB, mark=square*, nodes near coords style={anchor=north west}, erreurs] table[x=go, y=ppl, y error=et, meta=etiquette] {\CsvQuant/fig-q3-9B.csv};
+\addlegendentry{Qwen3.5-9B}
+\draw[black!40, dashed] (axis cs:3.137,6.5) -- (axis cs:3.137,17) node[pos=0.97, right, font=\scriptsize, black!60] {\EF{crossing 3.14\,GB}{croisement 3,14\,Go}};
+\end{axis}
+\end{tikzpicture}}
+
+% Vitesse de décodage (tout en VRAM, CUDA) contre octets lus par jeton ; plafond 256/B.
+\newcommand{\GrapheVitesseQuant}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=\linewidth, height=0.6\linewidth,
+  xlabel={\EF{GB read per token}{Go lus par jeton}}, ylabel={\EF{tokens/s}{jetons/s}},
+  xmin=1.2, xmax=5.6, ymin=0, ymax=180, legend pos=north east,
+  nodes near coords, point meta=explicit symbolic,
+  nodes near coords style={font=\scriptsize, anchor=south west}]
+\addplot[black, dashed, no markers, domain=1.2:5.6, samples=60] {256/x};
+\addlegendentry{\EF{ceiling $256/B$}{plafond $256/B$}}
+\addplot[SerieA, mark=*] table[x=go, y=jetons_s, meta=etiquette] {\CsvQuant/fig-q6-vitesse-4B.csv};
+\addlegendentry{Qwen3.5-4B}
+\addplot[SerieB, mark=square*] table[x=go, y=jetons_s, meta=etiquette] {\CsvQuant/fig-q6-vitesse-9B.csv};
+\addlegendentry{Qwen3.5-9B}
+\end{axis}
+\end{tikzpicture}}
+
+% À octets égaux, Llama 2 en treillis QTIP (littérature, QTIP tab. 5).
+\newcommand{\GrapheIsoOctets}{%
+\begin{tikzpicture}
+\begin{semilogxaxis}[memoire, width=\linewidth, height=0.6\linewidth,
+  xlabel={\EF{GB read per token (log scale)}{Go lus par jeton (échelle log.)}}, ylabel={\EF{WikiText-2 perplexity, context 4096}{perplexité WikiText-2, contexte 4096}},
+  log ticks with fixed point, xtick={2,4,8,16,32}, xmin=1.4, xmax=40, legend pos=north east,
+  nodes near coords, point meta=explicit symbolic, nodes near coords style={font=\scriptsize, anchor=west}]
+\addplot[only marks, SerieA, mark=*] table[x=go, y=ppl, meta=etiquette] {\CsvQuant/fig-q4-llama2-7B.csv};
+\addlegendentry{Llama 2 7B}
+\addplot[only marks, SerieB, mark=square*] table[x=go, y=ppl, meta=etiquette] {\CsvQuant/fig-q4-llama2-13B.csv};
+\addlegendentry{Llama 2 13B}
+\addplot[only marks, SerieC, mark=triangle*, mark size=2.6pt] table[x=go, y=ppl, meta=etiquette] {\CsvQuant/fig-q4-llama2-70B.csv};
+\addlegendentry{Llama 2 70B}
+\end{semilogxaxis}
+\end{tikzpicture}}
+
+% À octets égaux, Qwen3 au MMLU (littérature, Tetra tab. 3).
+\newcommand{\GrapheMMLU}{%
+\begin{tikzpicture}
+\begin{semilogxaxis}[memoire, width=\linewidth, height=0.6\linewidth,
+  xlabel={\EF{GB of weights read per token (log scale)}{Go de poids lus par jeton (échelle log.)}}, ylabel={\EF{MMLU (14\,042 questions)}{MMLU (14\,042 questions)}},
+  log ticks with fixed point, xtick={1,2,4,8,16,32}, xmin=1, xmax=40, legend pos=south east,
+  nodes near coords, point meta=explicit symbolic, nodes near coords style={font=\scriptsize, anchor=south}]
+\addplot[SerieA, mark=*] table[x=go, y=mmlu, meta=etiquette] {\CsvQuant/fig-q4-qwen3-mmlu-tetra.csv};
+\addlegendentry{\EF{Tetra, $\approx 2.7$ bits/param.}{Tetra, $\approx 2{,}7$ bits/paramètre}}
+\addplot[SerieD, mark=square*] table[x=go, y=mmlu, meta=etiquette] {\CsvQuant/fig-q4-qwen3-mmlu-awq.csv};
+\addlegendentry{\EF{AWQ 4 bits, 5.3--6.0 bits/param.}{AWQ 4 bits, 5,3 à 6,0 bits/paramètre}}
+\addplot[SerieF, mark=triangle*, mark size=2.6pt] table[x=go, y=mmlu, meta=etiquette] {\CsvQuant/fig-q4-qwen3-mmlu-fp16.csv};
+\addlegendentry{FP16}
+\end{semilogxaxis}
+\end{tikzpicture}}

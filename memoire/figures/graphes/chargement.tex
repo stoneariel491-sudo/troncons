@@ -1,0 +1,51 @@
+% Graphes du chapitre « Chargement à la demande ».
+
+% Succès du cache exigé pour 5 et 10 jetons/s, disque mesuré (2,82 Go/s), et part qui tient.
+\newcommand{\GrapheJuge}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, xbar=0.6pt, bar width=4.2pt, width=0.8\linewidth, height=0.95\linewidth,
+  xlabel={\EF{cache hit rate $h$}{taux de succès du cache $h$}}, xmin=0, xmax=1.02,
+  ymin=-0.7, ymax=11.7, ytick={0,...,11}, y dir=reverse,
+  yticklabels from table={\Donnees/charge-juge.csv}{modele},
+  major y grid style={draw=none}, tick label style={font=\scriptsize}, legend pos=south east,
+  legend style={font=\scriptsize}]
+\addplot[fill=SerieA!60, draw=SerieA] table[x=h5_282, y=i] {\Donnees/charge-juge.csv};
+\addlegendentry{\EF{$h$ for 5 tok/s}{$h$ pour 5 jetons/s}}
+\addplot[fill=SerieB!55, draw=SerieB] table[x=h10_282, y=i] {\Donnees/charge-juge.csv};
+\addlegendentry{\EF{$h$ for 10 tok/s}{$h$ pour 10 jetons/s}}
+\addplot[only marks, mark=|, mark size=4pt, line width=1.4pt, black] table[x=part_tenable, y=i] {\Donnees/charge-juge.csv};
+\addlegendentry{\EF{share that fits (no locality)}{part qui tient (sans localité)}}
+\end{axis}
+\end{tikzpicture}}
+
+% Plafond de gpt-oss-120b selon le succès h du cache d'experts.
+\newcommand{\GrapheSensibiliteH}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=\linewidth, height=0.58\linewidth,
+  xlabel={\EF{expert-cache hit rate $h$}{taux de succès du cache d'experts $h$}}, ylabel={\EF{tokens/s ceiling}{plafond (jetons/s)}},
+  xmin=0, xmax=1, ymin=0, ymax=25, legend pos=north west]
+\addplot[SerieF, dashed, no markers] table[x=h, y=jps_lien] {\Donnees/charge-sensibilite-h.csv};
+\addlegendentry{\EF{disk at its link ceiling (7.877 GB/s)}{disque au plafond du lien (7,877 Go/s)}}
+\addplot[SerieA, no markers, line width=1.2pt] table[x=h, y=jps_mesure] {\Donnees/charge-sensibilite-h.csv};
+\addlegendentry{\EF{disk measured (2.82 GB/s)}{disque mesuré (2,82 Go/s)}}
+\draw[black!45, dotted] (axis cs:0.26,0) -- (axis cs:0.26,25) node[pos=0.95, right, font=\scriptsize, black!65] {\EF{uniform: 26\,\%}{uniforme : 26\,\%}};
+\end{axis}
+\end{tikzpicture}}
+
+% Témoin synthétique : routage « collant » (rho = 0,6, E = 128, k = 8), succès par budget C.
+\newcommand{\GrapheLocalite}{%
+\begin{tikzpicture}
+\begin{semilogxaxis}[memoire, width=\linewidth, height=0.55\linewidth, log basis x=2,
+  xlabel={\EF{cache budget $C$ (experts per layer, of 128)}{budget du cache $C$ (experts par couche, sur 128)}},
+  ylabel={\EF{hit rate}{taux de succès}}, xmin=6.5, xmax=78, ymin=0, ymax=1, xtick={8,16,32,64},
+  xticklabels={8,16,32,64}, legend pos=north west, legend columns=2]
+\addplot[SerieE, mark=*, line width=1.2pt] table[x=C, y=belady] {\Donnees/charge-localite-collant.csv};
+\addlegendentry{\EF{Belady (optimal)}{Belady (optimum)}}
+\addplot[SerieA, mark=square*] table[x=C, y=lru] {\Donnees/charge-localite-collant.csv};
+\addlegendentry{LRU}
+\addplot[SerieC, mark=triangle*, densely dashed] table[x=C, y=lfu] {\Donnees/charge-localite-collant.csv};
+\addlegendentry{LFU}
+\addplot[SerieF, mark=diamond*] table[x=C, y=statique] {\Donnees/charge-localite-collant.csv};
+\addlegendentry{\EF{static, calibrated}{statique calibré}}
+\end{semilogxaxis}
+\end{tikzpicture}}

@@ -1,0 +1,27 @@
+# Témoin K1 sur un vrai fichier .trc du lot F (ARCHITECTURE.md § 6.5, K1 : « sortie = trc-codec ») :
+# chaque expert décodé sur la carte par le chemin du moteur (trc-noyaux sur trc-cuda) est comparé
+# octet pour octet à la reconstruction du processeur (trc-codec, lot F) et, remis dans la
+# disposition d'origine, à l'empreinte du répertoire (§ 4.12).
+#
+# Outil hors de l'espace de travail du moteur (dossier du lot K sous mesures/), pour ne toucher ni
+# moteur/Cargo.toml ni moteur/Cargo.lock (lot O). Les crates du moteur sont prises par chemin ;
+# leurs `x.workspace = true` se résolvent dans leur propre espace (moteur/Cargo.toml). Aucune
+# dépendance externe directe : la couture D (§ 2.4) n'est pas touchée.
+[package]
+name = "temoin-trc"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+publish = false
+
+[dependencies]
+trc-noyaux = { path = "../../../../moteur/crates/trc-noyaux" }
+trc-cuda = { path = "../../../../moteur/crates/trc-cuda" }
+trc-format = { path = "../../../../moteur/crates/trc-format" }
+trc-codec = { path = "../../../../moteur/crates/trc-codec" }
+
+[profile.release]
+opt-level = 3
+debug = "line-tables-only"
+
+[workspace]

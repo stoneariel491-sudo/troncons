@@ -1,0 +1,57 @@
+{
+ "outil": "outils/decisions/partisan_a.py",
+ "casser": true,
+ "repris": {
+  "plafonds": "outils/07-synthese/plafonds.py (importé)",
+  "memcpy": {
+   "secteur": [
+    7.5,
+    "mesuré ici [01]",
+    "copie processeur vers tampon d'envoi, cité par 07 § 6"
+   ],
+   "batterie": [
+    1.25,
+    "mesuré ici [01]",
+    "idem, sur batterie"
+   ]
+  },
+  "disque_16M_QD1": [
+   2.819,
+   "mesuré ici [01]",
+   "01-machine § 2.4 : 16 Mio aléatoire QD 1, bruit 1 %"
+  ],
+  "disque_4M_QD1": [
+   2.314,
+   "mesuré ici [01]",
+   "01-machine § 2.4 : 4 Mio aléatoire QD 1"
+  ],
+  "disque_non_chiffre": [
+   6.0,
+   "littérature (Samsung, non reproduit)",
+   "07 § 4.2 : borne haute"
+  ]
+ },
+ "S1_temoins": {
+  "A_lru_6_24": {
+   "attendu": 6.24,
+   "obtenu": 5.424396855181494,
+   "tient": false
+  },
+  "A0_lru_3_59": {
+   "attendu": 3.59,
+   "obtenu": 3.261897192222404,
+   "tient": false
+  },
+  "B1_lru_8_88": {
+   "attendu": 8.88,
+   "obtenu": 8.879142373196574,
+   "tient": true
+  },
+  "A_uniforme_2_05": {
+   "attendu": 2.05,
+   "obtenu": 1.8125951113618533,
+   "tient": false
+  }
+ },
+ "S1_temoins_tiennent": false
+}

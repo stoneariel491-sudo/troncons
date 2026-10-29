@@ -1,0 +1,42 @@
+=== référence (rien de cassé)
+  ok     aller_retour_identique
+  ok     aller_retour_par_voie_et_chemin_rapide
+  ok     bourrage_et_sauts_et_contexte_decode
+  ok     cassures_refusees
+  ok     cassures_tombent
+  ok     empreinte64_connue
+  ok     identite_avec_03_geometrie_demi
+  ok     identite_avec_03_geometrie_octet
+  ok     matrice_v10_se_reconstruit
+  ok     table_depuis_frequences_refuse
+  ok     temoin_du_temoin
+=== cassure : LUT de géométrie 1 : f au lieu de f − 1 (trc-codec/src/rans.rs, a8e6e17225c8ec7f)
+  tombent : aller_retour_par_voie_et_chemin_rapide, cassures_tombent, identite_avec_03_geometrie_octet, matrice_v10_se_reconstruit
+  restauré : oui (a8e6e17225c8ec7f)
+=== cassure : codeur : renormalise à f << 19 au lieu de f << 20 (trc-codec/src/rans.rs, a8e6e17225c8ec7f)
+  tombent : aller_retour_par_voie_et_chemin_rapide, bourrage_et_sauts_et_contexte_decode, cassures_tombent, identite_avec_03_geometrie_demi, identite_avec_03_geometrie_octet, matrice_v10_se_reconstruit
+  restauré : oui (a8e6e17225c8ec7f)
+=== cassure : décodeur par voie : bloc n / 8 au lieu de n / 16 (trc-codec/src/rans.rs, a8e6e17225c8ec7f)
+  tombent : aller_retour_par_voie_et_chemin_rapide, cassures_tombent, matrice_v10_se_reconstruit
+  restauré : oui (a8e6e17225c8ec7f)
+=== cassure : décodeur : ne compte pas les voies hors de L (trc-codec/src/rans.rs, a8e6e17225c8ec7f)
+  tombent : cassures_tombent
+  restauré : oui (a8e6e17225c8ec7f)
+=== cassure : décodeur : ne vérifie pas les mots consommés (trc-codec/src/rans.rs, a8e6e17225c8ec7f)
+  tombent : cassures_tombent
+  restauré : oui (a8e6e17225c8ec7f)
+=== cassure : en-tête : colonnes écrites à 100 au lieu de 96 (trc-format/src/lib.rs, 19d749e7e63ef7ce)
+  tombent : aller_retour_identique, cassures_refusees
+  restauré : oui (19d749e7e63ef7ce)
+=== cassure : lecture : empreinte de l'en-tête non vérifiée (trc-format/src/lib.rs, 19d749e7e63ef7ce)
+  tombent : cassures_refusees
+  restauré : oui (19d749e7e63ef7ce)
+=== cassure : lecture : sorte 0x05 acceptée comme CODES_CTX (trc-format/src/lib.rs, 19d749e7e63ef7ce)
+  tombent : cassures_refusees
+  restauré : oui (19d749e7e63ef7ce)
+=== cassure : reconstruction : e = méd + δ − 127 (trc-codec/src/lib.rs, 5a22b00e12c3c85e)
+  tombent : matrice_v10_se_reconstruit
+  restauré : oui (5a22b00e12c3c85e)
+=== référence après restauration
+  identique à la première : True
+BILAN : chaque cassure fait tomber au moins un témoin : True

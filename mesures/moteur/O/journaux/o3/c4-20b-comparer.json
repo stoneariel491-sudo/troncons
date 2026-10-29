@@ -1,0 +1,84 @@
+{
+  "a_contre_verite": {
+    "dp_rms": 0.015399104768959072,
+    "kl_incertitude": 0.0017104597386825079,
+    "kl_max": 1.9678565097585616,
+    "kl_mediane": 0.002929223658395661,
+    "kl_min": 0.0001539944627353545,
+    "kl_moyenne": 0.022605733427487767,
+    "kl_p90": 0.04045933622747251,
+    "kl_p99": 0.38228454259156347,
+    "kl_p999": 0.9940761841185524,
+    "ln_rapport_ppl": -0.017049065758199866,
+    "ln_rapport_ppl_incertitude": 0.006054730312503532,
+    "meme_premier": 0.8960784313725491,
+    "meme_premier_incertitude": 0.006044229427875742,
+    "meme_premier_wilson95": [
+      0.8836324311361681,
+      0.9073328784068881
+    ],
+    "n": 2550,
+    "ppl_p": 460.24497527909875,
+    "ppl_q": 452.46473976042927
+  },
+  "apparie": {
+    "kl_difference_b_moins_a": -0.01892719187823799,
+    "kl_ecart_type": 0.001684614915149403,
+    "premier_difference_b_moins_a": 0.07568627450980392,
+    "premier_ecart_type": 0.006081426935378879
+  },
+  "b_contre_verite": {
+    "dp_rms": 0.003848610550794259,
+    "kl_incertitude": 0.00045964651690291947,
+    "kl_max": 0.48171445578325994,
+    "kl_mediane": 0.00007910467283402669,
+    "kl_min": -0.00007568112587518537,
+    "kl_moyenne": 0.003678541549249772,
+    "kl_p90": 0.0031720248054616256,
+    "kl_p99": 0.0702760980322182,
+    "kl_p999": 0.40362740557094157,
+    "ln_rapport_ppl": 0.0037121196821621183,
+    "ln_rapport_ppl_incertitude": 0.0021966601522647755,
+    "meme_premier": 0.971764705882353,
+    "meme_premier_incertitude": 0.003280890991456067,
+    "meme_premier_wilson95": [
+      0.9645916796435882,
+      0.9775184860794776
+    ],
+    "n": 2550,
+    "ppl_p": 460.24497527909875,
+    "ppl_q": 461.9566346872063
+  },
+  "commande": [
+    "~\\dev\\cibles\\troncons-R\\release\\juge.exe",
+    "comparer",
+    "--verite",
+    "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+    "--a",
+    "~/dev/essais/troncons/lot-R/r0/carte_cmoe.kld",
+    "--b",
+    "~/dev/essais/troncons/lot-O/o3-2026-10-15-s1-code.kld",
+    "--json",
+    "mesures/moteur/O/journaux/o3/c4-20b-comparer.json",
+    "--csv",
+    "mesures/moteur/O/journaux/o3/c4-20b-comparer.csv"
+  ],
+  "duree_s": 5.3836828,
+  "fenetres": 10,
+  "fin_unix": 1792117460,
+  "kl_inverse": {
+    "a": 0.0228314953495921,
+    "b": 0.00366276034402486,
+    "difference": -0.019168735005567265,
+    "ecart_type": 0.0017443352708902192
+  },
+  "outil": "juge comparer",
+  "positions": 2550,
+  "regle": "littéral : KL_B ≤ KL_A et premier_B ≥ premier_A ; statistique : d̄ ≤ 2σ(d̄) et ē ≥ −2σ(ē) (différences appariées, mêmes positions, même vérité)",
+  "verdicts": {
+    "litteral_kl": true,
+    "litteral_premier": true,
+    "statistique_kl": true,
+    "statistique_premier": true
+  }
+}

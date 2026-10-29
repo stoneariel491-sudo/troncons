@@ -1,0 +1,8 @@
+# Configuration de latexmk pour les deux mémoires (lancé depuis memoire/en ou memoire/fr).
+# lualatex (fontspec, unicode-math) et biber (biblatex).
+$pdf_mode = 4;
+$lualatex = 'lualatex -interaction=nonstopmode -halt-on-error -file-line-error -synctex=1 %O %S';
+$biber = 'biber %O %S';
+$bibtex_use = 2;
+$max_repeat = 6;
+@generated_exts = (@generated_exts, 'synctex.gz', 'run.xml', 'bcf', 'lol');

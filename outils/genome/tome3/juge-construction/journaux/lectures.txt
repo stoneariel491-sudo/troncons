@@ -1,0 +1,58 @@
+L1  III-9.1 (c) : aires entre calibration et évaluation (moyenne sur k de la différence des parts)
+    frontière  aire 0.1675 ; part du coût vu par l'évaluation au-delà du rang 0.207 ; calibration 16.50, évaluation 16.09
+    synonyme   aire 0.3180 ; part du coût vu par l'évaluation au-delà du rang 0.442 ; calibration 6.15, évaluation 10.28
+    rapport des coûts évaluation / calibration : frontière 0.975, synonyme 1.670
+    aire du synonyme moins aire de la frontière : 0.1506
+L2  III-9.1 : amortissement du codeur contre poids des directions muettes
+    moy(diag H) = tr(H)/2880 = 0.4128 ; δ* = 1 : chaque direction pèse au moins 0.4128 dans le coût que le codeur minimise
+    poids d'évaluation des 1551 directions muettes : min 0.1189, médiane 0.1540, max 0.2254
+    λ_k de calibration : 433 directions au-dessus de moy(diag H)
+L3  III-9.2 : le 99,9e centile
+    R1     frontière        n 2550 ; 99,9e 4.066 ; positions au-dessus 3 ; 99e 1.457 ; max 6.489
+    R1     λ = 1            n 2550 ; 99,9e 3.928 ; positions au-dessus 3 ; 99e 1.295 ; max 6.945
+    R1     λ = 0            n 2550 ; 99,9e 3.367 ; positions au-dessus 3 ; 99e 1.081 ; max 7.248
+    neuves frontière (sub)  n 2550 ; 99,9e 4.297 ; positions au-dessus 3 ; 99e 1.877 ; max 6.091
+    neuves λ = 1 (moteur)   n 2550 ; 99,9e 3.404 ; positions au-dessus 3 ; 99e 1.490 ; max 3.629
+    neuves λ = 0 (moteur)   n 2550 ; 99,9e 3.613 ; positions au-dessus 3 ; 99e 1.417 ; max 5.497
+    neuves λ = 0 (sub)      n 2550 ; 99,9e 3.514 ; positions au-dessus 3 ; 99e 1.397 ; max 5.445
+    λ = 1 contre la frontière, 99,9e : R1 -3.4%, neuves -20.8%
+    λ = 0 contre la frontière, 99,9e : R1 -17.2%, neuves -15.9%
+L4  III-9.3 : deux chemins dans une différence appariée (mesuré sur R1)
+    R1 λ=1 sub − F sub (un chemin, celui du lot B)          d̄ -0.1118 ; σ_f 0.0296 ; z 3.78
+    R1 λ=1 moteur − F moteur (un chemin)                    d̄ -0.1103 ; σ_f 0.0292 ; z 3.78
+    R1 λ=1 moteur − F sub (deux chemins, comme les neuves)  d̄ -0.1118 ; σ_f 0.0297 ; z 3.76
+    R1 frontière moteur − frontière sub, par fenêtre : moyenne -0.0014, de -0.0076 à +0.0010
+L5  III-8.6 encart : rapports écrits et rapports dessinés
+    dessiné : A120 s2 1.742, C120 s2 1.343, C120 un extent J6 1.731
+    écrit : C[U]/A[U] (J6, A non dessiné 1.765) 0.981 ; C[U]/C tiré (J5, non dessiné 1.378) 1.256
+    lu sur les barres : C un extent / A s2 0.994 ; C un extent / C s2 1.288 ; A s2 / C s2 1.297
+L6  III-8.6 (d) : le motif est un reste ; l'étage disque seul du 120b dans la même séance
+    étage disque 120b : A 1.758, B 2.408, R 2.301 Go/s ; B/A 1.370 ; R/B 0.956
+    r(B/A) 1.4415 ; toit des octets 1.0340 ; reste (motif) >= 1.3941 ; si les octets ne rendaient rien : 1.4415
+    écart-type relatif des A de la séance : 0.058
+L7  III-8.1 : parts des codes, 12 tenseurs (dessinés) contre 72 tenseurs (commités)
+    code  0 : 12 tenseurs   6.85 % ; 72 tenseurs   6.39 %
+    code  1 : 12 tenseurs   8.60 % ; 72 tenseurs   8.41 %
+    code  2 : 12 tenseurs  10.15 % ; 72 tenseurs  10.17 %
+    code  3 : 12 tenseurs   5.46 % ; 72 tenseurs   5.56 %
+    code  4 : 12 tenseurs   7.88 % ; 72 tenseurs   8.09 %
+    code  5 : 12 tenseurs   5.59 % ; 72 tenseurs   5.77 %
+    code  6 : 12 tenseurs   4.00 % ; 72 tenseurs   4.11 %
+    code  7 : 12 tenseurs   1.46 % ; 72 tenseurs   1.49 %
+    code  8 : 12 tenseurs   6.85 % ; 72 tenseurs   6.39 %
+    code  9 : 12 tenseurs   8.60 % ; 72 tenseurs   8.42 %
+    code 10 : 12 tenseurs  10.15 % ; 72 tenseurs  10.18 %
+    code 11 : 12 tenseurs   5.46 % ; 72 tenseurs   5.56 %
+    code 12 : 12 tenseurs   7.88 % ; 72 tenseurs   8.09 %
+    code 13 : 12 tenseurs   5.60 % ; 72 tenseurs   5.77 %
+    code 14 : 12 tenseurs   4.00 % ; 72 tenseurs   4.11 %
+    code 15 : 12 tenseurs   1.46 % ; 72 tenseurs   1.49 %
+    épaisseur du rayon du zéro après / avant : 1.883 (une épaisseur proportionnelle donnerait 2.000)
+L8  III-9.6 : σ par fenêtres sur σ par positions ; bits du point exact
+    frontière  σ_f / σ_n = 5.70
+    λ = 1      σ_f / σ_n = 3.25
+    λ = 0      σ_f / σ_n = 3.30
+    Q2_0       σ_f / σ_n = 8.88
+    v1.0 du 20b : bpp_total_03 3.8506 (tracé) ; bits utiles du fichier 3.8618 (même définition que les compagnons) ; alignés 3.8624
+L9  III-10.1 : jetons routés par fenêtre
+    appels R1 490560 = 10 fenêtres × 24 couches × 4 experts × 511.0 jetons (255 positions notées par fenêtre)

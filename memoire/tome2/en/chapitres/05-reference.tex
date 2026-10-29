@@ -1,0 +1,559 @@
+% Tome~II, chapter \enquote{The exact reference and the judge} (writer reference-cache).
+% Sources: moteur/R-pour-le-memoire.md, moteur/REPRISE-R.md, moteur/O-pour-le-memoire.md (part III,
+% § 13.3), mesures/epreuve-J1.md (§ 3.3, § 6.1), their logs and CSV files; figures recomputed by
+% memoire/outils/tome2_reference_cache.py (memoire/figures/tome2/donnees/t2-verif-reference-cache.json).
+\ifdefined\GrapheRefRampe\else\input{\Racine/figures/tome2/reference}\fi
+
+\chapter{The exact reference and the judge}\label{ch:t2-reference}
+
+\begin{origine}
+\textbf{At the start}, the study of the models had shown that two correct engines do not return the same logits: on Qwen3.5-4B, the CPU path and the GPU path of llama.cpp were apart by a Kullback-Leibler (KL) divergence of 0.0055, while the same engine run twice was apart by nothing (at most $6.8\cdot10^{-5}$, the rounding of the format) \mes. The architecture drew a rule from it (criterion C4): troncons is not judged against another engine, it is judged against \emph{the exact mathematics of the model}, computed in double precision.
+\textbf{This chapter establishes} that truth and the instrument that compares against it: a forward pass of gpt-oss in f64 that sees the weights of the file without any rounding, two computation paths equal to the bit, the YaRN ramp as OpenAI defines it (and not as llama.cpp rounds it); the theory of the KL that the judge needs, and the two defects of the instrument that its witnesses found; then the discovery of the work package: \textbf{a mixture of experts amplifies the smallest errors}, because the choice of experts is a discontinuous function of the input; 88\,\% of the KL disappears when routing is imposed; the f16 rounding of the KV cache carries 70 to 77\,\% of the routing switches of the 120b; and an f32 KV cache makes troncons equal to the f64 truth at the floor of the format.
+\textbf{What remains} is the f64 reference of the 120b on the ten windows (a single window and one prompt are judged), the arbiter's decision on seam N (the f32 KV cache), a criterion that judges KL distributions rather than their mean alone, and the identification of the second amplifier (the 12\,\% that survive imposed routing).
+Sources: \fichier{moteur/R-pour-le-memoire.md}, \fichier{moteur/REPRISE-R.md}, \fichier{moteur/O-pour-le-memoire.md} (part III), \fichier{mesures/epreuve-J1.md}, and the logs under \fichier{mesures/moteur/R/}, \fichier{mesures/moteur/O/corrections/}, \fichier{mesures/moteur/epreuve-J1/}.
+\end{origine}
+
+\begin{enbref}
+\begin{itemize}
+\item The reference computes exactly on the exact weights: a Q8\_0 weight fits in 18 significant bits, an MXFP4 weight in 4, and an f64 offers 53 (\cref{lem:t2r-exact}).
+\item Its two paths (token by token, layer by layer) return the same 4\,826\,112 logits to the bit (\cref{prop:t2r-chemins}); the tiling that makes it 1\,900 times thriftier in memory traffic changes no bit (\cref{prop:t2r-pavage}).
+\item The KL of a perturbation $\Delta z$ of the logits is exactly $\log \E_p e^{\Delta z} - \E_p \Delta z$ (\cref{prop:t2r-cumulants}): it is second order as long as the computation is smooth, and first order as soon as an expert switches (\cref{thm:t2r-amplification}).
+\item Measured on gpt-oss-20b: changing only the YaRN ramp (a phase difference of $10^{-4}$\,rad per position) gives a KL of 0.0145; imposing the routing drops it to 0.00168; 1\,157 positions that switch themselves carry 96.5\,\% of the KL.
+\item On the 120b, with an f32 KV cache, troncons equals the truth: KL $-0.00048$ (the zero of the instrument), 100\,\% top-1 agreement, routing equal on 36 layers $\times$ 708 positions; in f16: KL 0.00308.
+\end{itemize}
+\end{enbref}
+
+% =====================================================================================
+\section{Why judge against a mathematical truth}\label{sec:t2r-pourquoi}
+
+A lossless inference engine should return \enquote{the right logits}. But which ones? Two engines that read the same bytes and are both correct do not perform the same sums in the same order, do not keep activations in the same format, do not round the cache of keys and values the same way. Their logits differ, and the measure that says so has a name: $G_{\text{moteurs}}$, the KL between two correct engines. Judging troncons against llama.cpp would mean demanding that it reproduce llama.cpp's approximations, which makes no sense; judging it \enquote{within $G_{\text{moteurs}}$} would let through any error smaller than the gap between two engines.
+
+The architecture's answer (delegated answer of 2026-10-15, reversible; \fichier{decisions/ARCHITECTURE.md} § 12, item 9) is to judge every engine against \textbf{the function that the model defines}, computed exactly enough for its error to be invisible to the instrument. Criterion C4 then reads: the KL from the truth to troncons does not exceed the KL from the truth to llama.cpp, and troncons picks the same most likely token as the truth at least as often. The truth differs from nothing.
+
+One must still say what \enquote{the model} is. The file being served is ggml-org's GGUF, where attention is quantised to Q8\_0 while OpenAI's model carries it in bf16. The reference therefore judges \emph{the model as stored in the file we serve}, not OpenAI's checkpoint: it is the right judge of troncons, which serves those very bytes, and it is not a judge of ggml-org's quantisation (\fichier{moteur/R-pour-le-memoire.md} § 6). For the form of the computation (attention with sinks, sliding window on every other layer, YaRN, clamped SwiGLU, router), the reference follows the implementation and configuration published by OpenAI~\cite{openai2025gptossref,openai2025gptoss20bconfig}, not llama.cpp~\cite{ggml2026llamacppb11515}; \cref{sec:t2r-yarn} shows that the difference is not academic.
+
+% =====================================================================================
+\section{The forward pass in double precision}\label{sec:t2r-passe}
+
+\subsection{Exact weights}\label{sec:t2r-poids}
+
+The reference's first act is to read the weights \emph{without rounding them}. This is not a precaution; it is an arithmetic fact that can be proved.
+
+\begin{lemme}[Dequantisation is exact in f64]\label{lem:t2r-exact}
+Every weight of a Q8\_0 or MXFP4 tensor of gpt-oss, and every F16 or F32 tensor, is represented exactly by an f64 number.
+\end{lemme}
+
+\begin{proof}
+\emph{Q8\_0.} A 34-byte block holds a scale $d$ in f16, then 32 integers $q \in [-128, 127]$; the weight is $w = d\,q$. A normal f16 has 11 significant bits (10 stored plus the implicit bit) and an exponent from $-14$ to 15 (down to $-24$ for subnormals); $|q| \le 128$ has at most 7 significant bits ($128 = 2^7$ has only one; \barre{$|q|$ fits in 7 bits plus the sign}, false for $q = -128$, which needs 8 bits). The product of integers of 11 and 7 significant bits fits in at most 18 significant bits, and its exponent stays within $[-24-7, 15+7]$, well inside the normal range of f64 ($[-1022, 1023]$): it is exact, since f64 offers 53 significant bits.
+\emph{MXFP4.} A 17-byte block holds an exponent $e \in [0, 255]$ (E8M0), then 16 bytes, two 4-bit codes per byte; the weight is $w = K[c]\cdot 2^{e-128}$, with $K = \{0, \pm1, \pm2, \pm3, \pm4, \pm6, \pm8, \pm12\}$, the doubled E2M1 values. $K[c]$ fits in at most 4 significant bits ($12 = 1100_2$) and $2^{e-128}$ is a power of two with exponent in $[-128, 127]$: their product is exact.
+\emph{F16, F32.} Conversion to a wider format is exact.
+\end{proof}
+
+Two details of the format, which the reference had to find and which its tests guard (\fichier{moteur/crates/trc-reference/src/poids.rs}): the exponent is $e - 128$ and not $e - 127$, because $K$ holds the doubled E2M1 magnitudes ($0.5 \to 1$); and byte $j$ of a block holds element $j$ in its low nibble and element $j+16$ in its high nibble (test \texttt{mxfp4\_ordre\_des\_demi\_octets}). \Cref{tab:t2r-blocs} gives the two blocks bit for bit.
+
+\begin{table}[ht]
+\centering\small
+\caption[The two blocks the reference reads]{The two quantised blocks the reference reads, field by field, and the exact value it draws from them.}
+\label{tab:t2r-blocs}
+\begin{tabular}{@{}llll@{}}
+\toprule
+Block & Bytes & Field & Value in f64 \\
+\midrule
+Q8\_0 (34 B, 32 weights) & 0--1 & $d$, little-endian f16 & exact \\
+ & 2--33 & $q_0 \ldots q_{31}$, i8 & $w_j = d\, q_j$ (at most 18 significant bits) \\
+\addlinespace
+MXFP4 (17 B, 32 weights) & 0 & $e$, E8M0 & $2^{e-128}$ \\
+ & $1+j$, $j<16$ & bits 0--3: $c_j$; bits 4--7: $c_{j+16}$ & $w_j = K[c_j]\,2^{e-128}$, $w_{j+16} = K[c_{j+16}]\,2^{e-128}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Consequence: \textbf{all of the reference's error comes from sums and transcendental functions}, in f64, of the order of $10^{-16}$ relative per operation. It is invisible to an instrument that codes each logit on 16 bits (\cref{sec:t2r-instrument}).
+
+\subsection{Two paths, one function}\label{sec:t2r-chemins}
+
+The reference offers two paths. The first computes one token at a time, all layers, with a KV cache, like an engine. The second computes one layer at a time for all positions of a batch of windows: it reads each expert at most once per layer. What it saves is one line of arithmetic \calc: token by token, ten windows of 511 positions of the 120b reread $10 \times 511 \times 36 \times 4 \times 13.254~\text{MB} \approx 9.75$\,TB of experts; layer by layer, at most $36 \times 128 \times 13.254~\text{MB} \approx 61.1$\,GB, 160 times less, and the batch fits in memory ($5\,110 \times 2\,880 \times 8$\,B $= 118$\,MB per activation array).
+
+\begin{proposition}[The two paths compute the same function, to the bit]\label{prop:t2r-chemins}
+If every scalar is computed by the same sequence of operations in both orders, the layer-by-layer pass and the token-by-token pass return, position by position, logits that are equal to the bit.
+\end{proposition}
+
+\begin{proof}
+With a causal mask, the output of position $t$ at layer $\ell$ depends only on the inputs of positions $\le t$ at layer $\ell$. Induction on $\ell$: if the inputs of layer $\ell$ are equal to the bit in both orders for every position, each output of layer $\ell$ is a sequence of IEEE~754 operations~\cite{higham2002} on equal operands, hence equal; this holds here because the dot product depends only on its two vectors (never on the number of positions nor on the split into threads), attention reads the same keys in the same order, and the sum of the four experts follows the order $j = 0, 1, 2, 3$. At layer 0, the inputs are the embedding rows, equal.
+\end{proof}
+
+Witness W1 turns this into an exact equality, not a tolerance: on 24 tokens of the 20b, \textbf{4\,826\,112 logits, 0 different}; the break (the token-by-token path with the other YaRN ramp) makes 4\,625\,024 of them differ, with a maximum gap of 0.124 within 24 tokens \mes~(\fichier{mesures/moteur/R/r1/W1-chemins-20b.log}, \fichier{W1-chemins-casse-20b.log}).
+
+\subsection{Tiling the product, and why it changes no bit}\label{sec:t2r-pavage}
+
+The first version of the product of a matrix by a batch, $y[p, r] = \langle W_r, x_p\rangle$, walked the rows and, for each one, reread the $n$ input vectors. As soon as these no longer fit in the last-level cache (24\,MB), the traffic to main memory is $T = R\,n\,C \cdot 8$\,bytes. With the numbers of R1 \calc: $n = 10 \times 511 = 5\,110$ positions, $C = 2\,880$, hence $n\,C\cdot 8 = 117.7$\,MB; for the output matrix alone ($R = 201\,088$ rows), $T = 201\,088 \times 117.7~\text{MB} \approx 23.7$\,TB, which at 60\,GB/s (order of magnitude of DDR5, assumption) is about $3.9\cdot10^5$\,s: more than four days for one matrix. Witness W1, at 24 positions (553\,KB, held in cache), could not see it (\fichier{moteur/R-pour-le-memoire.md} § 2.6).
+
+The tiling (frame: Goto and van de Geijn's anatomy of the matrix product~\cite{goto2008anatomy}) arranges the computation in four levels: positions in packets of 256 ($256 \times 2\,880 \times 8$\,B $= 5.9$\,MB, held in L3); for each packet, one task per block of 32 rows dequantised once (737\,KB, in L2); within the task, tiles of 8 positions (184\,KB); within the tile, four products at a time (2 rows $\times$ 2 positions), that is eight independent FMA chains. The traffic to main memory falls to the quantised bytes of $W$ once per packet, $\lceil n/256\rceil\, R\, C\, b/8$ ($b = 8.5$ bits per weight for Q8\_0): for the output, $20 \times 0.615 = 12.3$\,GB, about \textbf{1\,900 times less} \calc.
+
+\begin{proposition}[The tiling is equal to the bit to the plain dot product]\label{prop:t2r-pavage}
+Let $S(a, b)$ be the sequence of operations of the reference dot product: for $i = 0, 8, 16, \ldots < C_8 = 8\lfloor C/8\rfloor$, $\ell \leftarrow \mathrm{fma}(a_{i..i+4}, b_{i..i+4}, \ell)$ and $h \leftarrow \mathrm{fma}(a_{i+4..i+8}, b_{i+4..i+8}, h)$ on two registers of four accumulators; then $s = ((\ell_0 + h_0) + (\ell_2 + h_2)) + ((\ell_1 + h_1) + (\ell_3 + h_3))$; then $s \leftarrow \mathrm{fma}(a_j, b_j, s)$ for $j = C_8 \ldots C-1$. Then, for any packet, block and tile size and any number of threads, the tiled product returns $y[p, r] = S(W_r, x_p)$ to the bit.
+\end{proposition}
+
+\begin{proof}
+The $2\times2$ kernel runs, for each of the four pairs $(a_u, b_v)$, the sequence $S(a_u, b_v)$ on its own accumulators $(\ell_{uv}, h_{uv})$, interleaved with the other three, and the same reduction function, written once (\cref{lst:t2r-2x2}). An IEEE~754 FMA returns the correctly rounded value of $a\cdot b + c$, a function of its three operands only~\cite{higham2002}; two identical sequences of operations on identical operands therefore return identical results, whatever the interleaving. The tiling changes only \emph{which} products are computed \emph{when}; none changes its internal order.
+\end{proof}
+
+\begin{lstlisting}[language=C, float=htbp, caption={[The 2 × 2 kernel of the reference]The $2\times2$ kernel of the reference (excerpt of \texttt{trc-reference/src/poids.rs}; comments of work package R, in French in the code: \enquote{four dot products at a time, each by exactly the sequence of operations of scalaire\_avx2: eight FMA chains}; \enquote{a single writing of the reduction order, hence a single computed function}). Each product keeps its two accumulators and the common reduction; only the four sequences are interleaved.}, label=lst:t2r-2x2]
+// Quatre produits scalaires à la fois, (a0.b0, a0.b1, a1.b0, a1.b1), chacun par
+// exactement la suite d'opérations de scalaire_avx2 : huit chaînes de FMA.
+while i < n8 {
+    let (x0l, x0h) = (_mm256_loadu_pd(pa0.add(i)), _mm256_loadu_pd(pa0.add(i + 4)));
+    let (x1l, x1h) = (_mm256_loadu_pd(pa1.add(i)), _mm256_loadu_pd(pa1.add(i + 4)));
+    let (y0l, y0h) = (_mm256_loadu_pd(pb0.add(i)), _mm256_loadu_pd(pb0.add(i + 4)));
+    let (y1l, y1h) = (_mm256_loadu_pd(pb1.add(i)), _mm256_loadu_pd(pb1.add(i + 4)));
+    lo00 = _mm256_fmadd_pd(x0l, y0l, lo00);  hi00 = _mm256_fmadd_pd(x0h, y0h, hi00);
+    lo01 = _mm256_fmadd_pd(x0l, y1l, lo01);  hi01 = _mm256_fmadd_pd(x0h, y1h, hi01);
+    lo10 = _mm256_fmadd_pd(x1l, y0l, lo10);  hi10 = _mm256_fmadd_pd(x1h, y0h, hi10);
+    lo11 = _mm256_fmadd_pd(x1l, y1l, lo11);  hi11 = _mm256_fmadd_pd(x1h, y1h, hi11);
+    i += 8;
+}
+// Une seule écriture de l'ordre de réduction, donc une seule fonction calculée.
+[reduire_avx2(lo00, hi00, a0, b0, n8), reduire_avx2(lo01, hi01, a0, b1, n8),
+ reduire_avx2(lo10, hi10, a1, b0, n8), reduire_avx2(lo11, hi11, a1, b1, n8)]
+\end{lstlisting}
+
+\paragraph{The witness and its two breaks.} The test \texttt{produit\_egal\_scalaire\_au\_bit} (non-dyadic reals, edges everywhere) holds. The first break tried, swapping $\ell$ and $h$ for the single pair $(a_1, b_1)$, \emph{still holds}: the swap turns $(\ell_k + h_k)$ into $(h_k + \ell_k)$, equal by the exact commutativity of IEEE addition. This is a lesson of method that this thesis keeps: \textbf{a break must change the computed function, not merely the text of the code}. The second break (the eight terms of $(a_1, b_1)$ on the $\ell$ chain alone) falls: 304 outputs out of $71 \times 19 = 1\,349$. W1 replayed after the tiling: 4\,826\,112 logits, 0 different, and W1's break returns exactly the same 4\,625\,024 differences as before \mes~(\fichier{mesures/moteur/R/r1/W1-chemins-20b-pavage.log}).
+
+\subsection{The YaRN ramp: OpenAI's definition and llama.cpp's form}\label{sec:t2r-yarn}
+
+gpt-oss rotates its queries and keys in pairs (RoPE), with frequencies stretched by YaRN to carry a context 32 times longer than the training one~\cite{peng2023yarn}. The original frequencies are $\theta_i = b^{-2i/d}$, $i = 0 \ldots d/2 - 1$, with $b = 150\,000$ and $d = 64$. \enquote{NTK-by-parts} YaRN blends extrapolation $\theta_i$ and interpolation $\theta_i/s$ ($s = 32$) along a ramp over the pair index:
+\begin{equation}\label{eq:t2r-rampe}
+r_i = \operatorname{clamp}\!\Big(\frac{i - \alpha}{\beta - \alpha}, 0, 1\Big), \qquad
+\omega_i = \theta_i\Big((1 - r_i) + \frac{r_i}{s}\Big).
+\end{equation}
+The bounds are the pairs whose wavelength $2\pi/\theta_i$ makes $\beta_r = 32$ and $\beta_l = 1$ turns respectively over the original context $L_0 = 4\,096$:
+\begin{equation}\label{eq:t2r-bornes}
+2\pi\, b^{2i/d} = \frac{L_0}{\beta} \iff i(\beta) = \frac{d}{2}\cdot\frac{\ln\big(L_0/(2\pi\beta)\big)}{\ln b}.
+\end{equation}
+\emph{Worked out} \calc: $\ln b = \ln 150\,000 = 11.9184$; $L_0/(2\pi\cdot 32) = 20.372$, whose logarithm is 3.0141; $L_0/(2\pi) = 651.90$, whose logarithm is 6.4798. Hence
+\[
+\alpha = 32 \times \frac{3.0141}{11.9184} = \mathbf{8.0928}, \qquad \beta = 32 \times \frac{6.4798}{11.9184} = \mathbf{17.398}.
+\]
+OpenAI's reference implementation keeps these real bounds, and its configuration says so: the key \texttt{truncate} is \texttt{false}; llama.cpp b11515 takes $\lfloor\alpha\rfloor = 8$ and $\lceil\beta\rceil = 18$ (function \texttt{ggml\_rope\_\allowbreak yarn\_\allowbreak corr\_\allowbreak dims}). The reference follows OpenAI and keeps llama.cpp's variant to measure the gap (\cref{lst:t2r-yarn}). The two ramps differ only on a few pairs (\cref{fig:t2r-rampe}): \barre{for $8 \le i \le 17$}, corrected by the second path (\texttt{rampe\_yarn.py}, \fichier{mesures/moteur/R/r1/rampe-yarn-temoin.json}): \textbf{for $9 \le i \le 17$}, because at $i = 8$ both ramps are 0 ($8 < 8.0928$ on one side, $(8-8)/10 = 0$ on the other) and at $i = 18$ both are 1. The second path finds the frequencies within one ulp (0.94 at most); its break (the rounded ramp taken for OpenAI's) makes pairs 9 to 17 fall, and only them.
+
+\begin{figure}[ht]
+\centering
+\GrapheRefRampe
+\caption[The YaRN ramp, OpenAI against llama.cpp]{The ratio $\omega_i/\theta_i$ of the stretched frequency to the original frequency, for the 32 pairs of one head of gpt-oss. Below the ramp, extrapolation (ratio 1); above it, interpolation (ratio $1/32$). The two definitions part only on the coloured band.}
+\sourcefig{\fichier{mesures/moteur/R/r1/csv/rampe-yarn.csv} (written by \texttt{juge rampe}, the code of the reference; recomputed by \texttt{rampe\_yarn.py}).}
+\label{fig:t2r-rampe}
+\end{figure}
+
+\paragraph{Order of magnitude of the gap.} At pair $i = 17$: $\theta_{17} = b^{-34/64} = 1.78\cdot10^{-3}$; for OpenAI, $r = 0.957$, so $\omega/\theta = 0.043 + 0.957/32 = 0.0729$; for llama.cpp, $r = 0.9$, $\omega/\theta = 0.1 + 0.9/32 = 0.128$. Hence $\Delta\omega = 1.78\cdot10^{-3} \times (0.128 - 0.0729) = 9.8\cdot10^{-5}$\,rad per position, that is 0.05\,rad at position 500 \calc. At pair 9: $\theta_9 = b^{-18/64} = 0.0350$; for OpenAI, $r = (9 - 8.0928)/(17.3980 - 8.0928) = 0.0975$, so $\omega/\theta = 0.9025 + 0.0975/32 = 0.90555$; for llama.cpp, $r = 0.1$, $\omega/\theta = 0.9 + 0.1/32 = 0.90313$; hence $\Delta\omega = 0.0350 \times 0.00243 \approx 8.5\cdot10^{-5}$\,rad per position \calc. Work package R's note (\fichier{moteur/R-pour-le-memoire.md}) wrote \barre{$8.8\cdot10^{-5}$}, taken over here without being redone until the judgement of Volume~II. Small, but not zero, and the gap grows with position: at 131\,072 tokens, 12.8\,rad, an unrelated phase. What this small gap costs in KL is the subject of \cref{sec:t2r-amplification}, and the answer is surprising.
+
+\paragraph{The concentration factor.} YaRN also multiplies the cosine and the sine by $0.1\ln s + 1 = 1.3466$, hence the product $q\cdot k$ by $1.3466^2 = 1.8133$. llama.cpp obtains the same value by another route (\texttt{yarn\_attn\_factor} brought back to 1, then \texttt{mscale}). Omitting it is the error injected by R1's break (\cref{sec:t2r-temoins}).
+
+\begin{lstlisting}[language=C, float=htbp, caption={[The YaRN ramp in the reference]The YaRN frequencies in the reference (\texttt{trc-reference/src/ops.rs}). llama.cpp's variant rounds the bounds; OpenAI's keeps them real. The French comment reads: \enquote{correction dimension: the pair whose wavelength makes beta turns over L0}.}, label=lst:t2r-yarn]
+let concentration = 0.1 * facteur.ln() + 1.0;
+// Dimension de correction : la paire dont la longueur d'onde 2 pi / inv_freq fait beta tours sur L0.
+let corr = |beta: f64| (demi as f64) * (ctx_origine / (beta * 2.0 * PI)).ln() / base.ln();
+let (mut bas, mut haut) = (corr(beta_rapide), corr(beta_lent));
+if v == VarianteYarn::LlamaCpp {
+    bas = bas.floor().max(0.0);
+    haut = haut.ceil().min((d - 1) as f64);
+}
+let inv_freq = (0..demi).map(|i| {
+    let interpolation = 1.0 / (facteur * freq[i]);
+    let extrapolation = 1.0 / freq[i];
+    let rampe = ((i as f64 - bas) / (haut - bas)).clamp(0.0, 1.0);
+    let masque = 1.0 - rampe;
+    interpolation * (1.0 - masque) + extrapolation * masque
+}).collect();
+\end{lstlisting}
+
+% =====================================================================================
+\section{The Kullback-Leibler divergence, and what it measures}\label{sec:t2r-kl}
+
+\subsection{Definition and first properties}
+
+Let $p$ and $q$ be two distributions over the vocabulary $V$ ($|V| = 201\,088$ for gpt-oss). The Kullback-Leibler divergence~\cite{kullback1951} from $p$ to $q$ is
+\begin{equation}\label{eq:t2r-kl}
+\mathrm{KL}(p \,\|\, q) = \sum_{i \in V} p_i \log\frac{p_i}{q_i}.
+\end{equation}
+It reads as the average number of nats lost when coding tokens drawn from $p$ with a code that is optimal for $q$~\cite{cover2006}. Two facts make it fit our use.
+
+\begin{theoreme}[Gibbs' inequality]\label{thm:t2r-gibbs}
+$\mathrm{KL}(p\,\|\,q) \ge 0$, with equality if and only if $p = q$.
+\end{theoreme}
+
+\begin{proof}
+On the support of $p$, $-\log$ is strictly convex; by Jensen's inequality,
+\[
+\sum_i p_i \log\frac{q_i}{p_i} \le \log \sum_{i : p_i > 0} q_i \le \log 1 = 0,
+\]
+with equality if and only if $q_i/p_i$ is constant on the support of $p$ and that support carries all the mass of $q$, that is $q = p$.
+\end{proof}
+
+\begin{proposition}[Cross-entropy, perplexity]\label{prop:t2r-croisee}
+For the true distribution $p$ of the next token, the cross-entropy of an engine $q$ decomposes as $H(p, q) = H(p) + \mathrm{KL}(p\,\|\,q)$. The average loss of the engine on a text drawn from $p$ therefore exceeds that of the exact model by exactly its mean KL, and the ratio of perplexities is $\exp(\overline{\mathrm{KL}})$.
+\end{proposition}
+
+\begin{proof}
+$H(p, q) = -\sum_i p_i \log q_i = -\sum_i p_i \log p_i + \sum_i p_i \log(p_i/q_i)$. Perplexity is the exponential of the average loss.
+\end{proof}
+
+The direction of the KL matters. The judge writes $\mathrm{KL}(\text{truth}\,\|\,\text{engine})$, with the truth as base: the sum is weighted by what \emph{the exact model} holds likely, and that is where an error costs (\cref{prop:t2r-croisee}). This choice is that of criterion R1; criterion C4 wrote it the other way round, and the engineer of work package R aligned it with R1 so that a single instrument judges both (delegated answer of 2026-10-15, reversible; \fichier{moteur/REPRISE-R.md}, need 2). The judge records both directions anyway.
+
+\subsection{The KL of a small perturbation of the logits}\label{sec:t2r-cumulants}
+
+An approximate engine does not return an arbitrary distribution: it returns the logits of the truth, perturbed. Let $z \in \mathbb{R}^V$ be the exact logits, $p = \operatorname{softmax}(z)$, and $q = \operatorname{softmax}(z + \Delta z)$.
+
+\begin{proposition}[The KL is a cumulant generating function]\label{prop:t2r-cumulants}
+\begin{equation}\label{eq:t2r-cumulants}
+\mathrm{KL}(p\,\|\,q) = \log \E_p\big[e^{\Delta z}\big] - \E_p[\Delta z] = \tfrac12\operatorname{Var}_p(\Delta z) + \tfrac16\kappa_3 + \cdots
+\end{equation}
+where $\E_p$ and $\operatorname{Var}_p$ are over the index $i$ drawn from $p$, and $\kappa_3$ is the third cumulant of $\Delta z$ under $p$. In particular, the KL does not depend on a common shift of the logits, and it is \emph{second order} in $\Delta z$.
+\end{proposition}
+
+\begin{proof}
+$\log q_i = z_i + \Delta z_i - \log\sum_j e^{z_j + \Delta z_j}$ and $\log p_i = z_i - \log\sum_j e^{z_j}$. Hence $\log p_i - \log q_i = -\Delta z_i + \log\big(\sum_j e^{z_j}e^{\Delta z_j}/\sum_j e^{z_j}\big) = -\Delta z_i + \log \E_p[e^{\Delta z}]$. Average under $p$. The expansion is that of the cumulant generating function $K(t) = \log \E_p e^{t\Delta z} = t\kappa_1 + t^2\kappa_2/2 + t^3\kappa_3/6 + \cdots$ at $t = 1$, with $\kappa_1 = \E_p\Delta z$ and $\kappa_2 = \operatorname{Var}_p \Delta z$.
+\end{proof}
+
+This identity is exact; it will serve twice. First, it says that the KL of a rounding is tiny: if each logit is perturbed by a relative $u$, $\operatorname{Var}_p(\Delta z) = O(u^2)$ and the KL is of order $u^2$. Then, it will say why a mixture of experts escapes that regime (\cref{thm:t2r-amplification}).
+
+\subsection{Top-1 agreement, and its intervals}
+
+The judge also records, position by position, whether the engine and the truth give the same most likely token (\enquote{top-1}, ties broken by the smallest index). A proportion $\hat\pi = k/n$ carries the Wilson score interval at 95\,\%~\cite{wilson1927}, with $z = 1.96$:
+\begin{equation}\label{eq:t2r-wilson}
+\frac{\hat\pi + \frac{z^2}{2n}}{1 + \frac{z^2}{n}} \pm \frac{z}{1 + \frac{z^2}{n}}\sqrt{\frac{\hat\pi(1-\hat\pi)}{n} + \frac{z^2}{4n^2}} .
+\end{equation}
+A mean KL carries the uncertainty $\sqrt{(\langle x^2\rangle - \langle x\rangle^2)/(n-1)}$, as in llama.cpp (\fichier{moteur/crates/trc-juge/src/stats.rs}).
+
+\subsection{Judging two engines on the same positions}\label{sec:t2r-apparie}
+
+C4 compares two KLs measured \emph{at the same positions} against the same truth $V$: $x_i = \mathrm{KL}(V_i\,\|\,A_i)$ for llama.cpp, $y_i = \mathrm{KL}(V_i\,\|\,B_i)$ for troncons, and $d_i = y_i - x_i$. Then
+\begin{equation}\label{eq:t2r-apparie}
+\operatorname{Var}(\bar d) = \frac{\sigma_x^2 + \sigma_y^2 - 2\rho\,\sigma_x\sigma_y}{n},\qquad
+\hat\sigma(\bar d) = \sqrt{\frac{\langle d^2\rangle - \langle d\rangle^2}{n-1}} .
+\end{equation}
+Two engines that err at the same difficult positions have $\rho$ close to 1, and the paired comparison sees a difference that the comparison of two independent means would drown. Work package R proposes to the arbiter a statistical verdict, $\bar d \le 2\hat\sigma(\bar d)$ and $\bar e \ge -2\hat\sigma(\bar e)$ (where $e_i \in \{-1, 0, 1\}$ compares the top-1 choices), next to the literal verdict (the two means).
+
+\paragraph{The defect of the literal verdict, observed.} Tried on two real engines against the truth (A = llama.cpp GPU, B = llama.cpp CPU; \fichier{mesures/moteur/R/r2/comparer-ref-carte-processeur-20b.json}): KL 0.022606 against 0.026470; top-1 89.61\,\% against 90.39\,\%; $\bar d = +0.00386 \pm 0.00236$ (1.6\,$\sigma$), $\bar e = +0.0078 \pm 0.0055$ \mes. The literal verdict on the KL falls, the one on top-1 holds; both statistical verdicts hold. Two engines that nothing distinguishes in correctness receive opposite literal verdicts depending on the measure. The paired standard deviation (0.00236) is hardly smaller than $\sqrt{0.0017^2 + 0.0025^2} = 0.0030$: the two engines do not err at the same positions, and \cref{sec:t2r-amplification} will say why. Break (B = the reference without the YaRN scale): the four verdicts fall ($\bar d = 0.220 \pm 0.008$, $\bar e = -0.315 \pm 0.010$).
+
+% =====================================================================================
+\section{The instrument and its witnesses}\label{sec:t2r-instrument}
+
+\subsection{The logits file and its floor}\label{sec:t2r-kld}
+
+So that every engine goes through the same instrument, the judge reads and writes the format of llama-perplexity (\texttt{--kl-divergence-base}; read in \texttt{tools/perplexity} of b11515, nothing copied). Per scored position, it stores two reals and one 16-bit code per vocabulary token (\cref{fig:t2r-kld}).
+
+\begin{figure}[ht]
+\centering
+\SchemaRefKld
+\caption[One entry of the .kld file, bit for bit]{One entry of the \texttt{.kld} file, per scored position (positions 256 to 510 of each 512-token window). Token $i$ receives code $c_i$; its log-probability is read back as $\Delta c_i + \log p_{\min}$.}
+\sourcefig{\fichier{moteur/crates/trc-juge/src/kld.rs}.}
+\label{fig:t2r-kld}
+\end{figure}
+
+\begin{lemme}[The floor of the instrument]\label{lem:t2r-plancher}
+The coding error of a log-probability above the cut satisfies $|\delta_i| \le \Delta/2 \le 16/131\,070 = 1.22\cdot10^{-4}$\,nat. A distribution judged against its own coding has a KL of at most $\Delta/2$ at first order, and not $O(\Delta^2)$.
+\end{lemme}
+
+\begin{proof}
+The code is the rounding to nearest of $(\log p_i - \log p_{\min})/\Delta$, hence $|\delta_i| \le \Delta/2$, and $\Delta = (\max - m')/65\,535 \le 16/65\,535$. Against itself, $\log\hat p_i = \log p_i + \delta_i$ and the KL is $\sum_i \hat p_i(\log \hat p_i - \log p_i) \approx \sum_i p_i\delta_i$, bounded by $\max|\delta_i|$; it does not drop to second order because the decoded $\hat p$ are not renormalised (they do not sum to 1).
+\end{proof}
+
+This is the floor measured by the study of the models (at most $6.8\cdot10^{-5}$, i.e.\ $\Delta/2$ for a $\max - \min$ gap of about 9) and the origin of the $7\cdot10^{-5}$ threshold. The judge's first unit test had a threshold set by guesswork, \barre{$|\mathrm{KL}| \le 10^{-7}$}; it fell at $5.7\cdot10^{-6}$ and was replaced by the derived bound, $|\mathrm{KL}| \le \Delta$ (\fichier{moteur/REPRISE-R.md}).
+
+\subsection{The defect the identity witness found: a coded judged file is not renormalised}\label{sec:t2r-renorm}
+
+When the judged $Q$ is itself a \texttt{.kld} file (the second path of R0 and R1, and C4, where troncons goes through the same coding), its decoded values are \emph{already} log-probabilities, normalised by the log-sum-exp of the exact logits at coding time. The first version of the judge renormalised them. But the coding crushes every token under $\max - 16$ onto code 0, hence onto $\log p_{\min}$, instead of its true value, much smaller. Renormalising then adds at each position
+\begin{equation}\label{eq:t2r-renorm}
+\log\sum_i \hat q_i = \log\Big(\sum_{c_i > 0}\hat q_i + N_0\, e^{\log p_{\min}}\Big) \approx N_0\, e^{\log p_{\min}},
+\end{equation}
+where $N_0$ is the number of crushed tokens. For gpt-oss, almost all tokens are under the cut: $N_0\,e^{-16} \approx 2\cdot10^5 \times 1.1\cdot10^{-7} \approx 2\cdot10^{-2}$ at worst \calc; \textbf{measured: $1.11\cdot10^{-3}$ on average} over 2\,550 positions, for a file judged against itself (\fichier{mesures/moteur/R/r2/comparer-temoin-identite-renormalise-AVANT-CORRECTION.json}), sixteen times the $7\cdot10^{-5}$ threshold \mes. The second path of R0, of R1 and the C4 judgement would have been blind below $10^{-3}$. Corrected (\cref{lst:t2r-decodee}): the same file against itself gives \textbf{exactly 0} (\fichier{comparer-temoin-identite.json}), and the test that guards it falls when renormalisation is put back ($> 10^{-4}$). What the correction leaves, stated: a token that $P$ holds likely and that $Q$ crushed receives $\log p_{\min}$, an upper bound of its true log-probability; the term is underestimated, never infinite.
+
+\begin{lstlisting}[language=C, float=htbp, caption={[KL of a decoded entry]The KL of a position when the judged side is a decoded entry (\texttt{trc-juge/src/stats.rs}): no renormalisation. The French comments say: coding crushes every token under max $-$ 16 onto log\_p\_min; renormalising adds about $N_0 e^{\log p_{\min}}$ (1.11e-3 measured on gpt-oss-20b); without renormalisation, a file against itself gives exactly 0.}, label=lst:t2r-decodee]
+/// Le codage écrase tous les jetons sous max - 16 sur log_p_min ; renormaliser l'entrée
+/// décodée ajoute log(somme des p décodés) ~ N0 * exp(log_p_min) (1,11e-3 mesuré, gpt-oss-20b).
+/// Sans renormalisation, un fichier contre lui-même donne 0 exactement.
+pub fn position_decodee(p: &Entree, q: &Entree, n: usize, suivant: usize) -> Position {
+    position_avec(p, |i| q.log_p(i) as f64, n, suivant, false)
+}
+// … dans position_avec : seuls les termes de la base au-dessus de la coupe comptent.
+if lp > -16.0 {
+    kl += lp.exp() * (lp - (q(i) - lse_q));   // lse_q = 0 sans renormalisation
+}
+\end{lstlisting}
+
+\paragraph{The negative KL against a file.} A truth judged against a file that codes an identical computation does not give zero but a small negative value. Let $\tilde q$ be the distribution read back, not normalised: its tokens under the cut receive $\log q_{\min} > \log q_i$, and $\sum\tilde q = e^{\delta}$, with $\delta$ measured at 0.0020 on average (\fichier{mesures/moteur/epreuve-J1/journaux/normalisation-kld-20b-f0.json}). The KL then tends to $-\sum_{i \text{ under the cut}} p_i(\log q_{\min} - \log p_i) < 0$, measured at $-4.8\cdot10^{-4}$ (\fichier{mesures/epreuve-J1.md} § 3.3) \mes. This bias is common to every judged file; it sets the zero of the instrument and changes no ordering. It reappears in \cref{sec:t2r-kv}.
+
+\subsection{The witnesses: what the instrument sees, and what it does not}\label{sec:t2r-temoins}
+
+The llama.cpp GPU passes for R0 and R1 ran on 2026-10-15 from 19:59 to 20:20, on mains power, GPU idle (those of the reference from 15:35 to 17:35), on ten 512-token windows of wikitext-2~\cite{merity2016wikitext}, i.e.\ 2\,550 scored positions, by two independent paths: llama-perplexity, and \texttt{juge kl} (\cref{tab:t2r-r0}).
+
+\begin{table}[ht]
+\centering\small
+\caption[R0 and R1 on gpt-oss-20b]{The gap between engines (R0) and the validation of the reference (R1) on gpt-oss-20b, ten windows, 2\,550 positions \mes. \enquote{Base $\|$ judged}; path 1: llama-perplexity; path 2: \texttt{juge kl}.}
+\label{tab:t2r-r0}
+\begin{tabular}{@{}p{5.3cm}rrrrl@{}}
+\toprule
+Measurement & KL (p.~1) & median & same top-1 & p.~2 & verdict \\
+\midrule
+T1 floor: GPU $\|$ GPU & $-0.000000$ & $-0.000000$ & 100\,\% & 0 & holds \\
+$G_{\text{cfg}}$: \texttt{--cpu-moe} $\|$ \texttt{--fit} & 0 & 0 & 100\,\% & 0 & published: 0 \\
+$G_{\text{moteurs}}$: GPU $\|$ CPU & 0.022741 & 0.0024 & 91.57\,\% & 0.022735 & T3 holds \\
+T2 break: GPU $\|$ $k = 2$ experts & 0.4513 & 0.290 & 47.96\,\% & --- & holds \\
+\textbf{R1}: truth $\|$ llama.cpp GPU & \textbf{0.022612} & 0.0029 & 89.61\,\% & 0.022606 & holds, by 0.6\,\% \\
+R1 break: truth without scale $\|$ llama.cpp & 0.2644 & 0.131 & 57.80\,\% & 0.26372 & falls \\
+measurement Y: llama.cpp-ramp ref.\ $\|$ llama.cpp & 0.022603 & 0.0027 & 89.96\,\% & 0.022581 & not judged \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{moteur/R-pour-le-memoire.md} § 2.11; \fichier{mesures/moteur/R/r0/r0-resume.json}, \fichier{mesures/moteur/R/r1/r1-resume-20b.json}; paths 2 recomputed here by \fichier{memoire/outils/tome2\_reference\_cache.py}.}
+\end{table}
+
+What they say:
+\begin{itemize}
+\item \textbf{The instrument sees}: removing two experts out of four (T2) makes a KL of 0.45; taking YaRN's concentration factor away from the reference (R1's break) makes it fall by a factor of 12.
+\item \textbf{The engines are deterministic}: the two passes of each configuration write files identical byte for byte; so does the replayed reference (experiment D, 1\,GB identical).
+\item \textbf{$G_{\text{cfg}} = 0$ exactly}, in batched evaluation of 512: the \texttt{--fit} and \texttt{--cpu-moe} placements are identical to the bit. Interpretation, not checked in the code: on a batch of 512, llama.cpp computes on the GPU the products whose weights are in host memory, by copying them there; whatever the placement, they are the same kernels on the same bytes. $G_{\text{cfg}}$ is therefore zero only in evaluation, not in generation.
+\item \textbf{$G_{\text{moteurs}}$ of gpt-oss is 0.0227}, four times the Qwen3.5-4B figure (0.0055) that the Q1 threshold of milestone J2 reused: it is up to the arbiter to strike it and replace it (\fichier{moteur/REPRISE-R.md}, need 6).
+\item \textbf{R1 holds, by 0.6\,\%}: the reference has no gross error. But the llama.cpp-ramp variant is as close to llama.cpp as the reference (0.022603 against 0.022612): within 0.02, every correct or nearly correct computation is at the same distance from llama.cpp. R1 therefore separates only a gross error from a correct reference, and the fine correctness of the reference rests on its own witnesses (W1, D, the tests of each operation against its definition, the second path of the ramp), and on the third computation that follows.
+\end{itemize}
+
+\paragraph{A third computation.} The independent trial wrote its own forward pass of gpt-oss in numpy f64, from the form published by OpenAI, reading nothing of work package R (\fichier{mesures/moteur/epreuve-J1/gptoss\_numpy.py}). It finds the ramp bounds (8.09278 and 17.39802). On the 255 positions of window 0 of the 20b and their 201\,088 tokens each, work package R's reference equals it within \textbf{0.000123\,nat, that is 0.504 quantisation step} of the format (median step $2.44\cdot10^{-4}$): the 16-bit rounding alone, plus 0.004 step of f32 rounding of $\Delta$ and $\log p_{\min}$; 255 positions out of 255 below one step; 100\,\% identical top-1. llama.cpp's ramp, by contrast, departs from it by up to 6.5\,nat \mes~(\fichier{mesures/moteur/epreuve-J1/journaux/ecart-logp-20b-f0.json}). \Cref{fig:t2r-chemins} summarises where every distribution the judge compares comes from, and what links each pair.
+
+\begin{figure}[ht]
+\centering
+\SchemaRefChemins
+\caption[The paths of the truth]{The paths of the truth. Four computations read the same GGUF; the judge compares their \texttt{.kld} files by two paths. On each red link, the measurement that relates two computations: the reference and the trial's numpy pass within 0.504 step of the format; troncons coded and raw to the bit (C3); troncons and llama.cpp, each against the truth (C4).}
+\label{fig:t2r-chemins}
+\end{figure}
+
+% =====================================================================================
+\section{The discovery: a mixture of experts amplifies the smallest errors}\label{sec:t2r-amplification}
+
+\subsection{The numbers}
+
+R1 came with a series of experiments, each declared before its run (\fichier{moteur/REPRISE-R.md}), that isolate a single difference between two computations in f64 (\cref{tab:t2r-amplification}).
+
+\begin{table}[ht]
+\centering\small
+\caption[gpt-oss amplifies small errors]{What a small difference of computation costs in KL on gpt-oss-20b (ten windows, 2\,550 positions) \mes. The last four rows compare only two passes of the f64 reference.}
+\label{tab:t2r-amplification}
+\begin{tabular}{@{}p{6.6cm}rrrr@{}}
+\toprule
+Base $\|$ judged & mean KL & median & 99th centile & same top-1 \\
+\midrule
+llama.cpp CPU $\|$ reference (OpenAI ramp) & 0.0255 & 0.0027 & 0.47 & 90.4\,\% \\
+llama.cpp CPU $\|$ reference (llama.cpp ramp) & 0.0273 & 0.0027 & --- & 90.4\,\% \\
+llama.cpp CPU $\|$ ref.\ (llama.cpp ramp, Q8\_0 and f16 KV imitated) & 0.0220 & 0.0025 & 0.40 & 91.6\,\% \\
+\addlinespace
+OpenAI ref.\ $\|$ llama.cpp ref.\ (\emph{only the ramp changes}) & 0.0145 & $9.8\cdot10^{-4}$ & 0.29 & 92.5\,\% \\
+llama.cpp ref.\ $\|$ the same with imitations (\emph{only roundings change}) & 0.0291 & 0.0030 & 0.54 & 90.3\,\% \\
+OpenAI ref.\ $\|$ llama.cpp ref., \emph{routing imposed} & 0.00168 & $2.2\cdot10^{-4}$ & 0.031 & 97.2\,\% \\
+llama.cpp CPU $\|$ ref.\ without scale (break) & 0.249 & --- & --- & 57.3\,\% \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{moteur/R-pour-le-memoire.md} § 2.8 and § 2.9; \fichier{mesures/moteur/R/r1/juge-kl-*.csv}. The imitations row was published as 0.029; recomputed here as 0.02905 (\fichier{t2-verif-reference-cache.json}).}
+\end{table}
+
+Three facts stand out, and \cref{fig:t2r-repartition} shows them.
+\begin{enumerate}
+\item \textbf{The KL is not a spread-out noise, it is a tail.} The median is ten times below the mean, the 99th centile a hundred times above: most positions are nearly right, and a minority diverges outright.
+\item \textbf{A minute perturbation costs as much as another engine.} Changing only the ramp, whose direct effect is a phase of the order of $10^{-4}$\,rad per position on nine pairs (\cref{sec:t2r-yarn}), already gives 0.0145; adding only roundings of the order of $10^{-3}$ (Q8\_0 on activations, f16 on the KV cache) gives 0.029, more than the gap between the reference and llama.cpp itself.
+\item \textbf{Imitating the approximations barely brings things closer}: the reference equipped with llama.cpp's roundings is hardly closer to it (0.0220 against 0.0273). In a regime that amplifies, two computations perturbed differently are as far from each other as from the exact one.
+\end{enumerate}
+Hypothesis I, declared before the imitations run (threshold $2.5\cdot10^{-3}$), assumed a linear regime; it fell, and it is the regime that it revealed.
+
+\begin{figure}[ht]
+\centering
+\GrapheRefRepartition
+\caption[The KL per position is a tail]{Distribution of the KL per position on gpt-oss-20b (2\,550 positions, logarithmic scale). All approximate curves cross below the median and separate beyond the 90th centile. Imposing the routing (purple) tightens the tail by an order of magnitude. troncons (green, f16 KV cache) has 12\,\% of positions at KL $\le 10^{-7}$ (the zero of the instrument is slightly negative, \cref{sec:t2r-renorm}).}
+\sourcefig{\fichier{memoire/figures/tome2/donnees/t2r-kl-repartition.csv}, drawn from \fichier{mesures/moteur/R/r0/juge-kl-*.csv}, \fichier{r1/juge-kl-*.csv} and \fichier{mesures/moteur/O/csv/o-c4-20b.csv}.}
+\label{fig:t2r-repartition}
+\end{figure}
+
+\subsection{The mechanism: the routing switch}\label{sec:t2r-bascule}
+
+At each layer, gpt-oss's router computes one logit per expert (32 on the 20b, 128 on the 120b), keeps the four largest and normalises their weights by a softmax over the four. The output of the layer is
+\[
+f(h) = \sum_{j \in \mathrm{top}_4(z(h))} g_j(h)\, E_j(h), \qquad g = \operatorname{softmax}\big(z_{\mathrm{top}_4}\big).
+\]
+This function is \textbf{discontinuous} wherever the 4th and 5th logits are equal (\cref{fig:t2r-bascule}).
+
+\begin{figure}[ht]
+\centering
+\SchemaRefBascule
+\caption[The routing switch]{The routing switch. The router logits of one position, sorted; top-4 keeps the first four. The margin $m$ between the 4th and the 5th is the distance to the discontinuity.}
+\label{fig:t2r-bascule}
+\end{figure}
+
+\begin{proposition}[The jump of a switch does not depend on the perturbation]\label{prop:t2r-saut}
+Let $m = z_{(4)} - z_{(5)} > 0$ be the router margin at an input $h$, and a perturbation that changes the logits by $\delta z$. If $\delta z_{(5)} - \delta z_{(4)} > m$, expert 4 leaves, expert 5 enters, and the output changes by
+\[
+\Delta f = g_4\,\big(E_4(h) - E_5(h)\big) + O(\|\delta z\|),
+\]
+whose norm does not tend to 0 as $\|\delta z\| \to 0$ (at the edge of the switch, $g_4 \to g_5 > 0$). Otherwise, $\Delta f = O(\|\delta z\| + \|\delta h\|)$.
+\end{proposition}
+
+\begin{proof}
+Without a switch, the set of experts is the same and $f$ is differentiable in $h$ (softmax, smooth experts up to the clamped SwiGLU), hence first order. With a switch, the contribution of expert 4, of weight $g_4 > 0$, is replaced by that of expert 5, of nearby weight; the difference of two expert outputs on the same input is a quantity of the order of the outputs themselves.
+\end{proof}
+
+The jump enters the residual of the position, then, through the keys and values of this layer and the following ones, every later position. With 24 layers and 5\,110 positions, even a small probability of switching per (layer, position) touches a sizeable share of positions. The exact identity of \cref{prop:t2r-cumulants} now says what that costs.
+
+\begin{theoreme}[Two regimes of the KL of a mixture of experts]\label{thm:t2r-amplification}
+Let a perturbation of relative size $u$ of the computations (rounding, phase) shift the router margins by $\delta_u$, with $\E|\delta_u| = c\,u$ at first order; let $f_m$ be the density of the margins, continuous and non-zero at 0. Then, for small $u$, the mean KL decomposes as
+\begin{equation}\label{eq:t2r-deux-regimes}
+\overline{\mathrm{KL}}(u) \;\approx\; \underbrace{a\,u^2}_{\text{no switch}} \;+\; \underbrace{f_m(0)\, c\, u \cdot \overline{\mathrm{KL}}_{\text{jump}}}_{\text{switches}},
+\end{equation}
+where $\overline{\mathrm{KL}}_{\text{jump}}$ is the mean KL of a switching position, of order 1 in $u$. The second term, \emph{linear}, dominates the first as soon as $u < f_m(0)\,c\,\overline{\mathrm{KL}}_{\text{jump}}/a$: the more precise the computation, the larger the share of switches in the KL.
+\end{theoreme}
+
+\begin{proof}
+Without switches, the output logits are perturbed by $\Delta z = O(u)$ and \cref{prop:t2r-cumulants} gives a KL of $\tfrac12\operatorname{Var}_p\Delta z = O(u^2)$. A switch happens at a (layer, position) when $|\delta_u| > m$; its probability is $\int_0^\infty f_m(x)\Pr(|\delta_u| > x)\,dx \approx f_m(0)\,\E|\delta_u| = f_m(0)\,c\,u$ as long as $f_m$ is roughly constant over the range of $|\delta_u|$. A switching position sees, by \cref{prop:t2r-saut}, an order-1 jump of its residual, hence of its logits, hence a KL of order 1 that does not depend on $u$. Summing the two contributions gives \eqref{eq:t2r-deux-regimes}. (Switches propagated through the KV cache add a term of the same order in $u$; they are counted in $\overline{\mathrm{KL}}_{\text{jump}}$ per touched position.)
+\end{proof}
+
+The theorem is an order analysis, under assumptions (margin density continuous at 0, margin shift proportional to $u$ before any cascade); its consequences are checked against the measurements that follow.
+
+\paragraph{An order of magnitude that holds together.} The margins of all (layer, position) of the 20b have a 1st centile of $1.14\cdot10^{-3}$ and a 10th centile of $1.24\cdot10^{-2}$ (\fichier{mesures/moteur/R/r1/bascules-openai-llamacpp-20b.json}): the density at 0 is therefore $f_m(0) \approx 0.01/1.14\cdot10^{-3} = 8.8$ (or $0.1/1.24\cdot10^{-2} = 8.1$) \calc. The measured share of switches between the two ramps is 4.15\,\%; the theorem draws from it a mean margin shift $\E|\delta| \approx 0.0415/8.5 \approx 5\cdot10^{-3}$, the expected order of magnitude of a phase gap of $10^{-4}$\,rad per position, accumulated over a few hundred positions and summed in a $q\cdot k$ product \calc~on \mes. And the median margin of the switching (layer, position) alone, $9.5\cdot10^{-3}$, is indeed of that order.
+
+\subsection{The imposed-routing experiment}\label{sec:t2r-impose}
+
+Experiment B (declared before its run) imposes on the llama.cpp-ramp pass the experts that the OpenAI-ramp pass chose at each (layer, position), then compares the two: only the ramp differs, and no switch is possible. Declared threshold: if the KL falls below $10^{-3}$, the switches carry the gap.
+
+\textbf{Measured}: the KL goes from 0.0145 to 0.00168, the median from $9.8\cdot10^{-4}$ to $2.2\cdot10^{-4}$, top-1 from 92.5\,\% to 97.2\,\% \mes. The threshold falls ($1.68\cdot10^{-3} > 10^{-3}$), but what the experiment establishes is clear: the switches carry
+\[
+1 - \frac{0.00168}{0.0145} = \mathbf{88\,\%}
+\]
+of the KL \calc~(recomputed: 0.884). The rest keeps a tail (maximum 0.53): a second amplifier, unidentified, or a sensitivity peculiar to a few positions. \Cref{fig:t2r-arbre} arranges all these experiments.
+
+\begin{figure}[ht]
+\centering
+\SchemaRefArbre
+\caption[The tree of R1's experiments]{R1's experiments, each declared before its run, with the mean KL measured at each leaf (gpt-oss-20b, ten windows). The \enquote{replay (D)} leaf is the witness of the reference's determinism.}
+\sourcefig{\fichier{moteur/R-pour-le-memoire.md} § 2.8, § 2.9.}
+\label{fig:t2r-arbre}
+\end{figure}
+
+\subsection{The switches, counted}\label{sec:t2r-comptees}
+
+The routing logs of the two passes (OpenAI ramp, llama.cpp ramp; the latter replayed identical to the bit, D holds) allow the switches to be counted one by one (\texttt{bascules.py}, \fichier{mesures/moteur/R/r1/bascules-openai-llamacpp-20b.json}) \mes:
+\begin{itemize}
+\item \textbf{5\,087 switches out of 122\,640 (layer, position), i.e.\ 4.15\,\%};
+\item none of the 2\,550 scored positions is free of an upstream switch in its window: from position 256 on, there has always been an earlier switch;
+\item \textbf{1\,157 positions switch themselves (45\,\%) and carry 96.5\,\% of the KL} (mean 0.0309); the 1\,393 others, touched only through the KV cache, have a mean KL of $9.4\cdot10^{-4}$, 33 times less;
+\item the router margin is 0.083 in median over all (layer, position), and \textbf{0.0095 over those that switch}; 1\,\% of the switches have a margin below $9.6\cdot10^{-5}$.
+\end{itemize}
+The switch is local before it propagates; propagation through the KV cache exists but weighs little (\cref{fig:t2r-bascules}).
+
+\begin{figure}[ht]
+\centering
+\GrapheRefBascules
+\caption[KL per position against the router margin]{KL of each scored position against the smallest margin of its router over the 24 layers (ramp changed, free routing; gpt-oss-20b). The positions that switch themselves (red) form the top of the cloud.}
+\sourcefig{\fichier{memoire/figures/tome2/donnees/t2r-bascules-*.csv}, drawn from \fichier{mesures/moteur/R/r1/csv/bascules-openai-llamacpp-20b.csv}.}
+\label{fig:t2r-bascules}
+\end{figure}
+
+\subsection{What this does to the criteria}\label{sec:t2r-criteres}
+
+The architecture's criterion R1, \enquote{KL(reference $\|$ llama.cpp GPU) $\le \max(G_{\text{moteurs}}, 7\cdot10^{-5})$}, assumed that a correct reference is closer to llama.cpp than two llama.cpp engines are to each other. In a regime that amplifies, the distance from any approximate computation to the exact one is of the same order as the distance between two approximate computations: the reference may land slightly beyond $G_{\text{moteurs}}$ without any defect, and the criterion no longer separates a correct reference from one wrong by a small error (the ramp alone makes 0.0145); it separates only a gross error (0.249). What really separates them: imposed routing, which recovers the linear regime, and a criterion that compares distributions of distances rather than a mean. Both are put to the arbiter (\fichier{moteur/REPRISE-R.md}, needs 4 and 5), who has not decided at the time this chapter is written; the literal criterion is still applied and published as is. The same amplification affects the Q1 threshold of milestone J2.
+
+% =====================================================================================
+\section{The f16 KV cache carries the switches, f32 reaches the truth}\label{sec:t2r-kv}
+
+\subsection{The first token of C12}\label{sec:t2r-c12}
+
+The independent trial fed the 708 tokens of the prompt of text C12 to its numpy f64 pass of the 120b, with the argmax and the routing trace of every position, and the engine replayed the same tokens (\fichier{mesures/epreuve-J1.md} § 6.1). At position 707, that of the first generated token, the f64 truth picks token 1008 (\enquote{...}, $\log p = -1.46$); troncons picks 313 (\enquote{am}), to which the truth gives $\log p = -10.03$; llama.cpp picks 1008 \mes. This is not a break at 512 (the first 512 tokens are window 0, equal to the bit, and both \texttt{--contexte 1024} and \texttt{--emplacements 200} leave the 708 fingerprints unchanged). It is a \textbf{cascade of switches}: at position 707, 20 layers out of 36 route differently from the truth, from layer 12 on; at position 706, none.
+
+The experiment declared before its run (\fichier{mesures/moteur/epreuve-J1/seuils-declares.md}) replaces, in the f64 truth, the cache of keys and values by its f16-rounded version, and nothing else. That truth \textbf{picks 313 at position 707, with the same cascade of 20 layers}. The f16 rounding of the KV cache alone, which the architecture's seam N fixes for troncons (and which llama.cpp shares), is therefore a sufficient cause of the error.
+
+\subsection{The share of switches carried by the cache rounding}\label{sec:t2r-part}
+
+troncons routes like the truth at 96.9\,\% of (layer, position) before 512 and 93.1\,\% after; it routes like the truth \emph{equipped with the f16 KV} at 99.3\,\% and 97.9\,\% (\fichier{mesures/epreuve-J1.md} § 6.1). The share of troncons' switches that the cache rounding explains is worked out as \calc:
+\[
+\text{before 512: } 1 - \frac{1 - 0.993}{1 - 0.969} = 1 - \frac{0.7}{3.1} = \mathbf{77\,\%}, \qquad
+\text{after: } 1 - \frac{1 - 0.979}{1 - 0.931} = 1 - \frac{2.1}{6.9} = \mathbf{70\,\%}.
+\]
+(Recomputed by \fichier{memoire/outils/tome2\_reference\_cache.py}, whose witness falls when one of the rates is falsified.) Routing agreement decreases with depth on the 120b, not on the 20b (\cref{fig:t2r-routage}): 128 experts per layer leave tighter margins than 32, and a switch in a low layer propagates to the following ones.
+
+\begin{figure}[ht]
+\centering
+\GrapheRefRoutage
+\caption[Routing agreement per layer, engine against truth]{Share of positions whose routing in troncons (f16 KV cache) equals that of the f64 truth, per layer, on the 708-token prompt. The 120b drops with depth, more so beyond 512; the 20b stays above 0.96.}
+\sourcefig{\fichier{mesures/moteur/epreuve-J1/csv/routage-par-couche-invite.csv}.}
+\label{fig:t2r-routage}
+\end{figure}
+
+\subsection{Why f32 must reach the truth}\label{sec:t2r-f32-theorie}
+
+An f16 keeps 11 significant bits: rounding to nearest gives $\tilde k = k(1 + \delta)$ with $|\delta| \le u_{16} = 2^{-11} \approx 4.9\cdot10^{-4}$. For an attention score $s = c\sum_{d=1}^{64} q_d k_d$ ($c = 1/8$), the first-order error satisfies
+\[
+|\tilde s - s| \le c\, u_{16}\sum_d |q_d k_d|,
+\]
+and the product done in f32 adds only $\gamma_{64} = 64u_{32}/(1 - 64u_{32}) \approx 3.8\cdot10^{-6}$ ($u_{32} = 2^{-24}$; Higham~\cite{higham2002}). The attention output inherits a relative error of the same order, through the softmax weights and through $\tilde v$. In f32, the only error left is that of the kernels, $u_{32}/u_{16} = 2^{-13} = 1/8\,192$ times smaller \calc.
+
+\Cref{thm:t2r-amplification} says what becomes of the KL when $u$ is divided by 8\,192. The no-switch term, in $u^2$, is divided by $8\,192^2 \approx 6.7\cdot10^7$; the switch term, linear, by 8\,192. Starting from the 0.00308 measured in f16 on window 0 of the 120b, the KL in f32 would be at most of the order of $0.00308/8\,192 \approx 3.8\cdot10^{-7}$\,nat \calc, well below the step of the format ($\approx 2.4\cdot10^{-4}$\,nat): invisible. \barre{The f16 KL would fall towards $5\cdot10^{-11}$}: this is the estimate of the engineer of work package O (\fichier{moteur/O-pour-le-memoire.md} § 13.3), who assumed the quadratic regime for the whole KL; with switches, which are not quadratic, the honest bound is of the order of $4\cdot10^{-7}$. The conclusion does not change: in f32, the gap from the engine to the truth goes below the floor of the instrument.
+
+\subsection{Measured}\label{sec:t2r-f32-mesure}
+
+The engineer of work package O added an optional f32 KV cache to the engine (\texttt{--kv-f32}, kernels \texttt{ecrire\_kv\_f32} and \texttt{attention\_kvf32} added without touching the f16 kernels, hence outside seam N). Witness: on values representable in f16, the f32 path is equal to the bit to the f16 path (full cache and ring); break: non-representable values make them differ (\fichier{mesures/moteur/O/corrections/journaux/m5-invariants.txt}). The results against the trial's truth are in \cref{tab:t2r-kv} and \cref{fig:t2r-kv}.
+
+\begin{table}[ht]
+\centering\small
+\caption[f16 against f32 KV cache, against the f64 truth]{KL(f64 truth $\|$ troncons) depending on the format of the KV cache \mes. \enquote{Max gap of $\log p$}: above the cut of the format, in nat or in quantisation steps.}
+\label{tab:t2r-kv}
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+Case & mean KL & top-1 & KL $> 0.1$ & KL p99 & max gap of $\log p$ \\
+\midrule
+120b, window 0, f16 KV & 0.00308 & 95.7\,\% & 0.39\,\% & 0.0747 & 3.07\,nat \\
+\textbf{120b, window 0, f32 KV} & $\mathbf{-0.00048}$ & \textbf{100\,\%} & 0 & $2.3\cdot10^{-6}$ & \textbf{0.69 step} \\
+20b, window 0, f16 KV & 0.00174 & 96.5\,\% & 0.39\,\% & 0.0529 & 2.32\,nat \\
+\textbf{20b, window 0, f32 KV} & $\mathbf{-0.00048}$ & \textbf{100\,\%} & 0 & $\approx 0$ & 2.04 steps \\
+120b, prompt, positions 512 to 706, f16 & 0.00963 & --- & 2.05\,\% & 0.196 & --- \\
+\textbf{120b, prompt, positions 512 to 706, f32} & $\mathbf{-0.00054}$ & --- & 0 & $3.6\cdot10^{-6}$ & --- \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{moteur/O-pour-le-memoire.md} § 13.3; \fichier{mesures/moteur/O/corrections/journaux/verdicts-kv-2026-10-16.json}, \fichier{m5-ecart-logp-*.json}; means recomputed here from \fichier{mesures/moteur/O/corrections/csv/kv-f16-f32-par-position.csv}.}
+\end{table}
+
+\begin{figure}[ht]
+\centering
+\GrapheRefKv
+\caption[KL against the truth, f16 against f32 KV cache]{KL(f64 truth $\|$ troncons) per position, as a moving mean over 16 positions. In f16, the KL comes in bursts (the switches) and rises with position on the 120b prompt; in f32, it stays at the zero of the instrument ($\approx -5\cdot10^{-4}$, \cref{sec:t2r-renorm}).}
+\sourcefig{\fichier{memoire/figures/tome2/donnees/t2r-kv-glissant.csv}, \fichier{t2r-kv-invite-glissant.csv}, drawn from \fichier{mesures/moteur/O/corrections/csv/kv-f16-f32-par-position.csv}.}
+\label{fig:t2r-kv}
+\end{figure}
+
+On the 708-token prompt, in f32, the argmax equals the truth \textbf{708 times out of 708} (f16: 687); routing is equal on every (layer, position), 36 $\times$ 708 (f16: 96.9 and 93.1\,\%); and \textbf{the first token of C12 becomes 1008, the truth's} (f16: 313) \mes. The negative KL is exactly that of work package R's f64 reference against the same truth ($-4.8\cdot10^{-4}$): the common bias of the floor of the format, the zero of the instrument.
+
+\begin{enbref}[title={What this establishes}]
+\textbf{The f16 rounding of the KV cache carried all the measurable gap between troncons and the exact mathematics of the model.} With an f32 KV cache, the engine, its kernels, its decoder and its expert cache return the f64 truth at the floor of the 16-bit-per-logit format, on the 120b as on the 20b. The trial had bounded it from below (70 to 77\,\% of the switches); work package O's measurement closes it.
+\end{enbref}
+
+\paragraph{What it costs.} The KV cache holds 18 full layers of 4\,096 positions and 18 rings of 128, each of 512 values for $k$ and as many for $v$: $18 \times (4\,096 + 128) \times 2 \times 512 \times 2$\,B $= 155.7$\,MB in f16, twice that in f32. The extra 155.7\,MB are worth $155.7/13.25 = 11.8$ expert slots \calc; \textbf{measured: 326 $\to$ 314 slots}. On the prompt's trace, the cache simulator then gives a hit rate of 0.459 $\to$ 0.442 and 77.9 $\to$ 80.4 misses per token, i.e.\ +3.2\,\% bytes read, the order of the speed cost when the disk limits \calc~on a measured trace (\fichier{mesures/moteur/O/corrections/journaux/m5-rejouer-invite-326-314.jsonl}). The generation speed measured in f32 (1.43 and 1.56 tokens/s, \fichier{mesures/moteur/O/corrections/csv/vitesse-2026-10-16-passes.csv}) \emph{is not comparable} to the f16 one: the text changes (f32 follows the truth, then simulated tool calls, like llama.cpp's greedy output; f16 falls into a \enquote{Here is a summary} loop that lifts its hit rate to 0.590 against 0.435); the gap measures the effect of the text, not the cost of f32. The choice of the KV cache format belongs to the arbiter (seam N); it is not decided.
+
+\paragraph{\enquote{Six times closer}, requalified.} The C4 judgement on the 20b gave KL(truth $\|$ troncons) = 0.003679 against 0.022606 for llama.cpp GPU, and 97.18\,\% top-1 against 89.61\,\% (\fichier{mesures/moteur/O/csv/o-c4-20b.csv}; recomputed here: ratio 6.15). The engineer of work package O summed it up as \enquote{six times closer to the exact mathematics of the model than llama.cpp}. It is true, \textbf{the YaRN ramp included}: 0.0145 of llama.cpp's 0.0226 come from its rounded ramp, a modelling choice, and not from the precision of its kernels (finding m5 of the trial; on window 0, 0.0143 of 0.0261). And the gap that remained for troncons came entirely from its f16 KV cache. On the 120b, the trial judged C4 for the first time, on one window: 0.00308 and 95.7\,\% for troncons, 0.0607 and 80.4\,\% for llama.cpp, paired difference $-0.0576 \pm 0.0120$, disjoint Wilson intervals \mes~(\fichier{mesures/epreuve-J1.md} § 3.3).
+
+% =====================================================================================
+\section{What remains}\label{sec:t2r-reste}
+
+\begin{itemize}
+\item The f64 reference of the 120b on the ten windows (about 61\,GB of experts read per pass, of the order of four to six hours estimated): C4 on the 120b rests today on one window and one prompt only.
+\item The arbiter's decision on seam N (f32 KV: $+156$\,MB, 12 slots, of the order of 3\,\% more bytes read), and on a \enquote{tail} C4 criterion (share of positions with KL $> 0.1$, 99th centile, judged also beyond 512 positions).
+\item An R1 criterion that separates a small error: the reference judged against llama.cpp with imposed routing, with its imitations, in the linear regime (R1').
+\item The second amplifier: the 12\,\% of the KL that survive imposed routing. Untested hypotheses: the kinks of the clamped SwiGLU ($\min(g, 7)$), positions whose distribution is nearly flat, attention nearly equal between two keys.
+\end{itemize}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{The reference assumes that ggml-org's GGUF is the model.} It judges the model as stored (attention in Q8\_0), not OpenAI's bf16 checkpoint.
+\item \textbf{OpenAI's ramp is taken to be the model} on the strength of two concordant primary sources (the reference implementation and \texttt{truncate: false}); training itself is not observable. The trial's numpy pass and the reference follow the same reading of the model and read the same GGUF: a shared convention error would pass. They validate each other on arithmetic and order of operations, not on convention.
+\item \textbf{The two-regime theorem is an order analysis}; its assumptions (margin density continuous and non-zero at 0, margin shift proportional to $u$) are checked only by the order of magnitude of \cref{sec:t2r-bascule}. The $4\cdot10^{-7}$ bound for f32 depends on it; the measurement does not.
+\item \textbf{The amplifying regime is measured on gpt-oss-20b}, ten windows of wikitext-2. On the 120b, margins are tighter and the share of switches may be larger; R1's figures do not carry over without being remeasured.
+\item \textbf{\enquote{f32 KV = truth}} is measured on one 512-token window and one 708-token prompt for the 120b, one window for the 20b; not on the ten windows.
+\item \textbf{The imitations} reproduce the Q8\_0 quantisation of activations and the f16 KV cache as read in the code of b11515; not the f32 sums, nor the repacked kernels of the Q8\_0 weights, nor the GPU path.
+\item \textbf{$G_{\text{cfg}} = 0$} holds only for batched evaluation of 512; the interpretation (offloading of products to the GPU) is not checked in llama.cpp's code.
+\item \textbf{R1 holds by 0.6\,\%}, within the noise ($\pm0.0017$ and $\pm0.0025$): another seed of windows could make it fall without the reference changing.
+\item \textbf{The tiling} is proved equal to the bit by construction and by two witnesses; it was not compared pass against pass with the old version on ten windows (that would have taken days).
+\item \textbf{The reference's passes} (15:35 to 17:35 on 2026-10-15) ran during the 120b series of the gpt-oss measurement agent: no effect on the logits (D holds), possible on timings.
+\end{itemize}
+\end{faux}

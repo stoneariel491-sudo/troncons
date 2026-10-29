@@ -1,0 +1,48 @@
+{
+ "outil": "quant-mse-xor.py",
+ "L": 16,
+ "R": 2,
+ "P": 4,
+ "T": 4096,
+ "suites": 2,
+ "tirages": 1,
+ "graine": 1,
+ "casser": true,
+ "temoin": {
+  "code": "mul1-temoin",
+  "gain": 1.0,
+  "mse": 0.099613,
+  "erreur_type": 0.0029011,
+  "suites": 2,
+  "bits_par_poids": 2.0034,
+  "secondes": 27.7,
+  "attendu": 0.068236,
+  "tient": false
+ },
+ "recherche": [
+  {
+   "masques": [
+    "0xed9b",
+    "0xf398",
+    "0x2848",
+    "0xfd5d"
+   ],
+   "mse_court": 0.10145
+  }
+ ],
+ "resultat": {
+  "code": "parite",
+  "gain": 1.05,
+  "mse": 0.109908,
+  "erreur_type": 0.0043561,
+  "suites": 2,
+  "bits_par_poids": 2.0034,
+  "secondes": 20.5,
+  "masques": [
+   "0xed9b",
+   "0xf398",
+   "0x2848",
+   "0xfd5d"
+  ]
+ }
+}

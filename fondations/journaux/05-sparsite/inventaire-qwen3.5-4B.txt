@@ -1,0 +1,94 @@
+fichier : ~/dev/modeles/gguf/Qwen3.5-4B-Q4_K_M.gguf
+version GGUF : 3 ; tenseurs : 426 ; octets : 2740937888
+entete + metadonnees : 10968224 octets
+
+# Metadonnees (hors tokeniseur)
+general.architecture = qwen35
+general.type = model
+general.name = Qwen3.5-4B
+general.basename = Qwen3.5-4B
+general.quantized_by = Unsloth
+general.size_label = 4B
+general.license = apache-2.0
+general.license.link = https://huggingface.co/Qwen/Qwen3.5-4B/blob/main/LICENSE
+general.repo_url = https://huggingface.co/unsloth
+general.base_model.count = 1
+general.base_model.0.name = Qwen3.5 4B
+general.base_model.0.organization = Qwen
+general.base_model.0.repo_url = https://huggingface.co/Qwen/Qwen3.5-4B
+general.tags = ['unsloth', 'image-text-to-text']
+qwen35.block_count = 32
+qwen35.context_length = 262144
+qwen35.embedding_length = 2560
+qwen35.feed_forward_length = 9216
+qwen35.attention.head_count = 16
+qwen35.attention.head_count_kv = 4
+qwen35.rope.dimension_sections = [11, 11, 10, 0]
+qwen35.rope.freq_base = 10000000.0
+qwen35.attention.layer_norm_rms_epsilon = 9.999999974752427e-07
+qwen35.attention.key_length = 256
+qwen35.attention.value_length = 256
+qwen35.ssm.conv_kernel = 4
+qwen35.ssm.state_size = 128
+qwen35.ssm.group_count = 16
+qwen35.ssm.time_step_rank = 32
+qwen35.ssm.inner_size = 4096
+qwen35.full_attention_interval = 4
+qwen35.rope.dimension_count = 64
+general.quantization_version = 2
+general.file_type = 15
+quantize.imatrix.file = Qwen3.5-4B-GGUF/imatrix_unsloth.gguf
+quantize.imatrix.dataset = unsloth_calibration_Qwen3.5-4B.txt
+quantize.imatrix.entries_count = 248
+quantize.imatrix.chunks_count = 80
+
+# Octets par famille (bits/poids = 8*octets/elements)
+FFN dense : ffn_down                                         497.8 Mio   19.1 %   5.53 b/poids    32 tenseurs  types [12, 14]
+plongement (lu par ligne : 1 ligne par jeton)                497.3 Mio   19.1 %   6.56 b/poids     1 tenseurs  types [14]
+FFN dense : ffn_gate                                         405.0 Mio   15.6 %   4.50 b/poids    32 tenseurs  types [12]
+FFN dense : ffn_up                                           405.0 Mio   15.6 %   4.50 b/poids    32 tenseurs  types [12]
+melangeur de sequence : attn_qkv                             330.0 Mio   12.7 %   5.50 b/poids    24 tenseurs  types [13]
+melangeur de sequence : ssm_out                              165.0 Mio    6.3 %   5.50 b/poids    24 tenseurs  types [13]
+melangeur de sequence : attn_gate                            135.0 Mio    5.2 %   4.50 b/poids    24 tenseurs  types [12]
+melangeur de sequence : attn_q                                90.0 Mio    3.5 %   4.50 b/poids     8 tenseurs  types [12]
+melangeur de sequence : attn_output                           45.0 Mio    1.7 %   4.50 b/poids     8 tenseurs  types [12]
+melangeur de sequence : attn_v                                14.5 Mio    0.6 %   5.79 b/poids     8 tenseurs  types [12, 14]
+melangeur de sequence : attn_k                                11.2 Mio    0.4 %   4.50 b/poids     8 tenseurs  types [12]
+melangeur de sequence : ssm_conv1d                             3.0 Mio    0.1 %  32.00 b/poids    24 tenseurs  types [0]
+melangeur de sequence : ssm_alpha                              2.0 Mio    0.1 %   8.50 b/poids    24 tenseurs  types [8]
+melangeur de sequence : ssm_beta                               2.0 Mio    0.1 %   8.50 b/poids    24 tenseurs  types [8]
+normes                                                         0.7 Mio    0.0 %  32.00 b/poids   105 tenseurs  types [0]
+melangeur de sequence : ssm_a                                  0.0 Mio    0.0 %  32.00 b/poids    24 tenseurs  types [0]
+melangeur de sequence : ssm_dt                                 0.0 Mio    0.0 %  32.00 b/poids    24 tenseurs  types [0]
+TOTAL                                                       2603.5 Mio
+
+# Couches : 32 ; min 57.7 Mio ; max 70.3 Mio
+
+# Tenseurs de la couche 0 et de la derniere couche
+  output_norm.weight                       dims [2560] type 0     0.01 Mio
+  token_embd.weight                        dims [2560, 248320] type 14   497.31 Mio
+  blk.0.attn_gate.weight                   dims [2560, 4096] type 12     5.62 Mio
+  blk.0.attn_norm.weight                   dims [2560] type 0     0.01 Mio
+  blk.0.attn_qkv.weight                    dims [2560, 8192] type 13    13.75 Mio
+  blk.0.ffn_down.weight                    dims [9216, 2560] type 14    18.46 Mio
+  blk.0.ffn_gate.weight                    dims [2560, 9216] type 12    12.66 Mio
+  blk.0.ffn_up.weight                      dims [2560, 9216] type 12    12.66 Mio
+  blk.0.post_attention_norm.weight         dims [2560] type 0     0.01 Mio
+  blk.0.ssm_a                              dims [32] type 0     0.00 Mio
+  blk.0.ssm_alpha.weight                   dims [2560, 32] type 8     0.08 Mio
+  blk.0.ssm_beta.weight                    dims [2560, 32] type 8     0.08 Mio
+  blk.0.ssm_conv1d.weight                  dims [4, 8192] type 0     0.12 Mio
+  blk.0.ssm_dt.bias                        dims [32] type 0     0.00 Mio
+  blk.0.ssm_norm.weight                    dims [128] type 0     0.00 Mio
+  blk.0.ssm_out.weight                     dims [4096, 2560] type 13     6.88 Mio
+  blk.31.attn_k.weight                     dims [2560, 1024] type 12     1.41 Mio
+  blk.31.attn_k_norm.weight                dims [256] type 0     0.00 Mio
+  blk.31.attn_norm.weight                  dims [2560] type 0     0.01 Mio
+  blk.31.attn_output.weight                dims [4096, 2560] type 12     5.62 Mio
+  blk.31.attn_q.weight                     dims [2560, 8192] type 12    11.25 Mio
+  blk.31.attn_q_norm.weight                dims [256] type 0     0.00 Mio
+  blk.31.attn_v.weight                     dims [2560, 1024] type 12     1.41 Mio
+  blk.31.ffn_down.weight                   dims [9216, 2560] type 14    18.46 Mio
+  blk.31.ffn_gate.weight                   dims [2560, 9216] type 12    12.66 Mio
+  blk.31.ffn_up.weight                     dims [2560, 9216] type 12    12.66 Mio
+  blk.31.post_attention_norm.weight        dims [2560] type 0     0.01 Mio

@@ -1,0 +1,94 @@
+% Sources du lot R (référence f64, juge, écart entre moteurs, banc Q0). Consultées le 2026-10-15.
+% Copies locales (lecture seule) sous ~/dev/lectures/troncons/lot-R, empreintes SHA-256
+% dans moteur/R-pour-le-memoire.md. Les chiffres viennent des journaux commités sous mesures/moteur/R/.
+
+@software{openai2025gptossref,
+  author       = {{OpenAI}},
+  title        = {gpt-oss : implémentation de référence en {PyTorch} (\texttt{gpt\_oss/torch/model.py})},
+  url          = {https://github.com/openai/gpt-oss/blob/main/gpt_oss/torch/model.py},
+  version      = {commit 243a1b02767da73bd2e3975be250afa801635866},
+  date         = {2025-08-05},
+  urldate      = {2026-10-15},
+  note         = {Apache-2.0. Définit RMSNorm, la rotation YaRN « NTK par parties » (bornes de la rampe non arrondies, concentration $0{,}1\ln s + 1$ appliquée au cosinus et au sinus), l'attention à puits appris et fenêtre de 128 sur les couches paires, le routeur top-4 suivi d'un softmax sur les quatre valeurs, la SwiGLU bornée ($\alpha = 1{,}702$, limite 7). Lue en entier ; rien n'est copié.}
+}
+
+@online{openai2025gptoss20bconfig,
+  author       = {{OpenAI}},
+  title        = {openai/gpt-oss-20b, \texttt{config.json}},
+  url          = {https://huggingface.co/openai/gpt-oss-20b/blob/main/config.json},
+  version      = {révision 6cee5e81ee83917806bbde320786a8fb61efebee},
+  date         = {2025-08-26},
+  urldate      = {2026-10-15},
+  note         = {Apache-2.0. \texttt{rope\_scaling} : facteur 32, contexte d'origine 4\,096, $\beta$ rapide 32, $\beta$ lent 1, \texttt{"truncate": false} ; \texttt{layer\_types} alterne fenêtre glissante (couches paires) et attention pleine.}
+}
+
+@software{ggml2026llamacppb11515,
+  author       = {{The ggml authors}},
+  title        = {llama.cpp, version b11515},
+  url          = {https://github.com/ggml-org/llama.cpp},
+  version      = {b11515, commit 3d65c90d0},
+  date         = {2026},
+  urldate      = {2026-10-15},
+  note         = {MIT. Lus : \texttt{tools/perplexity/perplexity.cpp} (format du fichier \texttt{--kl-divergence-base}, codage des log-probabilités sur 16~bits, formule de la KL, quantiles), \texttt{src/models/openai-moe.cpp}, \texttt{src/llama-graph.cpp} (routage \texttt{SOFTMAX\_WEIGHT}), \texttt{ggml/src/ggml.c} (\texttt{ggml\_rope\_yarn\_corr\_dims} : bornes de la rampe arrondies par \texttt{floorf} et \texttt{ceilf}), \texttt{ggml/src/ggml-cpu/ops.cpp} (\texttt{rope\_yarn}, \texttt{swiglu\_oai}), \texttt{src/llama-context.cpp} (facteur d'attention de YaRN), \texttt{include/llama.h} (API publique). Relus le 2026-10-15 (reprise, par raw.githubusercontent.com à l'étiquette b11515) : \texttt{ggml/src/ggml-cpu/ggml-cpu.c} (\texttt{type\_traits\_cpu} : MXFP4 et Q8\_0 ont \texttt{vec\_dot\_type = Q8\_0}, l'entrée d'un produit quantifié est donc ramenée en Q8\_0), \texttt{ggml/src/ggml-cpu/arch/x86/quants.c} (\texttt{quantize\_row\_q8\_0} AVX2 : $d = \mathrm{amax}/127$ en f16, $\mathrm{id} = 127/\mathrm{amax}$, arrondi au plus proche), \texttt{ggml/src/ggml-cpu/ops.cpp} (attention éclair du processeur : noyau pavé quand le lot de requêtes est grand, puits appliqués au premier morceau), \texttt{ggml/src/ggml.c} (\texttt{ggml\_rope\_yarn\_corr\_dims}, revérifié). Rien n'est copié.}
+}
+
+@article{peng2023yarn,
+  author       = {Peng, Bowen and Quesnelle, Jeffrey and Fan, Honglu and Shippole, Enrico},
+  title        = {{YaRN}: Efficient Context Window Extension of Large Language Models},
+  journal      = {arXiv},
+  eprint       = {2309.00071},
+  eprinttype   = {arXiv},
+  url          = {https://arxiv.org/abs/2309.00071},
+  date         = {2023-08-31},
+  urldate      = {2026-10-15},
+  note         = {L'interpolation « NTK par parties » et le facteur de température $\sqrt{1/t} = 0{,}1 \ln s + 1$ ; cité par l'implémentation d'OpenAI.}
+}
+
+@online{ggml2026gguf,
+  author       = {{The ggml authors}},
+  title        = {{GGUF} : spécification du format},
+  url          = {https://github.com/ggml-org/ggml/blob/master/docs/gguf.md},
+  urldate      = {2026-10-15},
+  note         = {MIT. Lecteur de \texttt{trc-reference} écrit depuis cette spécification et vérifié sur les fichiers gpt-oss de la machine.}
+}
+
+@article{wilson1927,
+  author       = {Wilson, Edwin B.},
+  title        = {Probable Inference, the Law of Succession, and Statistical Inference},
+  journal      = {Journal of the American Statistical Association},
+  volume       = {22},
+  number       = {158},
+  pages        = {209--212},
+  date         = {1927},
+  doi          = {10.1080/01621459.1927.10502953},
+  note         = {Intervalle de score utilisé pour le taux de premier choix identique (C4).}
+}
+
+@online{merity2016wikitext,
+  author       = {Merity, Stephen and Xiong, Caiming and Bradbury, James and Socher, Richard},
+  title        = {Pointer Sentinel Mixture Models},
+  eprint       = {1609.07843},
+  eprinttype   = {arXiv},
+  url          = {https://arxiv.org/abs/1609.07843},
+  date         = {2016-09-26},
+  urldate      = {2026-10-15},
+  note         = {Le corpus WikiText-2 (CC BY-SA 3.0) ; \texttt{wiki.test.raw}, empreinte dans les journaux de l'étude 06.}
+}
+
+% Pavage du produit matrice × lot de vecteurs de la référence (poids.rs, reprise du 2026-10-15) :
+% le cadre (blocs tenus dans chaque niveau de cache, micro-noyau en registres) ; rien n'est copié,
+% notre contrainte en plus est l'égalité au bit de chaque produit scalaire avec l'ordre fixé.
+@article{goto2008anatomy,
+  author  = {Goto, Kazushige and van de Geijn, Robert A.},
+  title   = {Anatomy of High-Performance Matrix Multiplication},
+  journal = {ACM Transactions on Mathematical Software},
+  volume  = {34},
+  number  = {3},
+  pages   = {1--25},
+  month   = may,
+  year    = {2008},
+  doi     = {10.1145/1356052.1356053},
+  url     = {https://doi.org/10.1145/1356052.1356053},
+  urldate = {2026-10-15},
+  note    = {Notice vérifiée le 2026-10-15 par Crossref (api.crossref.org/works/10.1145/1356052.1356053 : titre, auteurs, revue, 34(3), pages 1--25, parution en ligne le 2008-05-16) ; le texte de l'article n'a pas été relu ce jour (dl.acm.org répond 403)}
+}

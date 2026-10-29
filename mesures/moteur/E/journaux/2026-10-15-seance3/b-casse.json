@@ -1,0 +1,165 @@
+{
+  "commande": [
+    "~\\dev\\cibles\\troncons-E\\release\\banc-chemin.exe",
+    "essai-b",
+    "--journal",
+    "~\\dev\\active\\troncons\\mesures\\moteur\\E\\journaux\\2026-10-15-seance3\\b-casse.json",
+    "--fichier",
+    "~\\dev\\modeles\\gguf\\gpt-oss-20b-MXFP4.gguf",
+    "--morceaux",
+    "4",
+    "--serie",
+    "8",
+    "--repetitions-dma",
+    "4",
+    "--tours-abba",
+    "1",
+    "--casser"
+  ],
+  "essai": "essai-b",
+  "machine_debut": {
+    "batterie_pourcent": 80,
+    "ensemble_de_travail_o": 4919296,
+    "ensemble_de_travail_pointe_o": 4919296,
+    "heure": "2026-10-15T16:47:02.964",
+    "ram_disponible_o": 8292843520,
+    "ram_totale_o": 16780529664,
+    "secteur": true
+  },
+  "outil": "banc-chemin",
+  "resultat": {
+    "casser": true,
+    "disque": {
+      "duree_us_mediane": 23368,
+      "duree_us_p10": 7531,
+      "duree_us_p90": 23825,
+      "erreurs": 0,
+      "go_s": 2.4717206698423615,
+      "go_s_etrangers": 0.0,
+      "lectures": 8,
+      "machine_debut": {
+        "batterie_pourcent": 80,
+        "ensemble_de_travail_o": 203059200,
+        "ensemble_de_travail_pointe_o": 203059200,
+        "heure": "2026-10-15T16:47:03.247",
+        "ram_disponible_o": 8059805696,
+        "ram_totale_o": 16780529664,
+        "secteur": true
+      },
+      "octets": 100663296,
+      "octets_etrangers": 0,
+      "octets_systeme": 100663296,
+      "processeur": {
+        "autres": 0.3571428571428571,
+        "nous": 0.0,
+        "occupe": 0.3571428571428571
+      },
+      "profondeur": 4,
+      "secondes": 0.040726
+    },
+    "dma": {
+      "passes": [
+        {
+          "copies": 4,
+          "go_s": 12.374134995716483,
+          "go_s_mur": 12.144495705047774,
+          "lettre": "A",
+          "ms": 4.067488193511963,
+          "mur_ms": 4.1444,
+          "octets": 12582912,
+          "rang": 0,
+          "tour": 0
+        },
+        {
+          "copies": 4,
+          "go_s": 12.485258177313879,
+          "go_s_mur": 12.45697972063669,
+          "lettre": "B",
+          "ms": 21.500192642211914,
+          "mur_ms": 21.549,
+          "octets": 67108864,
+          "rang": 1,
+          "tour": 0
+        },
+        {
+          "copies": 4,
+          "go_s": 12.413425822267687,
+          "go_s_mur": 12.385193989083644,
+          "lettre": "B",
+          "ms": 21.62460708618164,
+          "mur_ms": 21.6739,
+          "octets": 67108864,
+          "rang": 2,
+          "tour": 0
+        },
+        {
+          "copies": 4,
+          "go_s": 12.394417623589536,
+          "go_s_mur": 12.228291545189505,
+          "lettre": "A",
+          "ms": 4.0608320236206055,
+          "mur_ms": 4.116,
+          "octets": 12582912,
+          "rang": 3,
+          "tour": 0
+        }
+      ]
+    },
+    "fichier": "~\\dev\\modeles\\gguf\\gpt-oss-20b-MXFP4.gguf",
+    "graine": 20261015,
+    "justesse": {
+      "ecarts_chemin": 1,
+      "ecarts_disque": 0,
+      "morceaux": [
+        {
+          "decalage": 4205207552,
+          "duree_lecture_us": 4464,
+          "ecarts_chemin": 1,
+          "ecarts_disque": 0,
+          "k": 0
+        },
+        {
+          "decalage": 9758613504,
+          "duree_lecture_us": 4593,
+          "ecarts_chemin": 0,
+          "ecarts_disque": 0,
+          "k": 1
+        },
+        {
+          "decalage": 4467171328,
+          "duree_lecture_us": 4652,
+          "ecarts_chemin": 0,
+          "ecarts_disque": 0,
+          "k": 2
+        },
+        {
+          "decalage": 10632081408,
+          "duree_lecture_us": 4513,
+          "ecarts_chemin": 0,
+          "ecarts_disque": 0,
+          "k": 3
+        }
+      ]
+    },
+    "machine_fin": {
+      "batterie_pourcent": 80,
+      "carte": {
+        "attente": "Auto",
+        "moteurs_de_copie": 1,
+        "nom": "NVIDIA GeForce RTX 4060 Laptop GPU",
+        "pilote": 13010,
+        "vram_libre_o": 7373586432,
+        "vram_totale_o": 8585216000
+      },
+      "ensemble_de_travail_o": 281321472,
+      "ensemble_de_travail_pointe_o": 281321472,
+      "heure": "2026-10-15T16:47:04.002",
+      "ram_disponible_o": 7946125312,
+      "ram_totale_o": 16780529664,
+      "secteur": true
+    },
+    "taille_fichier_o": 12109566624,
+    "taille_morceau_o": 12582912
+  },
+  "version": "0.1.0"
+}

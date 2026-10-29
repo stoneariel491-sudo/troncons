@@ -1,0 +1,147 @@
+{
+  "alimentation": {
+    "ACLineStatus": 1,
+    "BatteryFlag": 1,
+    "BatteryLifePercent": 80,
+    "secteur": true
+  },
+  "base": "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+  "commande": "evaluer --modele ~/dev/modeles/trc/gpt-oss-120b.trc --base ~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld --fenetres 1 --positions 512 --flux --kv-f32 --sortie ~/dev/essais/troncons/lot-O/ronde/justesse-2026-10-16/01-E0k120.kld --empreintes ~/dev/essais/troncons/lot-O/ronde/justesse-2026-10-16/01-E0k120-empreintes.csv --journal ~/dev/essais/troncons/lot-O/ronde/justesse-2026-10-16/01-E0k120.json",
+  "compteurs": {
+    "acces": 2947,
+    "defauts_disque": 2947,
+    "emplacements": 314,
+    "evictions": 2633,
+    "experts_decodes": 2947,
+    "experts_verifies": 0,
+    "flux_conflits_evites": 0,
+    "garde_attente_s": 0.2006657,
+    "garde_lignes": 512,
+    "garde_octets": 35430114912,
+    "garde_octets_ouverture": 615333888,
+    "garde_troncons": 2947,
+    "h_vram": 0.0,
+    "lectures_enchassement": 512,
+    "lectures_troncons": 2947,
+    "ms_copie_carte": 0.0,
+    "ms_decodage_carte": 0.0,
+    "octets_copies_cache": 35436163072,
+    "octets_disque_cache": 35436163072,
+    "octets_dma": 35436163072,
+    "octets_lus": 37741367296,
+    "octets_lus_enchassement": 4194304,
+    "octets_lus_troncons": 35436163072,
+    "pas": 0,
+    "pf_emis": 0,
+    "pf_octets": 0,
+    "pf_utiles": 0,
+    "s_attente_routeur": 0.0,
+    "s_fin_jeton": 0.0,
+    "s_lectures": 0.0,
+    "s_pas": 27.7661853,
+    "succes_ram": 0,
+    "succes_vram": 0,
+    "tiedes": 0
+  },
+  "date_utc": "2026-10-16T11:09:54Z",
+  "disque": {
+    "octets_comptes_moteur": {
+      "chargement_residents": 1685676032,
+      "lecteur": 37741367296,
+      "ouverture_tamponnee": 13565650,
+      "total": 39440608978
+    },
+    "processus": {
+      "lectures": 3613,
+      "octets_ecrits": 102579654,
+      "octets_lus": 37760006867,
+      "octets_lus_depuis_le_depart": 37764201171
+    }
+  },
+  "empreinte_csv_sha256": "6f4496aa24dd25265ea14c51c315a1e53c346b5f7f4bd02b55c0f52c055a1190",
+  "fenetres": 1,
+  "flux": true,
+  "flux_experts": 2947,
+  "flux_positions": 512,
+  "moteur": {
+    "arrivees": 12,
+    "brut": false,
+    "carte": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "casser_garde": null,
+    "chargement": {
+      "empreintes_verifiees": 470,
+      "lectures": 101,
+      "octets_lus": 1685676032,
+      "octets_tenseurs": 1685668608,
+      "secondes": 1.8312968,
+      "tenseurs": 470
+    },
+    "contexte": 4096,
+    "couches": 36,
+    "couches_d_avance": 3,
+    "emplacements": 314,
+    "enchassement_en_ram": false,
+    "etapes_memoire": [
+      {
+        "ensemble_travail": 5038080,
+        "etape": "avant"
+      },
+      {
+        "ensemble_travail": 18718720,
+        "etape": "fichier"
+      },
+      {
+        "ensemble_travail": 128651264,
+        "etape": "contexte_flux"
+      },
+      {
+        "ensemble_travail": 129658880,
+        "etape": "noyaux"
+      },
+      {
+        "ensemble_travail": 131043328,
+        "etape": "modele"
+      },
+      {
+        "ensemble_travail": 131260416,
+        "etape": "luts"
+      },
+      {
+        "ensemble_travail": 283996160,
+        "etape": "fenetre_et_tampons"
+      },
+      {
+        "ensemble_travail": 284483584,
+        "etape": "emplacements_cache_evenements"
+      }
+    ],
+    "experts": 128,
+    "fichier": "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "garde": true,
+    "k": 4,
+    "kv_f32": true,
+    "longueur_arrivee": 12251136,
+    "longueur_lecture": null,
+    "octets_emplacement": 13254144,
+    "octets_epingles": 147841024,
+    "octets_vram_moteur": 6313967408,
+    "ouverture_s": 2.9880186,
+    "prechargement": false,
+    "profondeur_es": 4,
+    "ram_tiede_go": 0.0,
+    "temoin": false,
+    "tiedes": 0,
+    "vocab": 201088,
+    "vram_plafond_mio": 7179
+  },
+  "n_ctx": 512,
+  "outil": "troncons evaluer",
+  "pas": 0,
+  "pas_s": 0.0,
+  "positions_notees": 255,
+  "positions_par_fenetre": 512,
+  "ppl_positions_notees": 797.5939042668487,
+  "secondes": 27.7681493,
+  "sortie": "~/dev/essais/troncons/lot-O/ronde/justesse-2026-10-16/01-E0k120.kld",
+  "version": "0.1.0"
+}

@@ -1,0 +1,68 @@
+# 2026-10-15T20:12:10-04:00 ~\dev\modeles\llama.cpp-b11515\llama-perplexity.exe -m ~\dev\modeles\gguf\gpt-oss-20b-MXFP4.gguf -ngl 99 --cpu-moe --override-kv gpt-oss.expert_used_count=int:2 -c 512 -b 512 -t 6 --seed 1 --chunks 10 --kl-divergence-base ~\dev\essais\troncons\lot-R\r0\carte_cmoe.kld --kl-divergence  env+={}
+# avant : {"date": "2026-10-15T20:12:09-04:00", "batterie_statut": "2", "carte": "330 MiB, 8188 MiB, 0 %", "processus_llama_ou_traceur": ""}
+0.01.765.490 W load: setting token '<|constrain|>' (200003) attribute to USER_DEFINED (16), old attributes: 8
+0.01.765.737 W load: setting token '<|message|>' (200008) attribute to USER_DEFINED (16), old attributes: 8
+0.01.772.670 W load: setting token '<|channel|>' (200005) attribute to USER_DEFINED (16), old attributes: 8
+0.01.772.680 W load: setting token '<|start|>' (200006) attribute to USER_DEFINED (16), old attributes: 8
+0.01.772.695 W load: special_eog_ids contains both '<|return|>' and '<|call|>', or '<|calls|>' and '<|flush|>' tokens, removing '<|end|>' token from EOG list
+0.01.828.888 W llama_model_loader: tensor overrides to CPU are used with mmap enabled - consider using --load-mode none for better performance
+0.10.799.710 I cmn          init: llama threadpool init, n_threads = 6
+0.12.001.311 I 
+0.12.001.695 I system_info: n_threads = 6 (n_threads_batch = 6) / 16 | CUDA : ARCHS = 500,610,700,750,800,860,890,900 | USE_GRAPHS = 1 | FA_QUANTS = q4_0-q4_0,q8_0-q8_0,f16-f16,bf16-bf16 | CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX_VNNI = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | BMI2 = 1 | LLAMAFILE = 1 | OPENMP = 1 | REPACK = 1 | 
+0.12.042.544 I kl_divergence: computing over 10 chunks, n_ctx=512, batch_size=512, n_seq=1
+0.25.422.772 I kl_divergence: 13.38 seconds per pass - ETA 2.22 minutes
+
+chunk             PPL               ln(PPL(Q)/PPL(base))          KL Divergence              Δp RMS            Same top p
+   1     421.8824 ±   84.8661       0.81715 ±    0.08322       0.51866 ±    0.04785     9.616 ±  1.534 %    55.686 ±  3.117 %
+   2     497.8127 ±   75.3110       0.80034 ±    0.06249       0.52505 ±    0.03080     9.445 ±  0.969 %    47.843 ±  2.214 %
+   3    1203.4259 ±  157.1583       0.84884 ±    0.05453       0.54131 ±    0.02422     9.669 ±  1.040 %    46.013 ±  1.803 %
+   4    1003.1861 ±  109.7810       0.84295 ±    0.04395       0.50068 ±    0.01941     9.240 ±  0.874 %    47.843 ±  1.565 %
+   5     765.7544 ±   73.2610       0.79505 ±    0.03753       0.46702 ±    0.01666     8.985 ±  0.779 %    46.118 ±  1.397 %
+   6     823.1343 ±   71.1868       0.79834 ±    0.03329       0.46128 ±    0.01466     8.963 ±  0.735 %    48.954 ±  1.278 %
+   7     799.8665 ±   63.1166       0.74829 ±    0.03039       0.44944 ±    0.01330     8.764 ±  0.672 %    49.860 ±  1.184 %
+   8     811.8792 ±   59.7057       0.61630 ±    0.02914       0.46114 ±    0.01218     8.624 ±  0.622 %    48.676 ±  1.107 %
+   9     797.3582 ±   54.9807       0.61361 ±    0.02674       0.44729 ±    0.01125     8.440 ±  0.574 %    47.930 ±  1.043 %
+  10     782.3031 ±   50.6800       0.54753 ±    0.02527       0.45133 ±    0.01039     8.338 ±  0.556 %    47.961 ±  0.990 %
+
+====== Perplexity statistics ======
+Mean PPL(Q)                   : 782.303113 ±  50.679953
+Mean PPL(base)                : 452.464740 ±  28.168082
+Cor(ln(PPL(Q)), ln(PPL(base))):  92.16%
+Mean ln(PPL(Q)/PPL(base))     :   0.547532 ±   0.025267
+Mean PPL(Q)/PPL(base)         :   1.728981 ±   0.043687
+Mean PPL(Q)-PPL(base)         : 329.838373 ±  27.027896
+
+====== KL divergence statistics ======
+Mean    KLD:   0.451332 ±   0.010395
+Maximum KLD:   7.834902
+99.9%   KLD:   4.725210
+99.0%   KLD:   2.753659
+95.0%   KLD:   1.333459
+90.0%   KLD:   0.940467
+Median  KLD:   0.289596
+10.0%   KLD:   0.135063
+ 5.0%   KLD:   0.113669
+ 1.0%   KLD:   0.078887
+ 0.1%   KLD:   0.041941
+Minimum KLD:   0.022661
+
+====== Token probability statistics ======
+Mean    Δp: -1.124 ± 0.164 %
+Maximum Δp: 86.469%
+99.9%   Δp: 66.575%
+99.0%   Δp: 17.695%
+95.0%   Δp:  2.510%
+90.0%   Δp:  0.661%
+75.0%   Δp:  0.006%
+Median  Δp: -0.015%
+25.0%   Δp: -0.588%
+10.0%   Δp: -3.629%
+ 5.0%   Δp: -9.331%
+ 1.0%   Δp: -32.352%
+ 0.1%   Δp: -80.991%
+Minimum Δp: -86.656%
+RMS Δp    :  8.338 ± 0.556 %
+Same top p: 47.961 ± 0.990 %
+
+
+# fin 2026-10-15T20:12:56-04:00 code 0 durée 46.3 s

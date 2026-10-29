@@ -1,0 +1,419 @@
+\chapter{La machine et sa physique}\label{ch:machine}
+
+\begin{origine}
+\textbf{Au départ}, on ne disposait que de plafonds calculés d'après les fiches techniques (lien NVMe \SI{7.877}{\Go\per\second}, PCIe \SI{15.754}{\Go\per\second}, VRAM \SI{256}{\Go\per\second}, RAM \SI{41.6}{\Go\per\second}) et d'un seul chiffre mesuré par une autre étude, sous charge (PCIe \SI{6.4}{\Go\per\second}).
+\textbf{Ce chapitre établit} le débit réel de chaque étage sur la machine de Stone, avec témoins et séries ABBA, dans deux régimes (secteur et batterie), puis il démontre le toit qui en découle : une borne inférieure du temps par jeton, son régime permanent, et deux corollaires qui décident de l'architecture.
+\textbf{Il reste} la RAM et llama.cpp mesurés au calme sur secteur, la part de BitLocker dans le plafond du disque, et un noyau 4 bits sous Vulkan au niveau de la VRAM.
+Source : \fichier{fondations/01-machine.md} et \fichier{fondations/journaux/01-machine/}.
+\end{origine}
+
+Ce chapitre est le juge de tout le mémoire. Une idée de compression, de cache ou de spéculation ne vaut que ce qu'elle fait gagner au plus lent des étages qu'un jeton traverse ; il faut donc savoir, à 1~\% près si possible, ce que chaque étage livre réellement. On décrit d'abord la machine, puis la méthode de mesure, puis chaque étage du plus lent au plus rapide, et l'on termine par le théorème du toit.
+
+\section{La machine}\label{sec:machine-releve}
+
+\begin{table}[ht]
+\centering\small
+\caption[La machine de Stone, relevé du 2026-10-15]{La machine de Stone, relevé du 2026-10-15 (WMI, nvidia-smi, \texttt{FSCTL\_MANAGE\_BYPASS\_IO}).}
+\label{tab:machine}
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+\toprule
+Organe & Relevé \\
+\midrule
+Processeur & Intel i7-13620H : 6 cœurs performants, 4 efficaces, 16 fils ; L2 9,5\,Mio, L3 24\,Mio \\
+RAM & \textbf{un seul module} Micron DDR5 de 16\,Gio annoncé à 5\,600, configuré à 5\,200\,MT/s (emplacement Controller0-ChannelA-DIMM0) ; plafond $5\,200 \times 8 = \SI{41.6}{\Go\per\second}$ \calc \\
+Carte graphique & NVIDIA RTX 4060 Laptop (AD107), 8\,188\,Mio de GDDR6 sur 128 bits à 16\,Gbit/s (horloge mémoire relevée 8\,001\,MHz), pilote 591.91 ; lien PCIe 4.0 $\times$8 au plus \\
+Disque & NVMe Samsung MZVMA1T0HCLD (1\,To), micrologiciel MXE7001Q, \textbf{derrière le contrôleur Intel RST VMD} (pilote \texttt{iaStor}) ; volume C: \textbf{chiffré par BitLocker} \\
+Système & Windows 11 Pro 10.0.26300 ; sécurité par virtualisation (VBS) et intégrité de la mémoire (HVCI) actives \\
+Outils & CUDA 13.1.2 dépaqueté sans installation ; wgpu 30.0.1 (Vulkan, DirectX~12) ; Rust 1.98.1 ; llama.cpp b11515 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Deux traits de cette machine pèsent sur tout le reste. Le premier est le \textbf{module de RAM unique} : un seul canal de 64 bits, soit la moitié du débit d'un portable à deux modules, et une RAM qui n'est que 5,3 fois plus rapide que le lien du disque. Le second est le \textbf{chemin du disque} : chaque octet lu traverse le filtre de chiffrement de BitLocker et le contrôleur VMD d'Intel, deux réglages par défaut d'un portable Windows grand public, dont on verra qu'ils coûtent plus de la moitié du débit annoncé.
+
+\section{La méthode de mesure}\label{sec:methode-mesure}
+
+Chaque chiffre de ce chapitre suit les mêmes règles (annexe~\ref{ann:protocoles}) :
+\begin{itemize}
+\item \textbf{un témoin}, c'est-à-dire un cas dont la réponse est connue d'avance, et que l'on force à faux une fois pour vérifier que l'instrument tombe (\texttt{--fausser}) ;
+\item \textbf{un seuil déclaré avant} la mesure, dérivé d'une grandeur nommée (\fichier{00-seuils-declares.md}) ;
+\item \textbf{des séries ABBA} : la liste des configurations est mesurée dans un sens puis dans l'autre ; chaque cellule est vue deux fois, en ordre miroir, la dérive lente s'annule et l'écart $|A-B|$ rapporté à la moyenne sert de bruit de référence ;
+\item \textbf{un second chemin} indépendant pour tout chiffre dont on dépend ;
+\item \textbf{la source d'alimentation} relevée à chaque passe (\texttt{Win32\_Battery}, \texttt{BatteryStatus} $=2$ sur secteur), depuis la découverte du \cref{sec:batterie}.
+\end{itemize}
+
+\paragraph{Un biais permanent, dit d'avance.} D'autres calculs du projet tournaient sur la machine pendant toutes ces mesures (quantifications llama.cpp jusqu'à 8,7 cœurs, calculs de perplexité sur la carte jusqu'à 7,7\,Gio de VRAM, RAM libre entre 1,0 et 4,4\,Gio). Chaque passe journalise cette charge. Les chiffres « au mieux » de ce chapitre sont donc des \textbf{bornes inférieures} de ce que la machine donne au repos ; les médianes disent ce qu'elle donne partagée.
+
+\section{Le disque}\label{sec:disque}
+
+\subsection{L'instrument}
+
+Le banc \texttt{disque.exe} (Rust, \texttt{windows-sys}) lit un fichier de test de 32\,Gio, deux fois la RAM, ouvert avec \texttt{FILE\_FLAG\_NO\_BUFFERING | FILE\_FLAG\_OVERLAPPED}, dans des tampons alignés par \texttt{VirtualAlloc}, avec $q$ lectures en vol (la profondeur de file, QD) par port de complétion (IOCP) ou par IoRing. Le fichier porte un motif vérifiable : chaque page de 4\,Kio commence par son numéro combiné par un ou exclusif à une constante, la suite est un flux xorshift64* dont la graine est ce numéro. Chaque lecture vérifie l'en-tête de chaque page reçue, et une page complète sur 64. Le balayage croise les blocs de 4\,Kio à 16\,Mio avec les profondeurs 1 à 64, en accès aléatoire et séquentiel, en ordre ABBA : 188 passes, puis 40 passes IOCP contre IoRing.
+
+\paragraph{Les témoins.} Forcé à faux (l'attendu décalé d'une page), l'instrument compte 978\,688 pages fausses sur 978\,688 ; sans cassure, 0 page fausse sur toutes les passes. Aucune lecture sans tampon n'a dépassé le lien (7,877\,Go/s). Le second chemin est le compteur cumulé du système (\texttt{Win32\_PerfRawData\_PerfDisk\_PhysicalDisk}), relevé toutes les 0,5\,s : relu par le cache de Windows, 1\,Gio est livré à 1,65\,Go/s pendant que le disque ne lit que 3,4\,\% de ces octets ; le cache est donc visible quand il joue, et absent des passes sans tampon, où le disque voit au moins 100\,\% des octets.
+
+\paragraph{Une règle barrée.} La règle déclarée « le moteur à tampon relu sur 1\,Gio doit dépasser 7,877\,Go/s » était fausse : \barre{le cache relu dépasse le lien}. L'essai a livré le cache à 3,1\,Go/s avec 2,98\,s de processeur pour 3\,s de fenêtre : la copie depuis le cache de Windows est bornée par un fil de processeur, pas par la RAM. Elle a été barrée avant le balayage et remplacée par le témoin au compteur, plus fort.
+
+\subsection{Les résultats}
+
+\begin{figure}[ht]
+\centering
+\GrapheDisque
+\caption[Débit du disque selon la taille de bloc et la profondeur de file]{Débit du disque en lectures aléatoires sans tampon, selon la taille de bloc et la profondeur de file \mes. Chaque point est la moyenne des passages A et B ; la barre d'erreur est le demi-écart $|A-B|/2$. Le plateau des gros blocs reste entre 2,4 et 2,9\,Go/s quelle que soit la profondeur, à 36\,\% du lien et 47\,\% de l'annonce.}
+\label{fig:disque}
+\sourcefig{\fichier{fondations/journaux/01-machine/disque-balayage.csv} (94 cellules), via \fichier{memoire/outils/donnees_figures.py}.}
+\end{figure}
+
+\begin{table}[ht]
+\centering\small
+\caption[Débit du disque, extrait du balayage ABBA]{Débit du disque en Go/s, moyenne des passages A et B ; entre crochets, le bruit $|A-B|/\text{moyenne}$ \mes.}
+\label{tab:disque}
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+bloc & aléa QD 1 & aléa QD 4 & aléa QD 16 & aléa QD 64 & séq QD 1 & séq QD 16 \\
+\midrule
+4\,Kio & 0,015 [53\,\%] & 0,059 [44\,\%] & 0,125 [136\,\%] & 0,132 [134\,\%] & 0,046 [11\,\%] & 0,188 [3\,\%] \\
+64\,Kio & 0,205 [11\,\%] & 0,578 [30\,\%] & 0,739 [6\,\%] & 0,721 [10\,\%] & 0,390 [16\,\%] & 2,309 [0\,\%] \\
+1\,Mio & 1,307 [18\,\%] & 2,195 [17\,\%] & 2,327 [3\,\%] & 1,928 [8\,\%] & 1,599 [8\,\%] & 1,900 [40\,\%] \\
+4\,Mio & 2,314 [5\,\%] & 2,581 [10\,\%] & 2,430 [0\,\%] & 2,418 [2\,\%] & 1,041 [13\,\%] & 1,631 [92\,\%] \\
+16\,Mio & \textbf{2,819 [1\,\%]} & 2,533 [0\,\%] & 2,487 [2\,\%] & --- & 2,340 [43\,\%] & 2,206 [17\,\%] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Ce qu'on en tire (\cref{fig:disque,tab:disque}) :
+\begin{itemize}
+\item \textbf{Le plateau des gros blocs est à 2,4--2,9\,Go/s}, quelle que soit la profondeur. Le meilleur point reproductible est la lecture aléatoire de 16\,Mio à QD~1 : \textbf{2,82\,Go/s, bruit 1\,\%}. Deux cellules ont touché 3,84\,Go/s au passage A sans se reproduire au passage B ; elles ne sont pas retenues comme plafond.
+\item Les petits blocs sont bornés par le processeur : 4\,Kio aléatoire plafonne vers 54\,000 entrées-sorties par seconde au mieux, la latence médiane à QD~1 est de 200 à 230\,µs, et le banc consomme environ 4\,s de processeur par Go lu en 4\,Kio (16\,µs par entrée-sortie), contre 0,07 à 0,11\,s/Go au-delà de 1\,Mio.
+\item \textbf{IOCP et IoRing ne se distinguent pas} : sur cinq cas en ABBA double, l'écart (0 à 5\,\%) reste sous la règle déclarée (au moins deux fois le bruit et 3\,\%). IoRing coûte un peu moins de processeur sur les gros blocs, sans gain de débit.
+\end{itemize}
+
+\subsection{Pourquoi si loin de l'annonce}
+
+Samsung annonce pour le PM9C1a 6\,000\,Mo/s en lecture séquentielle et 900\,000 IOPS \litt~\cite{samsung2023pm9c1a,storagereview2023pm9c1a} ; l'identification de la référence MZVMA1T0HCLD à ce modèle est probable (préfixe MZVMA), pas prouvée. Ce que l'on sait, mesuré :
+\begin{enumerate}
+\item \textbf{BitLocker est actif et son filtre \texttt{fvevol} refuse BypassIO} (statut \texttt{0xC00004C9}). La documentation de Microsoft décrit exactement ce cas~\cite{microsoft2025bypassio} : chaque octet lu traverse le déchiffrement logiciel du volume.
+\item \textbf{Le pilote de stockage est \texttt{iaStor} (Intel RST VMD)}, pas \texttt{stornvme} ; la même page réserve le chemin BypassIO complet à StorNVMe.
+\item Le processeur était chargé par d'autres calculs du projet ; les petits blocs, liés au processeur, en souffrent le plus.
+\end{enumerate}
+La part de BitLocker, celle de VMD et celle du disque lui-même ne se séparent pas sans lire le disque sans chiffrement, ce qui demande un geste de Stone sur un réglage de sécurité. Réponse par délégation du 2026-10-15, réversible : on garde BitLocker, protection de ses données si le portable est volé, et l'on conçoit pour 2,82\,Go/s.
+
+\subsection{Le coût de BitLocker, mesuré par un second chemin}\label{sec:bitlocker}
+
+On peut en revanche mesurer ce que coûte, sur ce processeur, le déchiffrement que \texttt{fvevol} applique à chaque octet. L'outil \texttt{aes\_xts.py} appelle l'API CNG de Windows (\texttt{bcrypt.dll}, algorithme \texttt{XTS-AES}~\cite{microsoft2026cngalg}) avec des unités de 4\,Kio, comme un secteur de BitLocker, de 1 à 8 fils.
+
+\paragraph{Le mécanisme.} Le mode XTS~\cite{ieee2008xts} chiffre le bloc de 16 octets $j$ de l'unité numéro $i$ par
+\begin{equation}\label{eq:xts}
+C_j = E_{K_1}(P_j \oplus T_j) \oplus T_j, \qquad T_j = E_{K_2}(i) \otimes \alpha^{j} \in \mathrm{GF}(2^{128}),
+\end{equation}
+où $E_K$ est l'AES de clé $K$ et $\alpha$ l'élément primitif du corps. Chaque bloc coûte un AES (10 tours pour une clé de 128 bits, 14 pour 256), exécuté par les instructions AES-NI, plus une multiplication par $\alpha$ (un décalage et un ou exclusif conditionnel). Les blocs sont indépendants : le déchiffrement se parallélise parfaitement entre unités. Témoins : le vecteur 1 de l'annexe B de la norme IEEE 1619-2007 et l'aller-retour chiffrer-déchiffrer sur 1\,Mio ; \texttt{--fausser} les fait tomber tous deux.
+
+\begin{figure}[ht]
+\centering
+\GrapheAES
+\caption[Déchiffrement XTS-AES selon le nombre de fils]{Déchiffrement XTS-AES par l'API CNG de Windows, unités de 4\,Kio, sur batterie \mes. Point : médiane ; barre : minimum et maximum de la série. Deux passages à un fil (A puis B) sont tracés. Sur un fil, le déchiffrement va au rythme du plateau du disque.}
+\label{fig:aes}
+\sourcefig{\fichier{fondations/journaux/01-machine/aes-xts-batterie.log}.}
+\end{figure}
+
+Sur un fil, le déchiffrement va à 3,2--4,2\,Go/s, \textbf{le même ordre que le plateau du disque} ; sur huit fils, 8,7\,Go/s (\cref{fig:aes}). Si \texttt{fvevol} déchiffre une requête sur un seul fil, une lecture à QD~1 est bornée par un cœur. Mais le plateau ne monte pas avec la profondeur alors que le processeur sait déchiffrer 8,7\,Go/s : soit \texttt{fvevol} sérialise, soit la borne est ailleurs (VMD, le disque, sa gestion thermique). On ne peut pas trancher sans lire sans BitLocker ; c'est dit comme hypothèse, chiffrée. Ce que BitLocker coûte au projet en temps de processeur est, lui, mesuré : $1/4{,}2$ à $1/3{,}2$, soit \textbf{0,24 à 0,31\,s de cœur par Go lu}. À 2,82\,Go/s, c'est 0,7 à 0,9 cœur occupé en permanence, que notre propre décompression sur le processeur ne pourra pas utiliser.
+
+\subsection{IoRing, BypassIO, DirectStorage}
+IoRing est présent dans le noyau en version maximale 400, plus récente que les en-têtes de \texttt{windows-sys} ; utilisable, sans gain mesurable ici~\cite{microsoft2026ioring}. BypassIO est refusé sur C:. DirectStorage n'est pas livré avec Windows : son SDK est un paquet NuGet de 2,8\,Mo (version 1.3.0) ou 4,0\,Mo (préversion 1.4.0-preview2, qui ajoute Zstandard décompressé sur la carte)~\cite{nuget2026directstorage,microsoft2026directstorage14}. Il n'est pas mesuré ici, et tournerait de toute façon sans BypassIO.
+
+\section{La RAM}\label{sec:ram}
+
+Le banc \texttt{memoire.exe} mesure la lecture (somme de mots de 64 bits, quatre accumulateurs), l'écriture, la copie, de 1 à 16 fils, sur des tampons de 512\,Mio (21 fois le L3), et la latence par chasse de pointeurs sur un cycle de Sattolo, un saut par ligne de 64 octets. Témoin : la somme du motif est connue, $n(n-1)/2$.
+
+\paragraph{Ce que la première mesure a appris à l'instrument.} La première mesure (machine très chargée) a livré 15,6\,Go/s en lecture sur un fil, puis s'est effondrée à 2--4\,Go/s pour tous les nombres de fils. Avec 1 à 2\,Gio de RAM libre, Windows retire des pages de l'ensemble de travail du banc et les range dans son magasin de compression : une lecture « de RAM » paie alors une faute de page et une décompression. Le banc relève donc désormais son plancher d'ensemble de travail, \textbf{verrouille ses tampons} (\texttt{VirtualLock}) et compte les fautes de page. Témoin neuf, déclaré avant : moins de 1\,\% des pages lues ont fauté. Forcé à faux (un tampon neuf à chaque passe), il tombe : 197\,033 fautes pour 196\,608 pages lues. Verrouillé : 15 à 267 fautes, témoin tenu.
+
+\begin{figure}[ht]
+\centering
+\GrapheLatence
+\caption[Latence d'un accès dépendant selon la taille du tampon]{Latence d'un accès dépendant (chasse de pointeurs), tampons verrouillés, sans faute de page, sur batterie \mes. Point : médiane ; barre : minimum et maximum. Au-delà du L3, un accès coûte 0,75 à 0,96\,µs, sept à dix fois la latence d'une DRAM.}
+\label{fig:latence}
+\sourcefig{\fichier{fondations/journaux/01-machine/memoire-batterie-verrou.log}.}
+\end{figure}
+
+La mesure verrouillée, faite sur batterie, a un bruit ABBA qui dépasse 100\,\% en débit : rien ne s'en tire comme plafond. Deux faits seulement (\cref{fig:latence}) : la latence d'un accès dépendant est de 0,75 à 0,96\,µs au-delà du L3, sans faute de page ; et 16 fils lisent moins vite qu'un seul. Une DRAM DDR5 répond en une centaine de nanosecondes ; un échec du TLB en coûte quelques centaines de plus quand la traduction est \emph{imbriquée}, ce qui est le cas ici puisque VBS et HVCI tournent (chaque échec parcourt deux tables de pages). Ajoutée au processeur à 1,5\,GHz sur batterie, c'est l'explication la plus probable : \textbf{hypothèse, non prouvée} (il faudrait des grandes pages, qui demandent un privilège d'administrateur). Le meilleur débit du processeur vers la RAM reste 15,6\,Go/s (un fil, première passe, témoin tenu), 37\,\% du plafond d'un module ; la mesure au calme sur secteur est en attente.
+
+\section{De l'hôte à la carte}\label{sec:pcie}
+
+\subsection{L'instrument, et le piège que le témoin a levé}
+
+Le banc \texttt{carte.exe transfert} (wgpu 30.0.1~\cite{gfxrs2026wgpu}, Vulkan et DirectX~12) mesure en ordre ABBA, avec les horodatages de la carte : la vraie DMA depuis un tampon placé en RAM hôte vers la VRAM ; l'écriture du processeur dans un tampon projeté ; l'écriture naïve par \texttt{queue.write\_buffer} ; les sens carte vers hôte et carte vers carte. Témoin : aller-retour octet pour octet.
+
+\paragraph{Une découverte par le témoin de plafond.} Le premier essai donnait « hôte vers carte » à 80--220\,Go/s : le témoin « jamais au-dessus du lien » l'a marqué faux. Raison : \textbf{sous Vulkan, le pilote place les tampons projetés en écriture dans la VRAM visible du processeur (BAR redimensionnable)} ; la copie mesurée était une copie de VRAM à VRAM, et le vrai passage sur le lien avait eu lieu pendant l'écriture du processeur dans la projection. Sous DirectX~12, le même tampon vit en RAM hôte (copie à 12,2\,Go/s). Une exception confirme : quand la VRAM était presque pleine, le tampon est retombé en RAM hôte et la copie a donné 7,9\,Go/s, sous le plafond.
+
+\subsection{Les résultats}
+
+\begin{table}[ht]
+\centering\small
+\caption[Transferts hôte $\leftrightarrow$ carte, 64\,Mio]{Transferts entre l'hôte et la carte, 64\,Mio \mes.}
+\label{tab:pcie}
+\begin{tabular}{@{}lrrl@{}}
+\toprule
+Opération & machine calme & sous charge & remarque \\
+\midrule
+hôte $\to$ carte, DMA depuis la RAM hôte & \textbf{12,10 / 12,24 / 12,20} & 3,2 à 6,3 & 77\,\% du lien \\
+processeur $\to$ BAR (Vulkan) & 9,1 & 0,45 à 4,5 & au mur, projection comprise \\
+\texttt{write\_buffer} (Vulkan) & 7,5 à 8,2 & 0,1 à 4,3 & une écriture par soumission \\
+carte $\to$ hôte & 6,2 à 9,4 & 3,3 à 6,8 & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+La DMA depuis la RAM hôte atteint \textbf{12,2\,Go/s, 77\,\% du lien} PCIe 4.0 $\times$8 (\cref{tab:pcie}). Une phrase a été barrée en cours d'étude : \barre{à 256\,Mio, la DMA tombe à 4,4--6,3\,Go/s, un effet de taille}. Le balayage de taille a donné 3,2--4,3\,Go/s à \emph{toutes} les tailles, 64\,Mio compris, puis trois séries à 64\,Mio sont revenues à 12,1--12,2\,Go/s un quart d'heure plus tard : la variable est le temps (la charge des autres sur la carte), pas la taille. Second chemin indépendant : l'étude du chargement a mesuré par le runtime CUDA 6,4\,Go/s en mémoire épinglée, sous charge ; c'est dans la plage des séries chargées, et le chiffre de 6,4 n'était pas un plafond de CUDA mais un état de la machine.
+
+\begin{figure}[ht]
+\centering
+\GraphePCIe
+\caption[Génération du lien PCIe pendant des copies]{Génération du lien PCIe et horloge de la VRAM relevées par nvidia-smi toutes les 0,1\,s pendant trois séries de copies \mes. Le lien dort en génération~1 et ne remonte en génération~4 que sous charge ; 216 relevés en génération~1, 118 en génération~4.}
+\label{fig:pcie-gen}
+\sourcefig{\fichier{fondations/journaux/01-machine/carte-lien-pcie.csv}.}
+\end{figure}
+
+\paragraph{Le lien change de génération.} Relevé pendant les copies (\cref{fig:pcie-gen}), le lien est en génération~1 au repos, en génération~4 sous charge, en génération~3 sur batterie. Le niveau bas d'environ 3,8\,Go/s des séries lentes ressemble au plafond d'un lien de génération~2 $\times$8 (4\,Go/s) ; non prouvé. \textbf{Toute mesure de transfert doit relever la génération du lien pendant la mesure, pas avant.} L'étude du chargement l'a aussi vu (\cref{ch:chargement}) : un pipeline qui ne fait que copier laisse le lien en génération~3 ; il faut que la carte calcule pendant qu'on copie.
+
+\section{La carte}\label{sec:carte}
+
+\paragraph{VRAM.} Un shader de lecture (somme de \texttt{vec4<u32>} sur 512\,Mio, somme vérifiée contre le processeur) atteint \textbf{251,3\,Go/s, 98,2\,\% du plafond} de 256\,Go/s. En dessous de 32\,Mio, les copies dépassent 256\,Go/s : c'est le cache L2, attendu, et c'est le témoin positif du cache.
+
+\paragraph{Calcul.} En chaînes indépendantes, horodatées par la carte (Vulkan) : FMA f32 jusqu'à 12,6\,Tflop/s, f16 13,4, \texttt{dot4I8Packed} 12,3\,Top/s, soit 77\,\% du plafond calculé ($24 \text{ SM} \times 128 \text{ voies} \times 2 \times \SI{2.67}{\giga\hertz} = 16{,}4$\,Tflop/s). Un décodage 4 bits (décalage, masque, conversion, FMA) depuis les registres va à \textbf{2,61\,Top/s, soit 1,31 billion de poids par seconde} : 2,6 fois ce que la VRAM livre en 4 bits. Les témoins comparent à une référence du processeur exécutant la même suite (écart 0, 0 et $4\cdot10^{-7}$) ; forcés à faux, ils tombent.
+
+\begin{figure}[ht]
+\centering
+\GrapheGEMV
+\caption[Produits matrice-vecteur écrits ici, sur la RTX 4060]{Produits matrice-vecteur écrits ici (Vulkan, RTX 4060), meilleure médiane horodatée par la carte, témoin tenu \mes. Le f16 atteint la VRAM ; le 4 bits plafonne à 122\,Go/s avec ces noyaux ; avec les poids laissés en RAM hôte (zéro copie), la carte calcule au débit du lien.}
+\label{fig:gemv-machine}
+\sourcefig{\fichier{fondations/journaux/01-machine/carte.jsonl} et \fichier{carte-complement.jsonl}.}
+\end{figure}
+
+\paragraph{Le produit matrice-vecteur.} C'est le cœur d'un jeton en décodage : chaque matrice de poids multiplie un seul vecteur d'activations, chaque poids n'est utilisé qu'une fois, et le noyau est borné par la mémoire. La \cref{fig:gemv-machine} en tire quatre faits. Le f16 atteint la VRAM (250\,Go/s) : la machine sait lire ses 251\,Go/s dans un vrai calcul. Le 4 bits plafonne à 122\,Go/s alors que le décodage depuis les registres coûte 2,6 fois moins que ce que la VRAM livre : le manque est dans le noyau (accès aux échelles et au vecteur, parallélisme mémoire), pas dans la machine. \textbf{En zéro copie}, la carte calcule une GEMV dont les poids restent en RAM hôte à 11,75\,Go/s, le débit de la DMA : pour un modèle plus gros que la VRAM, on peut consommer les poids directement depuis la RAM épinglée, sans tampon de transit. Enfin, les lots de 8 vecteurs s'effondrent avec ces noyaux, qui relisent le vecteur pour chaque bloc : noyau à refaire avant tout usage en décodage spéculatif.
+
+\subsection{Thermique, et la découverte de la batterie}\label{sec:batterie}
+
+\begin{figure}[ht]
+\centering
+\GrapheThermique
+\caption[Cinq minutes de GEMV, secteur contre batterie]{Cinq minutes de GEMV q4b en boucle, débit par tranche de 5\,s \mes. Sur secteur : rapport fin/début 1,001, aucune raison de bridage, 2\,685\,MHz, 75\,°C, 72\,W. Sur batterie : la carte est bridée dès la première seconde (plafond imposé 52,6\,W, mémoire à 6\,001\,MHz).}
+\label{fig:thermique}
+\sourcefig{\fichier{fondations/journaux/01-machine/thermique-secteur-charge.csv}, \fichier{thermique-batterie.csv}.}
+\end{figure}
+
+La règle déclarée avant la passe thermique dit « bridage si les 30 dernières secondes tombent sous 95\,\% des 30 premières ». Sur secteur, elle est tenue (rapport 1,001, bruit 6,3\,\%). Ce test n'est pas une charge maximale : la boucle soumet 20 GEMV puis attend, la carte n'est occupée qu'à 70\,\% environ ; c'est une charge de décodage, celle du projet.
+
+La deuxième passe, faite à 07:25, a révélé que \textbf{la machine était sur batterie}, et que \textbf{sur batterie la machine est une autre machine} : le pilote abaisse la limite de puissance de la carte de 80\,W à 52,6\,W, la mémoire de la carte reste à 6\,001\,MHz (25\,\% de débit de VRAM en moins, 192\,Go/s au plus \calc), le lien redescend en génération~3, le processeur tourne vers 1,5\,GHz. Sur des mesures courtes, la DMA hôte vers carte reste à 11,8\,Go/s, mais l'écriture du processeur dans le BAR tombe de 9,1 à 1,7\,Go/s et \texttt{write\_buffer} de 7,5 à 1,25\,Go/s : \textbf{tout ce qui passe par le processeur s'effondre}. Pour le projet, un chargeur de poids qui compte sur le processeur perd un facteur 4 à 6 sur batterie ; un chargeur qui ne fait que de la DMA et décode sur la carte perd peu. C'est un argument mesuré pour l'architecture~B (\cref{sec:toit}).
+
+\section{La base de comparaison : llama.cpp}\label{sec:llamacpp}
+
+Le pilote \texttt{pilote\_llama.py} lance \texttt{llama-bench}~\cite{ggml2026llamacpp} (b11515, moteur CUDA 12.4) sur Qwen3.5-9B Q4\_K\_M (5\,680\,522\,464 octets, 8\,953\,803\,264 paramètres), génération seule, une configuration par processus, en ordre ABBA, et relève pendant la vie du processus la mémoire de pointe, les fautes de page et la VRAM.
+
+\begin{table}[ht]
+\centering\small
+\caption[llama.cpp sur Qwen3.5-9B Q4\_K\_M, premier passage]{llama.cpp b11515 sur Qwen3.5-9B Q4\_K\_M, premier passage (3 configurations sur 12, machine partagée) \mes.}
+\label{tab:llama-base}
+\begin{tabular}{@{}lllrrrr@{}}
+\toprule
+\texttt{-ngl} & chargement & jetons/s & é.-t. & ens. de travail & VRAM ajoutée & fautes \\
+\midrule
+99 (tout en VRAM) & mmap & 16,5 & 1,2 & 5\,279\,Mio & 5\,118\,Mio & 1\,376\,607 \\
+99 & lecture directe & \textbf{34,1} & 5,4 & \textbf{964\,Mio} & 5\,083\,Mio & 270\,240 \\
+24 (sur 32 couches) & mmap & \textbf{2,8} & 2,1 & 5\,296\,Mio & 7\,114\,Mio & 1\,563\,456 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Lecture prudente (\cref{tab:llama-base}) : 34,1 jetons/s tout en VRAM font 69\,\% du toit de 49,3 (\cref{sec:toit}), soit $34{,}1 \times 5{,}10 = 174$\,Go/s de poids lus \calc, mieux que nos 122\,Go/s. L'écart entre mmap et lecture directe (16,5 contre 34,1) ne vient pas du chargement (les poids sont en VRAM dans les deux cas) : un autre processus a pris de la VRAM pendant la mesure (la passe \texttt{-ngl 24} ajoute plus de VRAM que la passe tout en VRAM). On ne retient que l'ordre de grandeur ; l'ABBA complet attend une machine calme sur secteur. Ce qui est sûr : avec huit couches sur 32 laissées au processeur, la génération tombe d'un facteur 12.
+
+\section{Le toit}\label{sec:toit}
+
+\subsection{Le modèle}
+
+Un jeton de décodage, au lot de un, lit $B$ octets de poids : tous les poids qu'il utilise, une fois chacun. Les poids résident sur trois étages : une fraction $f_V$ en VRAM, $f_R$ en RAM hôte, $f_D$ sur le disque ($f_V + f_R + f_D = 1$), la part disque stockée compressée d'un facteur $r$ (octets servis sur octets stockés). Chaque étage $i$ a un débit effectif mesuré $W_i$ : $W_{\mathrm{VRAM}} = 251{,}3$, $W_{\mathrm{PCIe}} = 12{,}2$, $W_{\mathrm{disque}} = 2{,}82$\,Go/s (\fichier{debits-mesures.json}, chaque valeur avec son journal). La \cref{fig:chemin} résume ce chemin, la \cref{fig:etages} le rendement de chaque étage.
+
+\begin{figure}[p]
+\centering
+\SchemaChemin
+\caption[Le chemin des données, du disque aux unités de calcul]{Le chemin des données sur la machine de Stone, du disque aux unités de calcul. Chaque flèche porte le meilleur débit reproductible mesuré ici et le plafond calculé de l'étage ; l'épaisseur croît avec le débit. Le chemin pointillé est le « zéro copie » : la carte calcule directement sur des poids en RAM hôte, à travers le lien.}
+\label{fig:chemin}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\GrapheEtages
+\caption[Plafond calculé contre débit mesuré, par étage]{Plafond calculé contre débit mesuré, par étage (échelle logarithmique) \mes~\calc. Le disque rend 36\,\% de son lien, la RAM 37\,\% d'un module, la DMA 77\,\% du lien PCIe, la VRAM 98\,\%.}
+\label{fig:etages}
+\sourcefig{\fichier{fondations/journaux/01-machine/debits-mesures.json}, \fichier{memoire.log}.}
+\end{figure}
+
+On distingue deux architectures (\cref{fig:architectures}), selon l'endroit où se fait la décompression des octets venus du disque :
+\begin{description}
+\item[Architecture A] (le processeur décompresse, la PCIe porte les octets servis) :
+$O_{\mathrm{VRAM}} = f_V B$, $O_{\mathrm{PCIe}} = (f_R + f_D) B$, $O_{\mathrm{disque}} = f_D B / r$, et le décodeur du processeur doit sortir $f_D B$ octets.
+\item[Architecture B] (la carte décompresse, la PCIe porte les octets compressés) :
+$O_{\mathrm{VRAM}} = f_V B$, $O_{\mathrm{PCIe}} = (f_R + f_D/r) B$, $O_{\mathrm{disque}} = f_D B / r$, et le décodeur de la carte doit sortir $f_D B$ octets, de préférence dans les registres, sans les réécrire en VRAM.
+\end{description}
+
+\begin{figure}[ht]
+\centering
+\SchemaArchitectures
+\caption[Architectures A et B]{Les deux architectures. En A, le processeur décompresse et le lien porte les octets servis ; en B, la carte décompresse et le lien porte les octets compressés. Les quantités sur les flèches sont les octets par jeton.}
+\label{fig:architectures}
+\end{figure}
+
+\subsection{Le théorème du toit}
+
+On modélise un étage par sa seule contrainte de débit.
+
+\begin{hypothese}[Étage à débit borné]\label{hyp:etage}
+Sur tout intervalle de temps de longueur $\tau$, l'étage $i$ fait passer au plus $W_i \tau$ octets. Un jeton est terminé quand chaque étage a fait passer ses $O_i$ octets.
+\end{hypothese}
+
+\begin{theoreme}[Borne de débit d'une chaîne d'étages]\label{thm:toit}
+Sous l'\cref{hyp:etage}, quel que soit l'ordonnancement, le temps $t$ d'un jeton vérifie
+\begin{equation}\label{eq:toit}
+t \;\ge\; \max_i \frac{O_i}{W_i}, \qquad \text{donc} \qquad \text{jetons/s} \;\le\; \min_i \frac{W_i}{O_i}.
+\end{equation}
+Si les étages travaillent l'un après l'autre sans se recouvrir, $t = \sum_i O_i / W_i$.
+\end{theoreme}
+
+\begin{proof}
+Soit $[0, t]$ l'intervalle pendant lequel le jeton est traité. Par l'\cref{hyp:etage}, l'étage $i$ fait passer au plus $W_i t$ octets dans cet intervalle ; il doit en faire passer $O_i$, donc $W_i t \ge O_i$, soit $t \ge O_i/W_i$, pour chaque $i$. La borne vaut pour le maximum. Sans recouvrement, les intervalles d'activité des étages sont disjoints et chacun dure au moins $O_i/W_i$ ; s'ils travaillent à leur débit, chacun dure exactement $O_i/W_i$, et les durées s'additionnent.
+\end{proof}
+
+Pour un modèle dense lu entièrement par un seul étage, $B = N b / 8$ et le théorème donne la forme qui sert dans tout le mémoire :
+\begin{equation}\label{eq:toit-dense}
+\text{jetons/s} \;\le\; \frac{8\, W}{N\, b}.
+\end{equation}
+Sa pente en $b$ est $\partial \ln(\text{jetons/s}) / \partial \ln b = -1$ : diviser le nombre de bits par poids par deux double le plafond, à n'importe quel étage. Aucun autre paramètre de la chaîne n'a cette pente sans contrepartie.
+
+La borne est-elle atteignable ? Oui, à une pénalité de remplissage près que l'on peut chiffrer. Découpons le jeton en $L$ morceaux égaux (les couches) que chaque étage traite dans l'ordre ; le morceau $\ell$ ne peut entrer à l'étage $i+1$ qu'une fois sorti de l'étage $i$ (double tampon entre étages). C'est un atelier à cheminement unique, à tâches identiques.
+
+\begin{lemme}[Atelier à tâches identiques]\label{lem:flowshop}
+Soient $m$ étages en série et $L$ tâches identiques, la tâche demandant $p_i$ secondes à l'étage $i$, chaque étage traitant les tâches dans l'ordre, une à la fois. La durée totale est
+\begin{equation}\label{eq:flowshop}
+T_L \;=\; \sum_{i=1}^{m} p_i \;+\; (L - 1)\, \max_i p_i .
+\end{equation}
+\end{lemme}
+
+\begin{proof}
+Notons $C_{i,\ell}$ l'instant où la tâche $\ell$ quitte l'étage $i$. Les contraintes donnent la récurrence $C_{i,\ell} = \max(C_{i-1,\ell},\, C_{i,\ell-1}) + p_i$, avec $C_{0,\ell} = C_{i,0} = 0$. En la déroulant, $C_{m,L}$ est le maximum, sur tous les chemins de la case $(1,1)$ à la case $(m,L)$ qui avancent d'un étage ou d'une tâche à chaque pas, de la somme des $p_i$ des cases visitées. Un tel chemin visite $m + L - 1$ cases et passe au moins une fois par chaque étage ; sa somme vaut $\sum_i p_i$ plus les $L-1$ cases supplémentaires, chacune au plus $\max_i p_i$. Le chemin qui descend tous les étages en passant ses $L-1$ cases supplémentaires sur l'étage le plus lent atteint cette borne.
+\end{proof}
+
+\begin{corollaire}[Régime permanent]\label{cor:permanent}
+Avec $L$ morceaux égaux, $p_i = O_i / (L W_i)$ et le temps par jeton vaut
+\begin{equation}\label{eq:permanent}
+t_L \;=\; \max_i \frac{O_i}{W_i} \;+\; \frac{1}{L} \Bigl( \sum_i \frac{O_i}{W_i} - \max_i \frac{O_i}{W_i} \Bigr).
+\end{equation}
+Il tend vers la borne du \cref{thm:toit} quand $L$ croît, et la pénalité de remplissage est au plus $1/L$ de l'écart entre la somme et le maximum. Si les poids du jeton suivant peuvent être lus pendant le calcul du jeton courant (modèle dense, fenêtre de préchargement suffisante), le remplissage ne se paie qu'une fois et le temps par jeton tend vers $\max_i O_i/W_i$.
+\end{corollaire}
+
+\begin{proof}
+Remplacer $p_i$ dans l'\cref{eq:flowshop} et diviser par le nombre de jetons (un).
+\end{proof}
+
+Pour gpt-oss-120b, $L = 36$ couches : même sans recouvrement entre jetons, le temps par jeton est à moins de 3\,\% de l'écart somme--maximum au-dessus de la borne. La \cref{fig:chronogramme} montre les deux régimes.
+
+\begin{figure}[ht]
+\centering
+\SchemaChronogramme
+\caption[Chronogramme : en série contre recouvert]{Chronogramme des étages pour une suite de couches. En série, le temps est la somme des étages ; avec un double tampon, chaque étage travaille sur une couche différente et le plus lent fixe le pas (\cref{lem:flowshop,cor:permanent}).}
+\label{fig:chronogramme}
+\end{figure}
+
+\subsection{Les deux corollaires qui décident de l'architecture}
+
+\begin{corollaire}[Le facteur de croisement]\label{cor:croisement}
+En architecture A, avec tous les poids hors VRAM sur le disque ($f_R = 0$), le disque cesse d'être l'étage limitant dès que
+\begin{equation}\label{eq:rstar}
+r \;\ge\; r^\star = \frac{W_{\mathrm{PCIe}}}{W_{\mathrm{disque}}} = \frac{12{,}2}{2{,}82} = 4{,}33 \quad \calc.
+\end{equation}
+Au-delà, compresser davantage ne sert à rien en A. Avec une part $f_R$ en RAM, le seuil devient $r^\star f_D / (f_R + f_D)$, plus petit.
+\end{corollaire}
+
+\begin{proof}
+En A, $O_{\mathrm{disque}}/W_{\mathrm{disque}} = f_D B / (r W_{\mathrm{disque}})$ et $O_{\mathrm{PCIe}}/W_{\mathrm{PCIe}} = (f_R + f_D) B / W_{\mathrm{PCIe}}$. Le disque n'est plus limitant quand le premier terme ne dépasse pas le second, soit $r \ge W_{\mathrm{PCIe}} f_D / (W_{\mathrm{disque}} (f_R + f_D))$, qui vaut $r^\star$ pour $f_R = 0$. Au-delà, le maximum du \cref{thm:toit} est le terme PCIe, qui ne dépend pas de $r$.
+\end{proof}
+
+\begin{corollaire}[En architecture B, pas de croisement]\label{cor:sans-croisement}
+En architecture B avec $f_R = 0$, le disque reste l'étage limitant pour tout $r$, et le plafond du flux disque croît comme $r\,W_{\mathrm{disque}}/(f_D B)$ jusqu'à ce que le décodeur de la carte ou la VRAM le borne.
+\end{corollaire}
+
+\begin{proof}
+En B, disque et PCIe portent tous deux $f_D B / r$ ; le rapport de leurs temps est $W_{\mathrm{PCIe}}/W_{\mathrm{disque}} = 4{,}33 > 1$, indépendant de $r$ : le disque est toujours le plus lent des deux. Son temps $f_D B/(r W_{\mathrm{disque}})$ décroît en $1/r$, ce qui donne le plafond annoncé, jusqu'à ce qu'un autre terme (le décodeur, la VRAM) le dépasse.
+\end{proof}
+
+La borne haute du décodeur de la carte se lit dans la mesure du \cref{sec:carte} : 1,31 billion de poids par seconde décodés depuis les registres, soit $1{,}31\cdot10^{12} \times 5{,}08/8 = 832$\,Go/s servis \calc. Ce n'est pas une borne de décodage entropique (le \cref{ch:avenir} y revient), mais elle dit que, sur cette carte, le calcul n'est pas l'étage limitant.
+
+\begin{figure}[ht]
+\centering
+\GrapheToitR
+\caption[Le toit du Qwen3.5-9B entièrement sur disque, selon $r$]{Plafond de jetons par seconde du Qwen3.5-9B Q4\_K\_M ($B = 5{,}10$\,Go par jeton) entièrement sur disque, selon le facteur de compression $r$ \calc. En architecture A, tout facteur au-delà de $r^\star = 4{,}33$ est perdu ; en architecture B, le plafond continue de croître.}
+\label{fig:toit-r}
+\sourcefig{\fichier{fondations/journaux/01-machine/toit-9b-compression.csv} (outil \fichier{outils/banc/toit.py}).}
+\end{figure}
+
+\subsection{Les plafonds par étage}
+
+\begin{table}[ht]
+\centering\small
+\caption[Plafonds de jetons/s par étage]{Plafonds de jetons par seconde si tous les poids lus passent par l'étage nommé \calc~sur mesures. $B$ : octets lus par jeton (pour les MoE, toujours-lus plus experts, routage uniforme).}
+\label{tab:toit-modeles}
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+Modèle & $B$ (Go) & VRAM & PCIe & disque, $r=1$ & disque, $r=r^\star$ \\
+\midrule
+Qwen3.5-9B Q4\_K\_M & 5,10 & \textbf{49,3} & 2,39 & \textbf{0,55} & 2,39 \\
+Qwen3.5-4B Q4\_K\_M & 2,73 & 92,1 & 4,47 & 1,03 & 4,47 \\
+gpt-oss-120b MXFP4 & 3,60 & 69,8 & 3,39 & 0,78 & 3,39 \\
+Qwen3.8-Flash-Next UD-Q2\_K\_XL & 4,44 & 56,6 & 2,75 & 0,64 & 2,75 \\
+Kimi-K2.6 UD-Q2\_K\_XL & 15,42 & 16,3 & 0,79 & 0,18 & 0,79 \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{fondations/journaux/01-machine/toit-modeles.csv}.}
+\end{table}
+
+Le placement réel (\cref{fig:toit-placements}) suppose, comme l'étude des modèles (\cref{ch:modeles}), 6,5\,Go de VRAM et 11\,Go de RAM disponibles pour des poids, les toujours-lus d'abord en VRAM, les experts répartis dans le même ordre, un routage uniforme et aucun cache dynamique : c'est la borne pessimiste. Pour gpt-oss-120b, il donne \textbf{1,98 jeton/s} recouvert (1,53 en série) : 1,84\,Go par jeton servis par la VRAM, 0,34 par la RAM, 1,42 par le disque.
+
+\begin{figure}[ht]
+\centering
+\GrapheToitPlacements
+\caption[Le toit des trois MoE visés, placement réel]{Plafond (étages recouverts) des trois MoE visés sur la machine, architecture A, routage uniforme, sans cache, pour trois facteurs de compression de la part disque \calc. Le plancher sans recouvrement est dans le fichier source.}
+\label{fig:toit-placements}
+\sourcefig{\fichier{fondations/journaux/01-machine/toit-placements.csv}.}
+\end{figure}
+
+\paragraph{Second chemin, et ce qu'il corrige.} L'outil de l'étude des modèles (\texttt{modeles\_physique.py}) donne 5,1 à 5,6 jetons/s pour gpt-oss-120b. Refait avec ses propres hypothèses, l'outil du toit retrouve le même ordre (1,42\,Go par jeton à 7,877\,Go/s, soit 5,5 jetons/s) : les deux modèles s'accordent. L'écart vient du débit du disque, le plafond du lien d'un côté, la mesure de l'autre : \textbf{le plafond réel de gpt-oss-120b sur cette machine, sans cache et sans compression, est d'environ 2 jetons/s, pas 5,5.} Le juge de l'étude du chargement, relancé avec le disque mesuré, retrouve 1,99 jeton/s par un troisième chemin (\cref{ch:chargement}).
+
+\subsection{Le budget du décodeur, et pourquoi B}
+
+À un débit d'entrée compressé égal au lien (12,2\,Go/s, architecture A au croisement), la carte dispose de $2{,}61\cdot10^{12} / 12{,}2\cdot10^{9} \approx \mathbf{214}$ opérations par octet compressé \calc ; au débit du disque (architecture B), $\mathbf{926}$. Un décodeur entropique de la famille rANS fait de l'ordre de la dizaine d'opérations par symbole : le calcul n'est pas la borne, la question est le parallélisme et l'accès mémoire du décodeur.
+
+\textbf{Trois raisons mesurées de préférer l'architecture B} : en A, tout facteur au-delà de 4,33 est perdu (\cref{cor:croisement}) ; en A, le processeur paie déjà 0,24 à 0,31\,s de cœur par Go pour BitLocker avant toute décompression (\cref{sec:bitlocker}) ; sur batterie, tout ce qui passe par le processeur perd un facteur 4 à 6 alors que la DMA reste à 11,8\,Go/s (\cref{sec:batterie}). Et la carte sait consommer des poids sans les copier en VRAM (zéro copie, 11,75\,Go/s).
+
+\paragraph{Ce que $r^\star$ veut dire en bits.} Le Q4\_K\_M sert en moyenne 5,08 bits par poids ; stocké à $r^\star = 4{,}33$, il tiendrait en $5{,}08/4{,}33 = \mathbf{1{,}17}$ bit par poids sur le disque. \barre{soit environ 1,05 bit par poids stocké pour 4,5 bits servis} (barré dans l'étude d'origine : le Q4\_K\_M n'est pas à 4,5 bits, il mêle des tenseurs Q6\_K). Aucun code sans perte n'y arrive sur des codes de 4 bits, dont l'entropie mesurée laisse quelques pour cent : $r^\star$ ne s'atteint qu'en changeant de représentation (\cref{ch:quant}). Sur un gros MoE, la compression n'est d'ailleurs pas le seul levier : le taux de succès du cache d'experts multiplie l'effet de $r$ (\cref{ch:chargement,ch:modeles}).
+
+\section{Ce qui manque dans le monde}
+
+\begin{enumerate}
+\item \textbf{Un toit mesuré, pas annoncé, pour l'inférence hors mémoire sur portable.} Les travaux d'inférence depuis le stockage raisonnent sur des débits de fiche technique ou de station de travail. Ici, le disque livre 47\,\% de son annonce à cause de deux réglages par défaut ; un plafond calculé au lien est faux d'un facteur 2,8.
+\item \textbf{Le régime batterie.} Aucun banc d'inférence lu ne note la source d'alimentation ; elle change ici la limite de puissance de la carte, l'horloge de sa mémoire, la génération du lien, et divise par 4 à 6 tout ce qui passe par le processeur.
+\item \textbf{Le coût processeur de BitLocker pour un flux de poids}, 0,24 à 0,31\,s de cœur par Go, et la question ouverte de savoir si \texttt{fvevol} parallélise.
+\item \textbf{La décompression sur la carte, alimentée par DMA depuis la RAM épinglée ou en zéro copie, sous Vulkan.} DirectStorage décompresse sur la carte, mais vers des ressources Direct3D~12 et pour des textures ; les moteurs d'inférence décodent leurs formats sur la carte, mais depuis des poids déjà en VRAM. Le chemin « disque $\to$ RAM épinglée $\to$ PCIe (octets compressés) $\to$ décodage sur la carte » n'existe, à notre connaissance, nulle part sous Vulkan.
+\item \textbf{Un noyau 4 bits Vulkan au niveau de la VRAM} : nos noyaux plafonnent à 48\,\%, llama.cpp sous CUDA atteint 69\,\% ; la machine offre 98\,\%.
+\end{enumerate}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{La machine n'a jamais été au calme.} Les chiffres « au mieux » sont des bornes inférieures du repos ; le plafond du disque est le plus exposé (jusqu'à 0,6\,Go/s de lectures étrangères au passage A).
+\item \textbf{Le toit suppose des débits indépendants.} La RAM est partagée entre la DMA vers la carte, la lecture du disque et le processeur, sur un seul module. Le recouvrement parfait peut être inatteignable ; la colonne en série encadre par le bas.
+\item \textbf{$B = 5{,}10$\,Go par jeton} ignore le cache KV et les activations : juste pour un contexte court, trop bas pour un long contexte.
+\item \textbf{L'identification du disque au PM9C1a} est probable, pas prouvée.
+\item \textbf{La latence RAM attribuée à la traduction imbriquée} est une hypothèse.
+\item \textbf{Les mesures de llama.cpp sont contaminées} par une autre charge sur la carte ; l'écart mmap / lecture directe n'est pas un fait.
+\item \textbf{Le test thermique n'est pas une charge maximale.}
+\item \textbf{La borne du décodeur (832\,Go/s servis)} mesure un décodage de champs de 4 bits ; un décodeur entropique réel a d'autres goulets.
+\item \textbf{La clé XTS de BitLocker} (128 ou 256 bits) n'est pas connue ; l'écart est d'environ 10\,\%.
+\end{itemize}
+\end{faux}

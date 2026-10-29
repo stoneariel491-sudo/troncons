@@ -1,0 +1,220 @@
+% Tome~II, chapitre « Discussion, limites et travaux futurs », puis la conclusion du Tome~II
+% (rédacteur « résultats »). Sources : les deux chapitres précédents, idees/biomimetisme-genome-des-poids.md,
+% REPRISE.md (ordre des chantiers décidé avec Stone), decisions/ARCHITECTURE.md (§ 7.3, J2).
+\ifdefined\GrapheResVitesse\else\input{\Racine/figures/tome2/resultats-figures}\fi
+
+\chapter{Discussion, limites et travaux futurs}\label{ch:t2-discussion}
+
+\begin{origine}
+\textbf{Au départ}, un programme qui tient neuf critères entiers sur les onze jugés (C7 tient sur son plafond et tombe sur son écart, C8 attend un autre instrument, C9 est publié sans être jugé), une épreuve indépendante et une ronde de corrections (\cref{ch:t2-resultats,ch:t2-epreuve}).
+\textbf{Ce chapitre établit} ce que le Tome~II dit en somme ; ce que les prédictions du Tome~I valaient face aux mesures ; les chiffres barrés et les idées tuées par les nombres, rassemblés ; les limites de la méthode ; puis le travail qui vient, chaque pas avec la mesure qui le jugera : la découpe base + complément (J2), le disque \texttt{D:} sans BitLocker, la porte compatible pour relais, et l'étude biomimétique de Stone, le génome des poids.
+\textbf{Il reste} à le faire, dans l'ordre décidé avec Stone.
+\end{origine}
+
+\section{Ce que le Tome~II établit}\label{t2d-sec:bilan}
+
+\begin{enumerate}
+\item \textbf{Un modèle de \SI{63.4}{\Go} tourne avec \SI{384}{\Mo} de mémoire} sur une machine qui en a 16, et sa mémoire ne suit pas sa taille : $+\SI{3.7}{\Mo}$ pour $+\SI{51.3}{\Go}$ de modèle (\cref{t2res-sec:memoire}). La lecture de « sans RAM ni rien » que le Tome~I avait retenue est vérifiée par la mesure.
+\item \textbf{Le codage sans perte ne coûte rien à la sortie} : logits égaux au bit entre fichier codé et fichier brut sur \num{5120} pas, d'une construction à l'autre et d'un ordre de calcul à l'autre (\cref{t2res-sec:exactitude}).
+\item \textbf{troncons est plus rapide que la meilleure base mesurée} : $\times 2{,}22$ en génération, garde d'intégrité comprise, et $\times 7$ au préremplissage (\cref{t2res-sec:vitesse}).
+\item \textbf{Il est plus près des mathématiques exactes que llama.cpp}, et, avec un cache KV en f32, égal à elles au format près : tout l'écart mesurable venait de l'arrondi f16 du cache (\cref{t2res-sec:kv}).
+\item \textbf{La méthode a fonctionné} : l'épreuve indépendante a trouvé deux défauts graves et cinq moyens que les lots n'avaient pas vus, et la ronde les a corrigés ou mesurés en une matinée, chaque correction avec un témoin qui tombe sur l'ancien binaire (\cref{t2e-sec:ronde}).
+\end{enumerate}
+
+\section{Les prédictions du Tome~I, face aux mesures}\label{t2d-sec:predictions}
+
+Le Tome~I a calculé avant de construire. \Cref{t2d-tab:predictions} confronte ses chiffres à ceux du programme ; une prédiction tombée juste n'est pas une preuve, une prédiction tombée faux est une information.
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[Les prédictions du Tome~I et les mesures du Tome~II]{Les prédictions du Tome~I et les mesures du Tome~II (gpt-oss-120b, mode A0 sauf mention).}
+\label{t2d-tab:predictions}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.27\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+Grandeur & Tome~I (calculé ou estimé) & Tome~II (mesuré) \\
+\midrule
+succès du cache en VRAM & $h_v = 0{,}590$ (scénario LRU calé sur un point, cache de \SI{4.8}{\Go}) & $h = 0{,}591$ (326 emplacements, \SI{4.3}{\Go}) \\
+vitesse en A0 & repère \num{2.15} jetons/s (LRU calé) ; \num{0.99} (uniforme) ; \num{3.32} (Belady) & \numrange{2.18}{2.19} (lot O) ; \num{1.965} garde comprise \\
+mémoire de l'hôte & A0 : \SI{1.9}{\Go} ; fenêtre minimale du partisan de A : \SI{0.64}{\Go} & \SI{0.384}{\Go}, sous la fenêtre minimale \\
+étage qui limite & le disque (157 contre 58 et \SI{36}{\milli\second}, scénario avec cache tiède) & le disque : \SIrange{68}{72}{\percent} du plancher en série \\
+débit du disque & \SI{2.82}{\Go\per\second} en lectures aléatoires de \SI{16}{\Mio} (profondeur 1) ; \SI{2.58}{\Go\per\second} en lectures aléatoires de \SI{4}{\Mio} (profondeur 4) & \SIrange{1.85}{1.89}{\Go\per\second} à la longueur des tronçons (régime lent du lot E) ; \SI{1.55}{\Go\per\second} utiles dans le moteur \\
+taux du codage sans perte & $r = 1{,}1026$ sur les experts & un tronçon de \SI{12.03}{\Mo} pour un expert de \SI{13.25}{\Mo} : $r \approx 1{,}10$ \\
+décodeur sur la carte & \SI{82}{\Go\per\second} sous CUDA, sur un grand flux & \SIrange{0.85}{0.92}{\milli\second} par expert seul, soit \SIrange{14}{16}{\Go\per\second} de sortie : un expert seul n'occupe pas la carte [hyp.] ; \SI{10}{\percent} du temps d'un jeton \\
+base llama.cpp & estimée ; exploration \num{0.49} & \barre{0,568} ; \num{0.884} (\texttt{fit -t 16}) \\
+\bottomrule
+\end{tabularx}
+\sourcefig{Tome~I (résumé, chapitres « La machine », « Formulation », « Architecture ») ; \cref{ch:t2-resultats}.}
+\end{table}
+
+Deux leçons. D'abord, le seul chiffre du Tome~I qui ait vraiment bougé est celui qu'il n'avait pas mesuré lui-même : la base, estimée puis mesurée trop vite. Ensuite, le débit du disque dans le moteur est \barre{le tiers de ce que le Tome~I mesurait en grands blocs séquentiels} un peu plus de la moitié (\SI{1.55}{\Go\per\second} utiles) à deux tiers (\SI{1.85}{\Go\per\second}, disque seul à la longueur des tronçons) de ce que le Tome~I mesurait en lectures aléatoires de \SI{16}{\Mio} (\SI{2.82}{\Go\per\second}) \calc : non parce que le disque aurait changé, mais parce que le moteur lit des tronçons dans le régime lent du disque et n'a pas assez de lectures en vol (\cref{t2res-sec:c5}). C'est le levier le plus proche.
+
+\section{Les chiffres barrés}\label{t2d-sec:barres}
+
+Quand une mesure a contredit un chiffre publié, même le nôtre, la phrase a été barrée là où elle était, et l'on a dit ce qui l'avait remplacée (\cref{t2d-tab:barres}). C'est la trace que la méthode a fonctionné.
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[Les chiffres barrés du Tome~II]{Les chiffres barrés pendant la construction, l'épreuve et la ronde, et ce qui les a remplacés.}
+\label{t2d-tab:barres}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.3\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.15\linewidth}@{}}
+\toprule
+Barré & Remplacé par, et pourquoi & Où \\
+\midrule
+\barre{C6 : $\times 3{,}85$ sur la base} & $\times 2{,}79$ à $2{,}89$ (épreuve, \texttt{fit -t 10}), puis $\times 2{,}22$ (ronde, \texttt{fit -t 16}, garde comprise) : la base tournait à 6 fils & \cref{t2res-sec:base} \\
+\barre{$\times 2{,}79$ à $2{,}89$} & $\times 2{,}22$ : la base n'avait pas été balayée au-delà de 10 fils & \cref{t2res-sec:c6} \\
+\barre{meilleure base du 120b : fit, 0,568} & \texttt{fit -t 16}, \num{0.884} : $+54\,\%$, écart réel & \cref{t2res-tab:base} \\
+« six fois plus près de la vérité » (non barré, requalifié) & dont la rampe de YaRN de llama.cpp, \num{55}\,\% de son écart : un choix de modélisation & \cref{t2res-sec:fidelite} \\
+\barre{C2 : 100\,\% des corruptions détectées} (en production) & vrai en mode témoin seulement ; vrai en production depuis la garde & \cref{t2e-sec:garde} \\
+\barre{empreinte : 2 Go/s par cœur} (estimé) & \SIrange{1.07}{1.10}{\Go\per\second} par fil, mesuré & \cref{t2res-sec:garde} \\
+\barre{KV f32 : 604 Mo au lieu de 302, $-7\,\%$} & $+\SI{156}{\Mo}$, $-3{,}6\,\%$ d'emplacements : le premier calcul oubliait l'anneau des couches à fenêtre & \cref{t2res-sec:kv} \\
+\barre{seuil de C5 sur la médiane des deux passes D} & une passe D d'échauffement jetée : la première, à froid, déplaçait le seuil de \SI{25}{\percent} & \cref{t2e-sec:seance} \\
+\barre{compte des octets du moteur} (résidents comptés deux fois, $+\SI{1.69}{\Go}$) & corrigé dans le code ; écart au processus constant, \SI{19.92}{\Mo} & \cref{t2e-sec:m2-m5} \\
+\barre{heure du seuil de l'épreuve : 02 h 40} & 02 h 26, l'heure du commit & \cref{t2e-sec:faux} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Les idées tuées par les nombres}\label{t2d-sec:tuees}
+
+Le SOCLE demande de tuer une idée par les nombres, pas par l'opinion, et de garder les échecs avec leur raison (\cref{t2d-tab:tuees}).
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[Les idées tuées par les nombres]{Les idées essayées pendant J1, J1+ et la ronde, et le nombre qui les a jugées.}
+\label{t2d-tab:tuees}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.34\linewidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+Idée & Le nombre qui la juge \\
+\midrule
+Précharger par le routeur de la couche suivante & $-11\,\%$ : \num{69}\,\% de prédictions justes ; les \num{31}\,\% fausses coûtent plus de disque que le recouvrement ne rend \mes \\
+Lectures de \SI{12}{\Mio} & $+30\,\%$ en médiane, mais un bruit de \SI{16.2}{\percent} entre les passes B (seuil \SI{35.4}{\percent} ; \barre{21\,\%} de dispersion) : ni établi, ni tué \mes \\
+Une copie corrompue au hasard comme seule cassure de C3 & insuffisante : il a fallu une médiane faussée, invisible au décodeur, pour montrer des logits faux \mes \\
+Comparer deux vitesses sur deux textes différents & à ne pas faire : le texte en KV f32 ne boucle pas, $h$ \num{0.435} contre \num{0.590} ; le coût du KV se mesure sur une même trace \calc \\
+Vider les préchargements en refusant tout achèvement étranger & échec, corrigé : les lectures de la couche en cours finissent pendant le vidage \\
+Assembler le texte en décodant chaque jeton seul & échec d'affichage : les caractères UTF-8 coupés entre deux jetons sortent mal \\
+Construire le binaire pendant qu'un pilote le lance deux fois & à ne pas faire : les deux passes de C3 doivent tourner sur le même binaire \\
+Appeler \texttt{nvcc} par \texttt{cmd /C} depuis \texttt{Command::arg} & échec : les guillemets protégés par des barres obliques inverses, que \texttt{cmd} ne lit pas \\
+Vérifier la garde avant chaque produit (au lieu de la fin du pas) & non essayée : calculée à environ \SI{6}{\milli\second} $\times$ 30 couches par pas, $-40\,\%$ \calc \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{moteur/REPRISE-O.md} (recettes de J1, de J1+ et de la ronde).}
+\end{table}
+
+\section{Les limites}\label{t2d-sec:limites}
+
+\begin{itemize}
+\item \textbf{Une seule machine, partagée.} Tout est mesuré sur le portable de Stone, la cible ; mais d'autres agents mesuraient en même temps, et le disque a varié de \SI{20}{\percent} d'une séance à l'autre sans cause mesurée (la température du NVMe n'est pas lisible sans droits d'administrateur).
+\item \textbf{Un disque chiffré.} Tous les chiffres de vitesse portent BitLocker, qui déchiffre chaque octet par le processeur et refuse le contournement d'entrée-sortie ; le disque \texttt{D:} non chiffré (\cref{t2d-sec:disque}) dira ce qu'il coûte sur un vrai modèle.
+\item \textbf{Un seul modèle visé}, gpt-oss, en MXFP4 natif. Le format et le moteur sont écrits pour un mélange d'experts dont l'expert est la dimension la plus lente de chaque tenseur ; un autre modèle demandera un autre codeur, et peut-être d'autres noyaux.
+\item \textbf{Une seule tâche de vitesse} (une invite de 708 jetons, 256 jetons gloutons) : le succès du cache, donc la vitesse, dépend du texte (\cref{t2res-sec:kv}).
+\item \textbf{Une carte NVIDIA obligatoire} : le choix de CUDA pour J1 ferme la porte aux autres cartes jusqu'au portage Vulkan.
+\item \textbf{Une fenêtre de jugement courte sur le 120b} : C4 porte sur 255 positions et l'invite ; la référence du lot R sur les dix fenêtres du 120b manque.
+\item \textbf{Deux décisions en attente} : tant que l'arbitre n'a pas tranché la couture N, C7 et C8, deux critères sur douze restent « tombe » ou « instrument à changer ».
+\end{itemize}
+
+\section{Travaux futurs}\label{t2d-sec:futurs}
+
+L'ordre a été décidé avec Stone le 15 octobre, puis repris le 16 au matin (« on fini une tache proprement puis ln enchaine l'autre ») : le jalon et son épreuve, ce Tome~II, puis une pause complète et le redémarrage par Stone (le disque \texttt{D:}), puis l'étude du génome des poids, puis la porte compatible pour relais (\fichier{REPRISE.md}). La \cref{t2d-fig:jalons} place chaque chantier par rapport aux jalons.
+
+\begin{figure}[ht]
+\centering
+\SchemaResJalons
+\caption[Les jalons et les chantiers qui viennent]{Les jalons de troncons et les chantiers qui viennent. En vert, ce qui tient ; en orange, le jalon de la contribution ; en pointillés, ce qui alimente un jalon.}
+\label{t2d-fig:jalons}
+\end{figure}
+
+\subsection{Avant tout : une série unique, et les décisions de l'arbitre}
+
+Trois gestes courts fermeraient les fragilités de ce tome : une seule série en palindrome, troncons gardé contre \texttt{fit -t 16} (et 20 fils, et \texttt{--mlock}), pour un C6 sans bruit entre séances ; la référence f64 du lot R sur les dix fenêtres du 120b, pour un C4 sur \num{5120} positions ; et les décisions de l'arbitre (KV f32 par défaut, critère de queue de C4, C7 à fenêtre fixe, C8 par l'instrument du processus), qui rendraient le jalon net.
+
+\subsection{Le disque \texttt{D:} sans BitLocker}\label{t2d-sec:disque}
+
+\paragraph{Le geste.} C'est le seul qui revienne à Stone, sur sa machine : un outil déjà écrit et commité (\fichier{outils/preparer-disque-D.ps1}, lancé par un raccourci du Bureau qui demande les droits d'administrateur) vérifie qu'aucun agent ne tourne, coupe le fichier d'échange de \texttt{C:}, redémarre, réduit \texttt{C:} de \SI{200}{\Go} (au moins 150), crée un volume \texttt{D:} « Modeles » non chiffré, vérifie que \texttt{C:} reste chiffré et que \texttt{D:} ne l'est pas, remet le fichier d'échange dans tous les cas, et redémarre. Les poids des modèles sont des fichiers publics ; rien de personnel n'a besoin d'y être chiffré. \texttt{C:} reste chiffré, et la clé de récupération de BitLocker est sauvegardée depuis le 15 octobre.
+
+\paragraph{Ce qu'il pourrait rendre, posé.} Le disque tient \SIrange{68}{72}{\percent} du plancher en série. Sur la passe 03 de la ronde (sans garde), le moteur lit \SI{0.710}{\Go} de tronçons par jeton, et les autres étages coûtent ensemble $80{,}7 + 50{,}5 + 15{,}3 + 3{,}5 = \SI{150.0}{\milli\second}$. Si les octets lus restent les mêmes et que seul le débit $W$ du disque change \calc :
+\[
+t_{\text{série}}(W) = \frac{\SI{0.710}{\Go}}{W} + \SI{150.0}{\milli\second},
+\]
+\[
+\begin{array}{@{}lll@{}}
+W = \SI{1.893}{\Go\per\second} \text{ (mesuré, \texttt{C:})} & \Rightarrow \SI{525}{\milli\second}, & \num{1.90} \text{ jeton/s},\\
+W = \SI{2.82}{\Go\per\second} \text{ (Tome~I, grands blocs)} & \Rightarrow \SI{402}{\milli\second}, & \num{2.49} \text{ jetons/s},\\
+W = \SI{6.0}{\Go\per\second} \text{ (annonce du fabricant)} & \Rightarrow \SI{268}{\milli\second}, & \num{3.73} \text{ jetons/s}.
+\end{array}
+\]
+Avec un recouvrement parfait, la borne serait l'étage le plus lent : à \SI{6.0}{\Go\per\second}, le disque prendrait \SI{118}{\milli\second} et le lien \SI{81}{\milli\second}, soit au plus \num{8.5} jetons/s ; le lien redeviendrait presque le maximum, comme le Tome~I l'avait annoncé. Ce sont des bornes, pas des prédictions : Intel RST VMD reste sur le chemin, sa part dans les \SI{53}{\percent} perdus n'est pas séparée, et la mesure tranchera.
+
+\paragraph{Ce qui se refera sur \texttt{D:}.} Les modèles et les \texttt{.trc} y seront déplacés (empreintes vérifiées), puis les bancs du disque et du jalon refaits à l'identique : la différence entre \texttt{C:} et \texttt{D:}, mêmes séances, mêmes fichiers, donnera pour la première fois le coût de BitLocker sur un modèle réel. Le débit d'une lecture sans tampon dépend de sa longueur, en deux régimes (lot E) : la longueur des lectures se rejugera sur \texttt{D:}.
+
+\subsection{J2 : la découpe base + complément}\label{t2d-sec:j2}
+
+\paragraph{Ce qui est prêt.} Le format \texttt{.trc} range déjà les flux d'un tronçon par niveau de raffinement, tout préfixe de niveau étant décodable seul ; les sortes de flux de la base et du complément sont spécifiées au bit près ; et la mesure F1 de l'arbitre a montré que la découpe, avec un contexte riche pour le complément, coûte $+0{,}31\,\%$ d'octets seulement contre le niveau unique (\fichier{decisions/ARCHITECTURE.md}, § 3). Le cache connaît déjà les niveaux (\texttt{Base}, \texttt{Exact}), inutilisés avant J2. Le Tome~I a démontré que le raffinement exact d'un code 4 bits natif ne coûte rien en entropie.
+
+\paragraph{Ce qu'il peut rendre.} Servir la base seule, sans son complément, aux défauts où l'octet est cher : B3 promettait $\times 1{,}74$ en débit ($\times 1{,}78$ avec les bits mesurés par F1), au prix de \num{48.5}\,\% d'usages d'experts servis par la base, pour une KL estimée de \numrange{0.05}{0.12} \calc.
+
+\paragraph{Les portes, reprises sans les desserrer} (§ 7.3 de l'architecture). \emph{Q-instrument} : la ré-expression exacte doit retomber à KL $\le 7\cdot10^{-5}$ et \num{100}\,\% de premiers choix, sinon le banc est faux. \emph{Q1} : KL de B contre le mode exact du même moteur $\le \num{0.0055}$, seuil hérité de Qwen3.5-4B qui sera barré et remplacé au grand jour par l'écart entre moteurs mesuré sur gpt-oss. \emph{Q2} : le point (KL, octets lus par jeton) de B doit passer sous la frontière des requantifications uniformes d'au moins deux erreurs-types. \emph{Vitesse} : un mode B vaut s'il bat le mode exact du même moteur de plus de deux bruits et 3\,\%. Ce que ce tome change : le juge de B sera le mode exact du même moteur, que la \cref{t2res-prop:c3} rend reproductible au bit, et, si l'arbitre adopte le KV en f32, un mode exact lui-même égal à la vérité au format près. Le banc Q0 (la qualité de B sans moteur) et le mode base des noyaux restent à faire.
+
+\subsection{La porte compatible pour relais}\label{t2d-sec:relais}
+
+relais est l'outil d'automatisation de Stone, piloté par un agent qui tourne sur des modèles locaux et gratuits ; c'est la mission que troncons a interrompue (« on vas continuer la suite relais plus tard on doit faire tomber se levier d'abord »). La porte serait un service local qui parle le protocole des complétions de conversation compatible OpenAI, au-dessus de \texttt{troncons generer} et du format harmony que le moteur sait déjà produire, pour que relais puisse appeler gpt-oss-120b comme n'importe quel modèle. Ce qu'elle coûterait à l'usage, posé avec les vitesses mesurées \calc : une invite de \num{1000} jetons se préremplit en $1000/27 \approx \SI{37}{\second}$ ; une réponse de 300 jetons se génère en $300/1{,}965 \approx \SI{153}{\second}$. C'est lent pour une conversation, acceptable pour une tâche d'automatisation qui tourne seule, et c'est le cas d'usage de relais. Deux exigences en découlent : renvoyer les jetons au fil de l'eau (et assembler les octets UTF-8 coupés entre deux jetons, défaut connu), et garder le moteur ouvert entre deux requêtes, l'ouverture coûtant \SIrange{2}{3}{\second}.
+
+\subsection{Le génome des poids : l'étude biomimétique de Stone}\label{t2d-sec:genome}
+
+\paragraph{L'idée, en ses mots.} Le 15 octobre, Stone a écrit :
+\begin{quote}\itshape
+J'ai penser à du biomimetisme informatique par exemple simjler une forme de molecule d'adn virtuel qui peut stocker une grande qua tutoriel d'informations en quelque sorte creer une nouvelle convention differentes du bit une transcription et implémentation
+\end{quote}
+puis, le même jour : « j'ai la certitude que ce qu'on cherche se trouve dans du biomimetisme ». Cette conviction est l'hypothèse de travail de l'étude ; la mesure la jugera (\fichier{idees/biomimetisme-genome-des-poids.md}).
+
+\paragraph{Ce qui ne marche pas : changer d'alphabet.} L'ADN écrit avec quatre lettres, soit exactement $\log_2 4 = 2$ bits par lettre. Écrire avec quatre symboles plutôt que deux ne crée pas de place : tout message a une taille minimale, son entropie, et aucun alphabet ne descend en dessous (Shannon \cite{shannon1948}). Sur un ordinateur, une « molécule virtuelle » est stockée en bits. La force de l'ADN n'est pas son alphabet ; elle est dans ses \emph{mécanismes}.
+
+\paragraph{Ce qui peut marcher : copier les mécanismes.} Plusieurs sont déjà dans troncons sans en porter le nom : l'expression à la demande (la cellule ne transcrit que les gènes dont elle a besoin : les experts ne sont décodés qu'au moment du calcul, puis libérés) ; l'épigénétique (des marques disent quels gènes sont actifs : le cache garde près du calcul les experts souvent appelés) ; les familles avant le détail (purines et pyrimidines avant l'identité exacte : la base avant le complément, J2). L'étude en ajoute quatre, chacune avec une hypothèse mesurable sur gpt-oss.
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[Les mécanismes du vivant et leurs hypothèses mesurables]{Les mécanismes du vivant retenus pour l'étude, et l'hypothèse que chacun pose sur les poids de gpt-oss.}
+\label{t2d-tab:genome}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.17\linewidth}>{\raggedright\arraybackslash}p{0.27\linewidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+Mécanisme & Dans le vivant & Hypothèse mesurable sur gpt-oss \\
+\midrule
+La recette plutôt que le résultat & l'ADN porte le programme qui construit le corps, pas sa forme & un expert se représente par une graine de générateur pseudo-aléatoire et quelques coefficients, que la carte « transcrit » au moment du calcul ; SeedLM le fait avec des registres à décalage \cite{shafipour2024seedlm}, les hyperréseaux avec un réseau qui engendre les poids d'un autre \cite{ha2016hypernetworks} \\
+Duplication de gènes & un gène nouveau naît d'une copie d'un ancien, puis mute \cite{ohno1970} & les experts d'une couche, ou de couches voisines, sont parents : un expert « parent » et, pour chaque descendant, une « mutation » courte coûtent moins de bits que les experts entiers \\
+Codage prédictif & le cortex ne transmet que l'écart entre ce qu'il attendait et ce qui arrive \cite{rao1999} & prédire chaque poids depuis ses voisins, son parent ou sa ligne, et ne stocker que l'écart : moins de bits quand la prédiction est bonne \\
+Élagage synaptique & le cerveau jeune retire les connexions inutiles \cite{huttenlocher1979} & une part des poids d'un expert se retire sans changer la sortie au-delà du seuil du juge \cite{lecun1989obd,han2015deepcompression} \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{idees/biomimetisme-genome-des-poids.md}, § 3 et § 5 bis ; sources relues le 2026-10-16.}
+\end{table}
+
+\paragraph{Pourquoi cette machine s'y prête, posé.} Le théorème du toit du Tome~I dit que la vitesse est bornée par le débit de l'étage le plus lent divisé par les octets qu'il doit faire passer ; ce tome a mesuré que cet étage est le disque. Un génome des poids \emph{dépense du calcul pour économiser des octets}, exactement l'échange que la machine demande : la carte attend le disque, avec un budget d'environ 926 opérations par octet compressé au débit du disque (Tome~I ; \barre{214}, le budget au débit du lien, 12,2\,Go/s, qui ne s'applique pas quand le disque limite). Chiffrons ce qu'il rapporterait s'il tenait. Aujourd'hui, un expert se lit à \num{3.8431} bits par poids sans perte (mesure F1). Si une représentation atteignait $b'$ bits par poids à qualité égale, les octets lus du disque et copiés par le lien seraient multipliés par $b'/3{,}8431$, et le reste inchangé. Pour $b' = 2$, sur la passe 03 de la ronde \calc :
+\[
+t_{\text{série}} = 0{,}520 \times (375{,}1 + 80{,}7) + 50{,}5 + 15{,}3 + 3{,}5 = \SI{306.5}{\milli\second}, \quad \text{soit un plancher de} \ \num{3.26} \text{ jetons/s, contre un plancher de } \num{1.90}
+\]
+Les deux nombres sont des planchers en série, sans recouvrement (\cref{t2res-sec:c5}) : la passe 03 mesure \num{2.18} jetons/s, au-dessus de son plancher, et seul un moteur mesuré jugera le génome. C'est un « si », et l'étude doit le juger.
+
+\paragraph{Le plan de l'étude} (\fichier{idees/biomimetisme-genome-des-poids.md}, § 5). (1) Lire l'état de l'art à la source (graines de générateurs, hyperréseaux, codes en treillis, biomimétisme informatique). (2) Mesurer sur les vrais poids de gpt-oss-20b, au processeur, les bits par poids obtenus contre l'erreur de reconstruction, pour chaque mécanisme. (3) Mesurer la transcription : un noyau qui régénère un expert depuis sa recette, et son débit, contre les \SI{1.89}{\Go\per\second} du disque. (4) Juger la qualité du texte contre la référence exacte, seuil déclaré avant. (5) L'écrire, dans un chapitre propre. Le critère de réussite, à déclarer avant la mesure : moins de bits par poids lus du disque que le codage sans perte d'aujourd'hui, une perte de qualité sous le seuil du juge, et une transcription plus rapide que la lecture qu'elle remplace. Un échec compris dit où chercher : chaque échec sera analysé (quelle part des poids est du bruit, laquelle a une structure) au lieu de s'arrêter au verdict.
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{Les gains du disque \texttt{D:}} sont des bornes calculées sous l'hypothèse que seuls les octets du disque changent ; Intel RST VMD et le régime de longueur des lectures peuvent en reprendre une part.
+\item \textbf{Le gain d'un génome à 2 bits} est un calcul sous un « si » : les poids d'un modèle entraîné ressemblent peut-être à du bruit, et un bruit ne se résume pas ; la recette ne pourrait alors qu'approcher les poids, avec perte.
+\item \textbf{La transcription peut coûter plus qu'elle ne rend} : si régénérer un expert prend plus de temps que le lire, le gain disparaît ; le décodeur d'aujourd'hui prend déjà \SI{10}{\percent} du temps d'un jeton.
+\item \textbf{La porte pour relais} est chiffrée avec les vitesses d'une seule tâche ; une invite longue ou un autre texte changent le succès du cache.
+\item \textbf{Les gains de J2} sont ceux de l'architecture, estimés sous une linéarité valable pour de petites erreurs ; Q0 n'a pas encore mesuré la qualité de B.
+\item \textbf{Le bilan hérite des fragilités des deux chapitres précédents}, d'abord C6 entre deux séances et C4 sur une fenêtre.
+\end{itemize}
+\end{faux}
+
+% ---------------------------------------------------------------------------------------------
+\chapter*{Conclusion}\label{t2d-ch:conclusion}
+\addcontentsline{toc}{chapter}{Conclusion}
+\markboth{Conclusion}{Conclusion}
+
+Le 15 octobre 2026, Stone a demandé « une vrai solution pour prendre un modele ultra lourd quelcoque d'une ai le faire tourner proprement sans ram ni rien ». Le Tome~I avait mesuré la machine, démontré le toit du problème et choisi, par le calcul, une architecture exacte qui prépare la contribution. Ce Tome~II a construit le programme et l'a soumis à un juge qui ne l'avait pas écrit.
+
+Le résultat tient en quatre nombres, chacun relu par un second chemin. Un modèle de \SI{63.4}{\Go}, quatre fois la RAM et huit fois la mémoire de la carte, tourne avec \SI{384}{\Mo} de mémoire, la même à \SI{3.7}{\Mo} près que pour un modèle cinq fois plus petit. Ses sorties sont identiques au bit, sur \num{5120} pas, qu'on lise ses experts compressés ou bruts. Il produit \num{1.965} jeton par seconde avec sa garde d'intégrité, \num{2.22} fois la meilleure configuration mesurée de llama.cpp, et préremplit sept fois plus vite. Et, avec un cache KV en f32, il calcule ce que le modèle calcule en mathématiques exactes, au format du fichier près.
+
+Ce que ce tome n'a pas encore fait est dit aussi clairement : la contribution de recherche, la découpe base + complément, attend son banc de qualité et le jalon J2 ; deux critères attendent une décision de l'arbitre ; le rapport à la base croise deux séances ; et la cause première du seul blocage observé n'est pas connue. Une dizaine de chiffres ont été barrés en route (\cref{t2d-tab:barres}), dont le premier rapport de vitesse, qui comparait troncons à une base mal réglée. La méthode les a trouvés, ce qui était son travail.
+
+La suite est décidée : une pause, le disque \texttt{D:} sans BitLocker, qui dira ce que le chiffrement coûte sur un vrai modèle ; puis l'étude du génome des poids, l'intuition de Stone que le vivant sait déjà stocker beaucoup dans peu, à juger par les nombres ; puis la porte qui rendra ce moteur à relais, la mission qu'il avait interrompue. Le levier que Stone voulait faire tomber d'abord est tombé : la mémoire d'une IA ne dépend plus de sa taille.

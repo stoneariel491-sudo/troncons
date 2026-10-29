@@ -1,0 +1,346 @@
+{
+ "seance": "c3-2026-10-16",
+ "ordre": [
+  "E120c",
+  "E120b"
+ ],
+ "passes": {
+  "T120": [
+   "troncons",
+   [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "mesurer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-120b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--flux"
+   ]
+  ],
+  "L120": [
+   "llama",
+   [
+    "~/dev/modeles/llama.cpp-b11515/llama-completion.exe",
+    "-m",
+    "~/dev/modeles/gguf/gpt-oss-120b-MXFP4.gguf",
+    "-f",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--temp",
+    "0",
+    "--seed",
+    "1",
+    "-no-cnv",
+    "--no-display-prompt",
+    "--perf",
+    "--ignore-eos",
+    "-c",
+    "2048",
+    "-lv",
+    "4",
+    "-t",
+    "6"
+   ]
+  ],
+  "L120t10": [
+   "llama",
+   [
+    "~/dev/modeles/llama.cpp-b11515/llama-completion.exe",
+    "-m",
+    "~/dev/modeles/gguf/gpt-oss-120b-MXFP4.gguf",
+    "-f",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--temp",
+    "0",
+    "--seed",
+    "1",
+    "-no-cnv",
+    "--no-display-prompt",
+    "--perf",
+    "--ignore-eos",
+    "-c",
+    "2048",
+    "-lv",
+    "4",
+    "-t",
+    "10"
+   ]
+  ],
+  "T20": [
+   "troncons",
+   [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "mesurer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-20b.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-20b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--flux"
+   ]
+  ],
+  "T120tiede1": [
+   "troncons",
+   [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "mesurer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-120b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--flux",
+    "--ram-tiede",
+    "1"
+   ]
+  ],
+  "D120": [
+   "disque",
+   [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "disque",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--n",
+    "1500",
+    "--graine",
+    "20261016",
+    "--profondeur",
+    "4"
+   ]
+  ],
+  "E120c": [
+   "evaluer",
+   [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "evaluer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--base",
+    "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+    "--fenetres",
+    "3",
+    "--positions",
+    "512",
+    "--flux"
+   ]
+  ],
+  "E120b": [
+   "evaluer",
+   [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "evaluer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b-brut.trc",
+    "--base",
+    "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+    "--fenetres",
+    "3",
+    "--positions",
+    "512",
+    "--flux",
+    "--brut"
+   ]
+  ]
+ },
+ "passes_faites": [
+  {
+   "passe": "00-E120c",
+   "nom": "E120c",
+   "sorte": "evaluer",
+   "commande": [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "evaluer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--base",
+    "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+    "--fenetres",
+    "3",
+    "--positions",
+    "512",
+    "--flux",
+    "--sortie",
+    "~\\dev\\essais\\troncons\\epreuve-J1\\c3-2026-10-16\\00-E120c.kld",
+    "--empreintes",
+    "~\\dev\\essais\\troncons\\epreuve-J1\\c3-2026-10-16\\00-E120c-empreintes.csv",
+    "--journal",
+    "~\\dev\\essais\\troncons\\epreuve-J1\\c3-2026-10-16\\00-E120c.json"
+   ],
+   "debut": "2026-10-16T03:23:43",
+   "alimentation_avant": "2",
+   "etrangers_avant": [],
+   "dispo_repos_mo": 10931.400704,
+   "vram_repos_mio": 346,
+   "mur_s": 115.86800169944763,
+   "code_retour": 0,
+   "memoire_os": {
+    "pointe_ensemble_travail": 291262464,
+    "pointe_engagee_privee": 6911438848,
+    "fautes_de_page": 91781,
+    "ensemble_travail": 45056
+   },
+   "es_os": {
+    "lectures": 10886,
+    "octets_lus": 112739850963,
+    "octets_ecrits": 307729753,
+    "autres_octets": 3258
+   },
+   "dispo_min_mo": 10211.28704,
+   "perte_machine_mo": 720.1136640000004,
+   "vram_pointe_mio": 6562,
+   "n_echantillons_vram": 362,
+   "alimentation_apres": "2",
+   "programme": {
+    "pas": 0,
+    "pas_s": 0.0,
+    "secondes": 113.6505434,
+    "ppl_positions_notees": 729.8247877937994,
+    "empreinte_csv_sha256": "c95e4ad7927df4108e02d6f2d3ac62e21605cf25cb85e59e319b6f8394a011b1",
+    "alimentation": {
+     "ACLineStatus": 1,
+     "BatteryFlag": 1,
+     "BatteryLifePercent": 80,
+     "secteur": true
+    },
+    "compteurs": {
+     "acces": 9233,
+     "defauts_disque": 9233,
+     "emplacements": 326,
+     "evictions": 8907,
+     "experts_decodes": 9233,
+     "experts_verifies": 0,
+     "h_vram": 0.0,
+     "lectures_enchassement": 1536,
+     "lectures_troncons": 9233,
+     "ms_copie_carte": 0.0,
+     "ms_decodage_carte": 0.0,
+     "octets_copies_cache": 111018758144,
+     "octets_disque_cache": 111018758144,
+     "octets_dma": 111018758144,
+     "octets_lus": 112717017088,
+     "octets_lus_enchassement": 12582912,
+     "octets_lus_troncons": 111018758144,
+     "pas": 0,
+     "pf_emis": 0,
+     "pf_octets": 0,
+     "pf_utiles": 0,
+     "s_attente_routeur": 0.0,
+     "s_fin_jeton": 0.0,
+     "s_lectures": 0.0,
+     "s_pas": 113.64578399999999,
+     "succes_ram": 0,
+     "succes_vram": 0,
+     "tiedes": 0
+    }
+   },
+   "fin": "2026-10-16T03:25:51"
+  },
+  {
+   "passe": "01-E120b",
+   "nom": "E120b",
+   "sorte": "evaluer",
+   "commande": [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "evaluer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b-brut.trc",
+    "--base",
+    "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+    "--fenetres",
+    "3",
+    "--positions",
+    "512",
+    "--flux",
+    "--brut",
+    "--sortie",
+    "~\\dev\\essais\\troncons\\epreuve-J1\\c3-2026-10-16\\01-E120b.kld",
+    "--empreintes",
+    "~\\dev\\essais\\troncons\\epreuve-J1\\c3-2026-10-16\\01-E120b-empreintes.csv",
+    "--journal",
+    "~\\dev\\essais\\troncons\\epreuve-J1\\c3-2026-10-16\\01-E120b.json"
+   ],
+   "debut": "2026-10-16T03:25:51",
+   "alimentation_avant": "2",
+   "etrangers_avant": [],
+   "dispo_repos_mo": 10572.204032,
+   "vram_repos_mio": 346,
+   "mur_s": 90.16533851623535,
+   "code_retour": 0,
+   "memoire_os": {
+    "pointe_ensemble_travail": 301838336,
+    "pointe_engagee_privee": 6842916864,
+    "fautes_de_page": 90785,
+    "ensemble_travail": 45056
+   },
+   "es_os": {
+    "lectures": 10887,
+    "octets_lus": 124101146165,
+    "octets_ecrits": 307729766,
+    "autres_octets": 3258
+   },
+   "dispo_min_mo": 10119.405568,
+   "perte_machine_mo": 452.7984639999995,
+   "vram_pointe_mio": 6552,
+   "n_echantillons_vram": 270,
+   "alimentation_apres": "2",
+   "programme": {
+    "pas": 0,
+    "pas_s": 0.0,
+    "secondes": 87.8635233,
+    "ppl_positions_notees": 729.8247877937994,
+    "empreinte_csv_sha256": "c95e4ad7927df4108e02d6f2d3ac62e21605cf25cb85e59e319b6f8394a011b1",
+    "alimentation": {
+     "ACLineStatus": 1,
+     "BatteryFlag": 1,
+     "BatteryLifePercent": 80,
+     "secteur": true
+    },
+    "compteurs": {
+     "acces": 9233,
+     "defauts_disque": 9233,
+     "emplacements": 325,
+     "evictions": 8908,
+     "experts_decodes": 9233,
+     "experts_verifies": 0,
+     "h_vram": 0.0,
+     "lectures_enchassement": 1536,
+     "lectures_troncons": 9233,
+     "ms_copie_carte": 0.0,
+     "ms_decodage_carte": 0.0,
+     "octets_copies_cache": 122380238848,
+     "octets_disque_cache": 122380238848,
+     "octets_dma": 122380238848,
+     "octets_lus": 124078497792,
+     "octets_lus_enchassement": 12582912,
+     "octets_lus_troncons": 122380238848,
+     "pas": 0,
+     "pf_emis": 0,
+     "pf_octets": 0,
+     "pf_utiles": 0,
+     "s_attente_routeur": 0.0,
+     "s_fin_jeton": 0.0,
+     "s_lectures": 0.0,
+     "s_pas": 87.8586279,
+     "succes_ram": 0,
+     "succes_vram": 0,
+     "tiedes": 0
+    }
+   },
+   "fin": "2026-10-16T03:27:33"
+  }
+ ]
+}

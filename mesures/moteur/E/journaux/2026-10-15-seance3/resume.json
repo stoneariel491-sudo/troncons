@@ -1,0 +1,366 @@
+{
+  "seance": "2026-10-15-seance3",
+  "verdicts": {
+    "a": {
+      "plus_grande_reussie_o": 4000000000,
+      "non_tentees": [
+        11000000000
+      ],
+      "refusees": [],
+      "ecarts_dma": 0
+    },
+    "b_temoin": {
+      "morceaux": 32,
+      "ecarts_disque": 0,
+      "ecarts_chemin": 0,
+      "tient": true
+    },
+    "b_cassure": {
+      "ecarts_chemin": 1,
+      "tombe_comme_attendu": true
+    },
+    "disque_E1": {
+      "go_s_profondeur_4": [
+        2.67293533476068,
+        2.445083200638091
+      ],
+      "little_go_s": {
+        "b-A1": 2.8726469950345304,
+        "b-A2": 2.596288455586506,
+        "b-B1": 2.6880820337534717,
+        "b-B2": 2.6726661002548857
+      },
+      "go_s_profondeur_1": [
+        2.3779192411506407,
+        2.2642227462473894
+      ],
+      "mediane_profondeur_4": null,
+      "mediane_profondeur_1": 2.3210709936990153,
+      "bruit_abba_relatif": 0.08903919848927858,
+      "passes_a_propres": 0,
+      "temoin_compteur_tient": true,
+      "seuil": 2.064,
+      "etat": "non jugé",
+      "ordre": [
+        "b-A1",
+        "b-B1",
+        "b-B2",
+        "b-A2"
+      ]
+    },
+    "dma_E0b": {
+      "par_taille": {
+        "12582912": {
+          "n": 16,
+          "mediane": 12.495100459103138,
+          "min": 12.328815424042782,
+          "max": 12.674574655272973,
+          "bruit_miroir_relatif": 0.01395483638995259,
+          "mediane_mur": 12.452238677932527,
+          "mur_au_dessus_des_evenements": 0
+        },
+        "67108864": {
+          "n": 16,
+          "mediane": 12.51739956939306,
+          "min": 12.390432939113326,
+          "max": 12.72590957474304,
+          "bruit_miroir_relatif": 0.015586393662104124,
+          "mediane_mur": 12.509408187508885,
+          "mur_au_dessus_des_evenements": 0
+        }
+      },
+      "seuil": 11.0,
+      "juge_sur_octets": 12582912,
+      "tient": true
+    },
+    "c-casse": {
+      "ns_routeur": 50000,
+      "ns_expert": 250000,
+      "attente": "Auto",
+      "asynchrone_ms": 11.083215,
+      "bruit_asynchrone": 0.00424876716728846,
+      "variantes": {
+        "sans_synchro": {
+          "mediane_ms": 11.097180000000002,
+          "cout_ms_par_jeton": 0.013965000000002448,
+          "cout_us_par_synchro": 0.38791666666673463,
+          "bruit_miroir": 0.0006992767531930925,
+          "temoins_tiennent": false,
+          "faux_hote": 3141,
+          "erreurs_carte": 3141,
+          "boites_expirees": 0,
+          "cout_distinct_du_bruit": false,
+          "tient_seuil": false
+        }
+      },
+      "cassure": {
+        "faux_hote": 3141,
+        "erreurs_carte": 3141,
+        "tombe_comme_attendu": true
+      }
+    },
+    "c-charge": {
+      "ns_routeur": 50000,
+      "ns_expert": 250000,
+      "attente": "Auto",
+      "asynchrone_ms": 11.113599999999998,
+      "bruit_asynchrone": 0.0019808690931935697,
+      "variantes": {
+        "evenement": {
+          "mediane_ms": 11.779243333333334,
+          "cout_ms_par_jeton": 0.6656433333333354,
+          "cout_us_par_synchro": 18.49009259259265,
+          "bruit_miroir": 0.030230986782713597,
+          "temoins_tiennent": true,
+          "faux_hote": 0,
+          "erreurs_carte": 0,
+          "boites_expirees": 0,
+          "cout_distinct_du_bruit": false,
+          "tient_seuil": true
+        },
+        "sondage": {
+          "mediane_ms": 11.805368333333334,
+          "cout_ms_par_jeton": 0.6917683333333358,
+          "cout_us_par_synchro": 19.215787037037103,
+          "bruit_miroir": 0.02685560838858063,
+          "temoins_tiennent": true,
+          "faux_hote": 0,
+          "erreurs_carte": 0,
+          "boites_expirees": 0,
+          "cout_distinct_du_bruit": true,
+          "tient_seuil": true
+        },
+        "bloquant": {
+          "mediane_ms": 14.233968333333335,
+          "cout_ms_par_jeton": 3.120368333333337,
+          "cout_us_par_synchro": 86.67689814814825,
+          "bruit_miroir": 0.0748115732921538,
+          "temoins_tiennent": true,
+          "faux_hote": 0,
+          "erreurs_carte": 0,
+          "boites_expirees": 0,
+          "cout_distinct_du_bruit": true,
+          "tient_seuil": true
+        },
+        "boite": {
+          "mediane_ms": 11.86363,
+          "cout_ms_par_jeton": 0.7500300000000024,
+          "cout_us_par_synchro": 20.834166666666736,
+          "bruit_miroir": 0.02729772581911174,
+          "temoins_tiennent": true,
+          "faux_hote": 0,
+          "erreurs_carte": 0,
+          "boites_expirees": 0,
+          "cout_distinct_du_bruit": true,
+          "tient_seuil": true
+        },
+        "boite_sans_vidage": {
+          "mediane_ms": 11.870263333333334,
+          "cout_ms_par_jeton": 0.7566633333333357,
+          "cout_us_par_synchro": 21.018425925925992,
+          "bruit_miroir": 0.02151203324443932,
+          "temoins_tiennent": true,
+          "faux_hote": 0,
+          "erreurs_carte": 0,
+          "boites_expirees": 0,
+          "cout_distinct_du_bruit": true,
+          "tient_seuil": true
+        }
+      },
+      "retenue": "evenement",
+      "tient": true
+    },
+    "c-charge-ctx-bloquant": {
+      "ns_routeur": 50000,
+      "ns_expert": 250000,
+      "attente": "Bloquante",
+      "asynchrone_ms": 11.182583333333334,
+      "bruit_asynchrone": 0.0026602024987869106,
+      "variantes": {
+        "evenement": {
+          "mediane_ms": 11.812631666666666,
+          "cout_ms_par_jeton": 0.6300483333333329,
+          "cout_us_par_synchro": 17.50134259259258,
+          "bruit_miroir": 0.04970757995648246,
+          "temoins_tiennent": true,
+          "faux_hote": 0,
+          "erreurs_carte": 0,
+          "boites_expirees": 0,
+          "cout_distinct_du_bruit": false,
+          "tient_seuil": true
+        },
+        "boite": {
+          "mediane_ms": 11.84563,
+          "cout_ms_par_jeton": 0.6630466666666663,
+          "cout_us_par_synchro": 18.417962962962957,
+          "bruit_miroir": 0.051337525440851885,
+          "temoins_tiennent": true,
+          "faux_hote": 0,
+          "erreurs_carte": 0,
+          "boites_expirees": 0,
+          "cout_distinct_du_bruit": false,
+          "tient_seuil": true
+        }
+      },
+      "retenue": "evenement",
+      "tient": true
+    },
+    "c-vide": {
+      "ns_routeur": 0,
+      "ns_expert": 0,
+      "attente": "Auto",
+      "asynchrone_ms": 0.8312099999999999,
+      "bruit_asynchrone": 0.23461401689285888,
+      "variantes": {
+        "evenement": {
+          "mediane_ms": 1.0144333333333333,
+          "cout_ms_par_jeton": 0.1832233333333334,
+          "cout_us_par_synchro": 5.089537037037039,
+          "bruit_miroir": 0.016857762222082084,
+          "temoins_tiennent": true,
+          "faux_hote": 0,
+          "erreurs_carte": 0,
+          "boites_expirees": 0,
+          "cout_distinct_du_bruit": false,
+          "tient_seuil": true
+        },
+        "sondage": {
+          "mediane_ms": 0.9917483333333333,
+          "cout_ms_par_jeton": 0.16053833333333345,
+          "cout_us_par_synchro": 4.459398148148151,
+          "bruit_miroir": 0.10657931108461467,
+          "temoins_tiennent": true,
+          "faux_hote": 0,
+          "erreurs_carte": 0,
+          "boites_expirees": 0,
+          "cout_distinct_du_bruit": false,
+          "tient_seuil": true
+        },
+        "bloquant": {
+          "mediane_ms": 1.677646666666667,
+          "cout_ms_par_jeton": 0.8464366666666671,
+          "cout_us_par_synchro": 23.51212962962964,
+          "bruit_miroir": 0.016043548763015853,
+          "temoins_tiennent": true,
+          "faux_hote": 0,
+          "erreurs_carte": 0,
+          "boites_expirees": 0,
+          "cout_distinct_du_bruit": true,
+          "tient_seuil": true
+        },
+        "boite": {
+          "mediane_ms": 0.9889033333333334,
+          "cout_ms_par_jeton": 0.15769333333333346,
+          "cout_us_par_synchro": 4.3803703703703745,
+          "bruit_miroir": 0.04218152341869899,
+          "temoins_tiennent": true,
+          "faux_hote": 0,
+          "erreurs_carte": 0,
+          "boites_expirees": 0,
+          "cout_distinct_du_bruit": false,
+          "tient_seuil": true
+        },
+        "boite_sans_vidage": {
+          "mediane_ms": 0.9179033333333333,
+          "cout_ms_par_jeton": 0.0866933333333334,
+          "cout_us_par_synchro": 2.40814814814815,
+          "bruit_miroir": 0.10295268206419822,
+          "temoins_tiennent": true,
+          "faux_hote": 0,
+          "erreurs_carte": 0,
+          "boites_expirees": 0,
+          "cout_distinct_du_bruit": false,
+          "tient_seuil": true
+        }
+      },
+      "retenue": "boite",
+      "tient": true
+    },
+    "modele_D2": {
+      "variantes": {
+        "bloquant": {
+          "cout_us_vide": 23.51212962962964,
+          "cout_us_charge": 86.67689814814825,
+          "rapport_charge_sur_vide": 3.686475853676789
+        },
+        "boite": {
+          "cout_us_vide": 4.3803703703703745,
+          "cout_us_charge": 20.834166666666736,
+          "rapport_charge_sur_vide": 4.756256869874028
+        },
+        "boite_sans_vidage": {
+          "cout_us_vide": 2.40814814814815,
+          "cout_us_charge": 21.018425925925992,
+          "rapport_charge_sur_vide": 8.728045216856373
+        },
+        "evenement": {
+          "cout_us_vide": 5.089537037037039,
+          "cout_us_charge": 18.49009259259265,
+          "rapport_charge_sur_vide": 3.632961595138911
+        },
+        "sondage": {
+          "cout_us_vide": 4.459398148148151,
+          "cout_us_charge": 19.215787037037103,
+          "rapport_charge_sur_vide": 4.309053912357393
+        }
+      },
+      "asynchrone_ms_vide": 0.8312099999999999,
+      "asynchrone_ms_charge": 11.113599999999998,
+      "us_par_lancement_vide": 11.544583333333332
+    }
+  },
+  "a": [
+    {
+      "octets": 250000000,
+      "tentee": true,
+      "reussie": true,
+      "duree_allocation_ms": 95.7641,
+      "duree_liberation_ms": 45.951899999999995,
+      "ram_disponible_avant_o": 8567066624,
+      "ram_disponible_apres_allocation_o": 8315224064,
+      "dma_fin_go_s": 10.360450461294738,
+      "dma_fin_ecarts": 0,
+      "raison": null,
+      "erreur": null
+    },
+    {
+      "octets": 1000000000,
+      "tentee": true,
+      "reussie": true,
+      "duree_allocation_ms": 343.4502,
+      "duree_liberation_ms": 132.94490000000002,
+      "ram_disponible_avant_o": 8514347008,
+      "ram_disponible_apres_allocation_o": 7512956928,
+      "dma_fin_go_s": 10.934455676386545,
+      "dma_fin_ecarts": 0,
+      "raison": null,
+      "erreur": null
+    },
+    {
+      "octets": 4000000000,
+      "tentee": true,
+      "reussie": true,
+      "duree_allocation_ms": 1331.1552,
+      "duree_liberation_ms": 594.094,
+      "ram_disponible_avant_o": 8469606400,
+      "ram_disponible_apres_allocation_o": 4371763200,
+      "dma_fin_go_s": 11.00249224541296,
+      "dma_fin_ecarts": 0,
+      "raison": null,
+      "erreur": null
+    },
+    {
+      "octets": 11000000000,
+      "tentee": false,
+      "reussie": null,
+      "duree_allocation_ms": null,
+      "duree_liberation_ms": null,
+      "ram_disponible_avant_o": 8285265920,
+      "ram_disponible_apres_allocation_o": null,
+      "dma_fin_go_s": null,
+      "dma_fin_ecarts": null,
+      "raison": "taille + marge au-dessus de la RAM disponible",
+      "erreur": null
+    }
+  ]
+}

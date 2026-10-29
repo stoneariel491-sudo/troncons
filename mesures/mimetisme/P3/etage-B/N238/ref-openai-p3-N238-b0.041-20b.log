@@ -1,0 +1,124 @@
+# 2026-10-27T08:49:15-04:00 ~\dev\cibles\troncons-R\release\juge.exe reference --gguf ~\dev\modeles\gguf\gpt-oss-20b-MXFP4.gguf --jetons-de ~\dev\essais\troncons\lot-R\r0\carte_cmoe.kld --sortie ~\dev\essais\troncons\lot-R\r1\ref-openai-p3-N238-b0.041-20b.kld --fenetres 10 --yarn openai --fils 4 --journal ~\dev\active\troncons\mesures\moteur\R\r1\ref-openai-p3-N238-b0.041-20b.json --kl-contre-base --routage ~\dev\active\troncons\mesures\moteur\R\r1\routage\ref-openai-p3-N238-b0.041-20b.bin --imposer-routage ~\dev\active\troncons\mesures\moteur\R\r1\routage\p3-N238-b0.041-N31.bin
+# avant : {"date": "2026-10-27T08:49:14-04:00", "batterie_statut": "2", "carte": "1251 MiB, 8188 MiB, 9 %", "processus_llama_ou_traceur": ""}
+[1793105356] référence ouverte en 1.6 s : Hyper { couches: 24, d_modele: 2880, tetes: 64, tetes_kv: 8, dim_tete: 64, experts: 32, actifs: 4, d_ff: 2880, fenetre: 128, vocab: 201088, eps: 9.999999747378752e-6, base_rope: 150000.0, facteur_yarn: 32.0, ctx_origine: 4096.0, beta_rapide: 32.0, beta_lent: 1.0 }, rampe [8.092779115512402, 17.39802450158856]
+[1793105387] couche 0 : 30.1 s, 0.42 Go d'experts lus en tout
+[1793105418] couche 1 : 31.0 s, 0.85 Go d'experts lus en tout
+[1793105447] couche 2 : 29.1 s, 1.27 Go d'experts lus en tout
+[1793105476] couche 3 : 28.6 s, 1.68 Go d'experts lus en tout
+[1793105504] couche 4 : 27.9 s, 2.11 Go d'experts lus en tout
+[1793105531] couche 5 : 27.5 s, 2.53 Go d'experts lus en tout
+[1793105558] couche 6 : 27.3 s, 2.96 Go d'experts lus en tout
+[1793105585] couche 7 : 26.9 s, 3.37 Go d'experts lus en tout
+[1793105612] couche 8 : 26.3 s, 3.76 Go d'experts lus en tout
+[1793105638] couche 9 : 26.0 s, 4.12 Go d'experts lus en tout
+[1793105664] couche 10 : 26.2 s, 4.49 Go d'experts lus en tout
+[1793105690] couche 11 : 26.6 s, 4.85 Go d'experts lus en tout
+[1793105715] couche 12 : 24.8 s, 5.21 Go d'experts lus en tout
+[1793105741] couche 13 : 26.1 s, 5.59 Go d'experts lus en tout
+[1793105769] couche 14 : 27.4 s, 6.00 Go d'experts lus en tout
+[1793105795] couche 15 : 26.2 s, 6.41 Go d'experts lus en tout
+[1793105822] couche 16 : 27.4 s, 6.81 Go d'experts lus en tout
+[1793105850] couche 17 : 28.2 s, 7.20 Go d'experts lus en tout
+[1793105875] couche 18 : 24.9 s, 7.61 Go d'experts lus en tout
+[1793105902] couche 19 : 26.5 s, 8.02 Go d'experts lus en tout
+[1793105929] couche 20 : 26.8 s, 8.43 Go d'experts lus en tout
+[1793105955] couche 21 : 26.3 s, 8.85 Go d'experts lus en tout
+[1793105979] couche 22 : 23.5 s, 9.28 Go d'experts lus en tout
+[1793106004] couche 23 : 25.5 s, 9.68 Go d'experts lus en tout
+{
+  "avx2_fma": true,
+  "blocs_mxfp4_e255": 0,
+  "cassure_yarn_sans_echelle": false,
+  "commande": [
+    "~\\dev\\cibles\\troncons-R\\release\\juge.exe",
+    "reference",
+    "--gguf",
+    "~\\dev\\modeles\\gguf\\gpt-oss-20b-MXFP4.gguf",
+    "--jetons-de",
+    "~\\dev\\essais\\troncons\\lot-R\\r0\\carte_cmoe.kld",
+    "--sortie",
+    "~\\dev\\essais\\troncons\\lot-R\\r1\\ref-openai-p3-N238-b0.041-20b.kld",
+    "--fenetres",
+    "10",
+    "--yarn",
+    "openai",
+    "--fils",
+    "4",
+    "--journal",
+    "~\\dev\\active\\troncons\\mesures\\moteur\\R\\r1\\ref-openai-p3-N238-b0.041-20b.json",
+    "--kl-contre-base",
+    "--routage",
+    "~\\dev\\active\\troncons\\mesures\\moteur\\R\\r1\\routage\\ref-openai-p3-N238-b0.041-20b.bin",
+    "--imposer-routage",
+    "~\\dev\\active\\troncons\\mesures\\moteur\\R\\r1\\routage\\p3-N238-b0.041-N31.bin"
+  ],
+  "concentration": 1.3465735902799727,
+  "debut_unix": 1793105355,
+  "duree_s": 726.1898726,
+  "entrees_ecrites": 2550,
+  "experts_distincts_par_couche": [
+    32,
+    32,
+    32,
+    31,
+    32,
+    32,
+    32,
+    31,
+    30,
+    27,
+    28,
+    27,
+    27,
+    29,
+    31,
+    31,
+    30,
+    29,
+    31,
+    31,
+    31,
+    32,
+    32,
+    30
+  ],
+  "fenetres": 10,
+  "fils": 4,
+  "fin_unix": 1793106081,
+  "gguf": "~\\dev\\modeles\\gguf\\gpt-oss-20b-MXFP4.gguf",
+  "imitation_llamacpp": "Imitation { q8: false, kv16: false }",
+  "kl_base_contre_reference_brute": {
+    "dp_rms": 0.01741019138279469,
+    "kl_incertitude": 0.0020524641205139863,
+    "kl_max": 2.1117011518885818,
+    "kl_mediane": 0.005954423698348402,
+    "kl_min": 0.00017718853732240301,
+    "kl_moyenne": 0.028794387903673103,
+    "kl_p90": 0.04985448792148,
+    "kl_p99": 0.47496822649066467,
+    "kl_p999": 1.4320969912801704,
+    "ln_rapport_ppl": 0.019635050828328282,
+    "ln_rapport_ppl_incertitude": 0.006614021383948897,
+    "meme_premier": 0.88,
+    "meme_premier_incertitude": 0.006436459506957213,
+    "meme_premier_wilson95": [
+      0.8668121879933082,
+      0.8920446287861188
+    ],
+    "n": 2550,
+    "ppl_p": 452.46473976042927,
+    "ppl_q": 461.43670214359037
+  },
+  "lectures_experts": 730,
+  "n_ctx": 512,
+  "octets_experts_lus": 9675244800,
+  "outil": "juge reference",
+  "rampe_yarn": [
+    8.092779115512402,
+    17.39802450158856
+  ],
+  "routage_impose": "~\\dev\\active\\troncons\\mesures\\moteur\\R\\r1\\routage\\p3-N238-b0.041-N31.bin",
+  "variante_yarn": "OpenAi"
+}
+
+# fin 2026-10-27T09:01:21-04:00 code 0 durée 726.4 s

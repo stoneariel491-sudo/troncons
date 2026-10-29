@@ -1,0 +1,103 @@
+% Sources de l'étude 01 (la machine mesurée : disque, RAM, PCIe, VRAM, calcul, toit).
+% Toutes consultées le 2026-10-15. Les chiffres de la machine elle-même viennent des journaux
+% commités sous fondations/journaux/01-machine/ ; ces entrées ne portent que la littérature.
+
+@online{samsung2023pm9c1a,
+  author       = {{Samsung Electronics}},
+  title        = {Samsung Electronics Unveils High-Performance {PC} {SSD} That Raises Everyday Computing and Gaming to a New Level},
+  url          = {https://news.samsungsemiconductor.com/global/samsung-electronics-unveils-high-performance-pc-ssd-that-raises-everyday-computing-and-gaming-to-a-new-level/},
+  date         = {2023-01},
+  urldate      = {2026-10-15},
+  note         = {PM9C1a : 6\,000~Mo/s en lecture séquentielle, 900\,k IOPS en lecture aléatoire (éditeur, non reproduit). Date : janvier 2023, d'après les reprises datées du 2023-01-13 ; la page primaire n'a pas répondu à la consultation. L'identification du disque MZVMA1T0HCLD au PM9C1a est probable, non prouvée.}
+}
+
+@online{storagereview2023pm9c1a,
+  author       = {{StorageReview}},
+  title        = {Samsung {PM9C1a} {SSD}},
+  url          = {https://storagereview.com/?p=119560},
+  urldate      = {2026-10-15},
+  note         = {Reprise des chiffres de l'éditeur.}
+}
+
+@online{microsoft2025bypassio,
+  author       = {{Microsoft}},
+  title        = {{BypassIO} for Filter Drivers},
+  url          = {https://learn.microsoft.com/en-us/windows-hardware/drivers/ifs/bypassio},
+  date         = {2025-11-05},
+  urldate      = {2026-10-15},
+  note         = {Cas « Volume stack bypass is disabled (fvevol.sys) » quand BitLocker est actif ; chemin complet réservé à StorNVMe.}
+}
+
+@online{microsoft2026cngalg,
+  author       = {{Microsoft}},
+  title        = {{CNG} Algorithm Identifiers ({Bcrypt.h})},
+  url          = {https://learn.microsoft.com/en-us/windows/win32/seccng/cng-algorithm-identifiers},
+  date         = {2026-05-30},
+  urldate      = {2026-10-15},
+  note         = {BCRYPT\_XTS\_AES\_ALGORITHM, L"XTS-AES", SP 800-38E et IEEE 1619-2007, depuis Windows 10.}
+}
+
+@standard{ieee2008xts,
+  organization = {{IEEE}},
+  title        = {{IEEE} Standard for Cryptographic Protection of Data on Block-Oriented Storage Devices},
+  number       = {IEEE Std 1619-2007},
+  year         = {2008},
+  doi          = {10.1109/IEEESTD.2008.4493450},
+  urldate      = {2026-10-15},
+  note         = {Annexe B, vecteur 1 : témoin de aes\_xts.py.}
+}
+
+@online{microsoft2026directstorage14,
+  author       = {{Microsoft DirectX Team}},
+  title        = {{DirectStorage} 1.4 Release Adds Support for {Zstandard}},
+  url          = {https://devblogs.microsoft.com/directx/directstorage-1-4-release-adds-support-for-zstandard/},
+  date         = {2026-03-11},
+  urldate      = {2026-10-15}
+}
+
+@online{nuget2026directstorage,
+  author       = {{Microsoft}},
+  title        = {{Microsoft.Direct3D.DirectStorage} (paquet {NuGet}), index des versions},
+  url          = {https://api.nuget.org/v3/registration5-gz-semver2/microsoft.direct3d.directstorage/index.json},
+  urldate      = {2026-10-15},
+  note         = {1.3.0 (2025-06-27) : 2\,816\,824 octets ; 1.4.0-preview2-2606.904 (2026-06-16) : 3\,986\,072 octets (requêtes HEAD, rien téléchargé).}
+}
+
+@online{microsoft2026ioring,
+  author       = {{Microsoft}},
+  title        = {ioringapi.h header},
+  url          = {https://learn.microsoft.com/en-us/windows/win32/api/ioringapi/},
+  urldate      = {2026-10-15},
+  note         = {IoRing ; version 4 relevée par QueryIoRingCapabilities sur la machine.}
+}
+
+@article{williams2009roofline,
+  author       = {Samuel Williams and Andrew Waterman and David Patterson},
+  title        = {Roofline: An Insightful Visual Performance Model for Multicore Architectures},
+  journaltitle = {Communications of the {ACM}},
+  volume       = {52},
+  number       = {4},
+  pages        = {65--76},
+  date         = {2009-04},
+  doi          = {10.1145/1498765.1498785},
+  urldate      = {2026-10-15},
+  note         = {Origine du « toit » ; ici étendu à une chaîne d'étages de stockage (proposition 1).}
+}
+
+@software{ggml2026llamacpp,
+  author       = {{ggml-org}},
+  title        = {llama.cpp},
+  url          = {https://github.com/ggml-org/llama.cpp},
+  version      = {b11515 (3d65c90d0)},
+  urldate      = {2026-10-15},
+  note         = {Licence MIT. Base de comparaison (llama-bench, moteur CUDA 12.4).}
+}
+
+@software{gfxrs2026wgpu,
+  author       = {{gfx-rs}},
+  title        = {wgpu},
+  url          = {https://github.com/gfx-rs/wgpu},
+  version      = {30.0.1},
+  urldate      = {2026-10-15},
+  note         = {Licence MIT ou Apache-2.0. Dépendance du banc carte (Vulkan, DirectX 12).}
+}

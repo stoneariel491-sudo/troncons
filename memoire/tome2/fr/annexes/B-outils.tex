@@ -1,0 +1,119 @@
+% Tome II, annexe B : les outils du moteur (intégrateur, 2026-10-16).
+% Le tableau des options est vérifié par memoire/outils/tome2_annexes.py : toute option que lit
+% moteur/bins/troncons/src/main.rs doit y figurer, écrite \option{nom}, en anglais et en français ;
+% une option en trop ou en moins fait tomber l'outil, donc la construction.
+% Les trois autres tableaux sont engendrés par le même outil depuis git ls-files.
+\newcommand{\option}[1]{\texttt{-{}-#1}}
+\chapter{Outils du moteur}\label{t2ann:outils}
+
+\begin{origine}
+\textbf{D'où l'on part.} L'annexe B du Tome~I (« Outils ») : chaque outil des études, rangé par étude, avec la première phrase de sa propre description, et la chaîne qui construit le mémoire.
+\textbf{Ce que l'annexe établit.} La même chose pour le système : la chaîne qui construit ce tome et vérifie ses chiffres ; le programme \texttt{troncons}, ses quatre sous-commandes et chacune de ses options, tenues à jour par un témoin ; chaque outil commité des cinq lots, de l'épreuve et de la ronde ; chaque figure et les fichiers qu'elle lit ; chaque dossier de journaux.
+\textbf{Ce qui reste.} Les options d'essai (\option{kv-f32}, \option{longueur-lecture}) attendent la décision de l'arbitre pour devenir des défauts ou disparaître.
+\end{origine}
+
+\section{La chaîne du Tome~II}\label{t2ann:sec:chaine}
+
+Le Tome~II se construit comme le premier, par le même script et la même configuration de \texttt{latexmk} (\fichier{memoire/construire.sh}, \fichier{memoire/latexmkrc}) :
+\begin{itemize}
+\item \texttt{./construire.sh tome2} (ou \texttt{tome2-en}, \texttt{tome2-fr}) régénère les données des figures du Tome~II, refait ses chiffres par un second chemin, régénère les tables de cette annexe, puis construit les deux PDF par \texttt{latexmk} (lualatex, biber) dans \fichier{memoire/tome2/en/} et \fichier{memoire/tome2/fr/} ; \texttt{./construire.sh} sans argument construit les deux tomes. Le script échoue à la première erreur, à toute référence ou citation manquante, à toute entrée que biber ne trouve pas ou trouve deux fois, et à tout outil de données qui sort en erreur.
+\item \fichier{memoire/outils/tome2_format.py} : les CSV des chapitres « Architecture » et « Format » (lignes de code et témoins par membre, taux par tenseur, tronçons par couche, pointes de mémoire du codeur), tirés des \texttt{Cargo.toml} et des journaux du lot F, et les calculs du chapitre du format.
+\item \fichier{memoire/outils/tome2_chemin_noyaux.py} : les CSV des chapitres « Le chemin des octets » et « Les noyaux », tirés des journaux des lots E, K et O.
+\item \fichier{memoire/outils/tome2_reference_cache.py} : les CSV des chapitres « La référence » et « Le cache », et 31 chiffres publiés refaits depuis les journaux ; il s'arrête au premier écart, et \texttt{--casser} doit le faire tomber.
+\item \fichier{memoire/outils/tome2_resultats.py} : les CSV des chapitres « Résultats », « L'épreuve » et « Discussion » ; il relit chaque passe, recalcule moyennes, bruits, rapports, intervalles de Wilson et planchers, et sort en erreur si un recalcul s'écarte d'un chiffre publié.
+\item \fichier{memoire/outils/tome2_annexes.py} : les tables de cette annexe et celle des seuils de l'\cref{t2ann:protocoles}, depuis \texttt{git ls-files} et \texttt{git log} ; témoin : les options de \cref{t2ann:tab:options} contre celles que lit le code.
+\end{itemize}
+
+\section{Le programme \texttt{troncons}}\label{t2ann:sec:programme}
+
+Le programme (\fichier{moteur/bins/troncons/src/main.rs}, lot O) a quatre sous-commandes. \texttt{generer} préremplit l'invite, puis produit $n$ jetons gloutons, et écrit le texte et un journal JSON (commande, date, alimentation, compteurs du moteur, jetons/s, mémoire et VRAM de pointe, octets lus sur le disque par le compteur du système et par le moteur, empreinte du texte). \texttt{mesurer} est \texttt{generer} avec dix secondes de repos avant la passe, pour chiffrer le disque au repos. \texttt{evaluer} passe les fenêtres d'un fichier de base \texttt{.kld} de llama-perplexity (mêmes jetons, chacune depuis la position 0), fait passer les logits notés par la même quantification à 16 bits que llama.cpp (critère C4) et écrit l'empreinte64 des logits de chaque pas (critère C3). \texttt{disque} mesure l'étage disque seul, dans la même séance que le moteur : $n$ tronçons tirés sans remise par une graine publiée, lus sans tampon à la longueur du moteur, avec \texttt{profondeur} lectures en vol. \Cref{t2ann:tab:options} donne chaque option.
+
+\begingroup\small
+\renewcommand{\arraystretch}{1.1}
+\begin{longtable}{@{}p{0.30\linewidth}p{0.17\linewidth}p{0.47\linewidth}@{}}
+\caption[Les options du programme troncons]{Les options du programme \texttt{troncons}, telles que les lit \fichier{moteur/bins/troncons/src/main.rs} (vérifié par \fichier{memoire/outils/tome2_annexes.py} : aucune en trop, aucune en moins).}\label{t2ann:tab:options}\\
+\toprule
+Option & Défaut & Effet \\
+\midrule
+\endfirsthead
+\toprule
+Option & Défaut & Effet \\
+\midrule
+\endhead
+\multicolumn{3}{@{}l}{\textsf{\bfseries Le moteur (toutes les sous-commandes qui l'ouvrent)}} \\
+\option{modele} \emph{f.trc} & exigée & le fichier \texttt{.trc} servi \\
+\option{ram-tiede} \emph{Go} & 0 (mode A0) & cache tiède : tronçons codés gardés en mémoire épinglée \\
+\option{enchassement-en-ram} & non & garder la table d'enchâssement (0,6\,Go) en mémoire épinglée au lieu d'en lire une ligne par jeton \\
+\option{profondeur} \emph{n} & 4 & lectures confiées au système à la fois \\
+\option{couches-d-avance} \emph{d} & 3 & couches dont les tampons d'arrivée tournent (fenêtre de $d \cdot k$ tampons) \\
+\option{contexte} \emph{n} & \num{4096} & positions au plus (cache KV des couches pleines) \\
+\option{temoin} & non & chaque expert décodé redescend vers l'hôte, son empreinte comparée au répertoire (C2) \\
+\option{brut} & non & le fichier attendu est brut (drapeau bit 2) ; il doit l'être \\
+\option{emplacements} \emph{n} & selon la VRAM & emplacements d'experts en mémoire vidéo \\
+\option{vram-plafond} \emph{Mio} & \num{7179} & plafond de la VRAM totale pour calculer les emplacements : $8\,188 - 909 - 100$ \\
+\option{longueur-lecture} \emph{o} & celle du format & longueur de chaque lecture de tronçon, multiple de \num{4096} (essai : \cref{sec:t2c-regimes}) \\
+\option{chronogramme} \emph{f.csv} & aucun & dates de chaque étage de chaque défaut \\
+\option{prechargement} & non & J1+ : lecture anticipée des experts prédits par le routeur de la couche suivante (essayée, abandonnée) \\
+\option{sans-battement} & battement & retire la ligne écrite à chaque couche du préremplissage par flux (constat G1) \\
+\option{sans-garde} & garde & retire la garde de production ; sert seulement à chiffrer son coût \\
+\option{casser-garde} \emph{troncon:N} | \emph{ligne:N} & aucune & témoin de la garde : retourne un bit du $N$-ième tronçon ou de la $N$-ième ligne lus \\
+\option{kv-f32} & f16 & essai : cache KV en f32 (constat M5 ; couture N à l'arbitre) \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries \texttt{generer}, \texttt{mesurer}}} \\
+\option{vocab} \emph{f.vocab.gguf} & exigée & le compagnon du découpeur \\
+\option{invite} \emph{f.txt} & exigée sans \option{harmonie} & l'invite, en UTF-8 (son SHA-256 va au journal) \\
+\option{harmonie} \emph{« question »} & aucune & une invite au format de conversation harmony de gpt-oss \\
+\option{systeme} \emph{texte} & message fixe & le message système de l'invite harmony \\
+\option{n} \emph{n} & 256 & jetons produits (\texttt{disque} : tronçons lus, \num{1000}) \\
+\option{repos} \emph{s} & 0 ; 10 (\texttt{mesurer}) & secondes de repos avant la passe, pour chiffrer le disque au repos \\
+\option{dll} \emph{f.dll} & llama.cpp b11515 & la bibliothèque du découpeur \\
+\option{arret-fin} & non & s'arrêter au jeton de fin de la conversation harmony \\
+\option{sans-vram} & VRAM échantillonnée & ne pas échantillonner la VRAM \\
+\option{flux} & boucle de pas & préremplissage par flux (J1+) : chaque expert lu une fois pour toutes les positions \\
+\option{journal} \emph{f.json} & aucun & le journal de la passe \\
+\option{sortie} \emph{f} & aucune ; exigée par \texttt{evaluer} & le texte produit ; pour \texttt{evaluer}, le \texttt{.kld} écrit \\
+\option{trace} \emph{f.trace} & aucune & la trace du cache (pour \texttt{rejouer}) \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries \texttt{evaluer}}} \\
+\option{base} \emph{f.kld} & exigée & le fichier de base de llama-perplexity (jetons et logits) \\
+\option{fenetres} \emph{n} & toutes & fenêtres évaluées \\
+\option{positions} \emph{n} & toutes (512) & positions évaluées par fenêtre \\
+\option{empreintes} \emph{f.csv} & aucun & l'empreinte64 des logits f32 de chaque pas (C3) \\
+\multicolumn{3}{@{}l}{\textsf{\bfseries \texttt{disque}}} \\
+\option{graine} \emph{g} & 1 & graine du tirage des tronçons (xorshift64*, celui des essais du lot E) \\
+\bottomrule
+\end{longtable}
+\endgroup
+
+\section{Les outils commités}\label{t2ann:sec:outils}
+
+Tout nombre \mes{} ou \calc{} de ce tome sort d'un outil commité. \Cref{t2ann:tab:outils} les liste, rangés par lot, chacun avec la première ligne de sa propre description, citée telle qu'écrite (en français), et son nombre de lignes. La table est engendrée par \fichier{memoire/outils/tome2_annexes.py} depuis \texttt{git ls-files} : elle suit le dépôt.
+
+\begingroup
+\captionof{table}[Les outils du moteur et de ses mesures]{Les outils du moteur et de ses mesures, par lot.}\label{t2ann:tab:outils}
+\input{\Racine/tome2/annexes/outils-moteur}
+\endgroup
+
+\section{Les figures et leurs données}\label{t2ann:sec:figures}
+
+Chaque graphe pgfplots du tome lit un fichier commité ; chaque schéma TikZ est un fichier sous \fichier{memoire/figures/tome2/}. \Cref{t2ann:tab:figures} donne, pour chaque commande de figure qui lit des données, les fichiers qu'elle lit ; l'outil qui l'engendre sort en erreur si l'un d'eux manque.
+
+\begingroup
+\captionof{table}[Les figures et les fichiers qu'elles lisent]{Les figures du Tome~II et les fichiers de données qu'elles lisent.}\label{t2ann:tab:figures}
+\input{\Racine/tome2/annexes/figures-tome2}
+\endgroup
+
+\section{Les journaux}\label{t2ann:sec:journaux}
+
+Les journaux bruts, les CSV et les notes de chaque lot sont commités sous \fichier{mesures/moteur/}. \Cref{t2ann:tab:journaux} en donne l'étendue, dossier par dossier (les outils, comptés dans \cref{t2ann:tab:outils}, en sont exclus). Les fichiers lourds restent hors du dépôt : les fichiers \texttt{.trc} et leurs copies cassées sous \fichier{~/dev/modeles/trc/}, les sorties des passes (\texttt{.kld}, \texttt{.npz}) sous \fichier{~/dev/essais/troncons/}, les programmes construits sous \fichier{~/dev/cibles/} ; les journaux en gardent les empreintes SHA-256 et les commandes.
+
+\begingroup
+\captionof{table}[Les journaux commités du moteur]{Les journaux commités du moteur, par dossier.}\label{t2ann:tab:journaux}
+\input{\Racine/tome2/annexes/journaux-moteur}
+\endgroup
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{La première ligne d'une description n'est pas l'outil} : elle dit ce que son auteur voulait qu'il fasse. Les chapitres citent les outils par ce qu'ils ont produit, avec leurs journaux.
+\item \textbf{Le témoin des options compare des noms, pas des sens} : un défaut changé dans le code sans que \cref{t2ann:tab:options} change passerait. Les défauts de la table ont été relus dans \fichier{moteur/crates/trc-ordo/src/lib.rs} (\texttt{Config::nouvelle}) et dans \texttt{main.rs} le 16 octobre 2026.
+\item \textbf{Les fichiers lourds hors du dépôt} ne sont reproductibles que par leurs empreintes et par les commandes des journaux ; leur dossier peut être libéré par Stone.
+\end{itemize}
+\end{faux}

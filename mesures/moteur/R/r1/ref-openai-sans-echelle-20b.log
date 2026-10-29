@@ -1,0 +1,119 @@
+# 2026-10-15T15:52:16-04:00 ~\dev\cibles\troncons-R\release\juge.exe reference --gguf ~\dev\modeles\gguf\gpt-oss-20b-MXFP4.gguf --jetons-de ~\dev\essais\troncons\lot-R\r0\processeur.kld --sortie ~\dev\essais\troncons\lot-R\r1\ref-openai-sans-echelle-20b.kld --fenetres 10 --yarn openai --fils 4 --journal ~\dev\active\troncons\mesures\moteur\R\r1\ref-openai-sans-echelle-20b.json --kl-contre-base --casser-yarn
+# avant : {"date": "2026-10-15T15:52:15-04:00", "batterie_statut": "2", "carte": "7371 MiB, 8188 MiB, 0 %", "processus_llama_ou_traceur": "traceur:3692"}
+[1792093946] référence ouverte en 9.6 s : Hyper { couches: 24, d_modele: 2880, tetes: 64, tetes_kv: 8, dim_tete: 64, experts: 32, actifs: 4, d_ff: 2880, fenetre: 128, vocab: 201088, eps: 9.999999747378752e-6, base_rope: 150000.0, facteur_yarn: 32.0, ctx_origine: 4096.0, beta_rapide: 32.0, beta_lent: 1.0 }, rampe [8.092779115512402, 17.39802450158856]
+[1792093990] couche 0 : 37.1 s, 0.42 Go d'experts lus en tout
+[1792094027] couche 1 : 36.7 s, 0.85 Go d'experts lus en tout
+[1792094065] couche 2 : 38.1 s, 1.27 Go d'experts lus en tout
+[1792094103] couche 3 : 37.4 s, 1.67 Go d'experts lus en tout
+[1792094139] couche 4 : 36.6 s, 2.09 Go d'experts lus en tout
+[1792094177] couche 5 : 37.9 s, 2.52 Go d'experts lus en tout
+[1792094212] couche 6 : 35.1 s, 2.93 Go d'experts lus en tout
+[1792094249] couche 7 : 36.1 s, 3.35 Go d'experts lus en tout
+[1792094284] couche 8 : 35.1 s, 3.76 Go d'experts lus en tout
+[1792094321] couche 9 : 37.0 s, 4.14 Go d'experts lus en tout
+[1792094357] couche 10 : 35.9 s, 4.52 Go d'experts lus en tout
+[1792094393] couche 11 : 36.0 s, 4.88 Go d'experts lus en tout
+[1792094428] couche 12 : 34.9 s, 5.26 Go d'experts lus en tout
+[1792094464] couche 13 : 36.4 s, 5.65 Go d'experts lus en tout
+[1792094499] couche 14 : 35.3 s, 6.06 Go d'experts lus en tout
+[1792094535] couche 15 : 35.7 s, 6.47 Go d'experts lus en tout
+[1792094569] couche 16 : 34.4 s, 6.87 Go d'experts lus en tout
+[1792094607] couche 17 : 37.6 s, 7.25 Go d'experts lus en tout
+[1792094642] couche 18 : 35.2 s, 7.67 Go d'experts lus en tout
+[1792094680] couche 19 : 37.2 s, 8.08 Go d'experts lus en tout
+[1792094714] couche 20 : 34.6 s, 8.51 Go d'experts lus en tout
+[1792094752] couche 21 : 37.6 s, 8.93 Go d'experts lus en tout
+[1792094786] couche 22 : 33.9 s, 9.36 Go d'experts lus en tout
+[1792094823] couche 23 : 37.1 s, 9.77 Go d'experts lus en tout
+{
+  "avx2_fma": true,
+  "blocs_mxfp4_e255": 0,
+  "cassure_yarn_sans_echelle": true,
+  "commande": [
+    "~\\dev\\cibles\\troncons-R\\release\\juge.exe",
+    "reference",
+    "--gguf",
+    "~\\dev\\modeles\\gguf\\gpt-oss-20b-MXFP4.gguf",
+    "--jetons-de",
+    "~\\dev\\essais\\troncons\\lot-R\\r0\\processeur.kld",
+    "--sortie",
+    "~\\dev\\essais\\troncons\\lot-R\\r1\\ref-openai-sans-echelle-20b.kld",
+    "--fenetres",
+    "10",
+    "--yarn",
+    "openai",
+    "--fils",
+    "4",
+    "--journal",
+    "~\\dev\\active\\troncons\\mesures\\moteur\\R\\r1\\ref-openai-sans-echelle-20b.json",
+    "--kl-contre-base",
+    "--casser-yarn"
+  ],
+  "concentration": 1.0,
+  "debut_unix": 1792093936,
+  "duree_s": 999.0112096,
+  "entrees_ecrites": 2550,
+  "experts_distincts_par_couche": [
+    32,
+    32,
+    32,
+    30,
+    32,
+    32,
+    31,
+    32,
+    31,
+    28,
+    29,
+    27,
+    29,
+    29,
+    31,
+    31,
+    30,
+    29,
+    32,
+    31,
+    32,
+    32,
+    32,
+    31
+  ],
+  "fenetres": 10,
+  "fils": 4,
+  "fin_unix": 1792094936,
+  "gguf": "~\\dev\\modeles\\gguf\\gpt-oss-20b-MXFP4.gguf",
+  "kl_base_contre_reference_brute": {
+    "dp_rms": 0.07592561203774299,
+    "kl_incertitude": 0.008767481254158969,
+    "kl_max": 8.590355028255562,
+    "kl_mediane": 0.12666468638423012,
+    "kl_min": 0.00304911650810995,
+    "kl_moyenne": 0.24913594823852037,
+    "kl_p90": 0.5058671108937692,
+    "kl_p99": 2.0996156513696196,
+    "kl_p999": 5.028389693925606,
+    "ln_rapport_ppl": -0.36338019144996103,
+    "ln_rapport_ppl_incertitude": 0.020197522126189842,
+    "meme_premier": 0.5733333333333334,
+    "meme_premier_incertitude": 0.009796321641408628,
+    "meme_premier_wilson95": [
+      0.5540404797257203,
+      0.5924055726352218
+    ],
+    "n": 2550,
+    "ppl_p": 455.0050009757978,
+    "ppl_q": 316.37499991486305
+  },
+  "lectures_experts": 737,
+  "n_ctx": 512,
+  "octets_experts_lus": 9768021120,
+  "outil": "juge reference",
+  "rampe_yarn": [
+    8.092779115512402,
+    17.39802450158856
+  ],
+  "variante_yarn": "OpenAi"
+}
+
+# fin 2026-10-15T16:08:57-04:00 code 0 durée 1001.0 s

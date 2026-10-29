@@ -1,0 +1,609 @@
+% Tome~II, chapitre 2 : le format .trc au bit près (version française).
+% Figures : memoire/figures/tome2/{schemas,graphes}/format.tex ; données : mesures/moteur/F/csv/
+% (lot F) et memoire/figures/donnees/tome2/ (memoire/outils/tome2_format.py).
+\input{\Racine/figures/tome2/schemas/format}
+\input{\Racine/figures/tome2/graphes/format}
+\lstdefinelanguage{Rust}{morekeywords={pub,fn,struct,enum,impl,trait,use,mod,let,mut,const,
+  type,where,for,in,if,else,match,return,self,Self,dyn,unsafe,as,u8,u16,u32,u64,usize,f32,f64,
+  bool,Option,Result,Vec,Box,String,Some,None,Ok,Err,true,false,crate,continue},
+  sensitive=true, morecomment=[l]{//}, morecomment=[s]{/*}{*/}, morestring=[b]"}
+
+\chapter{Le format \texttt{.trc} au bit près}\label{t2fmt:ch}
+
+\begin{origine}
+\textbf{Au départ}, la spécification de l'arbitre (\fichier{decisions/ARCHITECTURE.md} §\,4) décrivait au bit près un fichier qui n'existait pas : un fichier autonome par modèle, aligné sur 4\,096 octets, un tronçon par expert, des flux rANS à table choisie par voie. La mesure F1 de l'arbitre en avait fixé le codage (même taux que les trois flux de classe de l'étude 03, sans réassemblage) ; personne n'avait écrit le codeur, ni un décodeur de ce format.
+\textbf{Ce chapitre établit} le format tel que les fichiers réels le portent : chaque champ de chaque structure, dessiné et rempli avec les valeurs lues dans \texttt{gpt-oss-120b.trc} (57\,730\,662\,400 octets) et \texttt{gpt-oss-20b.trc} ; les lemmes qui font du rANS entrelacé un code exact, et pourquoi ses deux contrôles gratuits ne gardent pas la table ; la reconstruction exacte d'un expert, démontrée ; le codeur à mémoire bornée et ses deux propositions (mêmes octets, mémoire indépendante du modèle) ; le critère C1 tenu sur 768 et 4\,608 experts par deux chemins qui ne partagent aucune ligne ; et le geste qui dit si une spécification est vraie : un juge qui n'en a écrit aucune ligne l'a décodée, depuis le seul texte, au bit près.
+\textbf{Il reste} la version 1.1 à deux niveaux (J2), réservée au bit près mais non écrite ; treize précisions du texte (neuf du lot F, trois du juge de l'épreuve, une du juge du Tome~II), compatibles avec les fichiers écrits, que l'arbitre doit porter dans la spécification.
+Sources : \fichier{decisions/ARCHITECTURE.md} §\,3 et 4 ; \fichier{moteur/F-pour-le-memoire.md}, \fichier{moteur/REPRISE-F.md} ; \fichier{mesures/moteur/F/derivations.md}, \fichier{verdicts.md}, \fichier{00-seuils-declares.md}, \fichier{journaux/}, \fichier{csv/} ; \fichier{mesures/epreuve-J1.md} §\,2 ; \fichier{mesures/moteur/epreuve-J1/decodeur\_s4.py}.
+\end{origine}
+
+\begin{enbref}
+Un fichier \texttt{.trc} est un livre dont chaque page est un expert. La table des matières (le répertoire) dit où commence chaque page, combien elle pèse et quelle empreinte elle doit avoir ; chaque page se lit d'un seul geste, parce qu'elle tient d'un seul tenant sur le disque ; et chaque page est écrite dans une sténographie (le rANS) que trente-deux lecteurs déchiffrent en même temps, chacun sachant d'avance, par la ligne où il se trouve, quel alphabet utiliser. Rien ne se devine : toute structure porte sa taille, son nombre d'entrées et son empreinte, et un lecteur refuse ce qu'il ne connaît pas.
+\end{enbref}
+
+\section{Les principes}\label{t2fmt:sec:principes}
+
+Six principes, chacun avec sa raison (\fichier{ARCHITECTURE.md} §\,4.1) :
+\begin{enumerate}
+\item \textbf{Un fichier autonome par modèle}, écrit une fois depuis le GGUF d'origine par \texttt{trc-codeur}. Il contient tout ce que le moteur lit ; un compagnon \texttt{<nom>.vocab.gguf} porte le vocabulaire pour \texttt{llama.dll}. Raison (réponse par délégation du 2026-10-15, réversible) : un instrument général a un seul artefact par modèle ; le coût est de recopier les tenseurs toujours lus (2,3\,Go sur le 120b).
+\item \textbf{Petit-boutiste} partout ; chaînes en UTF-8 ; tailles en octets.
+\item \textbf{Alignement de 4\,096 octets} pour toute section et tout ce que lit une lecture sans tampon : Windows exige alors que décalage, longueur et adresse soient multiples de la taille du secteur \cite{microsoft2025filebuffering}, et 4\,096 couvre le NVMe de la machine.
+\item \textbf{Un tronçon = un expert} (ses trois matrices et leurs biais), d'un seul tenant : un défaut coûte une requête, une complétion, une empreinte, un emplacement. Le gain de débit d'une lecture de 12\,Mio contre trois de 4,2\,Mio (+9\,\%) était sous le seuil de décision (20\,\%) : le choix est fait pour la simplicité, pas pour la vitesse.
+\item \textbf{Niveaux de raffinement} : un tronçon est la suite de ses parties de niveau 0, 1, … ; chaque partie est alignée sur 4\,096, et tout préfixe qui s'arrête à la fin d'une partie se décode seul. Le lecteur, le cache et l'ordonnanceur ne connaissent que « lire jusqu'à la fin du niveau $j$ ».
+\item \textbf{Rien ne se devine} : un lecteur refuse une version majeure, une sorte de flux ou un drapeau inconnus.
+\end{enumerate}
+
+\section{La disposition générale}\label{t2fmt:sec:disposition}
+
+Un fichier \texttt{.trc} est un en-tête fixe de 4\,096 octets suivi de cinq sections, chacune alignée sur 4\,096 (\cref{t2fmt:fig:fichier}). Les décalages et longueurs du \cref{t2fmt:tab:sections} sont ceux que portent les en-têtes des deux fichiers réels, relus par le second chemin de C1 (\cref{t2fmt:sec:cun}).
+
+\begin{figure}[ht]
+\centering
+\TdFmtFichier
+\caption[Le fichier .trc, ses sections]{Le fichier \texttt{.trc} et ses sections, aux décalages réels des deux fichiers (en octets ; hauteurs des cases non proportionnelles). La barre du bas est à l'échelle : sur gpt-oss-120b, 96,0\,\% du fichier sont des tronçons. Données : \fichier{mesures/moteur/F/journaux/second-chemin-{20b,120b}.json}, champ \texttt{entete.sections}.}
+\label{t2fmt:fig:fichier}
+\end{figure}
+
+\begin{table}[ht]
+\centering\small
+\begin{tabular}{l r r r r}
+\toprule
+& \multicolumn{2}{c}{gpt-oss-120b} & \multicolumn{2}{c}{gpt-oss-20b} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+Section & décalage & longueur & décalage & longueur \\
+\midrule
+0 MÉTA & 4\,096 & 12\,980\,522 & 4\,096 & 12\,980\,519 \\
+1 RÉSIDENTS & 12\,988\,416 & 2\,301\,059\,336 & 12\,988\,416 & 1\,917\,714\,696 \\
+2 TABLES & 2\,314\,051\,584 & 224\,656 & 1\,930\,706\,944 & 149\,776 \\
+3 RÉPERTOIRE & 2\,314\,276\,864 & 294\,920 & 1\,930\,858\,496 & 49\,160 \\
+4 TRONÇONS & 2\,314\,575\,872 & 55\,416\,086\,528 & 1\,930\,911\,744 & 9\,226\,493\,952 \\
+\midrule
+fin du fichier & \multicolumn{2}{r}{57\,730\,662\,400} & \multicolumn{2}{r}{11\,157\,405\,696} \\
+\bottomrule
+\end{tabular}
+\caption[Les sections des deux fichiers]{Les sections des deux fichiers, en octets (\fichier{memoire/figures/donnees/tome2/sections.csv}). Les longueurs sont \emph{utiles} : elles comptent l'empreinte finale de la section, pas le bourrage qui mène à la section suivante (précision du lot F, constat m4 de l'épreuve). Exemple : MÉTA du 120b finit à $4\,096 + 12\,980\,522 = 12\,984\,618$, et RÉSIDENTS commence au multiple de 4\,096 suivant, $3\,171 \times 4\,096 = 12\,988\,416$. La dernière section finit exactement à la fin du fichier.}
+\label{t2fmt:tab:sections}
+\end{table}
+
+\section{L'en-tête fixe}\label{t2fmt:sec:entete}
+
+L'en-tête tient en 4\,096 octets (\cref{t2fmt:fig:entete}). Il dit ce qu'est le fichier (magie, version, drapeaux), d'où il vient (SHA-256 et taille du GGUF source), la géométrie du modèle (couches, experts, experts actifs, dimensions des trois matrices, format MXFP4), et où sont les sections. Ses 3\,824 octets réservés doivent être nuls, ce que le lecteur vérifie ; ses huit derniers octets sont l'empreinte64 (\cref{t2fmt:sec:empreintes}) des 4\,088 premiers. Un fichier tronqué est refusé dès l'ouverture : sa taille réelle diffère du champ 24.
+
+\begin{figure}[p]
+\centering
+\TdFmtEntete
+\caption[L'en-tête fixe, octet par octet]{L'en-tête fixe, huit octets par rangée (décalages à gauche), sauf deux rangées comprimées : les sections (128 octets, décalages 136 à 263, sur trois rangées) et le réservé (3\,824 octets, de 264 à 4\,087, sur une seule), avec les valeurs lues dans \texttt{gpt-oss-120b.trc}. Pour le 20b : taille 11\,157\,405\,696, SHA-256 \texttt{27cd6c43…5901}, taille source 12\,109\,566\,624, L = 24, E = 32, les mêmes dimensions. Le type 39 est MXFP4 dans la numérotation de ggml ; la partition des magnitudes ne sert qu'à la v1.1. Couleurs : identité (bleu), provenance (violet), géométrie (vert), sections (orange), réservé (gris), empreinte (rouge).}
+\label{t2fmt:fig:entete}
+\end{figure}
+
+\paragraph{Les drapeaux.} Bit 0 : tronçons alignés sur 4\,096 (toujours 1). Bit 1 : au moins deux niveaux (v1.1). Bit 2 : fichier \emph{brut}, dont les flux ne sont pas codés, et qui sert de chemin de référence au critère C3. Un drapeau inconnu fait refuser le fichier, même ré-empreint : c'est l'une des cassures du témoin de \texttt{trc-format} (\fichier{moteur/REPRISE-F.md}, F1).
+
+\section{MÉTA, RÉSIDENTS, TABLES, RÉPERTOIRE}\label{t2fmt:sec:sections}
+
+\subsection{MÉTA : les paires du GGUF, recopiées}
+
+La section MÉTA commence par un \texttt{u64} (le nombre de paires), puis recopie octet pour octet les paires clé-valeur du GGUF, dans leur ordre et au format GGUF v3 (longueur de la clé sur 64 bits, octets de la clé, type sur 32 bits, valeur) \cite{ggml_gguf}. Le codeur ajoute trois paires : \nolinkurl{troncons.codeur.version} (« trc-codeur 0.1.0 »), \nolinkurl{troncons.codeur.date} (« 2026-10-15 ») et \nolinkurl{troncons.source.nom}. Les deux fichiers ont $36 + 3 = 39$ paires \mes~(\cref{t2fmt:fig:meta}). La section finit par l'empreinte64 de tout ce qui précède. Ses 12,98\,Mo sont presque tous le vocabulaire (201\,088 jetons) ; les trois octets d'écart entre 120b et 20b viennent des chaînes qui nomment le modèle. Le moteur y lit les hyperparamètres : 64 têtes de requête, 8 têtes de clés et valeurs, dimension de tête 64, base de rotation 150\,000, YaRN de facteur 32 sur un contexte d'origine de 4\,096 (β rapide 32, β lent 1), fenêtre glissante de 128.
+
+\begin{figure}[ht]
+\centering
+\TdFmtMeta
+\caption[La section MÉTA]{La section MÉTA, en rangées symboliques (les clés et les valeurs ont des longueurs variables) : le compte, les paires au format GGUF v3 recopiées octet pour octet, l'empreinte64 finale, puis des zéros que la longueur de la section ne compte pas.}
+\label{t2fmt:fig:meta}
+\end{figure}
+
+\subsection{RÉSIDENTS : les tenseurs toujours lus}
+
+Tous les tenseurs du GGUF sauf les experts (\nolinkurl{blk.*.ffn_{gate,up,down}_exps.{weight,bias}}) sont recopiés tels quels : $687 - 36 \times 6 = 471$ sur le 120b, $459 - 24 \times 6 = 315$ sur le 20b \calc. La section commence par une table (un \texttt{u32} de compte, un \texttt{u32} réservé, puis une entrée de 128 octets par tenseur, \cref{t2fmt:fig:resident}), des zéros jusqu'au multiple de 4\,096 depuis le début de la section, puis la zone de données, où chaque tenseur est aligné sur 256 dans sa disposition ggml. L'empreinte64 de la table est rangée aux huit derniers octets de la section : sur le 120b, à 2\,301\,059\,328 octets de son début, pour une longueur de 2\,301\,059\,336 \mes~(précision 2 du lot F : la spécification dit « après la zone de données » ; la fin du dernier tenseur étant alignée sur 256, les trois lectures possibles coïncident ici).
+
+\begin{figure}[ht]
+\centering
+\TdFmtResident
+\caption[Une entrée de la table des résidents]{Une entrée de la table des résidents (128 octets, seize par rangée). \texttt{ne} suit la convention de ggml : \texttt{ne[0]} est la dimension la plus rapide. Le décalage est compté depuis le début de la zone de données.}
+\label{t2fmt:fig:resident}
+\end{figure}
+
+L'enchâssement d'entrée \texttt{token\_embd} (Q8\_0, 0,615\,Go) n'est \emph{jamais} monté en VRAM : le moteur en lit une ligne par jeton. Une ligne de 2\,880 poids en Q8\_0 fait $90$ blocs de 34 octets, soit 3\,060 octets, lus dans une lecture alignée de 8\,Kio \calc.
+
+\subsection{TABLES : les fréquences du rANS}
+
+Un enregistrement (\cref{t2fmt:fig:table}) porte la couche, la matrice, la sorte du flux qu'il sert, le contexte, et une charge : 16 ou 256 fréquences sur 16 bits, ou 4 centres en f32 (v1.1). Une fréquence est un entier de 0 à 4\,096 ; la somme d'une table vaut exactement 4\,096 ; 0 marque un symbole absent. Les tables sont communes à tous les experts d'une couche, une par (couche, matrice, sorte, contexte). En v1.0, chaque matrice d'une couche a quatre tables : DELTA (contexte 0) et CODES\_CTX (contextes 0, 1, 2), soit $36 \times 3 \times 4 = 432$ enregistrements de $8 + 512 = 520$ octets sur le 120b ; la section fait $8 + 432 \times 520 + 8 = 224\,656$ octets, compte et empreinte compris, exactement la longueur relevée \calc. Le 20b en a 288 (149\,776 octets). Le moteur les monte en VRAM sous forme de LUT de 4\,096 mots de 32 bits (16\,Kio chacune) : $432 \times 16\,384 = 7\,077\,888$ octets (7,08\,Mo, 6,75\,Mio) pour le 120b \calc. La spécification (\fichier{decisions/ARCHITECTURE.md} §\,4.6) écrit « $36 \times 3 \times 4 \times 16$\,Kio $=$ \barre{6,9\,Mo} » : le produit est juste, son écriture ne l'est ni en Mo ni en Mio ; c'est la précision T2 du \cref{t2fmt:tab:precisions}.
+
+\begin{figure}[ht]
+\centering
+\TdFmtTable
+\caption[Un enregistrement de la section TABLES]{Un enregistrement de la section TABLES : huit octets d'en-tête, puis la charge.}
+\label{t2fmt:fig:table}
+\end{figure}
+
+\subsection{RÉPERTOIRE : la table des matières}
+
+Le répertoire a une entrée de 64 octets par (couche, expert), dans cet ordre, puis l'empreinte64 de la section : $4\,608 \times 64 + 8 = 294\,920$ octets sur le 120b, $768 \times 64 + 8 = 49\,160$ sur le 20b \calc. Chaque entrée (\cref{t2fmt:fig:repertoire}) dit où commence le tronçon, la longueur et les octets utiles de chacun de ses deux niveaux, et trois empreintes : celle de l'expert \emph{d'origine}, celle des octets utiles de chaque niveau. La partie de niveau 1 suit immédiatement celle de niveau 0 : le mode exact lit les deux en une seule requête. C'est la seule structure du fichier qui croisse avec le nombre d'experts, et elle reste sous 0,3\,Mo sur le 120b.
+
+\begin{figure}[ht]
+\centering
+\TdFmtRepertoire
+\caption[Une entrée du répertoire]{Une entrée du répertoire (64 octets). En v1.0, les champs du niveau 1 valent zéro.}
+\label{t2fmt:fig:repertoire}
+\end{figure}
+
+\section{Une partie de tronçon}\label{t2fmt:sec:partie}
+
+Une partie commence par un en-tête de 64 octets et une table de descripteurs de flux de 16 octets chacun (\cref{t2fmt:fig:partie-entete}), puis les flux, chacun aligné sur 16, puis des zéros jusqu'au multiple de 4\,096. En v1.0, une partie de niveau 0 porte douze flux, quatre par matrice : MEDIANES$_j$, BIAIS$_j$, DELTA$_j$, CODES\_CTX$_j$ pour $j = 0$ (gate), 1 (up), 2 (down). La \cref{t2fmt:fig:partie} en donne les tailles moyennes, mesurées sur les 13\,824 matrices du 120b.
+
+\begin{figure}[ht]
+\centering
+\TdFmtPartieEntete
+\caption[L'en-tête d'une partie et un descripteur de flux]{En haut, l'en-tête d'une partie (64 octets : magie \texttt{TRC0} au niveau 0, \texttt{TRC1} au niveau 1). En bas, un descripteur de flux (16 octets). Le contexte fixe vaut 0 pour DELTA et \texttt{0xFF} (aucun) pour les flux bruts et les flux à contexte variable (précision 4 du lot F) ; les octets produits d'un flux rANS valent son champ P, bourrage compris (précision 5).}
+\label{t2fmt:fig:partie-entete}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\TdFmtPartie
+\caption[Un tronçon moyen et un flux CODES\_CTX]{Un tronçon moyen de gpt-oss-120b, flux par flux, puis le flux CODES\_CTX sérialisé. Données : \fichier{memoire/figures/donnees/tome2/flux-moyens.csv} et \fichier{calculs-format.csv}, tirés de \fichier{mesures/moteur/F/journaux/verifier-120b.json}.}
+\label{t2fmt:fig:partie}
+\end{figure}
+
+\paragraph{Le bourrage, un contrôle de vraisemblance.} Si la longueur utile d'une partie était uniformément répartie modulo 4\,096, le bourrage moyen vaudrait $\frac{1}{4\,096}\sum_{i=0}^{4\,095} i = 2\,047{,}5$ octets. Mesuré : 2\,036 octets sur le 120b, 2\,029 sur le 20b (tronçon moyen moins octets utiles moyens) \calc. Le bourrage coûte donc 0,017\,\% du fichier, et le principe 3 se paie à ce prix.
+
+\section{Le flux rANS}\label{t2fmt:sec:rans}
+
+\subsection{La sérialisation}
+
+Un flux rANS (\cref{t2fmt:fig:flux-entete}) porte en 16 octets ce qu'il faut pour le décoder : P, le nombre d'octets qu'il produit (multiple de 128) ; N, le nombre de macro-pas par tuile (256) ; la géométrie (1 : un octet par symbole, 4 sous-pas par mot de sortie ; 2 : un demi-octet, 8 sous-pas) ; T, le nombre de tuiles, $T = \lceil (P/128)/N \rceil$ ; W, le nombre de mots de 16 bits du flux partagé. Suivent \texttt{début[T]} (l'indice du premier mot de chaque tuile), \texttt{états[32\,T]} (l'état initial de chaque voie de chaque tuile), \texttt{mots[W]}, puis des zéros jusqu'au multiple de 16.
+
+\begin{figure}[ht]
+\centering
+\TdFmtFluxEntete
+\caption[L'en-tête d'un flux rANS]{L'en-tête d'un flux rANS (16 octets).}
+\label{t2fmt:fig:flux-entete}
+\end{figure}
+
+\paragraph{Le calcul, pour une matrice de gpt-oss.} Une matrice de $R = 2\,880$ lignes et $C = 2\,880$ colonnes a $B = C/32 = 90$ blocs par ligne, $R \cdot B = 259\,200$ blocs. Ses codes font $16 \times 259\,200 = 4\,147\,200$ octets, soit $32\,400$ macro-pas de 128 octets, donc $T = \lceil 32\,400/256 \rceil = 127$ tuiles (126 pleines et une de 144 macro-pas). La partie fixe du flux vaut $16 + 4T + 128T = 16 + 508 + 16\,256 = 16\,780$ octets. Le flux CODES\_CTX moyen fait 3\,960\,750 octets : il reste $(3\,960\,750 - 16\,780)/2 \approx 1\,971\,986$ mots (bourrage d'au plus 15 octets compris). Rapporté aux $8\,294\,400$ poids de la matrice, le flux coûte $3\,960\,750 \times 8 / 8\,294\,400 = 3{,}8202$ bits par poids, dont $1\,971\,986 \times 16 / 8\,294\,400 = 3{,}8040$ de mots entropiques et $0{,}0162$ de partie fixe \calc. Le DELTA d'une matrice a $259\,200$ octets, 8 tuiles, une partie fixe de 1\,072 octets, et coûte $32\,772 \times 8 / 8\,294\,400 = 0{,}0316$ bit par poids \calc.
+
+\subsection{Le décodage normatif}
+
+Constantes : probabilités sur 12 bits ($M = 4\,096$), état $x$ sur 32 bits, borne basse $L = 2^{16}$, mots de 16 bits. Une tuile $t$ couvre les macro-pas $tN$ à $\min((t+1)N, P/128) - 1$. La voie $l \in \{0, \dots, 31\}$ du macro-pas $m$ produit le mot de sortie de 32 bits d'indice $w = 32m + l$ ; ses sous-pas $k = 0, 1, \dots$ en produisent, du poids faible au poids fort, l'octet $k$ (géométrie 1) ou le demi-octet $k$ (géométrie 2). La table d'un symbole est rangée en LUT de 4\,096 entrées de 32 bits (\cref{t2fmt:fig:lut}) : pour chaque fente $i \in [c[s], c[s] + f[s])$, l'entrée porte le symbole $s$, sa fréquence et l'écart $i - c[s]$, où $c[s] = \sum_{u<s} f[u]$ est le cumul.
+
+\begin{figure}[ht]
+\centering
+\TdFmtLut
+\caption[L'entrée de LUT de 32 bits]{L'entrée de LUT de 32 bits, poids fort à gauche. En géométrie 1, la fréquence est rangée moins un : $f = 4\,096$ (un symbole seul) tient alors en 12 bits (test \nolinkurl{symbole_unique_a_frequence_pleine} du lot K).}
+\label{t2fmt:fig:lut}
+\end{figure}
+
+Le décodage d'une tuile part de $p \leftarrow \texttt{début}[t]$ et $x_l \leftarrow \texttt{états}[32t + l]$, puis, pour chaque macro-pas, pour chaque sous-pas, \textbf{pour $l = 0$ à 31 dans l'ordre} : lire l'entrée $e$ de la LUT du contexte du symbole à la fente $x_l \bmod 4\,096$, en tirer $s$, $f$ et $b = i - c[s]$, poser $y = f \cdot \lfloor x_l / 4\,096 \rfloor + b$ ; si $y < L$, lire un mot ($x_l \leftarrow 2^{16} y + \texttt{mots}[p]$, $p \leftarrow p + 1$), sinon $x_l \leftarrow y$ ; écrire $s$. Le \cref{t2fmt:lst:decodeur} est ce cœur, tel que l'écrit \texttt{trc-codec}.
+
+\begin{lstlisting}[language=Rust, caption={[Le cœur du décodeur rANS]Le cœur du décodeur normatif (\fichier{moteur/crates/trc-codec/src/rans.rs}, \texttt{decoder\_avec}, raccourci). Un mot manquant se lit 0 et se compte ; aucun flux ne fait paniquer le décodeur.}, label={t2fmt:lst:decodeur}]
+for m in 0..nb {                       // macro-pas de la tuile
+  for k in 0..spm {                    // sous-pas : 4 (geometrie 1) ou 8 (2)
+    for l in 0..VOIES {                // les 32 voies, DANS L'ORDRE
+      let w = (m0 + m) * VOIES + l;    // mot de sortie de 32 bits
+      let n = w * spm + k;             // indice du symbole
+      let Some(c) = contexte(n, &sortie) else { continue };   // saute
+      let e = luts[c as usize][(x[l] & (M - 1)) as usize];
+      let (s, f, b) = (e & 0xFF, ((e >> 8) & 0xFFF) + 1, e >> 20); // geometrie 1
+      let y = f * (x[l] >> 12) + b;
+      if y < L { x[l] = (y << 16) | mot(p); p += 1; } else { x[l] = y; }
+      sortie[n] = s as u8;
+    }
+  }
+}
+// fin de tuile : chaque voie doit valoir L, et p doit egaler debut[t + 1]
+let hors = x.iter().filter(|&&v| v != L).count();
+let mots_faux = deborde || p != fin;
+\end{lstlisting}
+
+Le codeur fait le chemin exactement inverse : il parcourt les symboles d'une tuile par macro-pas, sous-pas et voies \emph{décroissants}, part de $x = L$ sur chaque voie, et, pour chaque symbole $s$ de fréquence $f$ et de cumul $c$, émet le mot $x \bmod 2^{16}$ puis pose $x \leftarrow \lfloor x / 2^{16} \rfloor$ si $x \ge f \cdot 2^{20}$, avant de coder $x \leftarrow \lfloor x/f \rfloor \cdot 4\,096 + (x \bmod f) + c$. Il renverse enfin sa pile de mots.
+
+\subsection{Pourquoi c'est exact}
+
+Les quatre énoncés suivants sont ceux du lot F (\fichier{mesures/moteur/F/derivations.md} §\,1 à 3), écrits en entier. Notations : un symbole $s$ a une fréquence $f \in [1, M]$ et un cumul $c$ ; codage $C(s, x') = \lfloor x'/f \rfloor M + (x' \bmod f) + c$ ; décodage depuis $x$ : fente $i = x \bmod M$, symbole $s$ tel que $c \le i < c + f$, puis $D(x) = f \lfloor x/M \rfloor + i - c$. Le principe de l'ANS est de Duda \cite{duda2013ans} ; l'entrelacement de plusieurs états sur un seul flux de mots, de Giesen \cite{giesen2014interleaved}.
+
+\begin{lemme}[Inverse exact]\label{t2fmt:lem:inverse}
+Pour tout $x' \ge 0$, $D(C(s, x')) = (s, x')$.
+\end{lemme}
+\begin{proof}
+Posons $q = \lfloor x'/f \rfloor$ et $r = x' \bmod f$, donc $x' = qf + r$ avec $0 \le r < f$. Alors $C = qM + (r + c)$ avec $0 \le r + c < c + f \le M$ : la fente vaut $i = r + c \in [c, c + f)$, donc le symbole lu est $s$, et $\lfloor C/M \rfloor = q$. D'où $D = fq + (r + c) - c = qf + r = x'$.
+\end{proof}
+
+\begin{lemme}[L'intervalle des états]\label{t2fmt:lem:intervalle}
+Avec la règle d'émission du codeur, si $x \in I = [L, 2^{32})$ avant le codage d'un symbole, alors l'état réduit $x'$ vérifie $x' \in [f \cdot 2^4, f \cdot 2^{20})$, et $C(s, x') \in I$.
+\end{lemme}
+\begin{proof}
+Sans émission, $L \le x < f \cdot 2^{20}$ ; or $f \cdot 2^4 \le M \cdot 2^4 = 2^{16} = L \le x$, donc $x' = x \in [f \cdot 2^4, f \cdot 2^{20})$. Avec émission, $f \cdot 2^{20} \le x < 2^{32}$, donc $x' = \lfloor x/2^{16} \rfloor \in [f \cdot 2^4, 2^{16})$, et $2^{16} \le f \cdot 2^{20}$ puisque $f \ge 1$. Enfin $C(s, x') \ge \lfloor x'/f \rfloor M \ge 2^4 \cdot 2^{12} = L$ et $C(s, x') < (\lfloor x'/f \rfloor + 1) M \le 2^{20} \cdot 2^{12} = 2^{32}$.
+\end{proof}
+
+\begin{lemme}[Le décodeur lit exactement quand le codeur a émis]\label{t2fmt:lem:renorm}
+Au pas qui décode un symbole, le décodeur lit un mot si et seulement si le codeur en a émis un en codant ce symbole, et une seule lecture suffit.
+\end{lemme}
+\begin{proof}
+Par le \cref{t2fmt:lem:inverse}, $y = D(x)$ est le $x'$ du codeur. Si le codeur a émis, $x' < 2^{16} = L$ : le décodeur lit, et $2^{16} y + w$ reconstitue exactement l'état d'avant l'émission ($w = x \bmod 2^{16}$), qui est dans $I$. Sinon $x' = x \ge L$ et le décodeur ne lit pas. Une seconde lecture n'est jamais nécessaire : pour $y < L$, $2^{16} y + w \ge 2^{16} = L$ dès que $y \ge 1$, et $y \ge 16 f \ge 16$ puisque $x \ge L$ donne $\lfloor x/M \rfloor \ge 16$.
+\end{proof}
+
+\begin{proposition}[Les deux contrôles gratuits d'une tuile]\label{t2fmt:prop:controles}
+Sur un flux intègre, le décodeur (a) finit chaque voie sur $x = L$ ; (b) consomme exactement les $\texttt{début}[t+1] - \texttt{début}[t]$ mots de la tuile $t$.
+\end{proposition}
+\begin{proof}
+(a) Par récurrence sur les pas inverses, avec le \cref{t2fmt:lem:renorm} : l'état du décodeur après le $k$-ième symbole décodé égale l'état du codeur avant le codage de ce symbole ; après le dernier symbole décodé, qui est le premier codé, c'est l'état initial du codeur, $L$.
+(b) Le décodeur lit un mot à chaque pas où le codeur en a émis un, et seulement là ; le nombre de lectures est donc celui des émissions, la taille de la pile de la tuile. L'ordre des lectures entre voies est l'ordre des émissions renversé : les 32 voies partagent une seule pile parce que l'ordre inverse du codeur, renversé par la pile, est exactement l'ordre direct du décodeur.
+\end{proof}
+
+\paragraph{Ce que les contrôles ne gardent pas.} Ni (a) ni (b) ne garde la \emph{table} : un décodeur qui lit une table faussée reste dans $I$ et peut finir sur $L$. Le lot K l'a vu sur la carte : une fente de LUT corrompue rend une sortie fausse avec \textbf{0 voie hors de $L$} \mes~(\fichier{moteur/K-pour-le-memoire.md} §\,3). C'est pourquoi le format porte les empreintes des tables, vérifiées à l'ouverture, et celles des parties. Le témoin des témoins du lot F l'a vérifié sur le code : retirer le compte des voies, ou celui des mots, fait tomber un test chacun ; sa première passe avait montré qu'un test qui ne regardait que leur conjonction ne voyait pas la perte du premier (\fichier{mesures/moteur/F/casser-temoins-f1-passe1.log}). Le second contrôle (b) n'est pas dans la spécification : le lot F et le lot K l'ont ajouté chacun de leur côté, sans changer un octet du format, et le juge l'a vérifié vrai sur 100\,\% des tuiles décodées (constat m4).
+
+\subsection{Trente-deux voies en même temps}
+
+La règle « pour $l = 0$ à 31 dans l'ordre » semble interdire de décoder les voies en parallèle. Elle ne l'interdit pas : seul l'ordre des \emph{lectures de mots} lie les voies (\cref{t2fmt:fig:tuile}).
+
+\begin{figure}[ht]
+\centering
+\TdFmtTuile
+\caption[La tuile rANS et la table par voie]{La tuile rANS et la table par voie (figure M4 de la spécification). Exemple de classes $\kappa$ pour les huit blocs d'un macro-pas.}
+\label{t2fmt:fig:tuile}
+\end{figure}
+
+\begin{proposition}[Décodage parallèle des voies]\label{t2fmt:prop:parallele}
+Au sous-pas $(m, k)$, soit $\nu_l = [y_l < L]$ l'indicateur de renormalisation de la voie $l$. Un décodeur qui calcule les 32 voies en même temps et donne à la voie $l$ le mot $p + \sum_{l' < l} \nu_{l'}$, puis avance $p$ de $\sum_l \nu_l$, produit les mêmes symboles et les mêmes états que le décodeur normatif.
+\end{proposition}
+\begin{proof}
+Le calcul de $y_l$ ne dépend que de $x_l$ et de la LUT : il commute entre voies. Dans le décodeur normatif, au sous-pas $(m, k)$, les voies qui renormalisent lisent les mots $p, p+1, \dots$ dans l'ordre croissant des voies : la voie $l$ lit le mot $p$ plus le nombre de voies d'indice inférieur qui lisent aussi, soit $p + \sum_{l'<l} \nu_{l'}$ ; après les 32 voies, $p$ a avancé de $\sum_l \nu_l$. Les deux décodeurs font donc les mêmes lectures ; par récurrence sur les sous-pas, états et pointeur sont égaux à chaque étape. Les tuiles, elles, sont indépendantes : chacune a son début et ses états.
+\end{proof}
+
+Deux décodeurs l'emploient sans s'être lus. Sur la carte, un warp calcule $\nu$ par \texttt{ballot} et le rang par \texttt{popc} du vote masqué (\fichier{moteur/K-pour-le-memoire.md} §\,2.1) ; dans l'épreuve, numpy le calcule par une somme cumulée sur l'axe des voies, $p + \texttt{cumsum}(\nu)_l - 1$ pour une voie qui renormalise, sur les 127 tuiles d'un flux à la fois (\cref{t2fmt:lst:numpy}). Le format est conçu pour cela : 32 voies par tuile, c'est la largeur d'un warp.
+
+\section{Les contextes : la table choisie par le décodeur}\label{t2fmt:sec:contextes}
+
+Pour une matrice de $R$ lignes et $B = C/32$ blocs par ligne, le bloc $\beta = rB + b$ a un écart d'échelle $\delta[\beta]$ et une \emph{classe d'échelle}
+\[
+\kappa(\beta) = \begin{cases} 0 & \text{si } \delta[\beta] < 128 \text{ (échelle sous la médiane de sa ligne)},\\ 1 & \text{si } \delta[\beta] = 128 \text{ (à la médiane)},\\ 2 & \text{si } \delta[\beta] > 128 \text{ (au-dessus)}. \end{cases}
+\]
+Pour CODES\_CTX, le contexte d'un symbole est choisi \textbf{par voie} : le mot $w$ appartient au bloc $\lfloor w/4 \rfloor$ (un bloc fait 16 octets, donc 4 mots), et sa table est celle de $\kappa(\lfloor w/4 \rfloor)$. Le décodeur décode toujours DELTA avant CODES\_CTX : il connaît $\kappa$ avant d'en avoir besoin.
+
+\begin{proposition}[Contexte connu du décodeur : exactitude et taux]\label{t2fmt:prop:contexte}
+Si le contexte $k(n)$ du symbole $n$ est une fonction de données que le décodeur possède avant de décoder $n$, le décodage reste exact, et le nombre de bits émis vaut $\sum_n -\log_2(f_{k(n)}[s_n]/M)$ à l'en-tête et aux états finaux près.
+\end{proposition}
+\begin{proof}
+Exactitude : le \cref{t2fmt:lem:inverse} vaut pour toute table ; codeur et décodeur appliquent au symbole $n$ la même table puisqu'ils calculent le même $k(n)$, le codeur depuis la source, le décodeur depuis ce qu'il a déjà rendu, identique par récurrence. Taux : un pas de codage multiplie l'état par $M/f$ à l'arrondi près ($x' \mapsto \approx x' M/f$), et chaque mot émis le divise par $2^{16}$ ; le nombre de mots vaut donc, à une constante par voie près, $\sum_n \log_2(M/f_{k(n)}[s_n]) / 16$.
+\end{proof}
+
+Le choix de la table est une \emph{adresse}, pas une branche : sur la carte, les 32 voies exécutent la même instruction et ne diffèrent que par la LUT qu'elles lisent en mémoire partagée. Contre les trois flux de classe de l'étude 03, la table par voie évite le réassemblage et la somme préfixe, pour le même taux : 3,8431 contre 3,8434 bits par poids sur les 12 tenseurs de F1 \mes~(\fichier{ARCHITECTURE.md} §\,3.3).
+
+\paragraph{Les blocs de bourrage.} La spécification ne disait pas la classe d'un bloc de bourrage, quand $16RB$ n'est pas multiple de 128. Le DELTA d'une matrice produit $\lceil RB/128 \rceil \cdot 128$ octets et ses codes $\lceil 16RB/128 \rceil \cdot 128$, soit $\lceil RB/8 \rceil \cdot 8$ blocs. Comme $\lceil RB/8 \rceil \cdot 8 \le \lceil RB/128 \rceil \cdot 128$, tout bloc de bourrage des codes a un δ décodé, qui vaut 0 (bourrage), donc $\kappa = 0$ : le décodeur n'a aucune règle de plus à connaître (précision 6 du lot F). Pour gpt-oss, $RB = 259\,200 = 2\,025 \times 128$ : aucun bourrage.
+
+\section{Les sortes de flux}\label{t2fmt:sec:sortes}
+
+\begin{table}[ht]
+\centering\small
+\begin{tabularx}{\linewidth}{l l >{\raggedright\arraybackslash}X c}
+\toprule
+Code & Sorte & Contenu, octets produits pour une matrice $R \times C$ (gpt-oss : $R = C = 2\,880$, $B = 90$) & Niveau \\
+\midrule
+0x01 & MEDIANES & brut : $R$ octets, la médiane E8M0 de chaque ligne (\texttt{tri[B/2]} des $B$ échelles) ; 2\,880 & 0 \\
+0x02 & BIAIS & brut : $R$ f32 ; 11\,520 & 0 \\
+0x03 & DELTA & rANS géom. 1 : $RB$ octets, $\delta = (e - \text{méd} + 128) \bmod 256$ ; 259\,200 & 0 \\
+0x04 & CODES\_CTX & rANS géom. 1, table par voie : $16RB$ octets, les \texttt{qs} des blocs MXFP4 dans l'ordre $\beta$ ; 4\,147\,200 & 0 (v1.0) \\
+0x05 & (réservé) & trois flux de classe réassemblés : non produit, non lu & — \\
+0x06 & CODES\_BRUTS & brut : $16RB$ octets (fichier brut seulement) & 0 \\
+0x07 & ECHELLES\_BRUTES & brut : $RB$ octets E8M0 (fichier brut seulement) & 0 \\
+0x10 & BASE\_CTX & rANS géom. 1, table par voie : chaque demi-octet = signe et classe de magnitude & 0 (v1.1) \\
+0x11 & COMPL\_CTX & rANS géom. 2, table par symbole : rang de la magnitude dans sa classe & 1 (v1.1) \\
+0x12 & CENTRES & sorte de table seulement : les 4 valeurs de reconstruction de la base & — \\
+\bottomrule
+\end{tabularx}
+\caption[Les sortes de flux]{Les sortes de flux (\fichier{ARCHITECTURE.md} §\,4.10). Les sortes 0x10 à 0x12 sont réservées au bit près pour la v1.1 (J2) et ne sont produites par aucun fichier écrit.}
+\label{t2fmt:tab:sortes}
+\end{table}
+
+\section{La reconstruction exacte d'un expert}\label{t2fmt:sec:reconstruction}
+
+\subsection{Le procédé normatif}
+
+Pour chaque matrice $j$ ($R$ lignes, $C$ colonnes, $B = C/32$) :
+\begin{enumerate}
+\item lire MEDIANES$_j$ $\to$ $\text{méd}[r]$ et BIAIS$_j$ $\to$ $\text{biais}[r]$ ;
+\item décoder DELTA$_j$ $\to$ $\delta[\beta]$, puis $e[\beta] = (\text{méd}[r] + \delta[\beta] - 128) \bmod 256$ et $\kappa(\beta)$ ;
+\item décoder CODES\_CTX$_j$ avec la table par voie $\kappa$ $\to$ $\texttt{qs}[16\beta \dots 16\beta + 15]$ ;
+\item écrire l'emplacement de la carte : codes, échelles, biais (\cref{t2fmt:sec:emplacement}).
+\end{enumerate}
+
+\begin{lstlisting}[language=Rust, caption={[La reconstruction d'une matrice v1.0]La reconstruction d'une matrice v1.0 (\fichier{moteur/crates/trc-codec/src/lib.rs}, \texttt{decoder\_matrice\_v10}, raccourci).}, label={t2fmt:lst:matrice}]
+let (delta, bd) = rans::decoder_une_table(&flux_d, &t.delta.lut)?;   // 2. les deltas
+let kappa: Vec<u8> = delta.iter().map(|&d| classe_echelle(d)).collect();
+let mut echelles = vec![0u8; n_blocs];
+for (beta, e) in echelles.iter_mut().enumerate() {                  // e = med + delta - 128
+    *e = med[beta / b].wrapping_add(delta[beta]).wrapping_sub(128);   // (mod 256)
+}
+let luts: [&[u32]; 3] = [&t.codes[0].lut, &t.codes[1].lut, &t.codes[2].lut];
+let (mut codes, bc) = rans::decoder_par_voie(&flux_c, &kappa, &luts)?; // 3. table par voie
+codes.truncate(16 * n_blocs);                                        // sans le bourrage
+\end{lstlisting}
+
+\subsection{L'expert d'origine, et pourquoi il ne faut rien réordonner}
+
+L'expert d'origine, au sens des empreintes, est la suite, pour $j = 0, 1, 2$, des $RB$ blocs MXFP4 de 17 octets $[e[\beta], \texttt{qs}[16\beta \dots 16\beta + 15]]$ dans l'ordre $\beta$, puis, pour $j = 0, 1, 2$, des $R$ biais f32 : $3 \times (17 \times 259\,200 + 4 \times 2\,880) = 13\,253\,760$ octets pour gpt-oss \calc. Un bloc MXFP4 porte 32 poids E2M1 (4 bits chacun, deux par octet) et une échelle commune E8M0 (un octet, puissance de deux) \cite{ocp_mx_v1}.
+
+\begin{lemme}[L'expert d'origine dans le GGUF]\label{t2fmt:lem:origine}
+Dans le GGUF, le tenseur \texttt{blk.$\ell$.ffn\_*\_exps\allowbreak.weight} a pour dimensions ggml $[C, R, E]$, rangé $\texttt{ne}_0 = C$ le plus rapide. Le bloc $b$ de la ligne $r$ de l'expert $x$ est le bloc $(xR + r)B + b$ du tenseur, et l'expert $x$ occupe les octets $[17xRB, 17(x+1)RB)$, d'un seul tenant ; ses biais (tenseur F32 $[R, E]$) occupent $[4xR, 4(x+1)R)$.
+\end{lemme}
+\begin{proof}
+Une ligne de $C$ poids MXFP4 fait $B = C/32$ blocs de 17 octets ; une matrice d'expert, $R$ lignes ; les experts se suivent selon la dimension la plus lente. L'indice de bloc est donc $((x \cdot R) + r) \cdot B + b$, et les $RB$ blocs de $x$ sont consécutifs. Même raisonnement pour les biais, à 4 octets par valeur.
+\end{proof}
+
+Le lemme fait que l'empreinte d'origine se calcule sans rien réordonner :
+\[
+r(x) = \text{8 premiers octets de } \text{SHA-256}\bigl(\text{gate}_x \,\|\, \text{up}_x \,\|\, \text{down}_x \,\|\, \text{biais}_{\text{gate},x} \,\|\, \text{biais}_{\text{up},x} \,\|\, \text{biais}_{\text{down},x}\bigr).
+\] Le codeur la calcule sur les tranches du GGUF ; la vérification la recalcule sur l'expert décodé \emph{et} sur les tranches, indépendamment.
+
+\begin{theoreme}[Reconstruction exacte]\label{t2fmt:thm:reconstruction}
+Pour tout expert $x$ et tout fichier v1.0 écrit par le codeur depuis un GGUF, le procédé normatif appliqué à la partie de niveau 0 de $x$ rend exactement les octets de l'expert d'origine.
+\end{theoreme}
+\begin{proof}
+\emph{Biais} : le flux BIAIS$_j$ est la tranche de biais recopiée, et se relit telle quelle. \emph{Échelles} : le codeur pose $\delta = (e - \text{méd} + 128) \bmod 256$, le décodeur $e' = (\text{méd} + \delta - 128) \bmod 256$ ; dans $\mathbb{Z}/256\mathbb{Z}$, $e' = \text{méd} + (e - \text{méd} + 128) - 128 = e$. La médiane lue est celle que le codeur a écrite (flux brut), quelle que soit sa valeur : l'identité ne dépend pas de ce qu'elle soit vraiment la médiane. \emph{δ décodés} : DELTA$_j$ est un flux à une table ; par les \cref{t2fmt:lem:inverse,t2fmt:lem:renorm} et la \cref{t2fmt:prop:controles}, le décodeur rend la suite codée. \emph{Codes} : CODES\_CTX$_j$ est codé avec la table de $\kappa(\lfloor w/4 \rfloor)$, fonction des δ déjà décodés, égaux à ceux du codeur ; par la \cref{t2fmt:prop:contexte}, le décodage rend les \texttt{qs} codés, bourrage compris, que la troncature à $16RB$ retire. \emph{Assemblage} : l'expert d'origine est la concaténation des blocs $[e[\beta], \texttt{qs}[16\beta\dots]]$ dans l'ordre $\beta$ puis des biais, dans l'ordre des matrices ; c'est ce que rend \texttt{ExpertDecode::octets\_origine}, et c'est la disposition du GGUF par le \cref{t2fmt:lem:origine}.
+\end{proof}
+
+\subsection{L'emplacement d'expert sur la carte}\label{t2fmt:sec:emplacement}
+
+Le décodeur de la carte n'écrit pas l'expert d'origine mais une disposition « structure de tableaux » (SoA) que lit la GEMV (couture N, \fichier{ARCHITECTURE.md} §\,5.6). Pour chaque matrice : les codes ($16RB$ octets, ordre $\beta$) au décalage 0 ; les échelles ($RB$ octets) au décalage $\mathrm{al}_{256}(16RB)$ ; les biais ($4R$ octets) au décalage $\mathrm{al}_{256}(\mathrm{al}_{256}(16RB) + RB)$ ; pas de matrice $\mathrm{al}_{256}(\text{décalage des biais} + 4R)$, où $\mathrm{al}_{256}(x)$ arrondit au multiple de 256 supérieur. Pour gpt-oss : codes 4\,147\,200 octets à 0 ; échelles 259\,200 à 4\,147\,200 ; $4\,147\,200 + 259\,200 = 4\,406\,400 = 17\,212{,}5 \times 256$, donc biais à $17\,213 \times 256 = 4\,406\,528$ ; $4\,406\,528 + 11\,520 = 4\,418\,048 = 17\,258 \times 256$, donc pas de 4\,418\,048 octets et \textbf{emplacement de 13\,254\,144 octets} \calc~(test \nolinkurl{disposition_de_gpt_oss_egale_la_specification} du lot K). La valeur d'un poids est $k[\text{code}] \cdot 2^{e - 128}$ avec $k \in \{0, 1, 2, 3, 4, 6, 8, 12\}$ signé par le bit 3 : les grandeurs E2M1 sont doublées, d'où l'exposant $e - 128$ au lieu de $e - 127$.
+
+\section{Les empreintes}\label{t2fmt:sec:empreintes}
+
+\begin{definition}[Empreinte64]
+Pour une suite d'octets $o$, $\mathrm{empreinte64}(o)$ est l'entier petit-boutiste formé des 8 premiers octets de $\mathrm{SHA\text{-}256}(o)$ \cite{fips180_4}.
+\end{definition}
+
+Le format en porte partout : l'en-tête (sur ses 4\,088 premiers octets), la fin de MÉTA, de la table des RÉSIDENTS, de TABLES, de RÉPERTOIRE ; chaque tenseur résident ; chaque partie de tronçon (octets utiles) ; chaque expert d'origine. Le SHA-256 complet du GGUF source est dans l'en-tête. À l'ouverture, le moteur vérifie l'en-tête, les tables, le répertoire et la taille du fichier (quelques Mo hachés). En production, depuis la ronde de corrections, la garde compare l'empreinte de chaque partie lue à celle du répertoire (chapitre précédent).
+
+\begin{proposition}[Ce qu'une égalité d'empreintes exclut]\label{t2fmt:prop:collision}
+Si l'empreinte64 se comporte comme une fonction aléatoire sur les erreurs considérées (une erreur qui n'est pas fabriquée contre SHA-256 : un décalage, un ordre de matrices, un bit retourné), la probabilité qu'au moins un expert faux parmi $n$ ait l'empreinte de son original est au plus $n \cdot 2^{-64}$ ; pour les 4\,608 experts du 120b, $4\,608 / 1{,}8447\cdot10^{19} \approx 2{,}50\cdot10^{-16}$ \calc.
+\end{proposition}
+\begin{proof}
+Pour un couple distinct donné, la probabilité d'une même image de 64 bits vaut $2^{-64}$ ; la borne de l'union sur les $n$ experts donne $n \cdot 2^{-64}$.
+\end{proof}
+Ce n'est pas une garantie contre un adversaire : le préfixe de 64 bits se casse en environ $2^{32}$ essais par le paradoxe des anniversaires, si l'on choisit les deux contenus. Personne ici ne fabrique les octets du GGUF.
+
+\paragraph{Ce que chaque contrôle voit.} Une empreinte n'a pas la même portée selon ce qu'elle hache (\fichier{moteur/E-pour-le-memoire.md}, D14). L'empreinte de la partie voit tout bit retourné dans ses octets utiles. L'empreinte de l'expert d'origine, refaite depuis le décodé, ne voit que ce qui change la sortie : un champ que le décodeur ne lit pas (la couche ou l'expert d'un en-tête de partie, un octet réservé) ne change rien. Les compteurs du décodeur de la carte voient les fautes de format et les voies hors de $L$, ni les flux bruts ni l'identité de la partie. La cassure du banc E2 l'a établi sur le vrai chemin : douze bits retournés, un par sorte de région, \textbf{12 détectés sur 12}, dont 12 par l'empreinte de la partie, 11 par celle de l'expert, 9 par les compteurs ; en production (avant la garde), 9 \mes. Le décodeur de l'épreuve, sur la même copie, nomme qui voit quoi : 6 tronçons par les voies hors de $L$, 2 par une erreur de format, 2 par l'en-tête de partie (leurs octets décodés égalent pourtant le GGUF), et \textbf{2 seulement par l'empreinte de l'expert} : un octet de MEDIANES (couche 23, expert 4) et un octet de BIAIS (couche 21, expert 24), toutes voies sur $L$ \mes~(\fichier{mesures/epreuve-J1.md} §\,2.4). C'est le constat M1, que la garde a fermé.
+
+\section{Le codeur à mémoire bornée}\label{t2fmt:sec:codeur}
+
+\subsection{Pourquoi deux passes}
+
+À 15\,h\,10 le 2026-10-15, la machine n'avait que 336\,Mo de mémoire disponible : un traceur d'un autre lot lisait gpt-oss-120b et tenait 8,7\,Go privés \mes~(\fichier{mesures/moteur/F/00-seuils-declares.md}). La première version du codeur gardait les 128 experts préparés d'une couche, soit $3 \times 128 \times 4\,406\,400 \approx 1{,}69$\,Go sur le 120b \calc : elle aurait fait paginer la mesure d'un autre. Le lot F l'a réécrite en deux passes par paquets de $p = 2 \times \text{fils}$ experts (\cref{t2fmt:fig:codeur}) ; le format n'a pas changé d'un octet.
+
+\begin{figure}[ht]
+\centering
+\TdFmtCodeur
+\caption[Le codeur à deux passes et sa fenêtre]{Le codeur à deux passes d'une couche, et sa fenêtre de mémoire à l'échelle : un paquet de 12 experts ($\approx 0{,}50$\,Go, soit 0,47\,Gio : 502\,252\,544 octets ; le lot F écrivait \barre{0,47\,Go}) contre la couche entière de la version à une passe (0,42\,Go sur le 20b, 1,69\,Go sur le 120b).}
+\label{t2fmt:fig:codeur}
+\end{figure}
+
+\subsection{Mêmes octets, mémoire bornée}
+
+Notations : une couche a $E$ experts ; pour la matrice $j$, l'expert $x$ donne une préparation $P_j(x)$ (médianes, δ, \texttt{qs}, fonction de ses seuls blocs d'origine) et des comptes $N_j(x)$ (histogramme de δ, histogrammes des codes par classe $\kappa$), vecteurs d'entiers.
+
+\begin{proposition}[Identité des deux codeurs]\label{t2fmt:prop:identite}
+Les octets écrits par le codeur à deux passes sont ceux du codeur à une passe.
+\end{proposition}
+\begin{proof}
+(1) \emph{Comptes.} À une passe, $N_j = \sum_x N_j(x)$, sommé par un repli parallèle dans un ordre quelconque ; à deux passes, $N_j = \sum_{\text{paquets}} \sum_{x \in \text{paquet}} N_j(x)$. L'addition d'entiers (u64, sans débordement : au plus $E \cdot RB \cdot 16 \approx 5{,}3\cdot10^8$ par case pour le 120b) est associative et commutative : les deux $N_j$ sont égaux. (2) \emph{Tables} : une fonction déterministe de $N_j$ (règle d'arrondi de l'étude 03) : égales. (3) \emph{Tronçons} : un tronçon est une fonction de $(P_0(x), P_1(x), P_2(x), \text{biais de } x, \text{tables de la couche})$ ; $P_j(x)$ se recalcule à la seconde passe depuis les mêmes octets (\cref{t2fmt:lem:origine}) : mêmes tronçons. (4) \emph{Ordre} : (couche, expert) dans les deux cas, résultats d'un paquet recueillis dans l'ordre de $x$ : mêmes décalages, même répertoire, mêmes empreintes, même en-tête. L'empreinte d'origine, calculée à une passe par un hacheur nourri matrice après matrice et à deux passes d'un seul appel sur la suite, porte sur la même suite d'octets ; SHA-256 ne dépend pas du découpage en appels.
+\end{proof}
+
+\paragraph{Le témoin.} Le 20b recodé par la version à deux passes doit avoir la SHA-256 du fichier de F2, calculée par \texttt{Get-FileHash} (un chemin indépendant de notre code) : \texttt{e8bd6ae1…169f} des deux côtés ; la copie au bit retourné donne \texttt{c40f1163…7123} : l'instrument tombe \mes~(\fichier{journaux/identite-20b-2passes.txt}).
+
+\begin{proposition}[Borne de mémoire]\label{t2fmt:prop:memoire}
+Avec $p$ experts par paquet, la pointe de la boucle des experts est bornée par
+\[
+\underbrace{p \sum_j 17 R_j B_j}_{\text{blocs lus}} + \underbrace{p \sum_j 17 R_j B_j}_{\text{préparations}} + \underbrace{p\, T_{\max}}_{\text{tronçons assemblés}} + \underbrace{3 \cdot 4 R E}_{\text{biais de la couche}} + \underbrace{2 \times 16\,\mathrm{Mio}}_{\text{rebond, morceau}},
+\]
+où seul le terme des biais dépend de $E$.
+\end{proposition}
+\begin{proof}
+Un paquet est lu, préparé (au plus une préparation en vol par expert du paquet, $(16 + 1) R_j B_j$ octets par matrice), codé et écrit avant que le suivant soit lu ; les tronçons d'un paquet sont tenus jusqu'à leur écriture ; les biais de la couche sont lus une fois ; la lecture sans tampon passe par un rebond aligné, et la recopie des résidents par morceaux de 16\,Mio. Rien d'autre ne dépend de la taille d'un tenseur.
+\end{proof}
+
+\paragraph{Le calcul, pour gpt-oss et $p = 12$.} $\sum_j 17 R_j B_j = 3 \times 17 \times 259\,200 = 13\,219\,200$ octets. Blocs lus et préparations : $2 \times 12 \times 13\,219\,200 = 317\,260\,800$ ; tronçons : $12 \times 12\,251\,136 = 147\,013\,632$ ; biais : $34\,560\,E$, soit 1\,105\,920 (20b) et 4\,423\,680 (120b) ; rebond et morceau : 33\,554\,432. Total sur le 120b : $502\,252\,544$ octets \calc. Le lot F écrivait \barre{$\approx 0{,}47$\,Go} : c'est $0{,}47$\,\emph{Gio} ; en octets, la borne vaut $0{,}50$\,Go (correction du rédacteur, 2026-10-16 : unité). Le terme qui dépend du modèle ne pèse que 3,3\,Mo d'écart entre les deux. La version à une passe gardait en plus $3 E \times 4\,406\,400$ octets de préparations : 0,42\,Go (20b), 1,69\,Go (120b). D'où le seuil, déclaré avant le lancement de F3 : pointe 120b $\le 1{,}25 \times$ pointe 20b, la marge de 25\,\% couvrant le bruit de l'ensemble de travail (allocateur, fils), déclarée et non mesurée.
+
+\begin{figure}[ht]
+\centering
+\TdFmtGraphePointes
+\caption[Pointe de mémoire du codeur et de la vérification]{Pointe de l'ensemble de travail du codeur et de la vérification, une passe contre deux passes (relevée toutes les 0,5\,s par le lanceur). Le 120b, cinq fois plus gros, se code et se vérifie dans la même fenêtre que le 20b : rapports 1,033 (codeur) et 1,028 (vérification), sous le seuil de 1,25 \mes. Données : \fichier{mesures/moteur/F/csv/pointes-memoire.csv}.}
+\label{t2fmt:fig:pointes}
+\end{figure}
+
+\paragraph{Le prix, et une unité fausse deux fois.} Les experts sont lus deux fois : $2 \times 61{,}0$\,Go sur le 120b au lieu de $61{,}0$\,Go. Au débit du disque en lectures aléatoires de 4\,Mio en profondeur 4 (2,58\,Go/s, étude 01 ; \barre{débit séquentiel} : le séquentiel en blocs de 4\,Mio y vaut 1,04 à 1,63\,Go/s), la seconde lecture coûte $61{,}0 / 2{,}58 = 23{,}6$ secondes \calc. Le lot F avait écrit \barre{$\approx 24$ minutes de plus} dans ses dérivations, et l'a barré lui-même (« l'unité était fausse ») ; le commentaire de tête de \fichier{moteur/bins/trc-codeur/src/coder.rs} dit encore « \barre{de l'ordre de 25 minutes de disque de plus} » : c'est la même erreur, relevée par le rédacteur le 2026-10-16 et signalée au lot F (le fichier n'est pas à lui). Le codage du 120b a duré 1\,153\,s en tout : la seconde lecture y pèse environ 2\,\% ($23{,}6 / 1\,153 = 2{,}05\,\%$ \calc), le rANS du processeur fait le reste.
+
+\begin{faux}[title={Ce que le témoin n'avait pas couvert : l'erreur 87}]
+La première version à deux passes calculait la SHA-256 du GGUF par morceaux de 16\,Mio lus sans tampon, et relisait après la lecture courte de fin de fichier, à un décalage qui n'était plus aligné : Windows refuse (erreur 87, paramètre incorrect). Le défaut a été vu sur le 20b, corrigé (une lecture courte n'arrive qu'en fin de fichier ; l'appelant compare le total à la taille), et une quatrième cassure du témoin de la lecture sans tampon le couvre désormais : quatre cassures sur quatre tombent, le test restauré tient \mes~(\fichier{journaux/casser-lecture.log}).
+\end{faux}
+
+\section{C1 sur 768 et 4\,608 experts}\label{t2fmt:sec:cun}
+
+\subsection{Le premier chemin : cinq contrôles par expert}
+
+La vérification (\texttt{trc-codeur verifier}) ne fait pas confiance au codeur : elle relit le \texttt{.trc} par \texttt{trc-format} (toutes empreintes), décode chaque expert par \texttt{trc-codec}, et compare aux tranches lues dans le GGUF. Cinq contrôles par expert : (1) l'empreinte des octets utiles de la partie égale celle du répertoire ; (2) le décodage réussit (voies sur $L$, mots consommés) ; (3) les octets d'origine reconstruits égalent, octet pour octet, les tranches du GGUF ; (4) l'empreinte du décodé égale l'empreinte d'origine du répertoire ; (5) l'empreinte des tranches du GGUF l'égale aussi.
+
+\begin{table}[ht]
+\centering\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X r r}
+\toprule
+Grandeur (seuil déclaré avant) & gpt-oss-20b & gpt-oss-120b \\
+\midrule
+Experts exacts, cinq contrôles chacun (0 faux) & 768 sur 768 & \textbf{4\,608 sur 4\,608} \\
+Contrôles faux : partie, décodage, octets, décodé, GGUF & 0, 0, 0, 0, 0 & 0, 0, 0, 0, 0 \\
+Résidents égaux, octets et empreinte & 315 sur 315 & 471 sur 471 \\
+SHA-256 du GGUF, recalculée par le codeur puis la vérification & \texttt{27cd6c43…5901} & \texttt{582bd40f…622d} \\
+$r_{03}$ (à 0,1\,\% de l'étude 03 : 1,1037 et 1,1026) & 1,103732 & 1,102592 \\
+Bits par poids : codes, δ, médianes, total & 3,8135 ; 0,0343 ; 0,0028 ; 3,8506 & 3,8202 ; 0,0316 ; 0,0028 ; 3,8546 \\
+Tronçons : min, moyenne, max (octets) & 11\,837\,440 ; 12\,013\,664 ; 12\,144\,640 & 11\,763\,712 ; 12\,026\,060 ; 12\,251\,136 \\
+Taille du \texttt{.trc} (repère de l'arbitre à 1\,\%) & 11\,157\,405\,696 (+0,52\,\%) & 57\,730\,662\,400 (+0,14\,\%) \\
+Cassure en mémoire (une médiane faussée) & (7, 13) seul faux & (29, 101) seul faux \\
+\bottomrule
+\end{tabularx}
+\caption[C1 : le verdict]{Le critère C1 et les taux, contre les seuils déclarés avant les lancements (\fichier{mesures/moteur/F/verdicts.md} ; journaux \fichier{verifier-20b.json}, \fichier{verifier-120b.json}, \fichier{comparer-03-120b.json}). Sur une vraie copie du 20b dont un seul octet est changé (décalage 8\,818\,286\,848, 120 $\to$ 121, vu par \texttt{cmp -l}), exactement l'expert (17, 29) tombe, code de sortie 1.}
+\label{t2fmt:tab:cun}
+\end{table}
+
+Dans chaque cassure, les contrôles « partie », « octets » et « décodé » tombent ; « décodage » tient (une médiane faussée change $e = \text{méd} + \delta - 128$, pas les flux rANS) ; « GGUF » tient (la source n'est pas touchée). C'est le motif attendu, et il dit que les cinq contrôles ne sont pas redondants.
+
+\paragraph{Le taux, mot à mot.} Sur le 120b, la comptabilité de l'étude 03 (blocs MXFP4 d'origine contre flux MEDIANES, DELTA et CODES\_CTX tels que rangés) donne codes 3,820169, δ 0,031609, médianes 0,002778, soit \textbf{3,854555 bits par poids} ; avec les tables (224\,656 octets), 3,854571 \mes. Les médianes coûtent exactement un octet par ligne de 2\,880 poids : $8/2\,880 = 0{,}0027778$ \calc. Le rapport $r_{03}$ se lit directement : 17 octets d'origine pour 32 poids font $17 \times 8 / 32 = 4{,}25$ bits par poids, et $4{,}25 / 3{,}854555 = 1{,}102592$, le $r_{03}$ publié \calc. Le rapport des tronçons complets (en-têtes, biais, bourrage compris) vaut $13\,253\,760 / 12\,026\,060{,}4 = 1{,}102087$ \calc. Les douze tenseurs de F1 du 20b sont égaux au millionième à la mesure de l'arbitre, ce qui fait du codeur de production un second chemin de F1 (\fichier{csv/f1-contre-trc-20b.csv}).
+
+\begin{figure}[ht]
+\centering
+\TdFmtGrapheTaux
+\caption[Bits par poids par tenseur et par couche]{Bits par poids de chaque tenseur d'experts (codes, δ et médianes), couche par couche, pour les deux modèles. Le taux est régulier entre couches et entre gate, up et down, à 0,05 bit près, sauf la couche 0 du 120b (gate et up près de 3,80). Données : \fichier{mesures/moteur/F/csv/taux-par-tenseur-{120b,20b}.csv}.}
+\label{t2fmt:fig:taux}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\TdFmtGrapheTroncons
+\caption[Taille des tronçons par couche]{Taille des tronçons par couche (moyenne, minimum et maximum sur les experts de la couche), contre l'expert MXFP4 d'origine (13\,253\,760 octets). Le plus grand tronçon du 120b (12\,251\,136 octets, couche 0) fixe la taille des tampons d'arrivée du moteur. Données : \fichier{mesures/moteur/F/csv/troncons-par-couche-{120b,20b}.csv}.}
+\label{t2fmt:fig:troncons}
+\end{figure}
+
+\subsection{Le second chemin : aucune ligne commune}
+
+Le premier chemin lit le GGUF par la fonction même du codeur (\texttt{gguf::lire\_dans}) : une erreur systématique de lecture (lire la tranche d'un autre expert, un décalage faux) serait commune au codeur et à la vérification, et C1 tiendrait à tort. Le lot F a donc écrit un second chemin (\fichier{mesures/moteur/F/second\_chemin\_c1.py}) : Python, bibliothèque standard seule (\texttt{hashlib} sur OpenSSL 3.0.18, pas la crate \texttt{sha2}), écrit depuis le seul §\,4 et la spécification GGUF v3, sans relire \texttt{trc-format}, \texttt{trc-codec} ni le lecteur du codeur ; le GGUF lu sans tampon ; les décalages des tenseurs refaits une troisième fois par le lecteur GGUF de llama.cpp lui-même (\texttt{gguf\_init\_from\_file} de \texttt{ggml-base.dll} b11515, MIT) \cite{llamacpp_b11515_gguf}. La \cref{t2fmt:fig:cun} montre comment les deux chemins se rejoignent.
+
+\begin{figure}[ht]
+\centering
+\TdFmtCun
+\caption[Les deux chemins de C1]{Les deux chemins de C1 sur le 120b.}
+\label{t2fmt:fig:cun}
+\end{figure}
+
+\begin{proposition}[Le second chemin ferme la faille d'une lecture commune]\label{t2fmt:prop:second-chemin}
+Soit $G(x)$ les octets de l'expert d'origine, $D(x)$ l'expert décodé, $r(x)$ l'empreinte du répertoire, $h$ l'empreinte64. Si $h(D(x)) = r(x)$ (premier chemin) et $h(G_2(x)) = r(x)$ (second chemin, $G_2$ lu par un autre programme), alors $D(x) \ne G_2(x)$ exigerait une collision de $h$ ; et une erreur de lecture du codeur ne passe que si $G_2$ se trompe exactement de la même façon.
+\end{proposition}
+\begin{proof}
+Les deux égalités donnent $h(D(x)) = h(G_2(x))$ ; la \cref{t2fmt:prop:collision} borne la probabilité d'une collision par $4\,608 \cdot 2^{-64}$ sur le modèle. Une erreur systématique de \texttt{gguf::lire\_dans} rendrait $G_1(x) \ne G(x)$ ; le codeur aurait rangé $r(x) = h(G_1(x))$, et la vérification aurait trouvé $D = G_1$, à tort. Le second chemin compare $r(x)$ à $h(G_2(x))$ : il faudrait que deux programmes sans ligne commune, dont l'un (llama.cpp) fait référence pour le format GGUF, se trompent de la même façon.
+\end{proof}
+
+\paragraph{Ce qu'il a mesuré.} Sur les deux modèles, sur secteur : 0 écart entre le lecteur Python et llama.cpp (459 et 687 tenseurs) ; zone de données pavée sans trou ; SHA-256 par \texttt{hashlib} égale au registre des téléchargements (troisième calcul, le premier hors de \texttt{sha2}) ; en-tête, MÉTA (36 paires octet pour octet, plus 3), TABLES (288 et 432), RÉPERTOIRE sans écart ; \textbf{0 empreinte d'expert fausse sur 768, puis sur 4\,608} ; BIAIS et MEDIANES égaux octet pour octet à leurs sources refaites \mes~(\fichier{journaux/second-chemin-{20b,120b}.json}). Les médianes, refaites : pour $B = 90$, la médiane est \texttt{tri[45]}, le 46\textsuperscript{e} plus petit des 90 octets d'échelle d'une ligne.
+
+\begin{table}[ht]
+\centering\small
+\begin{tabularx}{\linewidth}{l >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+Cassure & Attendu & 20b & 120b \\
+\midrule
+bit de codes & cet expert, empreinte seule & (3, 7) : empreinte seule & (3, 7) : empreinte seule \\
+médiane refaite & cet expert, MEDIANES seul & (5, 9) : MEDIANES seul & (29, 101) : MEDIANES seul \\
+bit d'un biais & cet expert, empreinte et BIAIS & (11, 13) & (35, 127) \\
+lecteur décalé & 1 écart contre llama.cpp & 1 (\texttt{output.weight}) & 1 \\
+SHA-256 & différente & différente & différente \\
+tranche de $x + 1$ & tous les experts lus faux & 768 sur 768 (et MEDIANES 768) & 256 sur 256 (couches 0 et 1, déclaré) \\
+\bottomrule
+\end{tabularx}
+\caption[Les six cassures du second chemin]{Les six cassures du second chemin : chacune tombe exactement où elle vise, et les autres experts restent justes (\fichier{verdicts.md} ; \fichier{csv/second-chemin-c1.csv}). Le décalage fait aussi tomber les médianes (elles viennent des mêmes tranches) et laisse les biais justes (ils ne sont pas décalés) : les contrôles voient chacun leur propre octet.}
+\label{t2fmt:tab:cassures-c1}
+\end{table}
+
+\begin{faux}[title={Ce que le témoin a attrapé chez son auteur}]
+La première version du second chemin lisait le numéro de version du GGUF sur la magie (curseur à 0 au lieu de 4). Sa relecture croissante de la tête, faite pour les métadonnées longues, a alors grossi sans borne jusqu'au fichier entier : 9,6\,Go de RAM sur une machine de 16, avant d'échouer. Corrigé (curseur à 4, relecture bornée à 256\,Mio). Leçon : une boucle de repli sans borne transforme une erreur d'analyse en charge pour toute la machine (\fichier{moteur/REPRISE-F.md}).
+\end{faux}
+
+Il manquait encore un maillon : « octets du tronçon $\to$ expert décodé » n'avait sur le 120b qu'un décodeur processeur. Le décodeur de la carte du lot K l'a refait : \textbf{4\,608 sur 4\,608} experts du vrai fichier égaux à \texttt{trc-codec} et au répertoire (\fichier{mesures/moteur/K/k1-trc-gptoss120b.json}) \mes.
+
+\section{Le décodeur indépendant de l'épreuve}\label{t2fmt:sec:epreuve}
+
+La spécification prévoyait un geste pour savoir si elle était vraie (\fichier{ARCHITECTURE.md} §\,8.1) : un juge qui ne l'a pas écrite code un décodeur Python \emph{à partir du seul §\,4}, sans lire \texttt{trc-format} ni \texttt{trc-codec}, et doit redonner au bit près des tronçons tirés au hasard. Un échec aurait été un défaut de la spécification ou du codeur.
+
+\paragraph{Ce que fait l'outil.} \fichier{mesures/moteur/epreuve-J1/decodeur\_s4.py} (Python 3.13, numpy) contient son propre lecteur GGUF v3, vérifie l'en-tête champ par champ, MÉTA, RÉSIDENTS, TABLES et RÉPERTOIRE, puis décode chaque tronçon tiré par le rANS du §\,4.9.2, \emph{vectorisé sur les tuiles} (127 tuiles $\times$ 32 voies en parallèle, 1\,024 pas séquentiels par flux, 0,8\,s par expert), la table par voie et la reconstruction. L'expert est comparé à l'empreinte d'origine du répertoire et aux octets du GGUF au décalage du \cref{t2fmt:lem:origine} ; s'y ajoutent deux contrôles que le décodeur n'exige pas (médiane égale à \texttt{tri[B/2]}, fin de chaque tuile égale au début de la suivante).
+
+\begin{lstlisting}[language=Python, caption={[Le rANS vectorisé de l'épreuve]Le cœur du rANS vectorisé du juge (\fichier{mesures/moteur/epreuve-J1/decodeur\_s4.py}, \texttt{decoder\_flux}, géométrie 1, raccourci) : la règle « pour $l = 0$ à 31 dans l'ordre » devient une somme cumulée sur l'axe des voies (\cref{t2fmt:prop:parallele}).}, label={t2fmt:lst:numpy}]
+for ml in range(N):                        # macro-pas local, toutes les tuiles ensemble
+    m = tuiles * N + ml
+    act = np.nonzero(m < total_m)[0]       # tuiles encore actives
+    w = m[act, None] * 32 + voies[None, :] # mot de sortie de chaque voie
+    ctx = kappa[w >> 2]                    # table par voie : bloc = w / 4
+    xa, pa = x[act], p[act]
+    for k in range(4):                     # sous-pas
+        e = luts[ctx, (xa & 4095).astype(np.int64)].astype(np.uint64)
+        s, f, b = e & 0xFF, ((e >> 8) & 0xFFF) + 1, e >> 20
+        y = f * (xa >> 12) + b
+        besoin = y < L_RANS                # voies qui renormalisent
+        cs = np.cumsum(besoin, axis=1)     # rang de chaque lecture dans la tuile
+        idx = np.clip(pa[:, None] + cs - 1, 0, max(W - 1, 0))
+        xa = np.where(besoin, (y << 16) | mots[idx], y)
+        pa = pa + cs[:, -1]
+        sortie[4 * w + k] = s.astype(np.uint8)
+    x[act], p[act] = xa, pa
+\end{lstlisting}
+
+\paragraph{Les résultats.} \textbf{20 tronçons sur 20} tirés dans \texttt{gpt-oss-120b.trc} (graine 20261016) égaux au GGUF au bit près, et 20 sur 20 dans le 20b ; 0 voie hors de $L$, 0 tuile dont la fin diffère du début de la suivante ; 172\,800 lignes sur 172\,800 dont la médiane égale \texttt{tri[B/2]} ; les 471 résidents du 120b et les 315 du 20b égaux au GGUF octet pour octet ; en-tête, MÉTA (39 = 36 + 3 paires), TABLES (432 tables de somme 4\,096), RÉPERTOIRE (4\,608 entrées contiguës du début de TRONÇONS à la fin du fichier) et compagnons \texttt{.vocab.gguf} conformes \mes~(\fichier{mesures/epreuve-J1.md} §\,2.2 ; \fichier{journaux/s4-gptoss120b-20.json}).
+
+\begin{table}[ht]
+\centering\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X r r c}
+\toprule
+Cassure (tronçon couche 12, expert 54) & Voies hors de $L$ & Octets faux & Le second tient \\
+\midrule
+un bit retourné dans les mots de CODES\_CTX & 32 (une tuile) & 31\,122 & oui \\
+deux fréquences d'une table échangées & 4\,064 & 3\,624\,195 & oui \\
+une médiane changée d'une unité & \textbf{0} & 90 (une ligne d'échelles) & oui \\
+une fente de LUT corrompue & 4\,032 & 3\,262\,607 & oui \\
+\bottomrule
+\end{tabularx}
+\caption[Les cassures du décodeur de l'épreuve]{Les cassures du décodeur de l'épreuve (\fichier{mesures/epreuve-J1.md} §\,2.3). La médiane faussée laisse toutes les voies sur $L$ et change exactement les 90 échelles d'une ligne : seule l'empreinte de l'expert la voit. Le bit retourné ne fausse qu'une tuile : les tuiles sont indépendantes, et l'erreur ne passe pas la frontière.}
+\label{t2fmt:tab:cassures-s4}
+\end{table}
+
+\subsection{Ce que l'écriture du décodeur a appris sur le texte}
+
+« Rien n'a manqué pour décoder au bit près », écrit le juge. Mais un second implémenteur a dû deviner trois choses, que le lot F avait tranchées de son côté parmi neuf précisions (\cref{t2fmt:tab:precisions}). Aucune ne change un octet des fichiers écrits ; toutes attendent que l'arbitre les porte dans la spécification.
+
+\begin{table}[ht]
+\centering\small
+\begin{tabularx}{\linewidth}{c >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+& Précision (réponse par délégation du 2026-10-15, réversible) & Vue aussi par le juge \\
+\midrule
+1 & la longueur d'une section est utile : empreinte comprise, bourrage exclu & oui (m4.1) \\
+2 & l'empreinte de la table des résidents est aux 8 derniers octets de la section & oui (m4.2) \\
+3 & les octets utiles d'une partie finissent avec le dernier flux & — \\
+4 & contexte fixe : 0 pour DELTA, \texttt{0xFF} sinon & — \\
+5 & octets produits d'un flux rANS = son champ P (bourrage compris) ; d'un flux brut, sa longueur & — \\
+6 & un bloc de bourrage a $\kappa = 0$ (\cref{t2fmt:sec:contextes}) & — \\
+7 & structures du §\,5.3 étendues (champs et fonctions ajoutés, rien de changé) & — \\
+8 & règle d'arrondi des tables : celle de l'étude 03 (non normative, les fréquences sont stockées) & — \\
+9 & ordre des flux du fichier brut : pour chaque $j$, ses trois flux à la suite ; TABLES vide & — \\
+m4.3 & « la fin de la tuile $t$ est le début de la tuile $t+1$ » : vrai sur 100\,\% des tuiles, non normatif & second contrôle gratuit (\cref{t2fmt:prop:controles}) \\
+T2 & taille des LUT : §\,4.6 écrit 6,9\,Mo ; c'est 7\,077\,888 octets, 7,08\,Mo ou 6,75\,Mio & relevée par le juge du Tome~II (m17) \\
+\bottomrule
+\end{tabularx}
+\caption[Les précisions du texte en attente de l'arbitre]{Les précisions du texte du format en attente de l'arbitre : les neuf du lot F (\fichier{moteur/REPRISE-F.md}), les trois imprécisions du juge de l'épreuve (constat m4, \fichier{mesures/epreuve-J1.md} §\,2.5) et celle du juge du Tome~II (T2, \fichier{memoire/tome2/JUGEMENT.md}, m17).}
+\label{t2fmt:tab:precisions}
+\end{table}
+
+\section{Les versions, et ce qui est réservé pour J2}\label{t2fmt:sec:versions}
+
+La v1.0 (J1) a un niveau et la sorte CODES\_CTX ; un lecteur 1.x lit toute version 1.y inférieure ou égale à la sienne, et refuse 2.x. La v1.1 (J2) est réservée au bit près : deux niveaux, BASE\_CTX (signe et classe de magnitude, en demi-octet, table par voie) au niveau 0, COMPL\_CTX (rang de la magnitude dans sa classe, table par symbole, jusqu'à 192 contextes, sauts pour la classe à une seule magnitude) au niveau 1, et les tables CENTRES. La mesure F1 de l'arbitre, rapportée au Tome~I, en a fixé le coût (\cref{t2fmt:tab:fun}) ; le passage demandera de recoder le fichier une fois.
+
+\begin{table}[ht]
+\centering\small
+\begin{tabular}{l r r r r}
+\toprule
+Variante (12 tenseurs de gpt-oss-20b) & Total & Codes ou base & Complément & Rapport à A\_ctx \\
+\midrule
+A\_flux (trois flux de classe, étude 03) & 3,8434 & 3,8059 & — & 1,00008 \\
+\textbf{A\_ctx (table par voie, v1.0)} & \textbf{3,8431} & 3,8056 & — & 1 \\
+B\_cond (complément selon $\kappa$ et la classe) & 3,8591 & 2,6066 & 1,2149 & 1,00414 \\
+B\_mag (complément selon la classe seule) & 3,8733 & 2,6066 & 1,2291 & 1,00785 \\
+\textbf{B\_riche (v1.1)} & \textbf{3,8550} & 2,6066 & 1,2107 & \textbf{1,00308} \\
+\bottomrule
+\end{tabular}
+\caption[Ce que coûte la découpe de la v1.1]{Bits par poids de la mesure F1 de l'arbitre (\fichier{ARCHITECTURE.md} §\,3.3 ; \fichier{decisions/journaux/arbitre/decoupe-gptoss20b.json}), tous les flux décodés et comparés octet à octet. Le format unique de J2 paiera 0,31\,\% d'octets au mode exact, sous le seuil déclaré de 0,4\,\%.}
+\label{t2fmt:tab:fun}
+\end{table}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{Le décodeur de l'épreuve n'a décodé que 40 tronçons} (20 par modèle) et 13 nommés ; C1 sur les 4\,608 experts repose sur les deux chemins du lot F et sur le décodeur de la carte du lot K.
+\item \textbf{Le second chemin est écrit par le lot F} : son auteur connaît les choix du codeur. Quatre de ses contrôles de structure en dépendent (précisions 1, 2, 4, 5) ; aucun ne touche les empreintes d'experts, qui ne dépendent que des §\,4.7, 4.11, 4.12 et de la spécification GGUF.
+\item \textbf{Le lecteur Python et le codeur partagent une lecture du §\,4.11} (blocs puis biais, ordre gate, up, down ; \texttt{ne[0]} = colonnes) : si elle était fausse au regard de llama.cpp, les deux seraient faux ensemble. Le témoin qui la valide est la référence f64 du lot R, lue dans le GGUF et jugée contre llama.cpp.
+\item \textbf{Les pointes de mémoire du codeur} sont des ensembles de travail relevés toutes les 0,5\,s : une pointe plus brève peut échapper ; la machine était partagée.
+\item \textbf{La borne de collision} suppose que SHA-256 se comporte comme une fonction aléatoire sur des erreurs non fabriquées ; elle ne vaut rien contre un adversaire qui choisit les octets.
+\item \textbf{Le taux de la v1.1} est mesuré sur 12 tenseurs du 20b par l'outil de l'arbitre, pas par le codeur de production, qui ne l'écrit pas encore ; si ce codeur dépasse $1{,}004 \times$ le niveau unique sur le 120b, l'arbitre redécide.
+\item \textbf{La cassure de copie} n'est faite que sur le 20b ; sur le 120b, la cassure est en mémoire (même code de vérification, un bit retourné après la lecture).
+\end{itemize}
+\end{faux}

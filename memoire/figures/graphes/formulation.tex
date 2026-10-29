@@ -1,0 +1,59 @@
+% Graphes du chapitre « Formulation du problème ».
+% Chaque courbe lit un CSV commité : memoire/figures/donnees/ (tiré par donnees_figures.py) ou
+% fondations/journaux/07-synthese/csv/ (écrit par outils/07-synthese/plafonds.py).
+\providecommand{\CsvSynthese}{\Depot/fondations/journaux/07-synthese/csv}
+
+% Les trois scénarios de localité h(c) = c^beta, et le point publié qui cale chaque beta.
+\newcommand{\GrapheLocaliteHypotheses}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=0.92\linewidth, height=0.6\linewidth,
+  xlabel={\EF{share $c$ of the expert bytes held by the cache}{part $c$ des octets d'experts que le cache contient}},
+  ylabel={\EF{hit rate $h(c)$}{taux de succès $h(c)$}}, xmin=0, xmax=1, ymin=0, ymax=1.02,
+  legend pos=south east]
+\addplot[SerieE, no markers, line width=1.2pt] table[x=c, y=belady] {\Donnees/form-localite.csv};
+\addlegendentry{\EF{Belady fitted, $\beta = 0.117$}{Belady calé, $\beta = 0{,}117$}}
+\addplot[SerieA, no markers, line width=1.2pt] table[x=c, y=lru] {\Donnees/form-localite.csv};
+\addlegendentry{\EF{LRU fitted, $\beta = 0.207$}{LRU calé, $\beta = 0{,}207$}}
+\addplot[SerieF, dashed, no markers] table[x=c, y=uniforme] {\Donnees/form-localite.csv};
+\addlegendentry{\EF{uniform routing, $\beta = 1$}{routage uniforme, $\beta = 1$}}
+\addplot[only marks, mark=*, mark size=2.4pt, black] table[x=c, y=h] {\Donnees/form-localite-calage.csv};
+\addlegendentry{\EF{published point (Qwen3-30B-A3B)}{point publié (Qwen3-30B-A3B)}}
+\draw[black!40, dotted] (axis cs:0.134,0) -- (axis cs:0.134,1);
+\node[font=\scriptsize, black!65, anchor=west] at (axis cs:0.14,0.08) {$c = 0{,}134$};
+\end{axis}
+\end{tikzpicture}}
+
+% Plafond de gpt-oss-120b selon la part h_s des octets d'experts lue sur le disque.
+\newcommand{\GraphePlafondHs}{%
+\begin{tikzpicture}
+\begin{semilogyaxis}[memoire, width=0.92\linewidth, height=0.6\linewidth,
+  xlabel={\EF{share $h_s$ of the expert bytes read from disk}{part $h_s$ des octets d'experts lue sur le disque}},
+  ylabel={\EF{ceiling (tokens/s)}{plafond (jetons/s)}}, xmin=0, xmax=0.8, ymin=1.5, ymax=25,
+  ytick={2,3,5,10,20}, yticklabels={2,3,5,10,20}, legend pos=north east]
+\addplot[SerieA, no markers, line width=1.2pt] table[x=h_s, y=A_sans_perte] {\CsvSynthese/plafond-gptoss120b-contre-hs.csv};
+\addlegendentry{\EF{lossless coding, $r = 1.1026$}{codage sans perte, $r = 1{,}1026$}}
+\addplot[SerieF, dashed, no markers] table[x=h_s, y=A_brut] {\CsvSynthese/plafond-gptoss120b-contre-hs.csv};
+\addlegendentry{\EF{raw MXFP4, $r = 1$}{MXFP4 brut, $r = 1$}}
+\draw[black!45, dotted] (axis cs:0.234,1.5) -- (axis cs:0.234,25) node[pos=0.06, right, font=\scriptsize, black!65] {\EF{LRU fitted}{LRU calé}};
+\draw[black!45, dotted] (axis cs:0.723,1.5) -- (axis cs:0.723,25) node[pos=0.06, left, font=\scriptsize, black!65] {\EF{uniform}{uniforme}};
+\node[font=\scriptsize, black!65, align=left, anchor=west] at (axis cs:0.005,19.5) {\EF{PCIe / GPU\\ hold the max}{PCIe / carte\\ tiennent le max}};
+\node[font=\scriptsize, black!65, anchor=west] at (axis cs:0.36,9.5) {\EF{disk holds the max: slope $-1$}{le disque tient le max : pente $-1$}};
+\end{semilogyaxis}
+\end{tikzpicture}}
+
+% La fenêtre de travail : plafond de gpt-oss-120b selon le cache tiède en RAM.
+\newcommand{\GraphePlafondRam}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=0.92\linewidth, height=0.6\linewidth,
+  xlabel={\EF{warm cache in RAM (GB)}{cache tiède en RAM (Go)}},
+  ylabel={\EF{ceiling (tokens/s)}{plafond (jetons/s)}}, xmin=-0.3, xmax=11.5, ymin=0, ymax=11.5,
+  legend pos=north west]
+\addplot[SerieE, mark=*, mark size=1.4pt] table[x=ram_cache_go, y=jetons_s_belady] {\CsvSynthese/plafond-gptoss120b-contre-ram.csv};
+\addlegendentry{\EF{Belady fitted}{Belady calé}}
+\addplot[SerieA, mark=square*, mark size=1.4pt, line width=1.2pt] table[x=ram_cache_go, y=jetons_s_lru] {\CsvSynthese/plafond-gptoss120b-contre-ram.csv};
+\addlegendentry{\EF{LRU fitted}{LRU calé}}
+\addplot[SerieF, mark=triangle*, mark size=1.4pt, dashed] table[x=ram_cache_go, y=jetons_s_uniforme] {\CsvSynthese/plafond-gptoss120b-contre-ram.csv};
+\addlegendentry{\EF{uniform}{uniforme}}
+\node[pin={[pin distance=1.1cm, font=\scriptsize, align=left]-12:{\EF{A0: 1.9\,GB of peak RAM\\ for a 63.4\,GB model}{A0 : 1,9\,Go de RAM de pointe\\ pour un modèle de 63,4\,Go}}}] at (axis cs:0,3.592) {};
+\end{axis}
+\end{tikzpicture}}

@@ -1,0 +1,460 @@
+% Tome~III, chapitre 3 : le génome des poids (version française).
+% Rédacteur A, 2026-10-29. Plan et réserves : memoire/tome3/PLAN-redaction.md § 03.
+% Chaque nombre vient d'un fichier commité, nommé à côté de lui : genome/genome.md,
+% genome/genome-pour-le-memoire.md, mesures/genome/genome/ (00-seuils-declares.md, csv/, kl/, *.json),
+% genome/05-synthese.md §§ 1.2, 2.2, 2.4 (le S* et sa KL corrigée), memoire/figures/tome3/donnees/
+% genome-nombres.csv et genome-verdict.csv (nombres des figures). Réserve R4 : le rapport de KL de S*
+% vient de la passe K10 (kl/comparer10-base-contre-recette.json), l'ancien chiffre à 3 fenêtres est barré.
+% Figures (jugées, non modifiées) : III-3.4 \GrapheGenGauss, III-3.6 \GrapheGenCourbes.
+\chapter{Le génome des poids : la recette, la graine, \texorpdfstring{$S^{*}$}{S*}}\label{t3gen:ch}
+
+\begin{origine}
+\textbf{Au départ}, la frontière (3,8431 bits sans perte ; base de 2,6441 bits à 4,2920\,\% d'erreur sur les poids, sur les 12 tenseurs de F1), des codes presque indépendants sachant leur échelle, et la consigne de Stone pour ce sujet, le 2026-10-16 : « le but est de concevoir un systeme fonctionnel et si il ne voye rien de convaincaint vers l'ADN au terme ils recherche le moyen biomimétique le plus prométeur jusqu'à trouver ». La lecture (\cref{t3que:ch}) prédisait qu'une recette ne gagnerait rien sans perte, et qu'avec perte elle viserait au mieux la borne des poids.
+\textbf{Ce chapitre établit} que la recette littérale (une graine et des coefficients, à la manière de SeedLM) ne bat pas la frontière, et le dit avant la mesure par un lemme sur le meilleur de $N$ sous-espaces aléatoires ; que la même idée, portée à la dimension d'une rangée entière et rendue cherchable par l'algorithme de Viterbi (le \emph{brin lu par codons}), la bat sur les 12 tenseurs en erreur de poids, de 0,20 à 0,60 bit ; qu'au même point elle perd en erreur de sortie, et pourquoi (une table qui écrête les colonnes massives) ; que le système corrigé, $S^{*}$, gagne en sortie d'expert 8 fois sur 8, mais que sa KL de bout en bout est \textbf{égale} à celle de la base. Il démontre aussi qu'aucune recette suivie d'un complément exact ne descend sous l'entropie des codes.
+\textbf{Il reste} le noyau sur la carte, le format d'une sorte de flux « BRIN », la rétroaction d'erreur entre colonnes combinée au brin, et la KL avec tous les experts codés.
+Sources : \fichier{genome/genome.md} ; \fichier{genome/genome-pour-le-memoire.md} ; \fichier{mesures/genome/genome/00-seuils-declares.md}, \fichier{csv/}, \fichier{kl/}, les journaux \texttt{*.json} ; \fichier{genome/05-synthese.md} §§\,1.2, 2.2, 2.4 ; outils sous \fichier{outils/genome/recette/} et \fichier{outils/genome/recette-kl/}.
+\end{origine}
+
+\begin{enbref}
+L'ARN messager se lit trois bases à la fois, à partir d'un point fixe, sans virgule, et chaque codon se traduit par une table fixe et dégénérée (\cref{t3int:sec:genome}). Le chapitre prend cette image au sérieux, comme image : un \emph{brin} de bits stocké pour chaque rangée de matrice, une fenêtre de 12 bits qui glisse le long du brin et rend un poids à chaque pas par une table de 256 valeurs, apprise sur le tenseur, comme le code génétique est fixe pour une espèce. Le meilleur brin se trouve exactement par programmation dynamique. Ce lecteur de codons gagne là où une graine courte perd, parce que sa dimension est illimitée. Mais il gagne en erreur de poids et perd en sortie : sa table écrête les quelques colonnes géantes que les entrées réelles lisent le plus. Une fois ces colonnes gardées à part, il gagne en sortie d'expert, et la divergence sur le texte ne bouge pas. C'est la leçon du chapitre, et de la ronde : chaque juge intermédiaire peut se tromper, et seul le texte tranche.
+\end{enbref}
+
+\section{La question et son juge}\label{t3gen:sec:question}
+
+Une recette « marche » si elle lit moins de bits par poids sur le disque à erreur égale ; le gain se lit dans le toit~\eqref{t3que:eq:toit}. Les seuils sont dans \fichier{mesures/genome/genome/00-seuils-declares.md}, commités avant toute mesure d'une recette (commit \texttt{e777d6d}, puis la précision de l'échantillon, \texttt{2698ccd}, avant la première passe).
+
+\paragraph{Le critère W.} Sur l'échantillon (experts 0, 8, 16 et 24 de chacun des 12 tenseurs ; une rangée sur quatre, 720 rangées entières par expert, 34\,560 rangées, 99,5 millions de poids), à l'erreur relative de la base \emph{mesurée sur les mêmes rangées}, la recette lit moins de bits que la frontière F1 du même tenseur \emph{sur chacun des 12 tenseurs} et en global. Une recette sans effet passerait les 12 avec la probabilité $2^{-12} \approx 2{,}4\cdot10^{-4}$ (test du signe) \calc. L'erreur est $e = \sum (w - \hat w)^2 / \sum w^2$ dans le domaine réel des poids, échelle comprise, cumulée sur les rangées du tenseur : la mesure de la frontière. Les critères O (sortie d'une couche d'experts), F (fidélité en fonction du débit), K (KL), C (transcription) et L (complément exact) sont déclarés dans le même fichier ; chacun est jugé là où il se mesure.
+
+\section{La graine : la recette littérale, et pourquoi elle ne peut pas suffire}\label{t3gen:sec:graine}
+
+\subsection{Le mécanisme}
+
+Un bloc de $C$ poids $w \in \mathbb{R}^C$ est approché par $\hat w = U(g)\,t$, où $U(g)$ est une matrice $C \times P$ tirée d'un générateur pseudo-aléatoire par une graine $g$ de $K$ bits, et $t \in \mathbb{R}^P$ des coefficients quantifiés (entiers de 4 bits en complément à deux, un exposant partagé de 4 bits). L'encodeur essaie les $2^K$ graines, projette $w$ sur chaque sous-espace (pseudo-inverse précalculée par Cholesky), quantifie, garde la meilleure. Débit : $(K + 4 + 4P)/C$ bits par poids. C'est la forme du problème de SeedLM~\cite{shafipour2024seedlm} ; le code est écrit de zéro (\fichier{outils/genome/recette/}). Deux générateurs : un LFSR de Galois de 16 bits ($x^{16} + x^{14} + x^{13} + x^{11} + 1$, période 65\,535 vérifiée par le test \texttt{periode\_maximale}) et un mélangeur de bits à compteur. Témoin T3 : un bloc engendré exactement par une graine et des coefficients quantifiables se retrouve à erreur nulle (\texttt{bloc\_engendre\_retrouve\_exactement}).
+
+\subsection{Ce que la théorie permet, avant toute mesure}
+
+\begin{lemme}[Le meilleur de $N$ sous-espaces aléatoires]\label{t3gen:lem:beta}
+Soit $w$ une direction uniforme sur la sphère de $\mathbb{R}^C$ et $V$ un sous-espace aléatoire uniforme de dimension $P$, indépendant de $w$. La part d'énergie hors de $V$, $\rho = \|P_{V^\perp} w\|^2 / \|w\|^2$, suit la loi $\mathrm{Beta}(a, b)$ avec $a = (C - P)/2$ et $b = P/2$.
+\end{lemme}
+
+\begin{proof}
+Par invariance par rotation, on peut fixer $V = \mathrm{vect}(e_1, \ldots, e_P)$ et prendre $w = z / \|z\|$ avec $z$ gaussien standard dans $\mathbb{R}^C$. Alors $\rho = \sum_{i > P} z_i^2 / \sum_i z_i^2 = X/(X + Y)$ avec $X = \sum_{i>P} z_i^2 \sim \chi^2_{C-P}$ et $Y = \sum_{i \le P} z_i^2 \sim \chi^2_P$, indépendants. Le rapport $X/(X+Y)$ de deux khi-deux indépendants à $2a$ et $2b$ degrés de liberté est, par définition, de loi $\mathrm{Beta}(a, b)$.
+\end{proof}
+
+\begin{corollaire}[Le résidu minimal attendu]\label{t3gen:cor:beta}
+Pour $N = 2^K$ sous-espaces indépendants, de résidus $\rho_1, \ldots, \rho_N$, et $F$ la fonction de répartition de $\mathrm{Beta}(a, b)$,
+\begin{equation}\label{t3gen:eq:minrho}
+\E\bigl[\min_i \rho_i\bigr] = \int_0^1 \bigl(1 - F(\varepsilon)\bigr)^N\, \dd\varepsilon \ \approx\ \Gamma\Bigl(1 + \frac1a\Bigr) \Bigl(\frac{a\, B(a, b)}{N}\Bigr)^{1/a} .
+\end{equation}
+\end{corollaire}
+
+\begin{proof}
+Pour une variable positive, $\E[M] = \int_0^\infty \Prob(M > \varepsilon)\,\dd\varepsilon$ ; pour $M = \min_i \rho_i$ et des $\rho_i$ indépendants de même loi, $\Prob(M > \varepsilon) = (1 - F(\varepsilon))^N$, et $\rho \le 1$. Pour l'asymptote, la densité de $\mathrm{Beta}(a, b)$ vaut $\varepsilon^{a-1}(1-\varepsilon)^{b-1}/B(a,b) \approx \varepsilon^{a-1}/B(a,b)$ près de 0, d'où $F(\varepsilon) \approx \varepsilon^a / (a\, B(a,b))$. Pour $N$ grand, seule compte la région où $F$ est petite, et $(1 - F)^N \approx \exp(-N F) = \exp(-c\, \varepsilon^a)$ avec $c = N/(a B(a,b))$. Le changement de variable $u = c\,\varepsilon^a$ donne $\int_0^\infty e^{-c\varepsilon^a}\dd\varepsilon = c^{-1/a}\,\frac1a \int_0^\infty u^{1/a - 1} e^{-u}\,\dd u = c^{-1/a}\,\Gamma(1 + 1/a)$, qui est~\eqref{t3gen:eq:minrho}.
+\end{proof}
+
+Le calcul exact par quadrature (\fichier{outils/genome/recette/graine\_theorie.py}, \fichier{graine-theorie.json}), avant toute quantification des coefficients (qui ne peut qu'ajouter de l'erreur), donne le \cref{t3gen:tab:theorie} \calc.
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabular}{l r r r}
+\toprule
+$(C, P, K)$ & débit (bits par poids) & résidu minimal attendu & borne de Shannon au même débit \\
+\midrule
+(8, 3, 16) & 4,00 & 0,79\,\% & 0,39\,\% \\
+(12, 4, 16) & 3,00 & 3,82\,\% & 1,56\,\% \\
+(12, 3, 16) & 2,67 & \textbf{6,32\,\%} & 2,48\,\% \\
+(14, 4, 16) & 2,57 & 7,07\,\% & 2,83\,\% \\
+(16, 5, 16) & 2,50 & 7,84\,\% & 3,13\,\% \\
+(16, 4, 16) & 2,25 & 10,74\,\% & 4,42\,\% \\
+(8, 1, 16) & 3,00 & 5,35\,\% & 1,56\,\% \\
+\bottomrule
+\end{tabular}
+\caption[La graine prédite par le lemme 1]{Le résidu minimal attendu de la graine sur une source isotrope, par le \cref{t3gen:lem:beta} et son corollaire, avant quantification des coefficients \calc. La borne de Shannon d'une gaussienne, $2^{-2R}$, est donnée au même débit. Données : \fichier{mesures/genome/genome/graine-theorie.json} ; \fichier{genome/genome.md} §\,2.2.}
+\label{t3gen:tab:theorie}
+\end{table}
+
+\paragraph{Ce que cela dit, avant la mesure.} Autour de 2,64 bits, la graine laisse \emph{au moins} 6,3\,\% d'erreur sur une source isotrope, quand la base en laisse 4,29\,\% ; pour atteindre 4,29\,\%, il lui faut près de 3 bits. Le pourquoi tient en une ligne : les $K$ bits de la graine achètent un livre de codes aléatoire de $2^K$ sous-espaces dans une dimension $C \le 16$. Shannon prouve que le livre de codes aléatoire atteint la fonction débit-distorsion~\cite{shannon1959}, mais \emph{quand la dimension tend vers l'infini} ; à $C = 8$ ou 12, l'écart à la borne est un facteur 2,5 en erreur. Et les $4P + 4$ bits des coefficients décrivent une position fine dans un sous-espace choisi au hasard : ils paient une précision que le choix grossier du sous-espace a déjà perdue.
+
+\subsection{La mesure}
+
+\texttt{genome graines} (\fichier{graines.jsonl}, \fichier{graines.log}) : expert 0 de chacun des 12 tenseurs, 32 rangées réparties sur toute la hauteur, rangées entières ; l'erreur de la base, mesurée sur les mêmes poids, vaut 4,559\,\% sur cet échantillon (\cref{t3gen:tab:graine}).
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabular}{l r r r}
+\toprule
+$(C, P, K)$, générateur & débit & erreur mesurée & prédiction du \cref{t3gen:lem:beta} \\
+\midrule
+(8, 3, 16), mélangeur & 4,00 & 1,41\,\% & 0,79\,\% \\
+(8, 3, 16), LFSR & 4,00 & 1,58\,\% & 0,79\,\% \\
+(10, 3, 16) & 3,20 & 3,89\,\% & 2,98\,\% \\
+(12, 4, 16) & 3,00 & 4,89\,\% & 3,82\,\% \\
+(8, 1, 16), forme-gain & 3,00 & 7,34\,\% & 5,35\,\% \\
+(12, 3, 16) & 2,67 & 7,51\,\% & 6,32\,\% \\
+(14, 4, 16) & 2,57 & 8,24\,\% & 7,07\,\% \\
+(16, 5, 16) & 2,50 & 9,10\,\% & 7,84\,\% \\
+(12, 2, 16) & 2,33 & 11,76\,\% & 9,99\,\% \\
+(16, 4, 16) & 2,25 & 12,15\,\% & 10,74\,\% \\
+\bottomrule
+\end{tabular}
+\caption[La graine mesurée contre la théorie]{La graine mesurée sur les vrais poids, contre le \cref{t3gen:lem:beta} \mes~\calc. Données : \fichier{mesures/genome/genome/graines.jsonl}, \fichier{csv/graine-mesure-theorie.csv}.}
+\label{t3gen:tab:graine}
+\end{table}
+
+Le lemme tient sur les vrais poids : la mesure suit la prédiction, plus la quantification des coefficients (0,6 à 2 points). Les blocs de poids réels se comportent, pour la graine, comme des directions uniformes : aucune concentration que le meilleur de $2^{16}$ sous-espaces aurait pu saisir. À l'erreur de la base, la graine demande \textbf{3,06 bits par poids} (interpolation en log de l'erreur entre (12, 4) et (10, 3) ; en linéaire, 3,07 \calc), contre 2,64 : \textbf{elle ne bat pas la frontière}, de 0,42 bit. Elle ne bat même pas le sans-perte (1,4\,\% d'erreur pour 4 bits, quand 3,84 bits rendent les poids exacts). Le générateur ne compte pas : LFSR et mélangeur rendent 1,58 et 1,41\,\%, l'écart venant de la corrélation des états successifs d'un LFSR, qui décalent les mêmes bits d'un cran.
+
+\section{La graine qui pousse : le brin lu par codons}\label{t3gen:sec:brin}
+
+\subsection{L'idée}
+
+Si le défaut de la graine est sa dimension, il faut une graine \emph{aussi longue que la rangée}, et un moyen de la chercher. L'ARN messager est lu par le ribosome trois bases à la fois, à partir d'un point fixe, sans virgule~\cite{genome-crick1961}, et chaque codon se traduit par une table fixe et dégénérée~\cite{genome-crick1968}. Transposé, comme analogie de construction :
+\begin{itemize}
+\item le \textbf{brin} : une suite de bits stockée sur le disque, une par rangée de matrice ;
+\item la \textbf{fenêtre de lecture} : $l$ bits ; elle avance de $k_b$ bits à chaque pas et rend $v$ poids. Deux pas voisins partagent $l - k_b$ bits : les codons se chevauchent, et c'est là que le brin diffère de l'ARN ;
+\item le \textbf{code génétique} : la fenêtre $s \in \{0, \ldots, 2^l - 1\}$ se traduit en $v$ valeurs par $\texttt{table}[\texttt{hache}(s, j) \gg (32 - q)]$, $j < v$ : un mélangeur de bits choisit une case d'une table de $2^q$ valeurs ; $2^l$ fenêtres pour $2^q$ sens, un code dégénéré comme le vrai ;
+\item l'\textbf{adaptation de l'organisme} : la table est apprise sur les poids du tenseur (Lloyd : chaque case prend la moyenne pondérée des poids qu'elle sert).
+\end{itemize}
+Débit : $k_b / v$ bits par poids, plus la première fenêtre ($l$ bits par rangée). C'est un code en treillis, le treillis « à décalage » de Mao et Gray, repris avec des codes calculés par QTIP~\cite{genome-mao2010,genome-qtip} ; la quantification en treillis remonte à Marcellin et Fischer~\cite{marcellin1990,genome-fischer1991}. \emph{Ils posent le problème ainsi} : une source gaussienne i.i.d., après une rotation aléatoire. \emph{Ce qui nous manquait}, et qui est dérivé ici : son emploi sur un modèle né en 4 bits contre une base déjà emboîtée dans le format ; la répartition des bits entre rangées par leur énergie, mesurée et décomposée ; la comptabilité complète contre la frontière F1 du format \texttt{.trc}. Le code est écrit de zéro (\fichier{outils/genome/recette/src/codons.rs}).
+
+\subsection{Le meilleur brin : Viterbi, et pourquoi il est exact}
+
+L'état au pas $p$ est la fenêtre $s_p$ ($l$ bits). La transition $s \to s'$ est permise si et seulement si les $l - k_b$ bits forts de $s'$ sont les $l - k_b$ bits faibles de $s$, c'est-à-dire $s' = ((s \ll k_b) \mid b) \bmod 2^l$ pour un $b < 2^{k_b}$.
+
+\begin{lemme}[Les prédécesseurs dans le treillis à décalage]\label{t3gen:lem:pred}
+Les prédécesseurs de $s'$ sont exactement les $s = (t \ll (l - k_b)) \mid u$, $t < 2^{k_b}$, avec $u = s' \gg k_b$. Ils ne dépendent de $s'$ que par $u$.
+\end{lemme}
+
+\begin{proof}
+La transition écrit $s' = ((s \ll k_b) \mid b) \bmod 2^l$ : les $l - k_b$ bits forts de $s'$ sont les $l - k_b$ bits faibles de $s$, et ses $k_b$ bits faibles sont $b$. Donc $s' \gg k_b = s \bmod 2^{l - k_b}$ : $u$ fixe les $l - k_b$ bits faibles de $s$, et ses $k_b$ bits forts, $t$, sont libres. Réciproquement, tout $s$ de cette forme mène à $s'$ avec $b = s' \bmod 2^{k_b}$.
+\end{proof}
+
+\begin{proposition}[Exactitude du Viterbi]\label{t3gen:prop:viterbi}
+Soit $C_p(s)$ le coût minimal $\sum_{i \le p}\sum_j \omega_{i,j}\,(x_{i,j} - \hat x_{i,j})^2$ d'un brin dont la fenêtre au pas $p$ est $s$. Alors $C_0(s) = d_0(s)$ et
+\begin{equation}\label{t3gen:eq:viterbi}
+C_p(s') = M_p(s' \gg k_b) + d_p(s'), \qquad M_p(u) = \min_{t < 2^{k_b}} C_{p-1}\bigl((t \ll (l - k_b)) \mid u\bigr),
+\end{equation}
+avec $d_p(s') = \sum_j \omega_{p,j}\,(x_{p,j} - \texttt{table}[\texttt{hache}(s', j)])^2$. Le brin de coût minimal s'obtient en gardant l'argmin $t$ de chaque $M_p(u)$ et en remontant depuis $\argmin_s C_{P-1}(s)$.
+\end{proposition}
+
+\begin{proof}
+Le coût est additif par pas, et le terme du pas $p$ ne dépend que de la fenêtre $s_p$ : c'est le principe d'optimalité de Bellman, sur lequel repose l'algorithme de Viterbi~\cite{viterbi1967}. Un chemin optimal finissant en $s'$ au pas $p$ se compose d'un chemin optimal finissant en un prédécesseur de $s'$ au pas $p-1$, puis de $d_p(s')$ ; le \cref{t3gen:lem:pred} donne l'ensemble exact de ces prédécesseurs, qui ne dépend que de $u = s' \gg k_b$. La récurrence~\eqref{t3gen:eq:viterbi} en découle, et la remontée des argmin reconstruit le chemin.
+\end{proof}
+
+\paragraph{Le coût.} Par pas, $2^l$ comparaisons (le minimum sur $t$, par tranches contiguës de $2^{l-k_b}$ grâce au lemme) et $2^l \cdot v$ évaluations ; mémoire de retour : $2^{l-k_b}$ octets par pas. Pour $l = 12$ : 4\,096 états, environ $2{,}3\cdot10^5$ poids par seconde et par forme sur les 16 fils du i7-13620H \mes.
+
+\paragraph{Les témoins.} T2 (comptabilité des bits) : le brin écrit (\texttt{ecrire\_brin}) puis relu par le seul décodeur (\texttt{lire\_brin}, qui ne connaît que le brin et la table) rend exactement la reconstruction dont l'erreur est comptée (tests \texttt{brin\_ecrit\_puis\_lu\_*}). T1 (source connue) : sur 128 rangées gaussiennes i.i.d., $l = 12$, $k_b = 2$, $v = 1$, $q = 8$, table gaussienne sans apprentissage, l'erreur vaut \textbf{0,073\,05} (\fichier{gauss-T1.json}), dans l'intervalle déclaré $[0{,}0625 ;\ 0{,}080]$. Le bas de l'intervalle est la borne de Shannon $2^{-2\cdot 2}$ : la battre dénoncerait une faute de comptabilité ; le haut est le milieu entre le treillis publié à $l = 16$ (0,069, QTIP) et le meilleur quantificateur vectoriel de dimension 8 publié (0,089). Cassure (table nulle) : 0,996, le témoin tombe (\fichier{gauss-T1-casse.json}) \mes.
+
+\begin{figure}[tbp]
+\centering
+\GrapheGenGauss
+\LegendeFigure{GenGauss}
+\label{fig:t3-gen-gauss}
+\end{figure}
+
+\paragraph{Le brin sur une gaussienne vraie.} La \cref{fig:t3-gen-gauss} donne la courbe du brin seul sur 64 rangées gaussiennes (32 à $l = 16$, sauf la forme (2, 1), sur 64). L'écart à la borne de Shannon reste entre 0,46 et 1,66\,dB à $l = 12$, entre 0,29 et 1,08\,dB à $l = 16$ \mes~\calc~(\fichier{memoire/figures/tome3/donnees/genome-nombres.csv}). À 2 bits, la longueur de fenêtre achète l'essentiel de l'écart : 0,0880 ; 0,0785 ; 0,0728 ; 0,0694 ; 0,0675 pour $l = 8$, 10, 12, 14, 16, contre la borne 0,0625. Le mélangeur bon marché (4 opérations) rend 0,0721 contre 0,0728 pour le fort ; la taille de la table compte peu ($q = 6$ : 0,0732 ; $q = 10$ : 0,0728). Ces deux faits fixent le réglage du reste du chapitre : $l = 12$, $q = 8$.
+
+\subsection{La rotation : répartir l'information de chaque poids}
+
+Une rangée $w$ de 2\,880 poids est tournée par morceaux de 64 : $y = \frac18 H_{64} D\, w$, $D = \mathrm{diag}(\pm1)$ tirée d'une graine (aucun bit stocké), $H_{64}$ la matrice de Hadamard d'ordre 64.
+
+\begin{proposition}[La rotation conserve le produit et l'erreur]\label{t3gen:prop:rotation}
+Soit $R$ la matrice bloc-diagonale des $\frac18 H_{64} D_m$. Alors $R$ est orthogonale ; $Wx = (WR^\top)(Rx)$ ; et pour toute reconstruction $\hat W' $ des rangées tournées $W' = WR^\top$, l'erreur se conserve : $\|W - \hat W' R\|_F = \|W' - \hat W'\|_F$.
+\end{proposition}
+
+\begin{proof}
+$H_{64} H_{64}^\top = 64\, I$ et $D_m D_m^\top = I$, donc $(\frac18 H_{64} D_m)(\frac18 H_{64} D_m)^\top = \frac{1}{64}\, H_{64} D_m D_m^\top H_{64}^\top = I$ : chaque bloc est orthogonal, et $R$ aussi. Alors $W R^\top R x = W x$. Enfin $W - \hat W' R = (W' - \hat W') R$, et la norme de Frobenius est invariante par multiplication à droite par une matrice orthogonale : $\|AR\|_F^2 = \mathrm{tr}(A R R^\top A^\top) = \|A\|_F^2$.
+\end{proof}
+
+On stocke donc les rangées tournées, et l'on tourne l'activation \emph{une fois par jeton} : $64 \times 6$ additions par morceau (la transformée de Hadamard rapide), soit 6 additions par élément d'entrée, partagées par toutes les rangées de toutes les matrices qui lisent cette entrée. L'outil mesure néanmoins l'erreur dans le domaine d'origine, après la rotation inverse (\texttt{detourner}) : c'est le second chemin de cette identité. Pourquoi tourner : un poids aberrant (une échelle E8M0 très au-dessus de la médiane de sa rangée) ne peut être atteint par le brin qu'en sacrifiant ses voisins, qui partagent sa fenêtre. Après rotation, il est réparti sur 64 positions, et la source devient gaussienne, ce pour quoi le treillis est fait. C'est, comme image, la mémoire holographique de la liste de Stone : l'information de chaque élément répartie sur tous. Chaque rangée tournée est divisée par son écart-type $\sigma$ (gardé sur 16 bits) : la source codée est $x = y/\sigma$, de variance 1.
+
+\subsection{La répartition des bits entre rangées}
+
+Une rangée $r$ a, pour chaque forme $k$, une erreur $D_r(k)$ et un coût $R_r(k)$ (bits du brin, première fenêtre, 3 bits d'indice de forme, 16 bits de $\sigma$). On minimise $\sum_r D_r(k_r)$ sous $\sum_r R_r(k_r) \le R$.
+
+\begin{proposition}[Le choix lagrangien est optimal pour son budget]\label{t3gen:prop:everett}
+Pour tout $\lambda \ge 0$, le choix $k_r(\lambda) = \argmin_k D_r(k) + \lambda R_r(k)$, fait rangée par rangée, est optimal pour le budget $R(\lambda) = \sum_r R_r(k_r(\lambda))$ qu'il dépense.
+\end{proposition}
+
+\begin{proof}
+Si un autre choix $k'$ dépensait au plus $R(\lambda)$ avec une erreur plus petite, alors $\sum_r D_r(k'_r) + \lambda \sum_r R_r(k'_r) < \sum_r D_r(k_r) + \lambda \sum_r R_r(k_r)$, ce qui contredit la minimalité de chaque terme de la somme. (Le résultat porte le nom d'Everett, 1963 ; la source n'est pas relue ici et n'entre pas dans la bibliographie.)
+\end{proof}
+
+La courbe débit-distorsion de la recette est l'ensemble des points $(R(\lambda), D(\lambda))$ pour 400 valeurs de $\lambda$ ; les bits à erreur égale se lisent par interpolation linéaire en $\log(\text{erreur})$ entre deux points voisins.
+
+\begin{proposition}[Le gain de la répartition, à haut débit]\label{t3gen:prop:remplissage}
+Pour des rangées gaussiennes de variances $\sigma_r^2$, de distorsions $D_r = \sigma_r^2\, 2^{-2R_r}$ (haut débit, $D_r < \sigma_r^2$), la répartition optimale des bits à débit moyen $\bar R$ gagne, à erreur moyenne égale,
+\begin{equation}\label{t3gen:eq:remplissage}
+\Delta R = \frac12 \log_2 \frac{\mathrm{MA}(\sigma_r^2)}{\mathrm{MG}(\sigma_r^2)} \quad \text{bits par poids}
+\end{equation}
+sur la répartition uniforme, MA et MG les moyennes arithmétique et géométrique des $\sigma_r^2$.
+\end{proposition}
+
+\begin{proof}
+Avec $n$ rangées, on minimise
+\[ \frac1n\sum_r \sigma_r^2 2^{-2R_r} \quad \text{sous} \quad \frac1n\sum_r R_r = \bar R . \]
+Le lagrangien donne $2\ln 2\ \sigma_r^2 2^{-2R_r} = \mu$ pour tout $r$ : toutes les rangées finissent à la même distorsion $D$ (le remplissage inverse de~\cite[§\,10.3.3]{cover2006}). Alors $R_r = \frac12 \log_2(\sigma_r^2/D)$, et la moyenne donne $\bar R = \frac12 \log_2 \mathrm{MG} - \frac12 \log_2 D$, soit $D_{\mathrm{opt}} = \mathrm{MG}\cdot 2^{-2\bar R}$. La répartition uniforme ($R_r = \bar R$) donne $D_{\mathrm{unif}} = \mathrm{MA}\cdot 2^{-2\bar R}$. À erreur égale, il faut donc à l'uniforme $\frac12\log_2(\mathrm{MA}/\mathrm{MG})$ bits de plus. Par l'inégalité arithmético-géométrique, le gain est positif, nul si toutes les variances sont égales.
+\end{proof}
+
+La base de B n'en prend rien : elle met 2,64 bits partout. La \cref{t3gen:sec:structure} calcule ce gain sur les vrais tenseurs : de 0,009 à 1,27 bit.
+
+\section{La comptabilité, au bit près}\label{t3gen:sec:compta}
+
+Tout ce que la recette lit sur le disque est compté (\cref{t3gen:tab:compta}), par un second chemin en Python (\fichier{outils/genome/recette/analyse.py}) qui fait le verdict. La frontière F1 de chaque tenseur est lue dans \fichier{f1-par-tenseur.csv} : base $+ \delta + 8/2\,880 + 0{,}000\,07$.
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X r r@{}}
+\toprule
+Poste & bits & par poids \\
+\midrule
+brin d'une rangée de $n$ poids & $l + (n/v - 1)\,k_b$ & $\approx k_b/v$ \\
+indice de forme de la rangée & 3 & 0,0010 \\
+$\sigma$ de la rangée (source tournée) & 16 & 0,0056 \\
+tables : 5 formes $\times$ 256 valeurs $\times$ 16 bits, pour 32 experts & 20\,480 & 0,000\,08 \\
+échelles E8M0 (source brute seulement) : $\delta$ de F1 + 8/2\,880 de médianes & & 0,036 à 0,043 \\
+alignement de chaque matrice d'expert sur 4\,096 octets, au pire & 32\,768 & 0,0040 \\
+exceptions de $S^{*}$ : compte (8 bits) + $3 \times$ (colonne 12 + code 4 + échelle 8) par rangée & 80 & 0,028 \\
+\bottomrule
+\end{tabularx}
+\caption[La comptabilité de la recette]{Tout ce que la recette lit sur le disque, par poste \calc. Par poids : divisé par 2\,880 pour un poste par rangée (par exemple $80/2\,880 = 0{,}028$), par 8\,294\,400 pour un poste par matrice ($32\,768/8\,294\,400 = 0{,}0040$). Source : \fichier{genome/genome.md} §\,4.}
+\label{t3gen:tab:compta}
+\end{table}
+
+Une sous-comptabilité est dite : le journal Rust (\fichier{codons-*-l12.json}) ne compte qu'\emph{une} table par tenseur au lieu de cinq (0,000\,06 bit par poids de moins) ; le second chemin compte les cinq, et c'est lui qui juge. Les deux diffèrent de moins de 0,0002 bit par tenseur.
+
+\section{Les résultats sur les poids réels}\label{t3gen:sec:resultats}
+
+\paragraph{Témoin S0 : la frontière refaite.} La commande \texttt{genome} \texttt{frontiere} recompte les 12 tenseurs entiers (3\,185\,049\,600 poids), recalcule les centres de classe (0,237\,166 ; 1,424\,298 ; 3,418\,577 ; 6,0 en unités E2M1) et retrouve l'erreur publiée 0,042\,919\,745\,124\,980 à $5{,}8\cdot10^{-15}$ près (\fichier{frontiere.json}). Cassure (chaque classe lit le centre de la suivante) : 1,2128, le témoin tombe (\fichier{frontiere-casse.json}) \mes.
+
+\paragraph{Le verdict W.} Lecture par codons, $l = 12$, $q = 8$, 2 itérations de Lloyd sur les 48 premières rangées échantillonnées de chaque expert, cinq formes $(k_b, v) = (2, 1), (7, 3), (5, 2), (8, 3), (3, 1)$, soit 2 ; 2,33 ; 2,5 ; 2,67 ; 3 bits par poids. Second chemin : \fichier{verdict-*-l12-second-chemin.json}, égal au journal Rust à $10^{-4}$ bit près. La \cref{fig:t3-gen-courbes} trace les courbes, le \cref{t3gen:tab:verdict} les gains.
+
+\begin{figure}[tbp]
+\centering
+\GrapheGenCourbes
+\LegendeFigure{GenCourbes}
+\label{fig:t3-gen-courbes}
+\end{figure}
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabular}{l r r r r r}
+\toprule
+Tenseur & erreur de la base & frontière (bits) & brin tourné à erreur égale & gain (bits) & gain \\
+\midrule
+blk.0.ffn\_gate & 4,394\,\% & 2,6234 & 2,4005 & 0,223 & 8,5\,\% \\
+blk.0.ffn\_up & 4,389\,\% & 2,6422 & 2,4291 & 0,213 & 8,1\,\% \\
+blk.0.ffn\_down & 4,137\,\% & 2,6558 & 2,0604 & 0,595 & 22,4\,\% \\
+blk.8.ffn\_gate & 4,022\,\% & 2,6597 & 2,2410 & 0,419 & 15,7\,\% \\
+blk.8.ffn\_up & 4,068\,\% & 2,6424 & 2,4391 & 0,203 & 7,7\,\% \\
+blk.8.ffn\_down & 4,631\,\% & 2,6445 & 2,4130 & 0,231 & 8,8\,\% \\
+blk.16.ffn\_gate & 4,227\,\% & 2,6569 & 2,2660 & 0,391 & 14,7\,\% \\
+blk.16.ffn\_up & 4,089\,\% & 2,6653 & 2,3905 & 0,275 & 10,3\,\% \\
+blk.16.ffn\_down & 4,203\,\% & 2,6302 & 2,2920 & 0,338 & 12,9\,\% \\
+blk.23.ffn\_gate & 4,323\,\% & 2,6406 & 2,2203 & 0,420 & 15,9\,\% \\
+blk.23.ffn\_up & 4,254\,\% & 2,6256 & 2,3768 & 0,249 & 9,5\,\% \\
+blk.23.ffn\_down & 4,260\,\% & 2,6434 & 2,3691 & 0,274 & 10,4\,\% \\
+\midrule
+\textbf{moyenne des 12} & & \textbf{2,6442} & \textbf{2,3248} & \textbf{0,319} & \textbf{12,1\,\%} \\
+\bottomrule
+\end{tabular}
+\caption[Le verdict W, tenseur par tenseur]{Le verdict W, source tournée : bits du brin à l'erreur de la base mesurée sur les mêmes rangées \mes. Données : \fichier{mesures/genome/genome/csv/verdict-par-tenseur.csv} ; \fichier{verdict-tourne-l12-second-chemin.json}.}
+\label{t3gen:tab:verdict}
+\end{table}
+
+\textbf{12 tenseurs sur 12 : le critère W tient} pour la source tournée. En global (une seule $\lambda$ pour les 34\,560 rangées, erreur cumulée 4,257\,\%), 2,049 bits contre 2,644 ; ce chiffre est dominé par les rangées de grande énergie, et la moyenne par tenseur est celui à retenir. Sur la \textbf{source brute} (échelles E8M0 gardées, sans rotation), 11 tenseurs sur 12 gagnent, de 0,15 à 0,57 bit, mais \textbf{blk.8.ffn\_down tombe} : même à 3 bits partout, la recette y laisse 6,43\,\% d'erreur, quand la base en laisse 4,63\,\% à 2,64 bits. Ses rangées portent des blocs dont l'échelle est très au-dessus de la médiane ; le brin ne peut les atteindre qu'en sacrifiant leurs voisins. La rotation règle exactement ce cas (0,231 bit gagné sur ce tenseur) : c'est ce qui l'a fait retenir.
+
+\paragraph{D'où vient le gain : pavage contre répartition.} Les formes fixes (toutes les rangées à la même forme) donnent, par interpolation entre formes voisines, le gain du \emph{seul pavage} (\fichier{codons-tourne-l12.json}, champ \texttt{fixes}) : 0,14 à 0,18 bit sur 11 tenseurs (0,135 en moyenne sur les 12), et $-0{,}14$ bit sur blk.8.ffn\_down, où la répartition est indispensable. La répartition entre rangées apporte le reste : de 0,03 bit (blk.0.ffn\_up) à 0,43 bit (blk.0.ffn\_down) \mes. Les erreurs des formes fixes sur les poids tournés de blk.0.ffn\_gate (0,0739 ; 0,0529 ; 0,0402 ; 0,0364 ; 0,0201) sont celles du brin sur une gaussienne vraie (0,0728 ; 0,0522 ; 0,0394 ; 0,0358 ; 0,0198) à 1,5\,\% près : \textbf{après rotation, les poids sont, pour le brin, indiscernables d'un bruit gaussien}. C'est le partage annoncé au \cref{t3que:sec:frontiere} : le gain est le pavage d'un code en treillis, que la base scalaire n'a pas, et la dispersion des énergies, qu'elle ignore.
+
+\section{Où est le bruit, où est la structure}\label{t3gen:sec:structure}
+
+\fichier{outils/genome/recette/structure.py} calcule les valeurs singulières de l'expert 0 de chaque tenseur (matrice $2\,880 \times 2\,880$, en f64 exact), contre un témoin : la même matrice dont les entrées sont permutées au hasard, qui détruit toute structure de rang (le spectre suit alors la loi de Marchenko-Pastur ; \cref{t3gen:tab:structure}).
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X@{}}
+\toprule
+Tenseur & énergie des 144 premières directions & 1\textsuperscript{re} direction & kurtosis & gain de répartition \\
+& réel / permuté & réel / permuté & des rangées & (haut débit, \calc) \\
+\midrule
+blk.0.ffn\_gate & 27,4 / 17,2\,\% & 0,81 / 0,14\,\% & 4,0 & 0,019 \\
+blk.0.ffn\_up & 23,2 / 17,2\,\% & 0,29 / 0,14\,\% & 3,8 & 0,009 \\
+blk.0.ffn\_down & 67,7 / 18,9\,\% & 8,48 / 0,38\,\% & 347,7 & 1,272 \\
+blk.8.ffn\_gate & 45,2 / 17,3\,\% & 1,62 / 0,14\,\% & 12,9 & 0,572 \\
+blk.8.ffn\_up & 30,0 / 17,2\,\% & 0,41 / 0,14\,\% & 4,9 & 0,111 \\
+blk.8.ffn\_down & 43,1 / 18,5\,\% & 7,00 / 0,44\,\% & 343,2 & 0,250 \\
+blk.16.ffn\_gate & 54,2 / 18,1\,\% & 4,60 / 0,39\,\% & 182,9 & 0,645 \\
+blk.16.ffn\_up & 30,4 / 17,2\,\% & 0,72 / 0,14\,\% & 6,3 & 0,160 \\
+blk.16.ffn\_down & 43,3 / 17,4\,\% & 1,54 / 0,21\,\% & 42,0 & 0,343 \\
+blk.23.ffn\_gate & 42,0 / 17,3\,\% & 2,27 / 0,14\,\% & 17,2 & 0,426 \\
+blk.23.ffn\_up & 33,5 / 17,2\,\% & 1,01 / 0,14\,\% & 7,9 & 0,130 \\
+blk.23.ffn\_down & 33,3 / 17,7\,\% & 3,45 / 0,19\,\% & 79,7 & 0,089 \\
+\bottomrule
+\end{tabularx}
+\caption[La structure des matrices : réel contre permuté]{La structure des matrices d'experts (expert 0 de chaque tenseur) : part d'énergie des 5\,\% premières directions singulières et de la première, contre la même matrice permutée ; kurtosis des rangées ; gain de répartition par la \cref{t3gen:prop:remplissage} \mes~\calc. Données : \fichier{mesures/genome/genome/structure-spectre.json}, \fichier{csv/spectre.csv}.}
+\label{t3gen:tab:structure}
+\end{table}
+
+\paragraph{Le bruit.} À l'intérieur d'une rangée, une fois tournée et normalisée, il n'y a rien à prendre au-delà de la variance : le brin y fait exactement ce qu'il fait sur une gaussienne vraie, les codes voisins ne partagent que 0,005 bit, et la graine de dimension 8 à 16 trouve ce qu'elle trouverait dans du bruit. \textbf{Aucune recette courte n'engendre ces poids} : c'est la réponse, négative, à la question « les poids sont-ils recettables ? ».
+
+\paragraph{La structure} est au second ordre, et elle est grande. L'énergie se concentre sur quelques directions (5\,\% des directions portent 23 à 68\,\% de l'énergie, contre 17 à 19\,\% pour la même matrice permutée ; une seule direction en porte jusqu'à 8,5\,\%, 22 fois le hasard), donc sur certaines rangées (kurtosis jusqu'à 348, gain de répartition calculé jusqu'à 1,27 bit). C'est elle que la répartition des bits entre rangées encaisse, et que la base de B, qui met le même nombre de bits partout, laisse sur la table.
+
+\paragraph{Ce qui reste à prendre.} La borne gaussienne avec répartition idéale entre rangées (\fichier{borne-shannon-par-tenseur.json}) vaut 1,07 à 2,25 bits à l'erreur de la base ; la recette mesurée est 0,19 à 0,99 bit au-dessus. L'écart vient du brin à $l = 12$, à 0,3 à 0,8\,dB de la borne, et de la plus petite forme, 2 bits : le remplissage idéal donnerait 0 ou 1 bit aux rangées les plus faibles. Une forme « zéro » (rangée non stockée), chiffrée sur les mêmes CSV, ferait tomber le débit global à 0,36 bit \emph{à erreur cumulée égale}, ce qui montre surtout que l'erreur cumulée sur les poids se laisse tromper par la répartition (une poignée de rangées de très grande énergie la dominent) ; elle n'est pas retenue. La structure de rang (quelques directions dominantes) n'est pas exploitée : stocker $r$ directions ($u$, $v$ en f16) coûte $r \cdot 5\,760 \cdot 16 / 8\,294\,400 = 0{,}011\,r$ bit par poids ; pour blk.0.ffn\_down, la première direction (8,5\,\% de l'énergie) rendrait $\frac12\log_2(1/0{,}915) = 0{,}064$ bit à erreur égale pour 0,011 bit de coût ; pour les tenseurs up (0,3 à 1\,\%), rien \calc.
+
+\paragraph{Les motifs partagés, combinés.} \texttt{genome motifs} (\fichier{motifs-*.json}) : un bloc de $d$ poids est la somme de $M$ motifs, chacun tiré d'un dictionnaire de $2^b$ motifs partagé par les 32 experts du tenseur, appris par $k$-moyennes pondérées étage par étage (quantification résiduelle). Témoin : le quantificateur scalaire à 4 niveaux d'une gaussienne rend 0,1175~\cite{max1960}. À l'erreur de la base (4,257\,\%), les motifs demandent \textbf{2,90 bits} au mieux (entre $(8, 12, 1)$ à 1,54 bit pour 18,2\,\% et $(8, 12, 2)$ à 3,05 bits pour 3,65\,\%) : \textbf{ils ne battent pas la frontière}. Un dictionnaire appris en dimension 4 à 8 est un quantificateur vectoriel de petite dimension : même le meilleur réseau de dimension 8 (0,089 à 2 bits sur une gaussienne, QTIP) reste loin du brin (0,073). Partager le dictionnaire entre experts ne coûte rien (0,002 bit) et ne rend rien de plus : les experts n'ont pas de motifs propres que le dictionnaire commun manquerait.
+
+\section{La recette et la découpe base + complément}\label{t3gen:sec:complement}
+
+\begin{lemme}[Le complément exact ne rend rien gratuitement]\label{t3gen:lem:complement}
+Soit $X$ les codes MXFP4 d'un tenseur et $Y$ les bits de la recette, fonction déterministe de $X$. Pour tout codage du complément qui conditionne chaque code $X_i$ sur une fonction $Z_i$ de $Y$,
+\begin{equation}\label{t3gen:eq:complement}
+R_Y + \sum_i H(X_i \mid Z_i) \;\ge\; H(Y) + H(X \mid Y) \;=\; H(X).
+\end{equation}
+\end{lemme}
+
+\begin{proof}
+$H(X, Y) = H(X) + H(Y \mid X) = H(X)$ puisque $Y$ est fonction de $X$ ; et $H(X, Y) = H(Y) + H(X \mid Y)$. D'où l'égalité de droite. Puis $H(X \mid Y) \le \sum_i H(X_i \mid Y)$ (sous-additivité), $H(X_i \mid Y) \le H(X_i \mid Z_i)$ (conditionner par moins, $Z_i$ étant fonction de $Y$, ne réduit pas l'entropie), et $R_Y \ge H(Y)$ (aucun code sans perte ne descend sous l'entropie).
+\end{proof}
+
+Ce que la combinaison perd est $(R_Y - H(Y)) + (\sum_i H(X_i\mid Z_i) - H(X\mid Y))$ : l'information sur $X$ que les bits du brin portent \emph{ensemble} et qu'un contexte poids par poids ne voit pas. \textbf{Mesuré} (\fichier{codons-*-l12.json}, champ \texttt{H\_code\_sachant\_recette} : $Z_i$ la reconstruction de la recette ramenée à l'échelle du bloc, en 65 cases de 0,375) : recette + complément + échelles = \textbf{4,05 à 4,37 bits} pour la source tournée (4,09 à 4,90 pour la brute), contre 3,80 à 3,83 sans perte pour les mêmes tenseurs. La perte, 0,21 à 0,53 bit, est le second terme. Le critère L tombe, comme le lemme l'annonçait.
+
+\paragraph{Ce que la combinaison donne quand même.} Dans l'architecture B, le niveau 0 est lu à chaque défaut de cache et le complément seulement pour les experts admis. Remplacer la base par la recette au niveau 0 divise les octets d'un défaut par $2{,}644/2{,}325 = 1{,}14$ à erreur de poids égale, ou, au débit de la frontière de chaque tenseur, rend une erreur de 2,07 à 3,82\,\% au lieu de 4,02 à 4,63\,\% (interpolé sur \fichier{courbes-tourne-l12.csv}) ; le complément qui suit coûte alors 0,21 à 0,53 bit de plus qu'avec la base \calc. Ces chiffres sont en erreur de poids ; la section suivante dit ce qu'ils valent.
+
+\section{La sortie des experts : la fidélité, et \texorpdfstring{$S^{*}$}{S*}}\label{t3gen:sec:sortie}
+
+\paragraph{Les entrées et la mesure.} Les états normalisés et le routage de la référence f64, capturés par l'éclaireur : « calib » (fenêtres 10 à 21, réglage seulement) et « eval » (fenêtres 0 à 9, celles du \texttt{.kld} de R1, mesure seulement). Pour l'expert $e$ de la couche $\ell$, les 512 premières positions routées vers lui (moins si l'expert est rare). Sortie de l'expert : $y = W_{\text{down}}\,\mathrm{SwiGLU}_{\text{oai}}(W_{\text{gate}} h + b, W_{\text{up}} h + b) + b$ en f64, poids exacts, base ou recette ; erreur relative $\sum\|y - \hat y\|^2 / \sum\|y\|^2$.
+
+\paragraph{Au point W, la recette perd en sortie.} Couche 0, expert 0 (499 positions) : erreur de poids 4,25\,\% (base 4,27\,\%), mais erreur de sortie \textbf{7,63\,\%} contre \textbf{6,77\,\%} pour la base, la recette ne gagnant que sur 146 positions sur 499 (\fichier{sortie-tourne-point-W-interrompu.log}) \mes. Le critère O, déclaré à ce point, \textbf{tombe} sur ce premier expert ; la passe a été arrêtée là pour mesurer ce qui décide vraiment, la fidélité en fonction du débit (protocole F, déclaré avant sa passe dans \fichier{00-seuils-declares.md}). \emph{L'erreur quadratique sur les poids ne mesure pas la fidélité} : à erreur de poids égale, l'erreur de la base fait moins de dégâts en sortie que celle du brin.
+
+\paragraph{La pondération.} Par la \cref{t3gen:prop:rotation}, la sortie d'une rangée vaut $\sum_c \Delta w_c x_c = \sum_{c'} \Delta w'_{c'} x'_{c'}$ avec $x' = Rx$. Son espérance quadratique est $\sum_{c', c''} \E[\Delta w'_{c'} \Delta w'_{c''}]\, \Sigma'_{c'c''}$, $\Sigma' = R\Sigma R^\top$, $\Sigma = \E[xx^\top]$ des entrées réelles. Pour une erreur \emph{blanche} dans le domaine tourné ($\E[\Delta w'_{c'}\Delta w'_{c''}] = 0$ pour $c' \ne c''$), il reste
+\begin{equation}\label{t3gen:eq:ponderation}
+\E\,\|\Delta w^\top x\|^2 = \sum_{c'} h_{c'}\, \E\bigl[\Delta w'^{\,2}_{c'}\bigr], \qquad h = \mathrm{diag}\bigl(R\,\Sigma\,R^\top\bigr) .
+\end{equation}
+Pondérer le Viterbi par $h$ (les poids $\omega$ de la \cref{t3gen:prop:viterbi}) minimise donc l'erreur de sortie attendue sous cette hypothèse (\fichier{outils/genome/recette/src/fidelite.rs}, en-tête) \calc ; c'est la diagonale de la hessienne de la perte quadratique de couche, le geste de GPTQ réduit à ce que le treillis sait faire.
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X@{}}
+\toprule
+Couche, expert (positions) & base & uniforme à 2,64 b & pondérée à 2,64 b & bits à sortie égale (unif. / pond.) \\
+\midrule
+0, 0 (499) & 6,77\,\% & 5,25\,\% & 5,18\,\% & 2,41 / 2,38 \\
+0, 16 (512) & 5,13\,\% & 3,88\,\% & 3,82\,\% & 2,38 / 2,39 \\
+8, 0 (512) & 8,30\,\% & 8,80\,\% & 7,91\,\% & 2,68 / 2,60 \\
+8, 16 (131) & 7,45\,\% & 8,93\,\% & 9,41\,\% & 2,87 / $> 2{,}9$ \\
+16, 0 (127) & 5,72\,\% & 6,02\,\% & 5,40\,\% & 2,68 / 2,58 \\
+16, 16 (150) & 4,81\,\% & 11,04\,\% & — & $> 2{,}9$ / — \\
+\bottomrule
+\end{tabularx}
+\caption[La fidélité de sortie du brin]{La fidélité de sortie du brin, uniforme et pondéré par~\eqref{t3gen:eq:ponderation}, passe F arrêtée après cinq experts et demi, le verdict étant acquis \mes. Données : \fichier{mesures/genome/genome/fidelite.log}, \fichier{verdict-fidelite.json}, \fichier{csv/fidelite.csv}.}
+\label{t3gen:tab:fidelite}
+\end{table}
+
+\paragraph{Le verdict F tombe} (\cref{t3gen:tab:fidelite}) : la pondération gagne sur 4 experts sur 5, l'uniforme sur 2 sur 6 ; deux experts perdent dans les deux variantes. Le diagnostic (\fichier{erreur\_colonnes.py}, \fichier{erreur-colonnes-ponderee-264.json}) : l'erreur du brin ne se répartit pas sur les colonnes comme celle d'un bruit blanc, et l'hypothèse de~\eqref{t3gen:eq:ponderation} est fausse là où elle compte. Dans blk.8.ffn\_down (expert 16), la colonne 1011 porte \textbf{144 fois} l'énergie moyenne d'une colonne et reçoit \textbf{334 fois} l'erreur moyenne ; les colonnes de rang 0 modulo 64 en reçoivent 7,6 fois leur part \mes. Le mécanisme : une colonne massive se répartit, par la rotation, en 64 valeurs grandes dans chaque rangée ; la table (256 valeurs, quantiles de la source) les écrête ; les erreurs d'écrêtage, de même signe dans toutes les rangées, reviennent par la rotation inverse \emph{sur la colonne massive}. Or une colonne massive de down lit une unité de l'activation intermédiaire, et une colonne massive de gate ou up un canal d'entrée : là où l'erreur fait le plus de mal. La base, elle, rend presque exacts les plus grands poids de chaque bloc (sa classe $\{6\}$ est exacte). Sur les 15 matrices analysées, 5 ont une colonne dont l'erreur dépasse 10 fois la moyenne, et dans 4 d'entre elles c'est la colonne la plus énergétique de la matrice ; la cinquième (gate, couche 16, expert 0, colonne 2\,744, $\times 29{,}9$) est la colonne la plus énergétique de la matrice up du même expert, qui lit la même entrée.
+
+\paragraph{Le remède, et le système $S^{*}$.} Garder \emph{à part, exacts}, les 3 poids de plus grande magnitude de chaque rangée (0,1\,\% ; $8 + 3 \times 24$ bits par rangée, 0,028 bit par poids, comptés) : ce sont, rangée après rangée, les entrées des colonnes massives. Couche 8, expert 16, uniforme : l'erreur de sortie passe de 8,93\,\% à 6,20\,\% (base 7,45\,\%), l'erreur de poids de 4,63\,\% à 3,16\,\% (\fichier{fidelite-exceptions.log}). Le brin, la rotation, la pondération et ces exceptions forment $S^{*}$, déclaré avant sa passe.
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X@{}}
+\toprule
+Couche, expert (positions) & base & $S^{*}$ à 2,64 b & positions où $S^{*}$ gagne & $S^{*}$ à 2,4 b & bits de $S^{*}$ à sortie égale \\
+\midrule
+0, 0 (499) & 6,77\,\% & \textbf{5,09\,\%} & 440 / 499 & 6,56\,\% & 2,37 \\
+0, 16 (512) & 5,13\,\% & \textbf{3,65\,\%} & 432 / 512 & 4,74\,\% & 2,34 \\
+8, 0 (512) & 8,30\,\% & \textbf{7,79\,\%} & 333 / 512 & 10,05\,\% & 2,58 \\
+8, 16 (131) & 7,45\,\% & \textbf{6,72\,\%} & 93 / 131 & 8,50\,\% & 2,54 \\
+16, 0 (127) & 5,72\,\% & \textbf{4,57\,\%} & 122 / 127 & 5,92\,\% & 2,43 \\
+16, 16 (150) & 4,81\,\% & \textbf{3,26\,\%} & 149 / 150 & 4,30\,\% & 2,30 \\
+23, 0 (150) & 5,68\,\% & \textbf{3,15\,\%} & 148 / 150 & 4,10\,\% & 2,09 \\
+23, 16 (106) & 3,97\,\% & \textbf{2,56\,\%} & 106 / 106 & 3,36\,\% & 2,23 \\
+\midrule
+\textbf{moyenne} & & \textbf{rapport 0,747} & & & \textbf{2,36} \\
+\bottomrule
+\end{tabularx}
+\caption[$S^{*}$ à la sortie des experts]{$S^{*}$ (rotation, pondération, exceptions 0,1\,\%) à la sortie des experts, entrées tenues à l'écart \mes. Les experts (16, 16), (23, 0) et (23, 16) n'avaient servi à aucun choix. Données : \fichier{mesures/genome/genome/fidelite-sstar.log}, \fichier{fidelite-sstar.json}, \fichier{verdict-fidelite-sstar.json}, \fichier{csv/fidelite-sstar.csv}.}
+\label{t3gen:tab:sstar}
+\end{table}
+
+\paragraph{Le verdict F($S^{*}$) tient} (\cref{t3gen:tab:sstar}) : à 2,64 bits, $S^{*}$ fait moins d'erreur de sortie que la base sur \textbf{8 experts sur 8} (test du signe, $2^{-8} \approx 0{,}004$), et sur chaque expert la majorité des positions le confirme (de 333 sur 512 à 106 sur 106 ; la loi binomiale donne $p < 10^{-5}$ pour chacun). À erreur de sortie égale, $S^{*}$ lit 2,09 à 2,58 bits, 2,36 en moyenne, contre 2,64 : 0,28 bit de moins par poids lu (10,8\,\%). C'est moins que les 0,32 bit du critère W : l'erreur de poids exagérait le gain, et la sortie le juge. Le livrable du sujet en tirait « $\times 1{,}12$ jeton par seconde au toit du disque pour les experts lus au niveau 0 » ; c'est un calcul à erreur de sortie égale, et la section suivante dit que la KL ne le confirme pas.
+
+\section{La KL contre la référence : \texorpdfstring{$S^{*}$}{S*} est égal à la base}\label{t3gen:sec:kl}
+
+\paragraph{Le protocole (P2 de la ronde).} La fourche de l'éclaireur, augmentée de la substitution en F32 (\fichier{outils/genome/recette-kl/}) ; les 8 experts du \cref{t3gen:tab:sstar} remplacés (couches 0, 8, 16, 23 $\times$ experts 0 et 16 : 8 sur 768), base contre $S^{*}$ à 2,64 bits, et \texttt{juge comparer} du lot R, qui apparie les deux KL position par position contre la même vérité (\fichier{ref-openai-20b.kld}). Règle du juge : égal si $|\bar d| \le 2\sigma(\bar d)$ ; meilleur si $\bar d + 2\sigma(\bar d) < 0$. Témoin de la fourche : sans expert substitué, une fenêtre, KL au plus $10^{-9}$ (\fichier{kl/temoin-vide*.json}).
+
+\paragraph{Ce qui a été publié, et ce qui l'a remplacé.} La première passe portait sur 3 fenêtres (765 positions ; \fichier{mesures/genome/genome/kl/comparer-base-contre-recette.json}) : KL 0,0226 pour la base, 0,0301 pour $S^{*}$, rapport \barre{1,335} (un rapport à trois fenêtres, que la passe K10 ramène à 1,018, $0{,}020\,93/0{,}020\,57$ \calc, \cref{t3gen:tab:k10}), différence appariée $+0{,}0076 \pm 0{,}0047$ (1,6\,$\sigma$), premier choix 91,4 contre 90,3\,\% \mes. La synthèse de la ronde en avait d'abord conclu « $S^{*}$ a 25\,\% d'erreur d'expert de moins et \barre{33\,\% de KL de plus} » et « \barre{tombe} », puis l'a barré (\fichier{genome/05-synthese.md} §§\,0, 1.2, 2.4) : la passe K10, déclarée avant, a refait la comparaison sur les \textbf{10 fenêtres} de R1 (2\,550 positions ; \fichier{kl/comparer10-base-contre-recette.json}, commit \texttt{39e9aa4}). C'est elle qui compte (réserve R4 du tome).
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabular}{l r r}
+\toprule
+P2, 10 fenêtres, 2\,550 positions, 8 experts sur 768 & base & $S^{*}$ \\
+\midrule
+KL moyenne ($\pm$ incertitude) & 0,020\,57 $\pm$ 0,002\,12 & 0,020\,93 $\pm$ 0,002\,35 \\
+KL médiane & 0,001\,84 & 0,001\,52 \\
+KL, 90\textsuperscript{e} centile & 0,0311 & 0,0275 \\
+KL, 99\textsuperscript{e} centile & 0,411 & 0,338 \\
+KL, 99,9\textsuperscript{e} centile & 1,367 & 1,588 \\
+KL maximale & 3,008 & 3,216 \\
+premier choix identique & 91,88\,\% & 91,92\,\% \\
+perplexité (référence 460,24) & 461,62 & 468,71 \\
+\midrule
+différence appariée de KL, $S^{*}$ moins base & \multicolumn{2}{c}{$+0{,}000\,36 \pm 0{,}001\,86$ : \textbf{égal}} \\
+différence appariée de premier choix & \multicolumn{2}{c}{$+0{,}04 \pm 0{,}56$ point : égal} \\
+\bottomrule
+\end{tabular}
+\caption[$S^{*}$ contre la base, la KL sur dix fenêtres]{$S^{*}$ contre la base, la KL de bout en bout sur 10 fenêtres (passe K10) \mes. Verdicts du juge : statistique, égal en KL et en premier choix ; littéral, la KL de $S^{*}$ est un peu au-dessus. Données : \fichier{mesures/genome/genome/kl/comparer10-base-contre-recette.json} (et \texttt{.csv}, \texttt{.txt}).}
+\label{t3gen:tab:k10}
+\end{table}
+
+\paragraph{$S^{*}$ est égal à la base} (\cref{t3gen:tab:k10}) : $+0{,}000\,36 \pm 0{,}001\,86$, rapport de KL 1,018 \calc. Ce qui a changé entre les deux passes est le nombre de positions, multiplié par plus de trois : l'écart des 3 premières fenêtres était dans le bruit, et il s'y est fondu. La forme des deux distributions dit pourquoi la moyenne ne bouge pas. $S^{*}$ réduit la part lisse de la KL (médiane $\div 1{,}21$, 99\textsuperscript{e} centile de 0,411 à 0,338) et épaissit l'extrême de sa queue (99,9\textsuperscript{e} centile de 1,37 à 1,59, maximum de 3,01 à 3,22) : les deux se compensent \mes. \textbf{25\,\% d'erreur d'expert en moins, 0\,\% de KL en moins.} Le \cref{t3syn:ch} en fait la propriété (c) de la ronde (l'erreur de sortie d'un expert ne prédit pas la KL) et avance une hypothèse, dite comme telle : la pondération de $S^{*}$ est \emph{diagonale}~\eqref{t3gen:eq:ponderation}, elle ne voit pas la corrélation, dans le domaine tourné, entre les 64 positions qui portent le même canal massif, alors que la base laisse presque intacte la contribution des canaux massifs, et avec elle les marges du routeur des couches suivantes.
+
+\section{La transcription}\label{t3gen:sec:transcription}
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabular}{l r}
+\toprule
+Étape du décodeur d'un poids (forme $v = 1$) & opérations \\
+\midrule
+fenêtre : registre de 64 bits décalé de $k_b$, bits neufs insérés, masque de $l$ bits & 3 \\
+mélangeur fort (xor, puis trois fois multiplication et décalage-xor) & 9 (le court : 3) \\
+indice de table (décalage) & 1 \\
+lecture de la table (256 valeurs en mémoire partagée) & 1 \\
+multiplication-addition avec l'activation tournée & 1 \\
+\midrule
+\textbf{total par poids} & \textbf{15} (le court : \textbf{9}) \\
+\bottomrule
+\end{tabular}
+\caption[Le coût de transcription du brin]{Le coût de transcription du brin, en opérations par poids \calc. Pour $v = 2$ ou 3, la fenêtre se partage entre les $v$ poids du pas : $(3 + 12\,v)/v$ opérations par poids avec le mélangeur fort. Source : \fichier{genome/genome.md} §\,8.4.}
+\label{t3gen:tab:transcription}
+\end{table}
+
+\paragraph{Le budget} \calc. À 2,32 bits par poids (la moyenne du verdict W), un poids coûte 0,29 octet lu, donc $214 \times 0{,}29 = 62$ opérations de budget (269 au débit du disque selon la correction du Tome~II) : le décodeur en prend 15 (\cref{t3gen:tab:transcription}), \textbf{le quart} (6\,\% au débit du disque). Par rangée s'ajoute une multiplication par $\sigma$ ; par jeton, la rotation de l'activation, 6 additions et un changement de signe par élément d'entrée, partagés par les 2\,880 rangées qui le lisent, soit 0,002 opération par poids. Le décodeur rANS de l'étude 03 coûte environ 12 opérations par code de 4 bits : le brin est du même ordre que le décodeur sans perte déjà mesuré.
+
+\paragraph{Mesuré sur le processeur} (\texttt{genome decoder}, \fichier{decodeur-*.json}). Un expert entier (8\,294\,400 poids, blk.16.ffn\_up, expert 0) relu depuis ses 2\,880 brins par le seul décodeur, en séries ABBA de 8 contre la déquantification MXFP4 du même expert par le même chemin, machine chargée par les trois autres équipes : forme (5, 2) avec le mélangeur fort, $9{,}6\cdot10^7$ poids par seconde contre $10{,}2\cdot10^7$ (rapport 0,94) ; avec le court, $7{,}5\cdot10^7$ contre $6{,}3\cdot10^7$ (1,20) ; forme (2, 1) forte, $6{,}9\cdot10^7$ contre $7{,}1\cdot10^7$ (0,97) \mes. Le brin va aussi vite que la déquantification du format natif sur le même chemin ; la dispersion des passes sous la charge (0,05 à 0,17\,s) est de l'ordre de l'écart, et les débits absolus ne valent rien sous cette charge : seul le rapport compte. Sur la carte, rien n'est mesuré.
+
+\section{Ce qui reste}\label{t3gen:sec:reste}
+
+\begin{enumerate}
+\item \textbf{Le noyau sur la carte} : une GEMV qui lit le brin (fenêtre glissante dans un registre de 64 bits, mélangeur, table en mémoire partagée), tourne l'activation par morceaux de 64 et accumule ; à mesurer contre les 2,82\,Go/s du disque et contre le noyau MXFP4 du moteur.
+\item \textbf{Le format} : une sorte de flux « BRIN » dans \texttt{.trc} (par matrice, l'indice de forme et $\sigma$ de chaque rangée, puis les brins bout à bout ; les tables résidentes ; la graine de la rotation, constante du format).
+\item \textbf{La rétroaction d'erreur entre colonnes} combinée au brin (le LDLQ de QuIP et QTIP, ou la mutation synonyme du \cref{t3ecl:ch}) : le brin a gagné le pavage et la répartition, les exceptions les colonnes massives ; la rétroaction gagnerait la corrélation des entrées, et c'est la prédiction qui départagerait l'hypothèse du \cref{t3gen:sec:kl}. Elle n'est pas mesurée et n'entre pas dans les lots de construction.
+\item \textbf{La fenêtre $l = 16$} et des formes plus fines : 0,03 à 0,08 bit de plus sur une gaussienne, au prix d'un codage 16 fois plus lent (hors ligne, une fois).
+\item \textbf{La structure de rang} : 1 à 8 directions dominantes stockées à part, jusqu'à 0,05 bit net sur les down.
+\item \textbf{gpt-oss-120b} : refaire W et F ; et \textbf{la KL de tous les experts codés} : 19,1 milliards de poids à $2{,}3\cdot10^5$ poids par seconde et par forme, environ 23 heures de processeur pour une forme par rangée, 115 pour les cinq \calc ; ou un codeur sur la carte.
+\end{enumerate}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{L'erreur sur les poids n'est pas la qualité}, et l'erreur de sortie non plus. Le critère W est en erreur cumulée sur les poids, que la répartition peut tromper ; le critère F est en erreur de sortie d'expert, que $S^{*}$ a passé 8 fois sur 8 sans bouger la KL. Seule la KL juge, et elle ne substitue que 8 experts sur 768.
+\item \textbf{L'échantillon} : 4 experts sur 32, une rangée sur 4, 12 tenseurs sur 72, gpt-oss-20b seul ; le 120b n'est pas mesuré (les entropies des codes des deux modèles diffèrent de 0,001 bit, ce qui rend un grand écart improbable, sans le prouver).
+\item \textbf{Les tables sont apprises sur l'échantillon} (48 rangées par expert) et évaluées aussi sur ces rangées ; leur coût est compté, mais un léger sur-apprentissage est possible. La sortie les applique à des experts entiers et à des entrées qu'elles n'ont jamais vues.
+\item \textbf{$S^{*}$ a été choisi après avoir vu 5 experts sur 8} (les deux remèdes viennent des échecs mesurés) ; les 3 autres n'avaient servi à rien et gagnent aussi, mais le risque d'avoir réglé $S^{*}$ sur ses propres juges reste. La KL, qui ne s'en laisse pas conter, le rend égal à la base.
+\item \textbf{Peu de positions} pour certains experts (106 à 150 aux couches 16 et 23, 131 pour (8, 16)) : chaque verdict par expert reste significatif par la loi binomiale, mais la taille de l'effet est moins précise. La pondération est estimée sur au plus 1\,024 positions routées : pour un expert rare, $h$ est bruitée.
+\item \textbf{L'interpolation en $\log(\text{erreur})$} entre deux points de la courbe lagrangienne suppose la courbe localement exponentielle ; avec 400 valeurs de $\lambda$, l'erreur d'interpolation est sous $10^{-3}$ bit.
+\item \textbf{La frontière F1} est mesurée par un codeur réel ; la recette est comptée bit à bit, sans en-tête de tuile autre que l'alignement au pire. Un format qui imposerait des tuiles plus fines au brin ajouterait leurs en-têtes.
+\item \textbf{La transcription n'est pas mesurée sur la carte} ; la rotation de l'activation est calculée négligeable, pas mesurée dans le moteur (pour down, l'entrée diffère par expert et se tourne pour chaque expert actif).
+\item \textbf{L'hypothèse qui explique la queue de $S^{*}$} (pondération diagonale contre canaux massifs) n'est pas mesurée.
+\item \textbf{SeedLM et QTIP} sont lus à la source ; leurs chiffres sur Llama ne sont pas reproduits et ne servent que de repère (QTIP publie 0,069 à 2 bits sur une gaussienne, retrouvé ici à 0,0675 pour $l = 16$ et 0,0731 pour $l = 12$).
+\end{itemize}
+\end{faux}

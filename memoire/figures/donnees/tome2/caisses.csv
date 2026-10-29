@@ -1,0 +1,15 @@
+nom,sorte,lot,code,temoins,outils,n_dep,dependances
+trc-cache,crate,O,752,306,119,0,
+trc-codec,crate,F,907,304,0,1,trc-format
+trc-cuda,crate,E,897,316,0,0,
+trc-es,crate,E,314,195,0,0,
+trc-format,crate,F,1303,293,0,0,
+trc-jetons,crate,R,145,0,0,0,
+trc-juge,crate,R,874,0,572,2,trc-jetons trc-reference
+trc-modele,crate,O,737,0,0,4,trc-cuda trc-es trc-format trc-noyaux
+trc-noyaux,crate,K,2219,780,1376,1,trc-cuda
+trc-ordo,crate,O,1750,0,84,6,trc-cache trc-cuda trc-es trc-format trc-modele trc-noyaux
+trc-reference,crate,R,1592,0,0,0,
+banc-chemin,binaire,E,2341,0,0,4,trc-cuda trc-es trc-format trc-noyaux
+trc-codeur,binaire,F,1141,0,0,2,trc-codec trc-format
+troncons,binaire,O,683,0,0,7,trc-cache trc-cuda trc-es trc-format trc-jetons trc-juge trc-ordo

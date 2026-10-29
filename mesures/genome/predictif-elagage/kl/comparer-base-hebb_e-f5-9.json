@@ -1,0 +1,82 @@
+{
+  "a_contre_verite": {
+    "dp_rms": 0.030107077524113384,
+    "kl_incertitude": 0.0049731848192182725,
+    "kl_max": 3.0728076660398465,
+    "kl_mediane": 0.022663727105024373,
+    "kl_min": 0.0006139478321211789,
+    "kl_moyenne": 0.06363643680971051,
+    "kl_p90": 0.10144430286352907,
+    "kl_p99": 0.7774217561136315,
+    "kl_p999": 2.2499555969393326,
+    "ln_rapport_ppl": -0.04105928533217451,
+    "ln_rapport_ppl_incertitude": 0.011365394196677595,
+    "meme_premier": 0.8156862745098039,
+    "meme_premier_incertitude": 0.010863148139868526,
+    "meme_premier_wilson95": [
+      0.7934658125549041,
+      0.8360101826496498
+    ],
+    "n": 1275,
+    "ppl_p": 586.5625252323363,
+    "ppl_q": 562.9664216130659
+  },
+  "apparie": {
+    "kl_difference_b_moins_a": 0.13102244571502844,
+    "kl_ecart_type": 0.007204050710064167,
+    "premier_difference_b_moins_a": -0.20784313725490197,
+    "premier_ecart_type": 0.013812939014666275
+  },
+  "b_contre_verite": {
+    "dp_rms": 0.04656469236789927,
+    "kl_incertitude": 0.009091200817945247,
+    "kl_max": 4.018706287514924,
+    "kl_mediane": 0.07496280823384022,
+    "kl_min": 0.006172319433956829,
+    "kl_moyenne": 0.19465888252473887,
+    "kl_p90": 0.46516747928537894,
+    "kl_p99": 1.5383845116103148,
+    "kl_p999": 3.701980374037687,
+    "ln_rapport_ppl": -0.27375074797985643,
+    "ln_rapport_ppl_incertitude": 0.022827153311286357,
+    "meme_premier": 0.6078431372549019,
+    "meme_premier_incertitude": 0.013678578106532108,
+    "meme_premier_wilson95": [
+      0.5807585065631318,
+      0.6342798768918398
+    ],
+    "n": 1275,
+    "ppl_p": 586.5625252323363,
+    "ppl_q": 446.09347792473386
+  },
+  "commande": [
+    "~\\dev\\cibles\\troncons-R\\release\\juge.exe",
+    "comparer",
+    "--verite",
+    "~\\dev\\essais\\troncons\\genome\\predictif-elagage\\kld\\ref-openai-20b-f5-9.kld",
+    "--a",
+    "~\\dev\\essais\\troncons\\genome\\predictif-elagage\\kld\\base-f5-9.kld",
+    "--b",
+    "~\\dev\\essais\\troncons\\genome\\predictif-elagage\\kld\\hebb_e-f5-9.kld",
+    "--json",
+    "mesures\\genome\\predictif-elagage\\kl\\comparer-base-hebb_e-f5-9.json"
+  ],
+  "duree_s": 12.405385,
+  "fenetres": 5,
+  "fin_unix": 1792228566,
+  "kl_inverse": {
+    "a": 0.06375134900066556,
+    "b": 0.18233324430044484,
+    "difference": 0.1185818952997792,
+    "ecart_type": 0.0070478366876389805
+  },
+  "outil": "juge comparer",
+  "positions": 1275,
+  "regle": "littéral : KL_B ≤ KL_A et premier_B ≥ premier_A ; statistique : d̄ ≤ 2σ(d̄) et ē ≥ −2σ(ē) (différences appariées, mêmes positions, même vérité)",
+  "verdicts": {
+    "litteral_kl": false,
+    "litteral_premier": false,
+    "statistique_kl": false,
+    "statistique_premier": false
+  }
+}

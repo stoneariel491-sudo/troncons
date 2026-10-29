@@ -1,0 +1,60 @@
+% Page de titre du Tome III, commune aux deux langues (\EF). Même gabarit que celles des Tomes I et II
+% (memoire/commun/page-titre.tex, memoire/tome2/commun/page-titre.tex) : un bandeau, le titre, puis un
+% schéma tracé en TikZ. Ossature du 2026-10-29 : le schéma suit le chemin du tome, de la question à la
+% construction et aux pistes, par ses parties et ses chapitres. Aucun nombre n'y est encore écrit : la
+% page du Tome II porte quatre nombres du jalon, chacun avec sa source en commentaire ; le juge-correcteur
+% peut en ajouter de même, une fois les chapitres écrits et jugés (chaque nombre tiré d'un fichier commité,
+% sa source écrite ici en commentaire).
+\begin{titlepage}
+\thispagestyle{empty}
+\begin{tikzpicture}[remember picture, overlay]
+  \fill[Accent] (current page.north west) rectangle ([yshift=-9.5cm]current page.north east);
+  \node[anchor=north west, text=white, font=\sffamily\bfseries\fontsize{40}{44}\selectfont]
+    at ([xshift=2.6cm, yshift=-2.4cm]current page.north west) {troncons};
+  \node[anchor=north west, text=white, text width=15.5cm, align=left,
+        font=\sffamily\LARGE\linespread{1.15}\selectfont]
+    at ([xshift=2.6cm, yshift=-4.3cm]current page.north west)
+    {\EF{Volume~III: the genome of the weights}{Tome~III : le génome des poids}};
+  \node[anchor=north west, text=white!88!Accent, text width=15.5cm, align=left,
+        font=\sffamily\large\linespread{1.15}\selectfont]
+    at ([xshift=2.6cm, yshift=-5.6cm]current page.north west)
+    {\EF{Where the noise is and where the structure is; the strand, the seed and the rotation; gene duplication, predictive coding, mimicry; the synonymous codon in the format; the tropical geometry of the router and the spectra of the matrices}%
+        {Où est le bruit, où est la structure ; le brin, la graine et la rotation ; la duplication de gènes, le codage prédictif, le mimétisme ; le codon synonyme dans le format ; la géométrie tropicale du routeur et les spectres des matrices}};
+  \node[anchor=north west, text=white!80!Accent, font=\sffamily\normalsize]
+    at ([xshift=2.6cm, yshift=-8.1cm]current page.north west)
+    {\EF{Research thesis --- the search, its round and its construction}%
+        {Mémoire de recherche --- la quête, sa ronde et sa construction}};
+  % Le chemin du tome : cinq étapes, et les chapitres qui portent chacune.
+  \begin{scope}[shift={([xshift=2.6cm, yshift=-12.6cm]current page.north west)},
+                every node/.style={font=\sffamily\small}]
+    \foreach \fx/\fnom/\fcol/\fchap [count=\fidx] in {
+        0/\EF{The question}{La question}/Expo/{\EF{chapters 1--2}{chapitres 1--2}},
+        3.4/\EF{The round}{La ronde}/Mant/{\EF{chapters 3--6}{chapitres 3--6}},
+        6.8/\EF{The synthesis}{La synthèse}/Echelle/{\EF{chapter 7}{chapitre 7}},
+        10.2/\EF{The construction}{La construction}/Index/{\EF{chapters 8--10}{chapitres 8--10}},
+        13.6/\EF{The leads}{Les pistes}/Signe/{\EF{chapters 11--12}{chapitres 11--12}}}{
+      \node[draw=\fcol, fill=\fcol!12, rounded corners=2pt, minimum width=2.5cm,
+            minimum height=1.05cm, line width=0.9pt, align=center] (t\fidx) at (\fx,0)
+            {\textbf{\fnom}\\[-1pt]{\scriptsize\color{black!70}\fchap}};
+    }
+    \foreach \fa/\fb in {1/2, 2/3, 3/4, 4/5}{
+      \draw[-{Latex[length=2.2mm]}, line width=1.2pt, black!65] (t\fa.east) -- (t\fb.west);
+    }
+    \draw[decorate, decoration={brace, amplitude=5pt, mirror}, black!55, line width=0.6pt]
+      ([yshift=-3pt]t1.south west) -- ([yshift=-3pt]t3.south east)
+      node[midway, below=6pt, font=\sffamily\scriptsize, black!65]
+      {\EF{measure where the bits go, then try the living world's mechanisms}{mesurer où vont les bits, puis essayer les mécanismes du vivant}};
+    \draw[decorate, decoration={brace, amplitude=5pt, mirror}, black!55, line width=0.6pt]
+      ([yshift=-3pt]t4.south west) -- ([yshift=-3pt]t5.south east)
+      node[midway, below=6pt, font=\sffamily\scriptsize, black!65]
+      {\EF{build what holds, judge it, follow what remains}{construire ce qui tient, le juger, suivre ce qui reste}};
+  \end{scope}
+  \node[anchor=south west, font=\sffamily, text width=15cm, align=left]
+    at ([xshift=2.6cm, yshift=3.2cm]current page.south west)
+    {{\Large\bfseries Stone}\\[4pt]
+     {\large \EF{Toronto, 29 October 2026}{Toronto, le 29 octobre 2026}}\\[10pt]
+     {\small\color{black!65}\EF{Follows Volume~I, \emph{the measured foundations}, and Volume~II, \emph{the system}. Every figure is regenerated from the measurement data committed in the \texttt{troncons} repository; every number cites the file it comes from.}%
+         {Fait suite au Tome~I, \emph{les fondations mesurées}, et au Tome~II, \emph{le système}. Chaque figure se régénère depuis les données de mesure commitées dans le dépôt \texttt{troncons} ; chaque nombre cite le fichier dont il vient.}}};
+  \fill[Accent] ([yshift=1.4cm]current page.south west) rectangle ([yshift=1.55cm]current page.south east);
+\end{tikzpicture}
+\end{titlepage}

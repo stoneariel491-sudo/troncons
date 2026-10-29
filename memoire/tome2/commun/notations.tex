@@ -1,0 +1,97 @@
+% Notations du Tome II, communes aux deux langues (\EF). Relevées dans les chapitres eux-mêmes
+% (intégrateur, 2026-10-16) : une lettre qui sert deux fois est dite, avec la portée de chaque sens ;
+% aucun chapitre n'a été renuméroté pour cela, parce que chaque sens est défini là où il sert.
+\chapter*{\EF{Notation and conventions}{Notations et conventions}}
+\addcontentsline{toc}{chapter}{\EF{Notation and conventions}{Notations et conventions}}
+\markboth{\EF{Notation and conventions}{Notations et conventions}}{\EF{Notation and conventions}{Notations et conventions}}
+
+\EF{The conventions are Volume~I's. Units are decimal: 1\,GB $=10^9$ bytes, 1\,GB/s $=10^9$ bytes per second; binary multiples are written KiB, MiB, GiB (a chunk read of 12\,MiB is $12 \times 2^{20}$ bytes). Every number carries its provenance: \mes{} measured here on Stone's machine with a committed tool and log, \calc{} computed from named numbers, \litt{} literature (publisher's number, not reproduced). A sentence that a later measurement contradicted is struck out where it stood (\barre{like this}), with what replaced it. A file of the repository cited as the source of a number is set as \fichier{mesures/moteur/O/csv/}; its path is relative to the root of the \texttt{troncons} repository.}%
+{Les conventions sont celles du Tome~I. Les unités sont décimales : 1\,Go $=10^9$ octets, 1\,Go/s $=10^9$ octets par seconde ; les multiples binaires s'écrivent Kio, Mio, Gio (une lecture de tronçon de 12\,Mio fait $12 \times 2^{20}$ octets). Chaque nombre porte sa provenance : \mes{} mesuré ici, sur la machine de Stone, par un outil et un journal commités ; \calc{} calculé à partir de nombres nommés ; \litt{} littérature (chiffre d'éditeur, non reproduit). Une phrase qu'une mesure plus récente a démentie est barrée à sa place (\barre{ainsi}), avec ce qui l'a remplacée. Un fichier du dépôt cité comme source d'un nombre s'écrit \fichier{mesures/moteur/O/csv/} ; son chemin part de la racine du dépôt \texttt{troncons}.}
+
+\section*{\EF{Names of the work}{Les noms du travail}}
+
+\renewcommand{\arraystretch}{1.15}
+\begin{longtable}{@{}p{0.19\linewidth}p{0.76\linewidth}@{}}
+\toprule
+\EF{Name}{Nom} & \EF{Meaning}{Signification} \\
+\midrule
+\endhead
+troncons & \EF{the program (a Rust workspace with CUDA kernels, under \fichier{moteur/}), and the project}{le programme (un espace de travail Rust avec des noyaux CUDA, sous \fichier{moteur/}), et le projet} \\
+\EF{chunk}{tronçon} & \EF{the bytes of one expert (its three matrices and their biases) in a \texttt{.trc} file, read in one request}{les octets d'un expert (ses trois matrices et leurs biais) dans un fichier \texttt{.trc}, lus en une seule requête} \\
+\EF{slot}{emplacement} & \EF{the place of one decoded expert in video memory (\SI{13.25}{\Mo}); the cache decides which expert a slot holds}{la place d'un expert décodé en mémoire vidéo (\SI{13.25}{\Mo}) ; le cache décide quel expert y est} \\
+\EF{lots E, F, K, O, R}{lots E, F, K, O, R} & \EF{the five work packages of the team, each sole owner of its files: E the byte path (\texttt{trc-cuda}, \texttt{trc-es}), F the format and coder, K the kernels, O the cache, scheduler and engine, R the reference and the judge}{les cinq lots de l'équipe, chacun seul propriétaire de ses fichiers : E le chemin des octets (\texttt{trc-cuda}, \texttt{trc-es}), F le format et le codeur, K les noyaux, O le cache, l'ordonnanceur et le moteur, R la référence et le juge} \\
+\EF{seams F, C, N, A, J, D}{coutures F, C, N, A, J, D} & \EF{the interfaces frozen between lots before construction (\cref{t2arch:tab:coutures})}{les interfaces gelées entre les lots avant la construction (\cref{t2arch:tab:coutures})} \\
+E0, E1, E2, F1--F3, K1--K3, R0--R2, O1--O4 & \EF{the steps of each lot, each with its witness, its break and its declared threshold (\fichier{decisions/ARCHITECTURE.md} \S\,6.5; \cref{t2ann:protocoles})}{les étapes de chaque lot, chacune avec son témoin, sa cassure et son seuil déclaré (\fichier{decisions/ARCHITECTURE.md} \S\,6.5 ; \cref{t2ann:protocoles})} \\
+J1, J1+, J2 & \EF{the milestones: J1 exact service of gpt-oss-120b in a bounded window; J1+ speed against the baseline; J2 the base + complement split in the engine (future)}{les jalons : J1 le service exact de gpt-oss-120b dans une fenêtre bornée ; J1+ la vitesse contre la base ; J2 la découpe base + complément dans le moteur (à venir)} \\
+C1--C12 & \EF{the twelve criteria of J1 and J1+, declared on 15 October 2026 before the first line of code (\cref{ch:t2-resultats})}{les douze critères de J1 et J1+, déclarés le 15 octobre 2026 avant la première ligne de code (\cref{ch:t2-resultats})} \\
+G1, G2; M1--M5; m1--m6 & \EF{the findings of the independent trial: serious, medium, minor (\cref{ch:t2-epreuve})}{les constats de l'épreuve indépendante : graves, moyens, mineurs (\cref{ch:t2-epreuve})} \\
+\EF{mode A0}{mode A0} & \EF{no expert cache in RAM: every miss of the video-memory cache is read from disk}{aucun cache d'experts en RAM : tout défaut du cache de la carte est lu du disque} \\
+\EF{coded / raw file}{fichier codé / brut} & \EF{the same \texttt{.trc} with its streams coded by rANS, or stored as they are (flag bit~2); the raw file is the reference path of C3}{le même \texttt{.trc}, flux codés par rANS, ou rangés tels quels (drapeau bit~2) ; le fichier brut est le chemin de référence de C3} \\
+\EF{the reference}{la référence} & \EF{the f64 forward pass of gpt-oss on the processor (\texttt{trc-reference}), the \enquote{truth} of criterion C4}{la passe avant de gpt-oss en f64 sur le processeur (\texttt{trc-reference}), la « vérité » du critère C4} \\
+\EF{the baseline}{la base} & \EF{llama.cpp b11515 (CUDA~12.4), best measured configuration \texttt{fit -t 16} on the 120b}{llama.cpp b11515 (CUDA~12.4), meilleure configuration mesurée \texttt{fit -t 16} sur le 120b} \\
+\bottomrule
+\end{longtable}
+
+\section*{\EF{Symbols}{Symboles}}
+
+\EF{Each chapter defines its symbols where it uses them. Those below are shared by several chapters; a letter with two meanings in the volume is listed with the scope of each.}%
+{Chaque chapitre définit ses symboles là où il s'en sert. Ceux qui suivent sont partagés par plusieurs chapitres ; une lettre qui a deux sens dans le tome est donnée avec la portée de chacun.}
+
+\begin{longtable}{@{}p{0.19\linewidth}p{0.76\linewidth}@{}}
+\toprule
+\EF{Symbol}{Symbole} & \EF{Meaning}{Signification} \\
+\midrule
+\endhead
+\multicolumn{2}{@{}l}{\textsf{\bfseries\EF{The model (gpt-oss)}{Le modèle (gpt-oss)}}}\\
+$L$ & \EF{number of layers (36 for the 120b, 24 for the 20b), except in the rANS sections of \cref{t2fmt:ch,ch:t2-noyaux,ch:t2-chemin,ch:t2-epreuve}, where $L = 2^{16}$ is the lower bound of the state (below)}{nombre de couches (36 pour le 120b, 24 pour le 20b), sauf dans les passages sur le rANS des \cref{t2fmt:ch,ch:t2-noyaux,ch:t2-chemin,ch:t2-epreuve}, où $L = 2^{16}$ est la borne basse de l'état (plus bas)} \\
+$E$ & \EF{routed experts per layer (128 and 32)}{experts routés par couche (128 et 32)} \\
+$k$ & \EF{experts chosen per token and layer (4); in \cref{t2fmt:ch}, $k$ also counts the sub-steps of a rANS macro-step}{experts choisis par jeton et par couche (4) ; au \cref{t2fmt:ch}, $k$ compte aussi les sous-pas d'un macro-pas rANS} \\
+$\ell$, $t$ & \EF{index of a layer, index of a token (a step)}{indice d'une couche, indice d'un jeton (un pas)} \\
+$d$ & \EF{layers of look-ahead of the arrival buffers ($d = 3$, \cref{t2arch:prop:fenetre}); elsewhere a dimension, defined in place}{couches d'avance des tampons d'arrivée ($d = 3$, \cref{t2arch:prop:fenetre}) ; ailleurs une dimension, définie sur place} \\
+$z$, $p$, $q$ & \EF{logits; the next-token distribution of the truth ($p$) and of an engine ($q$)}{logits ; la loi du jeton suivant de la vérité ($p$) et d'un moteur ($q$)} \\
+\multicolumn{2}{@{}l}{\textsf{\bfseries\EF{The format and rANS}{Le format et le rANS}}}\\
+$M$ & \EF{precision of the rANS probabilities, $M = 2^{12} = 4\,096$}{précision des probabilités du rANS, $M = 2^{12} = 4\,096$} \\
+$x$, $x_l$ & \EF{32-bit rANS state, of lane $l \in \{0,\dots,31\}$}{état rANS sur 32 bits, de la voie $l \in \{0,\dots,31\}$} \\
+$L$ \EF{(rANS)}{(rANS)} & \EF{lower bound of the normalised state, $2^{16}$; every lane ends a tile on $L$}{borne basse de l'état normalisé, $2^{16}$ ; chaque voie finit une tuile sur $L$} \\
+$f_s$, $c_s$ & \EF{quantised frequency and cumulative of symbol $s$ ($\sum_s f_s = M$)}{fréquence quantifiée et cumul du symbole $s$ ($\sum_s f_s = M$)} \\
+$P$, $N$, $T$, $W$ & \EF{in a stream header: bytes produced, macro-steps per tile (256), tiles, 16-bit words; $N$ has another meaning in \cref{ch:t2-cache} (below)}{dans l'en-tête d'un flux : octets produits, macro-pas par tuile (256), tuiles, mots de 16 bits ; $N$ a un autre sens au \cref{ch:t2-cache} (plus bas)} \\
+$e$ & \EF{E8M0 scale of an MXFP4 block: value $2^{e-127}$ in the OCP specification \cite{ocpmx2023}; the code and \cref{ch:t2-noyaux,ch:t2-reference} write a weight $K[c]\,2^{e-128}$, where $K = \{0, \pm1, \pm2, \pm3, \pm4, \pm6, \pm8, \pm12\}$ holds the E2M1 magnitudes doubled (the same value); median of its row and offset as in Volume~I}{échelle E8M0 d'un bloc MXFP4 : valeur $2^{e-127}$ dans la spécification de l'OCP \cite{ocpmx2023} ; le code et les \cref{ch:t2-noyaux,ch:t2-reference} écrivent un poids $K[c]\,2^{e-128}$, où $K = \{0, \pm1, \pm2, \pm3, \pm4, \pm6, \pm8, \pm12\}$ porte les grandeurs E2M1 doublées (la même valeur) ; médiane de sa ligne et écart comme au Tome~I} \\
+\multicolumn{2}{@{}l}{\textsf{\bfseries\EF{Arithmetic and the judge}{L'arithmétique et le juge}}}\\
+$u$, $u_{16}$, $u_{32}$ & \EF{unit roundoff; of f16 ($2^{-11}$) and of f32 ($2^{-24}$)}{unité d'arrondi ; du f16 ($2^{-11}$) et du f32 ($2^{-24}$)} \\
+$\mathrm{KL}(p \,\|\, q)$ & \EF{Kullback--Leibler divergence $\sum_i p_i \ln(p_i/q_i)$, in nats, of an engine $q$ from the truth $p$, per position \cite{kullback1951}}{divergence de Kullback-Leibler $\sum_i p_i \ln(p_i/q_i)$, en nats, d'un moteur $q$ à la vérité $p$, par position \cite{kullback1951}} \\
+$G_{\text{moteurs}}$, $G_{\text{cfg}}$ & \EF{measured KL between two correct engines, between two configurations of one engine (step R0)}{KL mesurée entre deux moteurs justes, entre deux configurations d'un même moteur (étape R0)} \\
+$\Delta$, $\delta$ & \EF{a gap (of logits, of margins); defined in place}{un écart (de logits, de marges) ; défini sur place} \\
+\multicolumn{2}{@{}l}{\textsf{\bfseries\EF{Cache, scheduler, disk}{Cache, ordonnanceur, disque}}}\\
+$N$ \EF{(cache)}{(cache)} & \EF{capacity of a cache, in slots (326 in J1 on the 120b)}{capacité d'un cache, en emplacements (326 en J1 sur le 120b)} \\
+$h$, $h_v$ & \EF{hit rate of the expert cache; the one predicted by Volume~I for the video-memory cache}{taux de succès du cache d'experts ; celui que le Tome~I prédisait pour le cache de la carte} \\
+$X$, $N$, $R$ & \EF{in Little's law $X = N/R$ (\cref{ch:t2-chemin,ch:t2-resultats}): throughput, mean requests in flight, residence time \cite{little1961}}{dans la loi de Little $X = N/R$ (\cref{ch:t2-chemin,ch:t2-resultats}) : débit, nombre moyen de requêtes en vol, temps de séjour \cite{little1961}} \\
+$W_i$, $O_i$ & \EF{throughput of stage $i$, bytes a token makes it carry (Volume~I); the roof $t \ge \max_i O_i/W_i$}{débit de l'étage $i$, octets qu'un jeton lui fait traverser (Tome~I) ; le toit $t \ge \max_i O_i/W_i$} \\
+$B$ & \EF{bytes of chunks read per step ($\approx 0.71$\,GB on the 120b, \cref{t2arch:ch}); in \cref{t2fmt:ch}, blocks per row of a matrix}{octets de tronçons lus par pas ($\approx 0{,}71$\,Go sur le 120b, \cref{t2arch:ch}) ; au \cref{t2fmt:ch}, blocs par ligne d'une matrice} \\
+\bottomrule
+\end{longtable}
+
+\section*{\EF{References to Volume~I}{Les renvois au Tome~I}}
+
+\EF{This volume cites Volume~I in two ways. \enquote{Volume~I, chapter $n$} is a chapter of the first thesis. \enquote{Study 0$n$} (or \enquote{0$n$ \S\,$m$}) is one of the seven committed studies from which Volume~I was written, under \fichier{fondations/}; its sections are those of the Markdown file. The correspondence:}%
+{Ce tome cite le Tome~I de deux façons. « Tome~I, chapitre $n$ » est un chapitre du premier mémoire. « L'étude 0$n$ » (ou « 0$n$ § $m$ ») est l'une des sept études commitées d'où le Tome~I a été écrit, sous \fichier{fondations/} ; ses paragraphes sont ceux du fichier Markdown. La correspondance :}
+
+\begin{center}\small
+\begin{tabular}{@{}l l l@{}}
+\toprule
+\EF{Study}{Étude} & \EF{File}{Fichier} & \EF{Volume~I, chapter}{Tome~I, chapitre} \\
+\midrule
+01 & \fichier{fondations/01-machine.md} & 3 \EF{The machine and its physics}{La machine et sa physique} \\
+02 & \fichier{fondations/02-quantification.md} & 5 \EF{Extreme quantization}{Quantification extrême} \\
+03 & \fichier{fondations/03-entropie.md} & 6 \EF{Lossless compression}{Compression sans perte} \\
+04 & \fichier{fondations/04-chargement.md} & 7 \EF{On-demand loading}{Chargement à la demande} \\
+05 & \fichier{fondations/05-sparsite.md} & 8 \EF{Sparsity and speculative decoding}{Sparsité et décodage spéculatif} \\
+06 & \fichier{fondations/06-modeles.md} & 9 \EF{The target models}{Les modèles visés} \\
+07 & \fichier{fondations/07-ce-qui-manque.md} & 4 \EF{Formulation}{Formulation}, 10 \EF{Architecture}{Architecture} \\
+\midrule
+\EF{decision}{décision} & \fichier{decisions/ARCHITECTURE.md} & 10 ; \EF{in this volume}{dans ce tome}, \cref{t2arch:ch,t2fmt:ch} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\EF{The decision rule used throughout, \enquote{06 \S\,7.5}, is study 06's: a difference is real only if it exceeds twice the larger noise of the two programs and 3\,\% (\cref{t2ann:protocoles}).}%
+{La règle de décision employée partout, « 06 § 7.5 », est celle de l'étude 06 : une différence n'est réelle que si elle dépasse deux fois le plus grand bruit des deux programmes et 3\,\% (\cref{t2ann:protocoles}).}

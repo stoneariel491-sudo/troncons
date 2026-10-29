@@ -1,0 +1,1265 @@
+{
+ "seance": "vitesse-2026-10-16",
+ "ordre": [
+  "D120",
+  "D120",
+  "T120g",
+  "T120s",
+  "T120s",
+  "T120g",
+  "T120k",
+  "T120g",
+  "T120g",
+  "T120k"
+ ],
+ "exe": "~/dev/cibles/troncons-O/ronde/troncons.exe",
+ "exe_sha256": "0f4d2d37a7c3086287d35f4bea4cba4ef8e90d54fb940c0228baa936cd50ec07",
+ "passes": {
+  "D120": [
+   "disque",
+   [
+    "~/dev/cibles/troncons-O/ronde/troncons.exe",
+    "disque",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--n",
+    "1500",
+    "--graine",
+    "20261016",
+    "--profondeur",
+    "4"
+   ]
+  ],
+  "T120g": [
+   "troncons",
+   [
+    "~/dev/cibles/troncons-O/ronde/troncons.exe",
+    "mesurer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-120b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--flux"
+   ]
+  ],
+  "T120s": [
+   "troncons",
+   [
+    "~/dev/cibles/troncons-O/ronde/troncons.exe",
+    "mesurer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-120b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--flux",
+    "--sans-garde"
+   ]
+  ],
+  "T120k": [
+   "troncons",
+   [
+    "~/dev/cibles/troncons-O/ronde/troncons.exe",
+    "mesurer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-120b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--flux",
+    "--kv-f32"
+   ]
+  ],
+  "E0g120": [
+   "evaluer",
+   [
+    "~/dev/cibles/troncons-O/ronde/troncons.exe",
+    "evaluer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--base",
+    "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+    "--fenetres",
+    "1",
+    "--positions",
+    "512",
+    "--flux"
+   ]
+  ],
+  "E0k120": [
+   "evaluer",
+   [
+    "~/dev/cibles/troncons-O/ronde/troncons.exe",
+    "evaluer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--base",
+    "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+    "--fenetres",
+    "1",
+    "--positions",
+    "512",
+    "--flux",
+    "--kv-f32"
+   ]
+  ],
+  "Ig120": [
+   "evaluer",
+   [
+    "~/dev/cibles/troncons-O/ronde/troncons.exe",
+    "evaluer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--base",
+    "~/dev/essais/troncons/epreuve-J1/base-invite-708.kld",
+    "--fenetres",
+    "1",
+    "--positions",
+    "708",
+    "--flux"
+   ]
+  ],
+  "Ik120": [
+   "evaluer",
+   [
+    "~/dev/cibles/troncons-O/ronde/troncons.exe",
+    "evaluer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--base",
+    "~/dev/essais/troncons/epreuve-J1/base-invite-708.kld",
+    "--fenetres",
+    "1",
+    "--positions",
+    "708",
+    "--flux",
+    "--kv-f32"
+   ]
+  ],
+  "IkB120": [
+   "evaluer",
+   [
+    "~/dev/cibles/troncons-O/ronde/troncons.exe",
+    "evaluer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--base",
+    "~/dev/essais/troncons/epreuve-J1/base-invite-708.kld",
+    "--fenetres",
+    "1",
+    "--positions",
+    "708",
+    "--kv-f32",
+    "--trace",
+    "~/dev/essais/troncons/lot-O/ronde/ikb120.trace"
+   ]
+  ],
+  "E0g20": [
+   "evaluer",
+   [
+    "~/dev/cibles/troncons-O/ronde/troncons.exe",
+    "evaluer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-20b.trc",
+    "--base",
+    "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+    "--fenetres",
+    "1",
+    "--positions",
+    "512",
+    "--flux"
+   ]
+  ],
+  "E0k20": [
+   "evaluer",
+   [
+    "~/dev/cibles/troncons-O/ronde/troncons.exe",
+    "evaluer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-20b.trc",
+    "--base",
+    "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+    "--fenetres",
+    "1",
+    "--positions",
+    "512",
+    "--flux",
+    "--kv-f32"
+   ]
+  ],
+  "Lw": [
+   "llama",
+   [
+    "~/dev/modeles/llama.cpp-b11515/llama-completion.exe",
+    "-m",
+    "~/dev/modeles/gguf/gpt-oss-120b-MXFP4.gguf",
+    "-f",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--temp",
+    "0",
+    "--seed",
+    "1",
+    "-no-cnv",
+    "--no-display-prompt",
+    "--perf",
+    "--ignore-eos",
+    "-c",
+    "2048",
+    "-lv",
+    "4",
+    "-t",
+    "10"
+   ]
+  ],
+  "L6": [
+   "llama",
+   [
+    "~/dev/modeles/llama.cpp-b11515/llama-completion.exe",
+    "-m",
+    "~/dev/modeles/gguf/gpt-oss-120b-MXFP4.gguf",
+    "-f",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--temp",
+    "0",
+    "--seed",
+    "1",
+    "-no-cnv",
+    "--no-display-prompt",
+    "--perf",
+    "--ignore-eos",
+    "-c",
+    "2048",
+    "-lv",
+    "4",
+    "-t",
+    "6"
+   ]
+  ],
+  "L10": [
+   "llama",
+   [
+    "~/dev/modeles/llama.cpp-b11515/llama-completion.exe",
+    "-m",
+    "~/dev/modeles/gguf/gpt-oss-120b-MXFP4.gguf",
+    "-f",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--temp",
+    "0",
+    "--seed",
+    "1",
+    "-no-cnv",
+    "--no-display-prompt",
+    "--perf",
+    "--ignore-eos",
+    "-c",
+    "2048",
+    "-lv",
+    "4",
+    "-t",
+    "10"
+   ]
+  ],
+  "L12": [
+   "llama",
+   [
+    "~/dev/modeles/llama.cpp-b11515/llama-completion.exe",
+    "-m",
+    "~/dev/modeles/gguf/gpt-oss-120b-MXFP4.gguf",
+    "-f",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--temp",
+    "0",
+    "--seed",
+    "1",
+    "-no-cnv",
+    "--no-display-prompt",
+    "--perf",
+    "--ignore-eos",
+    "-c",
+    "2048",
+    "-lv",
+    "4",
+    "-t",
+    "12"
+   ]
+  ],
+  "L16": [
+   "llama",
+   [
+    "~/dev/modeles/llama.cpp-b11515/llama-completion.exe",
+    "-m",
+    "~/dev/modeles/gguf/gpt-oss-120b-MXFP4.gguf",
+    "-f",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--temp",
+    "0",
+    "--seed",
+    "1",
+    "-no-cnv",
+    "--no-display-prompt",
+    "--perf",
+    "--ignore-eos",
+    "-c",
+    "2048",
+    "-lv",
+    "4",
+    "-t",
+    "16"
+   ]
+  ],
+  "Lm": [
+   "llama",
+   [
+    "~/dev/modeles/llama.cpp-b11515/llama-completion.exe",
+    "-m",
+    "~/dev/modeles/gguf/gpt-oss-120b-MXFP4.gguf",
+    "-f",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--temp",
+    "0",
+    "--seed",
+    "1",
+    "-no-cnv",
+    "--no-display-prompt",
+    "--perf",
+    "--ignore-eos",
+    "-c",
+    "2048",
+    "-lv",
+    "4",
+    "-ngl",
+    "99",
+    "--n-cpu-moe",
+    "34",
+    "--fit",
+    "off",
+    "-t",
+    "10"
+   ]
+  ]
+ },
+ "passes_faites": [
+  {
+   "passe": "00-D120",
+   "nom": "D120",
+   "sorte": "disque",
+   "commande": [
+    "~/dev/cibles/troncons-O/ronde/troncons.exe",
+    "disque",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--n",
+    "1500",
+    "--graine",
+    "20261016",
+    "--profondeur",
+    "4",
+    "--journal",
+    "~\\dev\\essais\\troncons\\lot-O\\ronde\\vitesse-2026-10-16\\00-D120.json"
+   ],
+   "debut": "2026-10-16T06:41:50",
+   "alimentation_avant": "2",
+   "etrangers_avant": [],
+   "dispo_repos_mo": 8433.50016,
+   "vram_repos_mio": 582,
+   "mur_s": 10.496466875076294,
+   "code_retour": 0,
+   "memoire_os": {
+    "pointe_ensemble_travail": 189673472,
+    "pointe_engagee_privee": 280178688,
+    "fautes_de_page": 61067,
+    "ensemble_travail": 32768
+   },
+   "es_os": {
+    "lectures": 1519,
+    "octets_lus": 18059273017,
+    "octets_ecrits": 841,
+    "autres_octets": 62140
+   },
+   "dispo_min_mo": 8205.770752,
+   "perte_machine_mo": 227.72940799999924,
+   "vram_pointe_mio": 675,
+   "n_echantillons_vram": 33,
+   "alimentation_apres": "2",
+   "programme": {
+    "alimentation": {
+     "ACLineStatus": 1,
+     "BatteryFlag": 1,
+     "BatteryLifePercent": 80,
+     "secteur": true
+    },
+    "commande": "disque --modele ~/dev/modeles/trc/gpt-oss-120b.trc --n 1500 --graine 20261016 --profondeur 4 --journal ~/dev/essais/troncons/lot-O/ronde/vitesse-2026-10-16/00-D120.json",
+    "date_utc": "2026-10-16T10:42:12Z",
+    "disque_pdh_octets": 18038321988.406414,
+    "duree_us_mediane": 24227,
+    "duree_us_p90": 32916,
+    "fichier": "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "go_s": 1.8738984214322592,
+    "graine": 20261016,
+    "longueur_lecture": null,
+    "n": 1500,
+    "octets": 18038771712,
+    "outil": "troncons disque",
+    "profondeur": 4,
+    "repos_octets_s": null,
+    "secondes": 9.6263338,
+    "version": "0.1.0"
+   },
+   "fin": "2026-10-16T06:42:12"
+  },
+  {
+   "passe": "01-D120",
+   "nom": "D120",
+   "sorte": "disque",
+   "commande": [
+    "~/dev/cibles/troncons-O/ronde/troncons.exe",
+    "disque",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--n",
+    "1500",
+    "--graine",
+    "20261016",
+    "--profondeur",
+    "4",
+    "--journal",
+    "~\\dev\\essais\\troncons\\lot-O\\ronde\\vitesse-2026-10-16\\01-D120.json"
+   ],
+   "debut": "2026-10-16T06:42:12",
+   "alimentation_avant": "2",
+   "etrangers_avant": [],
+   "dispo_repos_mo": 8425.662464,
+   "vram_repos_mio": 582,
+   "mur_s": 10.278984785079956,
+   "code_retour": 0,
+   "memoire_os": {
+    "pointe_ensemble_travail": 190435328,
+    "pointe_engagee_privee": 280600576,
+    "fautes_de_page": 63752,
+    "ensemble_travail": 32768
+   },
+   "es_os": {
+    "lectures": 1519,
+    "octets_lus": 18059273017,
+    "octets_ecrits": 840,
+    "autres_octets": 59674
+   },
+   "dispo_min_mo": 8211.390464,
+   "perte_machine_mo": 214.27200000000084,
+   "vram_pointe_mio": 675,
+   "n_echantillons_vram": 26,
+   "alimentation_apres": "2",
+   "programme": {
+    "alimentation": {
+     "ACLineStatus": 1,
+     "BatteryFlag": 1,
+     "BatteryLifePercent": 80,
+     "secteur": true
+    },
+    "commande": "disque --modele ~/dev/modeles/trc/gpt-oss-120b.trc --n 1500 --graine 20261016 --profondeur 4 --journal ~/dev/essais/troncons/lot-O/ronde/vitesse-2026-10-16/01-D120.json",
+    "date_utc": "2026-10-16T10:42:33Z",
+    "disque_pdh_octets": 18038598502.107643,
+    "duree_us_mediane": 24044,
+    "duree_us_p90": 32116,
+    "fichier": "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "go_s": 1.893050627199149,
+    "graine": 20261016,
+    "longueur_lecture": null,
+    "n": 1500,
+    "octets": 18038771712,
+    "outil": "troncons disque",
+    "profondeur": 4,
+    "repos_octets_s": null,
+    "secondes": 9.5289431,
+    "version": "0.1.0"
+   },
+   "fin": "2026-10-16T06:42:34"
+  },
+  {
+   "passe": "02-T120g",
+   "nom": "T120g",
+   "sorte": "troncons",
+   "commande": [
+    "~/dev/cibles/troncons-O/ronde/troncons.exe",
+    "mesurer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-120b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--flux",
+    "--journal",
+    "~\\dev\\essais\\troncons\\lot-O\\ronde\\vitesse-2026-10-16\\02-T120g.json",
+    "--sortie",
+    "~\\dev\\essais\\troncons\\lot-O\\ronde\\vitesse-2026-10-16\\02-T120g.txt"
+   ],
+   "debut": "2026-10-16T06:42:34",
+   "alimentation_avant": "2",
+   "etrangers_avant": [],
+   "dispo_repos_mo": 8422.660096,
+   "vram_repos_mio": 582,
+   "mur_s": 191.06529116630554,
+   "code_retour": 0,
+   "memoire_os": {
+    "pointe_ensemble_travail": 386695168,
+    "pointe_engagee_privee": 6926528512,
+    "fautes_de_page": 144713,
+    "ensemble_travail": 45056
+   },
+   "es_os": {
+    "lectures": 23828,
+    "octets_lus": 220218007580,
+    "octets_ecrits": 27986,
+    "autres_octets": 885172
+   },
+   "dispo_min_mo": 7938.936832,
+   "perte_machine_mo": 483.7232639999993,
+   "vram_pointe_mio": 6811,
+   "n_echantillons_vram": 598,
+   "alimentation_apres": "2",
+   "programme": {
+    "prefill_s": 26.6644625,
+    "prefill_jetons_s": 26.552194704843572,
+    "generation_s": 149.7738723,
+    "generation_jetons_s": 1.70256664987088,
+    "pas_generation": 255.0,
+    "texte_sha256": "e4c6dbacb63a666e7cd09e921154df31ed9335bdd173f0a9346bc89646f1a6c0",
+    "jetons_produits": 256,
+    "memoire": {
+     "fin_ensemble_travail": 386576384,
+     "fin_pointe_ensemble_travail": 386695168,
+     "pointe_engagee": 6926528512,
+     "pointe_ensemble_travail": 386695168
+    },
+    "vram": {
+     "echantillons": 706,
+     "pointe_mio": 6811,
+     "premiere_mio": 582
+    },
+    "disque": {
+     "duree_s": 179.5044946,
+     "octets_comptes_moteur": {
+      "chargement_residents": 1685676032,
+      "lecteur": 220184518656,
+      "ouverture_tamponnee": 13565650,
+      "total": 221883760338
+     },
+     "octets_lus_pdh": 220232064258.69217,
+     "processus": {
+      "lectures": 20655,
+      "octets_ecrits": 4326,
+      "octets_lus": 220203162462,
+      "octets_lus_depuis_le_depart": 220218007580
+     },
+     "repos_octets_s": 2338926.353587757
+    },
+    "alimentation": {
+     "ACLineStatus": 1,
+     "BatteryFlag": 1,
+     "BatteryLifePercent": 80,
+     "secteur": true
+    },
+    "ouverture_s": 3.0280932,
+    "h_generation": 0.5897331154684096,
+    "emplacements": 326
+   },
+   "gen_jetons_s": 1.70256664987088,
+   "texte_sha256": "e4c6dbacb63a666e7cd09e921154df31ed9335bdd173f0a9346bc89646f1a6c0",
+   "fin": "2026-10-16T06:45:57"
+  },
+  {
+   "passe": "03-T120s",
+   "nom": "T120s",
+   "sorte": "troncons",
+   "commande": [
+    "~/dev/cibles/troncons-O/ronde/troncons.exe",
+    "mesurer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-120b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--flux",
+    "--sans-garde",
+    "--journal",
+    "~\\dev\\essais\\troncons\\lot-O\\ronde\\vitesse-2026-10-16\\03-T120s.json",
+    "--sortie",
+    "~\\dev\\essais\\troncons\\lot-O\\ronde\\vitesse-2026-10-16\\03-T120s.txt"
+   ],
+   "debut": "2026-10-16T06:45:57",
+   "alimentation_avant": "2",
+   "etrangers_avant": [],
+   "dispo_repos_mo": 8428.490752,
+   "vram_repos_mio": 582,
+   "mur_s": 156.8341360092163,
+   "code_retour": 0,
+   "memoire_os": {
+    "pointe_ensemble_travail": 384843776,
+    "pointe_engagee_privee": 6924582912,
+    "fautes_de_page": 144085,
+    "ensemble_travail": 45056
+   },
+   "es_os": {
+    "lectures": 23525,
+    "octets_lus": 219602701553,
+    "octets_ecrits": 27894,
+    "autres_octets": 738308
+   },
+   "dispo_min_mo": 7803.318272,
+   "perte_machine_mo": 625.1724799999993,
+   "vram_pointe_mio": 6811,
+   "n_echantillons_vram": 495,
+   "alimentation_apres": "2",
+   "programme": {
+    "prefill_s": 25.9416119,
+    "prefill_jetons_s": 27.292058902477063,
+    "generation_s": 117.1753562,
+    "generation_jetons_s": 2.1762255159246533,
+    "pas_generation": 255.0,
+    "texte_sha256": "e4c6dbacb63a666e7cd09e921154df31ed9335bdd173f0a9346bc89646f1a6c0",
+    "jetons_produits": 256,
+    "memoire": {
+     "fin_ensemble_travail": 384765952,
+     "fin_pointe_ensemble_travail": 384839680,
+     "pointe_engagee": 6924582912,
+     "pointe_ensemble_travail": 384839680
+    },
+    "vram": {
+     "echantillons": 573,
+     "pointe_mio": 6811,
+     "premiere_mio": 582
+    },
+    "disque": {
+     "duree_s": 145.2815857,
+     "octets_comptes_moteur": {
+      "chargement_residents": 1685676032,
+      "lecteur": 219569184768,
+      "ouverture_tamponnee": 13565650,
+      "total": 221268426450
+     },
+     "octets_lus_pdh": 219631449677.30457,
+     "processus": {
+      "lectures": 20351,
+      "octets_ecrits": 4326,
+      "octets_lus": 219587827776,
+      "octets_lus_depuis_le_depart": 219602701553
+     },
+     "repos_octets_s": 40462.55053633333
+    },
+    "alimentation": {
+     "ACLineStatus": 1,
+     "BatteryFlag": 1,
+     "BatteryLifePercent": 80,
+     "secteur": true
+    },
+    "ouverture_s": 2.0616635,
+    "h_generation": 0.5897331154684096,
+    "emplacements": 326
+   },
+   "gen_jetons_s": 2.1762255159246533,
+   "texte_sha256": "e4c6dbacb63a666e7cd09e921154df31ed9335bdd173f0a9346bc89646f1a6c0",
+   "fin": "2026-10-16T06:48:45"
+  },
+  {
+   "passe": "04-T120s",
+   "nom": "T120s",
+   "sorte": "troncons",
+   "commande": [
+    "~/dev/cibles/troncons-O/ronde/troncons.exe",
+    "mesurer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-120b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--flux",
+    "--sans-garde",
+    "--journal",
+    "~\\dev\\essais\\troncons\\lot-O\\ronde\\vitesse-2026-10-16\\04-T120s.json",
+    "--sortie",
+    "~\\dev\\essais\\troncons\\lot-O\\ronde\\vitesse-2026-10-16\\04-T120s.txt"
+   ],
+   "debut": "2026-10-16T06:48:45",
+   "alimentation_avant": "2",
+   "etrangers_avant": [],
+   "dispo_repos_mo": 8422.610944,
+   "vram_repos_mio": 582,
+   "mur_s": 171.44242119789124,
+   "code_retour": 0,
+   "memoire_os": {
+    "pointe_ensemble_travail": 384778240,
+    "pointe_engagee_privee": 6938394624,
+    "fautes_de_page": 144580,
+    "ensemble_travail": 45056
+   },
+   "es_os": {
+    "lectures": 23641,
+    "octets_lus": 219602703275,
+    "octets_ecrits": 27897,
+    "autres_octets": 803500
+   },
+   "dispo_min_mo": 7936.913408,
+   "perte_machine_mo": 485.6975359999997,
+   "vram_pointe_mio": 6811,
+   "n_echantillons_vram": 543,
+   "alimentation_apres": "2",
+   "programme": {
+    "prefill_s": 25.8905906,
+    "prefill_jetons_s": 27.34584200640058,
+    "generation_s": 132.0061031,
+    "generation_jetons_s": 1.931728867163264,
+    "pas_generation": 255.0,
+    "texte_sha256": "e4c6dbacb63a666e7cd09e921154df31ed9335bdd173f0a9346bc89646f1a6c0",
+    "jetons_produits": 256,
+    "memoire": {
+     "fin_ensemble_travail": 384700416,
+     "fin_pointe_ensemble_travail": 384761856,
+     "pointe_engagee": 6938394624,
+     "pointe_ensemble_travail": 384761856
+    },
+    "vram": {
+     "echantillons": 631,
+     "pointe_mio": 6811,
+     "premiere_mio": 582
+    },
+    "disque": {
+     "duree_s": 159.9677011,
+     "octets_comptes_moteur": {
+      "chargement_residents": 1685676032,
+      "lecteur": 219569184768,
+      "ouverture_tamponnee": 13565650,
+      "total": 221268426450
+     },
+     "octets_lus_pdh": 219606575015.18863,
+     "processus": {
+      "lectures": 20467,
+      "octets_ecrits": 4326,
+      "octets_lus": 219587828124,
+      "octets_lus_depuis_le_depart": 219602703275
+     },
+     "repos_octets_s": 4905.033053782988
+    },
+    "alimentation": {
+     "ACLineStatus": 1,
+     "BatteryFlag": 1,
+     "BatteryLifePercent": 80,
+     "secteur": true
+    },
+    "ouverture_s": 2.0492521,
+    "h_generation": 0.5897331154684096,
+    "emplacements": 326
+   },
+   "gen_jetons_s": 1.931728867163264,
+   "texte_sha256": "e4c6dbacb63a666e7cd09e921154df31ed9335bdd173f0a9346bc89646f1a6c0",
+   "fin": "2026-10-16T06:51:49"
+  },
+  {
+   "passe": "05-T120g",
+   "nom": "T120g",
+   "sorte": "troncons",
+   "commande": [
+    "~/dev/cibles/troncons-O/ronde/troncons.exe",
+    "mesurer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-120b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--flux",
+    "--journal",
+    "~\\dev\\essais\\troncons\\lot-O\\ronde\\vitesse-2026-10-16\\05-T120g.json",
+    "--sortie",
+    "~\\dev\\essais\\troncons\\lot-O\\ronde\\vitesse-2026-10-16\\05-T120g.txt"
+   ],
+   "debut": "2026-10-16T06:51:49",
+   "alimentation_avant": "2",
+   "etrangers_avant": [],
+   "dispo_repos_mo": 8389.502976,
+   "vram_repos_mio": 582,
+   "mur_s": 175.17754769325256,
+   "code_retour": 0,
+   "memoire_os": {
+    "pointe_ensemble_travail": 386650112,
+    "pointe_engagee_privee": 6943879168,
+    "fautes_de_page": 145996,
+    "ensemble_travail": 45056
+   },
+   "es_os": {
+    "lectures": 23704,
+    "octets_lus": 220218007208,
+    "octets_ecrits": 27981,
+    "autres_octets": 821484
+   },
+   "dispo_min_mo": 7911.636992,
+   "perte_machine_mo": 477.865984,
+   "vram_pointe_mio": 6811,
+   "n_echantillons_vram": 550,
+   "alimentation_apres": "2",
+   "programme": {
+    "prefill_s": 26.5377328,
+    "prefill_jetons_s": 26.67899346699278,
+    "generation_s": 134.1997786,
+    "generation_jetons_s": 1.900152166122873,
+    "pas_generation": 255.0,
+    "texte_sha256": "e4c6dbacb63a666e7cd09e921154df31ed9335bdd173f0a9346bc89646f1a6c0",
+    "jetons_produits": 256,
+    "memoire": {
+     "fin_ensemble_travail": 380067840,
+     "fin_pointe_ensemble_travail": 386650112,
+     "pointe_engagee": 6943879168,
+     "pointe_ensemble_travail": 386650112
+    },
+    "vram": {
+     "echantillons": 644,
+     "pointe_mio": 6811,
+     "premiere_mio": 582
+    },
+    "disque": {
+     "duree_s": 163.710824,
+     "octets_comptes_moteur": {
+      "chargement_residents": 1685676032,
+      "lecteur": 220184518656,
+      "ouverture_tamponnee": 13565650,
+      "total": 221883760338
+     },
+     "octets_lus_pdh": 220227096286.68762,
+     "processus": {
+      "lectures": 20531,
+      "octets_ecrits": 4326,
+      "octets_lus": 220203162090,
+      "octets_lus_depuis_le_depart": 220218007208
+     },
+     "repos_octets_s": 3270.4827276992182
+    },
+    "alimentation": {
+     "ACLineStatus": 1,
+     "BatteryFlag": 1,
+     "BatteryLifePercent": 80,
+     "secteur": true
+    },
+    "ouverture_s": 2.9619196,
+    "h_generation": 0.5897331154684096,
+    "emplacements": 326
+   },
+   "gen_jetons_s": 1.900152166122873,
+   "texte_sha256": "e4c6dbacb63a666e7cd09e921154df31ed9335bdd173f0a9346bc89646f1a6c0",
+   "fin": "2026-10-16T06:54:56"
+  },
+  {
+   "passe": "06-T120k",
+   "nom": "T120k",
+   "sorte": "troncons",
+   "commande": [
+    "~/dev/cibles/troncons-O/ronde/troncons.exe",
+    "mesurer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-120b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--flux",
+    "--kv-f32",
+    "--journal",
+    "~\\dev\\essais\\troncons\\lot-O\\ronde\\vitesse-2026-10-16\\06-T120k.json",
+    "--sortie",
+    "~\\dev\\essais\\troncons\\lot-O\\ronde\\vitesse-2026-10-16\\06-T120k.txt"
+   ],
+   "debut": "2026-10-16T06:54:56",
+   "alimentation_avant": "2",
+   "etrangers_avant": [],
+   "dispo_repos_mo": 8470.689792,
+   "vram_repos_mio": 582,
+   "mur_s": 219.40403532981873,
+   "code_retour": 0,
+   "memoire_os": {
+    "pointe_ensemble_travail": 386539520,
+    "pointe_engagee_privee": 6926204928,
+    "fautes_de_page": 144567,
+    "ensemble_travail": 45056
+   },
+   "es_os": {
+    "lectures": 29738,
+    "octets_lus": 288596578998,
+    "octets_ecrits": 31056,
+    "autres_octets": 1019308
+   },
+   "dispo_min_mo": 7975.104512,
+   "perte_machine_mo": 495.58527999999933,
+   "vram_pointe_mio": 6803,
+   "n_echantillons_vram": 687,
+   "alimentation_apres": "2",
+   "programme": {
+    "prefill_s": 27.1107761,
+    "prefill_jetons_s": 26.11507680150846,
+    "generation_s": 177.8236784,
+    "generation_jetons_s": 1.4340047528788493,
+    "pas_generation": 255.0,
+    "texte_sha256": "72304d85b457ff9848c26166a36d184b8b9ee09669ce21e26ed81aaecdff58ef",
+    "jetons_produits": 256,
+    "memoire": {
+     "fin_ensemble_travail": 386416640,
+     "fin_pointe_ensemble_travail": 386539520,
+     "pointe_engagee": 6926204928,
+     "pointe_ensemble_travail": 386539520
+    },
+    "vram": {
+     "echantillons": 817,
+     "pointe_mio": 6803,
+     "premiere_mio": 582
+    },
+    "disque": {
+     "duree_s": 207.9110659,
+     "octets_comptes_moteur": {
+      "chargement_residents": 1685676032,
+      "lecteur": 288563089408,
+      "ouverture_tamponnee": 13565650,
+      "total": 290262331090
+     },
+     "octets_lus_pdh": 288618657648.40173,
+     "processus": {
+      "lectures": 26565,
+      "octets_ecrits": 4327,
+      "octets_lus": 288581733880,
+      "octets_lus_depuis_le_depart": 288596578998
+     },
+     "repos_octets_s": 6951.322892127001
+    },
+    "alimentation": {
+     "ACLineStatus": 1,
+     "BatteryFlag": 1,
+     "BatteryLifePercent": 80,
+     "secteur": true
+    },
+    "ouverture_s": 2.96236,
+    "h_generation": 0.43499455337690635,
+    "emplacements": 314
+   },
+   "gen_jetons_s": 1.4340047528788493,
+   "texte_sha256": "72304d85b457ff9848c26166a36d184b8b9ee09669ce21e26ed81aaecdff58ef",
+   "fin": "2026-10-16T06:58:47"
+  },
+  {
+   "passe": "07-T120g",
+   "nom": "T120g",
+   "sorte": "troncons",
+   "commande": [
+    "~/dev/cibles/troncons-O/ronde/troncons.exe",
+    "mesurer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-120b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--flux",
+    "--journal",
+    "~\\dev\\essais\\troncons\\lot-O\\ronde\\vitesse-2026-10-16\\07-T120g.json",
+    "--sortie",
+    "~\\dev\\essais\\troncons\\lot-O\\ronde\\vitesse-2026-10-16\\07-T120g.txt"
+   ],
+   "debut": "2026-10-16T06:58:47",
+   "alimentation_avant": "2",
+   "etrangers_avant": [],
+   "dispo_repos_mo": 8536.07424,
+   "vram_repos_mio": 582,
+   "mur_s": 161.1374580860138,
+   "code_retour": 0,
+   "memoire_os": {
+    "pointe_ensemble_travail": 386625536,
+    "pointe_engagee_privee": 6926200832,
+    "fautes_de_page": 145241,
+    "ensemble_travail": 45056
+   },
+   "es_os": {
+    "lectures": 23590,
+    "octets_lus": 220218006866,
+    "octets_ecrits": 27948,
+    "autres_octets": 758540
+   },
+   "dispo_min_mo": 8052.453376,
+   "perte_machine_mo": 483.62086399999953,
+   "vram_pointe_mio": 6811,
+   "n_echantillons_vram": 505,
+   "alimentation_apres": "2",
+   "programme": {
+    "prefill_s": 26.61624,
+    "prefill_jetons_s": 26.600301169511546,
+    "generation_s": 119.9456215,
+    "generation_jetons_s": 2.1259633891679823,
+    "pas_generation": 255.0,
+    "texte_sha256": "e4c6dbacb63a666e7cd09e921154df31ed9335bdd173f0a9346bc89646f1a6c0",
+    "jetons_produits": 256,
+    "memoire": {
+     "fin_ensemble_travail": 386514944,
+     "fin_pointe_ensemble_travail": 386625536,
+     "pointe_engagee": 6926200832,
+     "pointe_ensemble_travail": 386625536
+    },
+    "vram": {
+     "echantillons": 587,
+     "pointe_mio": 6811,
+     "premiere_mio": 582
+    },
+    "disque": {
+     "duree_s": 149.644489,
+     "octets_comptes_moteur": {
+      "chargement_residents": 1685676032,
+      "lecteur": 220184518656,
+      "ouverture_tamponnee": 13565650,
+      "total": 221883760338
+     },
+     "octets_lus_pdh": 220218272876.2027,
+     "processus": {
+      "lectures": 20417,
+      "octets_ecrits": 4326,
+      "octets_lus": 220203161748,
+      "octets_lus_depuis_le_depart": 220218006866
+     },
+     "repos_octets_s": 4907.467248587012
+    },
+    "alimentation": {
+     "ACLineStatus": 1,
+     "BatteryFlag": 1,
+     "BatteryLifePercent": 80,
+     "secteur": true
+    },
+    "ouverture_s": 3.0110552,
+    "h_generation": 0.5897331154684096,
+    "emplacements": 326
+   },
+   "gen_jetons_s": 2.1259633891679823,
+   "texte_sha256": "e4c6dbacb63a666e7cd09e921154df31ed9335bdd173f0a9346bc89646f1a6c0",
+   "fin": "2026-10-16T07:01:39"
+  },
+  {
+   "passe": "08-T120g",
+   "nom": "T120g",
+   "sorte": "troncons",
+   "commande": [
+    "~/dev/cibles/troncons-O/ronde/troncons.exe",
+    "mesurer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-120b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--flux",
+    "--journal",
+    "~\\dev\\essais\\troncons\\lot-O\\ronde\\vitesse-2026-10-16\\08-T120g.json",
+    "--sortie",
+    "~\\dev\\essais\\troncons\\lot-O\\ronde\\vitesse-2026-10-16\\08-T120g.txt"
+   ],
+   "debut": "2026-10-16T07:01:39",
+   "alimentation_avant": "2",
+   "etrangers_avant": [],
+   "dispo_repos_mo": 8546.861056,
+   "vram_repos_mio": 582,
+   "mur_s": 160.74741220474243,
+   "code_retour": 0,
+   "memoire_os": {
+    "pointe_ensemble_travail": 386736128,
+    "pointe_engagee_privee": 6964887552,
+    "fautes_de_page": 145544,
+    "ensemble_travail": 45056
+   },
+   "es_os": {
+    "lectures": 23590,
+    "octets_lus": 220218006866,
+    "octets_ecrits": 27964,
+    "autres_octets": 756292
+   },
+   "dispo_min_mo": 8074.821632,
+   "perte_machine_mo": 472.0394239999996,
+   "vram_pointe_mio": 6811,
+   "n_echantillons_vram": 505,
+   "alimentation_apres": "2",
+   "programme": {
+    "prefill_s": 26.4775377,
+    "prefill_jetons_s": 26.739646564642605,
+    "generation_s": 119.6663701,
+    "generation_jetons_s": 2.130924501068325,
+    "pas_generation": 255.0,
+    "texte_sha256": "e4c6dbacb63a666e7cd09e921154df31ed9335bdd173f0a9346bc89646f1a6c0",
+    "jetons_produits": 256,
+    "memoire": {
+     "fin_ensemble_travail": 386617344,
+     "fin_pointe_ensemble_travail": 386736128,
+     "pointe_engagee": 6964887552,
+     "pointe_ensemble_travail": 386736128
+    },
+    "vram": {
+     "echantillons": 587,
+     "pointe_mio": 6811,
+     "premiere_mio": 582
+    },
+    "disque": {
+     "duree_s": 149.258927,
+     "octets_comptes_moteur": {
+      "chargement_residents": 1685676032,
+      "lecteur": 220184518656,
+      "ouverture_tamponnee": 13565650,
+      "total": 221883760338
+     },
+     "octets_lus_pdh": 220209009259.34656,
+     "processus": {
+      "lectures": 20417,
+      "octets_ecrits": 4326,
+      "octets_lus": 220203161748,
+      "octets_lus_depuis_le_depart": 220218006866
+     },
+     "repos_octets_s": 3270.9077554014793
+    },
+    "alimentation": {
+     "ACLineStatus": 1,
+     "BatteryFlag": 1,
+     "BatteryLifePercent": 80,
+     "secteur": true
+    },
+    "ouverture_s": 3.018056,
+    "h_generation": 0.5897331154684096,
+    "emplacements": 326
+   },
+   "gen_jetons_s": 2.130924501068325,
+   "texte_sha256": "e4c6dbacb63a666e7cd09e921154df31ed9335bdd173f0a9346bc89646f1a6c0",
+   "fin": "2026-10-16T07:04:32"
+  },
+  {
+   "passe": "09-T120k",
+   "nom": "T120k",
+   "sorte": "troncons",
+   "commande": [
+    "~/dev/cibles/troncons-O/ronde/troncons.exe",
+    "mesurer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-120b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--flux",
+    "--kv-f32",
+    "--journal",
+    "~\\dev\\essais\\troncons\\lot-O\\ronde\\vitesse-2026-10-16\\09-T120k.json",
+    "--sortie",
+    "~\\dev\\essais\\troncons\\lot-O\\ronde\\vitesse-2026-10-16\\09-T120k.txt"
+   ],
+   "debut": "2026-10-16T07:04:32",
+   "alimentation_avant": "2",
+   "etrangers_avant": [],
+   "dispo_repos_mo": 8546.715648,
+   "vram_repos_mio": 582,
+   "mur_s": 205.43581748008728,
+   "code_retour": 0,
+   "memoire_os": {
+    "pointe_ensemble_travail": 386838528,
+    "pointe_engagee_privee": 6919028736,
+    "fautes_de_page": 144624,
+    "ensemble_travail": 45056
+   },
+   "es_os": {
+    "lectures": 29628,
+    "octets_lus": 288596578668,
+    "octets_ecrits": 31074,
+    "autres_octets": 956364
+   },
+   "dispo_min_mo": 7987.761152,
+   "perte_machine_mo": 558.9544959999994,
+   "vram_pointe_mio": 6803,
+   "n_echantillons_vram": 643,
+   "alimentation_apres": "2",
+   "programme": {
+    "prefill_s": 27.1453008,
+    "prefill_jetons_s": 26.081862389972116,
+    "generation_s": 163.7307342,
+    "generation_jetons_s": 1.5574351464674492,
+    "pas_generation": 255.0,
+    "texte_sha256": "72304d85b457ff9848c26166a36d184b8b9ee09669ce21e26ed81aaecdff58ef",
+    "jetons_produits": 256,
+    "memoire": {
+     "fin_ensemble_travail": 386736128,
+     "fin_pointe_ensemble_travail": 386838528,
+     "pointe_engagee": 6919028736,
+     "pointe_ensemble_travail": 386838528
+    },
+    "vram": {
+     "echantillons": 762,
+     "pointe_mio": 6803,
+     "premiere_mio": 582
+    },
+    "disque": {
+     "duree_s": 193.9562126,
+     "octets_comptes_moteur": {
+      "chargement_residents": 1685676032,
+      "lecteur": 288563089408,
+      "ouverture_tamponnee": 13565650,
+      "total": 290262331090
+     },
+     "octets_lus_pdh": 288633601427.43713,
+     "processus": {
+      "lectures": 26455,
+      "octets_ecrits": 4327,
+      "octets_lus": 288581733550,
+      "octets_lus_depuis_le_depart": 288596578668
+     },
+     "repos_octets_s": 8178.120311811647
+    },
+    "alimentation": {
+     "ACLineStatus": 1,
+     "BatteryFlag": 1,
+     "BatteryLifePercent": 80,
+     "secteur": true
+    },
+    "ouverture_s": 2.9787558,
+    "h_generation": 0.43499455337690635,
+    "emplacements": 314
+   },
+   "gen_jetons_s": 1.5574351464674492,
+   "texte_sha256": "72304d85b457ff9848c26166a36d184b8b9ee09669ce21e26ed81aaecdff58ef",
+   "fin": "2026-10-16T07:08:09"
+  }
+ ]
+}

@@ -1,0 +1,4715 @@
+{
+ "outil": "mesures/moteur/O/temoin_o1.py",
+ "debut": "2026-10-15 13:02:37",
+ "fin": "2026-10-15 13:06:22",
+ "seuil": "0 écart, déclaré avant le lancement",
+ "casser": true,
+ "rejouer": "~/dev/cibles/troncons-O/release/rejouer.exe",
+ "rejouer_sha256": "012ef2cb9aa5588af1fe15f715878bde2b43a36a6b7d59093df18a557881743e",
+ "commit": "c0df2b9f7b38f54f5c837baf24e28352054cdfdb",
+ "comparaisons": 508,
+ "ecarts": 390,
+ "verdict": "TOMBE",
+ "par_chemin": {
+  "P1 étude 04 par couche": {
+   "comparaisons": 96,
+   "ecarts": 48,
+   "ecart_absolu_max": 9118
+  },
+  "P2 global gpt-oss": {
+   "comparaisons": 36,
+   "ecarts": 22,
+   "ecart_absolu_max": 79171
+  },
+  "P3 deux étages, VRAM": {
+   "comparaisons": 12,
+   "ecarts": 4,
+   "ecart_absolu_max": 28015
+  },
+  "P3 deux étages, VRAM + RAM": {
+   "comparaisons": 12,
+   "ecarts": 8,
+   "ecart_absolu_max": 28015
+  },
+  "P4 trace réelle, recalcul": {
+   "comparaisons": 192,
+   "ecarts": 168,
+   "ecart_absolu_max": 676705
+  },
+  "P4 trace réelle, taux publié": {
+   "comparaisons": 160,
+   "ecarts": 140,
+   "ecart_absolu_max": 676705
+  }
+ },
+ "detail": [
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 1986,
+   "rejouer": 1986,
+   "ecart": 0,
+   "trace": "uniforme",
+   "couche": 0,
+   "politique": "lru",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 3996,
+   "rejouer": 3991,
+   "ecart": -5,
+   "trace": "uniforme",
+   "couche": 0,
+   "politique": "lru",
+   "emplacements": 16
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 8051,
+   "rejouer": 8005,
+   "ecart": -46,
+   "trace": "uniforme",
+   "couche": 0,
+   "politique": "lru",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 16065,
+   "rejouer": 16016,
+   "ecart": -49,
+   "trace": "uniforme",
+   "couche": 0,
+   "politique": "lru",
+   "emplacements": 64
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 1986,
+   "rejouer": 1986,
+   "ecart": 0,
+   "trace": "uniforme",
+   "couche": 0,
+   "politique": "belady",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 10677,
+   "rejouer": 4262,
+   "ecart": -6415,
+   "trace": "uniforme",
+   "couche": 0,
+   "politique": "belady",
+   "emplacements": 16
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 17633,
+   "rejouer": 8565,
+   "ecart": -9068,
+   "trace": "uniforme",
+   "couche": 0,
+   "politique": "belady",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 25104,
+   "rejouer": 16600,
+   "ecart": -8504,
+   "trace": "uniforme",
+   "couche": 0,
+   "politique": "belady",
+   "emplacements": 64
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 1952,
+   "rejouer": 1952,
+   "ecart": 0,
+   "trace": "uniforme",
+   "couche": 1,
+   "politique": "lru",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 3967,
+   "rejouer": 3987,
+   "ecart": 20,
+   "trace": "uniforme",
+   "couche": 1,
+   "politique": "lru",
+   "emplacements": 16
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 7987,
+   "rejouer": 7994,
+   "ecart": 7,
+   "trace": "uniforme",
+   "couche": 1,
+   "politique": "lru",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 16115,
+   "rejouer": 16092,
+   "ecart": -23,
+   "trace": "uniforme",
+   "couche": 1,
+   "politique": "lru",
+   "emplacements": 64
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 1952,
+   "rejouer": 1952,
+   "ecart": 0,
+   "trace": "uniforme",
+   "couche": 1,
+   "politique": "belady",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 10640,
+   "rejouer": 4267,
+   "ecart": -6373,
+   "trace": "uniforme",
+   "couche": 1,
+   "politique": "belady",
+   "emplacements": 16
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 17647,
+   "rejouer": 8529,
+   "ecart": -9118,
+   "trace": "uniforme",
+   "couche": 1,
+   "politique": "belady",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 25081,
+   "rejouer": 16462,
+   "ecart": -8619,
+   "trace": "uniforme",
+   "couche": 1,
+   "politique": "belady",
+   "emplacements": 64
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 1960,
+   "rejouer": 1960,
+   "ecart": 0,
+   "trace": "uniforme",
+   "couche": 2,
+   "politique": "lru",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 3970,
+   "rejouer": 3989,
+   "ecart": 19,
+   "trace": "uniforme",
+   "couche": 2,
+   "politique": "lru",
+   "emplacements": 16
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 8021,
+   "rejouer": 8016,
+   "ecart": -5,
+   "trace": "uniforme",
+   "couche": 2,
+   "politique": "lru",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 15871,
+   "rejouer": 15987,
+   "ecart": 116,
+   "trace": "uniforme",
+   "couche": 2,
+   "politique": "lru",
+   "emplacements": 64
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 1960,
+   "rejouer": 1960,
+   "ecart": 0,
+   "trace": "uniforme",
+   "couche": 2,
+   "politique": "belady",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 10624,
+   "rejouer": 4296,
+   "ecart": -6328,
+   "trace": "uniforme",
+   "couche": 2,
+   "politique": "belady",
+   "emplacements": 16
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 17569,
+   "rejouer": 8535,
+   "ecart": -9034,
+   "trace": "uniforme",
+   "couche": 2,
+   "politique": "belady",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 25032,
+   "rejouer": 16574,
+   "ecart": -8458,
+   "trace": "uniforme",
+   "couche": 2,
+   "politique": "belady",
+   "emplacements": 64
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 1951,
+   "rejouer": 1951,
+   "ecart": 0,
+   "trace": "uniforme",
+   "couche": 3,
+   "politique": "lru",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 3997,
+   "rejouer": 3995,
+   "ecart": -2,
+   "trace": "uniforme",
+   "couche": 3,
+   "politique": "lru",
+   "emplacements": 16
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 7960,
+   "rejouer": 8056,
+   "ecart": 96,
+   "trace": "uniforme",
+   "couche": 3,
+   "politique": "lru",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 16102,
+   "rejouer": 15977,
+   "ecart": -125,
+   "trace": "uniforme",
+   "couche": 3,
+   "politique": "lru",
+   "emplacements": 64
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 1951,
+   "rejouer": 1951,
+   "ecart": 0,
+   "trace": "uniforme",
+   "couche": 3,
+   "politique": "belady",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 10650,
+   "rejouer": 4334,
+   "ecart": -6316,
+   "trace": "uniforme",
+   "couche": 3,
+   "politique": "belady",
+   "emplacements": 16
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 17644,
+   "rejouer": 8550,
+   "ecart": -9094,
+   "trace": "uniforme",
+   "couche": 3,
+   "politique": "belady",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 25070,
+   "rejouer": 16556,
+   "ecart": -8514,
+   "trace": "uniforme",
+   "couche": 3,
+   "politique": "belady",
+   "emplacements": 64
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "uniforme",
+   "politique": "lru",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 6925,
+   "rejouer": 7173,
+   "ecart": 248,
+   "trace": "uniforme",
+   "politique": "lru",
+   "emplacements": 31
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 7849,
+   "rejouer": 7370,
+   "ecart": -479,
+   "trace": "uniforme",
+   "politique": "lru",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 7853,
+   "rejouer": 7543,
+   "ecart": -310,
+   "trace": "uniforme",
+   "politique": "lru",
+   "emplacements": 51
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 29299,
+   "rejouer": 30288,
+   "ecart": 989,
+   "trace": "uniforme",
+   "politique": "lru",
+   "emplacements": 128
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 49514,
+   "rejouer": 49517,
+   "ecart": 3,
+   "trace": "uniforme",
+   "politique": "lru",
+   "emplacements": 205
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "uniforme",
+   "politique": "belady",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 32571,
+   "rejouer": 5927,
+   "ecart": -26644,
+   "trace": "uniforme",
+   "politique": "belady",
+   "emplacements": 31
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 33346,
+   "rejouer": 6179,
+   "ecart": -27167,
+   "trace": "uniforme",
+   "politique": "belady",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 45549,
+   "rejouer": 11487,
+   "ecart": -34062,
+   "trace": "uniforme",
+   "politique": "belady",
+   "emplacements": 51
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 74928,
+   "rejouer": 32039,
+   "ecart": -42889,
+   "trace": "uniforme",
+   "politique": "belady",
+   "emplacements": 128
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 92969,
+   "rejouer": 51560,
+   "ecart": -41409,
+   "trace": "uniforme",
+   "politique": "belady",
+   "emplacements": 205
+  },
+  {
+   "chemin": "P3 deux étages, VRAM",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "uniforme",
+   "emplacements": 8,
+   "tiedes": 32
+  },
+  {
+   "chemin": "P3 deux étages, VRAM + RAM",
+   "attendu": 7849,
+   "rejouer": 7370,
+   "ecart": -479,
+   "trace": "uniforme",
+   "emplacements": 8,
+   "tiedes": 32
+  },
+  {
+   "chemin": "P3 deux étages, VRAM",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "uniforme",
+   "emplacements": 16,
+   "tiedes": 64
+  },
+  {
+   "chemin": "P3 deux étages, VRAM + RAM",
+   "attendu": 15414,
+   "rejouer": 14140,
+   "ecart": -1274,
+   "trace": "uniforme",
+   "emplacements": 16,
+   "tiedes": 64
+  },
+  {
+   "chemin": "P3 deux étages, VRAM",
+   "attendu": 7849,
+   "rejouer": 7370,
+   "ecart": -479,
+   "trace": "uniforme",
+   "emplacements": 32,
+   "tiedes": 32
+  },
+  {
+   "chemin": "P3 deux étages, VRAM + RAM",
+   "attendu": 7849,
+   "rejouer": 7370,
+   "ecart": -479,
+   "trace": "uniforme",
+   "emplacements": 32,
+   "tiedes": 32
+  },
+  {
+   "chemin": "P3 deux étages, VRAM",
+   "attendu": 7853,
+   "rejouer": 7543,
+   "ecart": -310,
+   "trace": "uniforme",
+   "emplacements": 51,
+   "tiedes": 205
+  },
+  {
+   "chemin": "P3 deux étages, VRAM + RAM",
+   "attendu": 49514,
+   "rejouer": 49800,
+   "ecart": 286,
+   "trace": "uniforme",
+   "emplacements": 51,
+   "tiedes": 205
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 0,
+   "politique": "lru",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 0,
+   "politique": "lru",
+   "emplacements": 16
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 0,
+   "politique": "lru",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 0,
+   "politique": "lru",
+   "emplacements": 64
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 0,
+   "politique": "belady",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 0,
+   "politique": "belady",
+   "emplacements": 16
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 0,
+   "politique": "belady",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 0,
+   "politique": "belady",
+   "emplacements": 64
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 1,
+   "politique": "lru",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 1,
+   "politique": "lru",
+   "emplacements": 16
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 1,
+   "politique": "lru",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 1,
+   "politique": "lru",
+   "emplacements": 64
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 1,
+   "politique": "belady",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 1,
+   "politique": "belady",
+   "emplacements": 16
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 1,
+   "politique": "belady",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 1,
+   "politique": "belady",
+   "emplacements": 64
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 2,
+   "politique": "lru",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 2,
+   "politique": "lru",
+   "emplacements": 16
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 2,
+   "politique": "lru",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 2,
+   "politique": "lru",
+   "emplacements": 64
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 2,
+   "politique": "belady",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 2,
+   "politique": "belady",
+   "emplacements": 16
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 2,
+   "politique": "belady",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 2,
+   "politique": "belady",
+   "emplacements": 64
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 3,
+   "politique": "lru",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 3,
+   "politique": "lru",
+   "emplacements": 16
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 3,
+   "politique": "lru",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 3,
+   "politique": "lru",
+   "emplacements": 64
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 3,
+   "politique": "belady",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 3,
+   "politique": "belady",
+   "emplacements": 16
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 3,
+   "politique": "belady",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 31992,
+   "rejouer": 31992,
+   "ecart": 0,
+   "trace": "figee",
+   "couche": 3,
+   "politique": "belady",
+   "emplacements": 64
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "figee",
+   "politique": "lru",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 111972,
+   "rejouer": 119436,
+   "ecart": 7464,
+   "trace": "figee",
+   "politique": "lru",
+   "emplacements": 31
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 127968,
+   "rejouer": 127968,
+   "ecart": 0,
+   "trace": "figee",
+   "politique": "lru",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 127968,
+   "rejouer": 127968,
+   "ecart": 0,
+   "trace": "figee",
+   "politique": "lru",
+   "emplacements": 51
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 127968,
+   "rejouer": 127968,
+   "ecart": 0,
+   "trace": "figee",
+   "politique": "lru",
+   "emplacements": 128
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 127968,
+   "rejouer": 127968,
+   "ecart": 0,
+   "trace": "figee",
+   "politique": "lru",
+   "emplacements": 205
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "figee",
+   "politique": "belady",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 122636,
+   "rejouer": 119970,
+   "ecart": -2666,
+   "trace": "figee",
+   "politique": "belady",
+   "emplacements": 31
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 127968,
+   "rejouer": 127968,
+   "ecart": 0,
+   "trace": "figee",
+   "politique": "belady",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 127968,
+   "rejouer": 127968,
+   "ecart": 0,
+   "trace": "figee",
+   "politique": "belady",
+   "emplacements": 51
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 127968,
+   "rejouer": 127968,
+   "ecart": 0,
+   "trace": "figee",
+   "politique": "belady",
+   "emplacements": 128
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 127968,
+   "rejouer": 127968,
+   "ecart": 0,
+   "trace": "figee",
+   "politique": "belady",
+   "emplacements": 205
+  },
+  {
+   "chemin": "P3 deux étages, VRAM",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "figee",
+   "emplacements": 8,
+   "tiedes": 32
+  },
+  {
+   "chemin": "P3 deux étages, VRAM + RAM",
+   "attendu": 127968,
+   "rejouer": 127968,
+   "ecart": 0,
+   "trace": "figee",
+   "emplacements": 8,
+   "tiedes": 32
+  },
+  {
+   "chemin": "P3 deux étages, VRAM",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "figee",
+   "emplacements": 16,
+   "tiedes": 64
+  },
+  {
+   "chemin": "P3 deux étages, VRAM + RAM",
+   "attendu": 127968,
+   "rejouer": 127968,
+   "ecart": 0,
+   "trace": "figee",
+   "emplacements": 16,
+   "tiedes": 64
+  },
+  {
+   "chemin": "P3 deux étages, VRAM",
+   "attendu": 127968,
+   "rejouer": 127968,
+   "ecart": 0,
+   "trace": "figee",
+   "emplacements": 32,
+   "tiedes": 32
+  },
+  {
+   "chemin": "P3 deux étages, VRAM + RAM",
+   "attendu": 127968,
+   "rejouer": 127968,
+   "ecart": 0,
+   "trace": "figee",
+   "emplacements": 32,
+   "tiedes": 32
+  },
+  {
+   "chemin": "P3 deux étages, VRAM",
+   "attendu": 127968,
+   "rejouer": 127968,
+   "ecart": 0,
+   "trace": "figee",
+   "emplacements": 51,
+   "tiedes": 205
+  },
+  {
+   "chemin": "P3 deux étages, VRAM + RAM",
+   "attendu": 127968,
+   "rejouer": 127968,
+   "ecart": 0,
+   "trace": "figee",
+   "emplacements": 51,
+   "tiedes": 205
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 19395,
+   "rejouer": 19395,
+   "ecart": 0,
+   "trace": "collante_rho0.6",
+   "couche": 0,
+   "politique": "lru",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 20180,
+   "rejouer": 20170,
+   "ecart": -10,
+   "trace": "collante_rho0.6",
+   "couche": 0,
+   "politique": "lru",
+   "emplacements": 16
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 21819,
+   "rejouer": 21802,
+   "ecart": -17,
+   "trace": "collante_rho0.6",
+   "couche": 0,
+   "politique": "lru",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 25230,
+   "rejouer": 25188,
+   "ecart": -42,
+   "trace": "collante_rho0.6",
+   "couche": 0,
+   "politique": "lru",
+   "emplacements": 64
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 19395,
+   "rejouer": 19395,
+   "ecart": 0,
+   "trace": "collante_rho0.6",
+   "couche": 0,
+   "politique": "belady",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 23021,
+   "rejouer": 20228,
+   "ecart": -2793,
+   "trace": "collante_rho0.6",
+   "couche": 0,
+   "politique": "belady",
+   "emplacements": 16
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 25924,
+   "rejouer": 21873,
+   "ecart": -4051,
+   "trace": "collante_rho0.6",
+   "couche": 0,
+   "politique": "belady",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 29024,
+   "rejouer": 25258,
+   "ecart": -3766,
+   "trace": "collante_rho0.6",
+   "couche": 0,
+   "politique": "belady",
+   "emplacements": 64
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 19281,
+   "rejouer": 19281,
+   "ecart": 0,
+   "trace": "collante_rho0.6",
+   "couche": 1,
+   "politique": "lru",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 20147,
+   "rejouer": 20163,
+   "ecart": 16,
+   "trace": "collante_rho0.6",
+   "couche": 1,
+   "politique": "lru",
+   "emplacements": 16
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 21837,
+   "rejouer": 21886,
+   "ecart": 49,
+   "trace": "collante_rho0.6",
+   "couche": 1,
+   "politique": "lru",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 25267,
+   "rejouer": 25239,
+   "ecart": -28,
+   "trace": "collante_rho0.6",
+   "couche": 1,
+   "politique": "lru",
+   "emplacements": 64
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 19281,
+   "rejouer": 19281,
+   "ecart": 0,
+   "trace": "collante_rho0.6",
+   "couche": 1,
+   "politique": "belady",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 23024,
+   "rejouer": 20138,
+   "ecart": -2886,
+   "trace": "collante_rho0.6",
+   "couche": 1,
+   "politique": "belady",
+   "emplacements": 16
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 25963,
+   "rejouer": 21802,
+   "ecart": -4161,
+   "trace": "collante_rho0.6",
+   "couche": 1,
+   "politique": "belady",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 29060,
+   "rejouer": 25195,
+   "ecart": -3865,
+   "trace": "collante_rho0.6",
+   "couche": 1,
+   "politique": "belady",
+   "emplacements": 64
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 19259,
+   "rejouer": 19259,
+   "ecart": 0,
+   "trace": "collante_rho0.6",
+   "couche": 2,
+   "politique": "lru",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 20153,
+   "rejouer": 20168,
+   "ecart": 15,
+   "trace": "collante_rho0.6",
+   "couche": 2,
+   "politique": "lru",
+   "emplacements": 16
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 21870,
+   "rejouer": 21881,
+   "ecart": 11,
+   "trace": "collante_rho0.6",
+   "couche": 2,
+   "politique": "lru",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 25300,
+   "rejouer": 25320,
+   "ecart": 20,
+   "trace": "collante_rho0.6",
+   "couche": 2,
+   "politique": "lru",
+   "emplacements": 64
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 19259,
+   "rejouer": 19259,
+   "ecart": 0,
+   "trace": "collante_rho0.6",
+   "couche": 2,
+   "politique": "belady",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 23038,
+   "rejouer": 20130,
+   "ecart": -2908,
+   "trace": "collante_rho0.6",
+   "couche": 2,
+   "politique": "belady",
+   "emplacements": 16
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 25982,
+   "rejouer": 21791,
+   "ecart": -4191,
+   "trace": "collante_rho0.6",
+   "couche": 2,
+   "politique": "belady",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 29100,
+   "rejouer": 25259,
+   "ecart": -3841,
+   "trace": "collante_rho0.6",
+   "couche": 2,
+   "politique": "belady",
+   "emplacements": 64
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 19403,
+   "rejouer": 19403,
+   "ecart": 0,
+   "trace": "collante_rho0.6",
+   "couche": 3,
+   "politique": "lru",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 20221,
+   "rejouer": 20265,
+   "ecart": 44,
+   "trace": "collante_rho0.6",
+   "couche": 3,
+   "politique": "lru",
+   "emplacements": 16
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 21949,
+   "rejouer": 21968,
+   "ecart": 19,
+   "trace": "collante_rho0.6",
+   "couche": 3,
+   "politique": "lru",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 25246,
+   "rejouer": 25290,
+   "ecart": 44,
+   "trace": "collante_rho0.6",
+   "couche": 3,
+   "politique": "lru",
+   "emplacements": 64
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 19403,
+   "rejouer": 19403,
+   "ecart": 0,
+   "trace": "collante_rho0.6",
+   "couche": 3,
+   "politique": "belady",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 23107,
+   "rejouer": 20219,
+   "ecart": -2888,
+   "trace": "collante_rho0.6",
+   "couche": 3,
+   "politique": "belady",
+   "emplacements": 16
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 25990,
+   "rejouer": 21899,
+   "ecart": -4091,
+   "trace": "collante_rho0.6",
+   "couche": 3,
+   "politique": "belady",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P1 étude 04 par couche",
+   "attendu": 29067,
+   "rejouer": 25260,
+   "ecart": -3807,
+   "trace": "collante_rho0.6",
+   "couche": 3,
+   "politique": "belady",
+   "emplacements": 64
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "collante_rho0.6",
+   "politique": "lru",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 67579,
+   "rejouer": 48531,
+   "ecart": -19048,
+   "trace": "collante_rho0.6",
+   "politique": "lru",
+   "emplacements": 31
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 77338,
+   "rejouer": 49323,
+   "ecart": -28015,
+   "trace": "collante_rho0.6",
+   "politique": "lru",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 78807,
+   "rejouer": 71333,
+   "ecart": -7474,
+   "trace": "collante_rho0.6",
+   "politique": "lru",
+   "emplacements": 51
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 87079,
+   "rejouer": 85589,
+   "ecart": -1490,
+   "trace": "collante_rho0.6",
+   "politique": "lru",
+   "emplacements": 128
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 95214,
+   "rejouer": 94054,
+   "ecart": -1160,
+   "trace": "collante_rho0.6",
+   "politique": "lru",
+   "emplacements": 205
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "collante_rho0.6",
+   "politique": "belady",
+   "emplacements": 8
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 82879,
+   "rejouer": 6176,
+   "ecart": -76703,
+   "trace": "collante_rho0.6",
+   "politique": "belady",
+   "emplacements": 31
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 83496,
+   "rejouer": 6451,
+   "ecart": -77045,
+   "trace": "collante_rho0.6",
+   "politique": "belady",
+   "emplacements": 32
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 91096,
+   "rejouer": 11925,
+   "ecart": -79171,
+   "trace": "collante_rho0.6",
+   "politique": "belady",
+   "emplacements": 51
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 105154,
+   "rejouer": 33865,
+   "ecart": -71289,
+   "trace": "collante_rho0.6",
+   "politique": "belady",
+   "emplacements": 128
+  },
+  {
+   "chemin": "P2 global gpt-oss",
+   "attendu": 113013,
+   "rejouer": 54520,
+   "ecart": -58493,
+   "trace": "collante_rho0.6",
+   "politique": "belady",
+   "emplacements": 205
+  },
+  {
+   "chemin": "P3 deux étages, VRAM",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "collante_rho0.6",
+   "emplacements": 8,
+   "tiedes": 32
+  },
+  {
+   "chemin": "P3 deux étages, VRAM + RAM",
+   "attendu": 77338,
+   "rejouer": 49323,
+   "ecart": -28015,
+   "trace": "collante_rho0.6",
+   "emplacements": 8,
+   "tiedes": 32
+  },
+  {
+   "chemin": "P3 deux étages, VRAM",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "collante_rho0.6",
+   "emplacements": 16,
+   "tiedes": 64
+  },
+  {
+   "chemin": "P3 deux étages, VRAM + RAM",
+   "attendu": 80275,
+   "rejouer": 76037,
+   "ecart": -4238,
+   "trace": "collante_rho0.6",
+   "emplacements": 16,
+   "tiedes": 64
+  },
+  {
+   "chemin": "P3 deux étages, VRAM",
+   "attendu": 77338,
+   "rejouer": 49323,
+   "ecart": -28015,
+   "trace": "collante_rho0.6",
+   "emplacements": 32,
+   "tiedes": 32
+  },
+  {
+   "chemin": "P3 deux étages, VRAM + RAM",
+   "attendu": 77338,
+   "rejouer": 49323,
+   "ecart": -28015,
+   "trace": "collante_rho0.6",
+   "emplacements": 32,
+   "tiedes": 32
+  },
+  {
+   "chemin": "P3 deux étages, VRAM",
+   "attendu": 78807,
+   "rejouer": 71333,
+   "ecart": -7474,
+   "trace": "collante_rho0.6",
+   "emplacements": 51,
+   "tiedes": 205
+  },
+  {
+   "chemin": "P3 deux étages, VRAM + RAM",
+   "attendu": 95214,
+   "rejouer": 94973,
+   "ecart": -241,
+   "trace": "collante_rho0.6",
+   "emplacements": 51,
+   "tiedes": 205
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.code.generation",
+   "politique": "lru",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.code.generation",
+   "politique": "lru",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 8135,
+   "rejouer": 1737,
+   "ecart": -6398,
+   "trace": "t20b.code.generation",
+   "politique": "belady",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 8135,
+   "rejouer": 1737,
+   "ecart": -6398,
+   "trace": "t20b.code.generation",
+   "politique": "belady",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.code.generation",
+   "politique": "lru",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.code.generation",
+   "politique": "lru",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 13781,
+   "rejouer": 3511,
+   "ecart": -10270,
+   "trace": "t20b.code.generation",
+   "politique": "belady",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 13781,
+   "rejouer": 3511,
+   "ecart": -10270,
+   "trace": "t20b.code.generation",
+   "politique": "belady",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 11125,
+   "rejouer": 7847,
+   "ecart": -3278,
+   "trace": "t20b.code.generation",
+   "politique": "lru",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 11125,
+   "rejouer": 7847,
+   "ecart": -3278,
+   "trace": "t20b.code.generation",
+   "politique": "lru",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 16684,
+   "rejouer": 6128,
+   "ecart": -10556,
+   "trace": "t20b.code.generation",
+   "politique": "belady",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 16684,
+   "rejouer": 6128,
+   "ecart": -10556,
+   "trace": "t20b.code.generation",
+   "politique": "belady",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 12665,
+   "rejouer": 11453,
+   "ecart": -1212,
+   "trace": "t20b.code.generation",
+   "politique": "lru",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 12665,
+   "rejouer": 11453,
+   "ecart": -1212,
+   "trace": "t20b.code.generation",
+   "politique": "lru",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 18671,
+   "rejouer": 7538,
+   "ecart": -11133,
+   "trace": "t20b.code.generation",
+   "politique": "belady",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 18671,
+   "rejouer": 7538,
+   "ecart": -11133,
+   "trace": "t20b.code.generation",
+   "politique": "belady",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 15229,
+   "rejouer": 13686,
+   "ecart": -1543,
+   "trace": "t20b.code.generation",
+   "politique": "lru",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 15229,
+   "rejouer": 13686,
+   "ecart": -1543,
+   "trace": "t20b.code.generation",
+   "politique": "lru",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 20051,
+   "rejouer": 9579,
+   "ecart": -10472,
+   "trace": "t20b.code.generation",
+   "politique": "belady",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 20051,
+   "rejouer": 9579,
+   "ecart": -10472,
+   "trace": "t20b.code.generation",
+   "politique": "belady",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 17109,
+   "rejouer": 15584,
+   "ecart": -1525,
+   "trace": "t20b.code.generation",
+   "politique": "lru",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 17109,
+   "rejouer": 15584,
+   "ecart": -1525,
+   "trace": "t20b.code.generation",
+   "politique": "lru",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 21084,
+   "rejouer": 11003,
+   "ecart": -10081,
+   "trace": "t20b.code.generation",
+   "politique": "belady",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 21084,
+   "rejouer": 11003,
+   "ecart": -10081,
+   "trace": "t20b.code.generation",
+   "politique": "belady",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 18645,
+   "rejouer": 17201,
+   "ecart": -1444,
+   "trace": "t20b.code.generation",
+   "politique": "lru",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 18645,
+   "rejouer": 17201,
+   "ecart": -1444,
+   "trace": "t20b.code.generation",
+   "politique": "lru",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 21839,
+   "rejouer": 12399,
+   "ecart": -9440,
+   "trace": "t20b.code.generation",
+   "politique": "belady",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 21839,
+   "rejouer": 12399,
+   "ecart": -9440,
+   "trace": "t20b.code.generation",
+   "politique": "belady",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 19857,
+   "rejouer": 18433,
+   "ecart": -1424,
+   "trace": "t20b.code.generation",
+   "politique": "lru",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 19857,
+   "rejouer": 18433,
+   "ecart": -1424,
+   "trace": "t20b.code.generation",
+   "politique": "lru",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 22425,
+   "rejouer": 13570,
+   "ecart": -8855,
+   "trace": "t20b.code.generation",
+   "politique": "belady",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 22425,
+   "rejouer": 13570,
+   "ecart": -8855,
+   "trace": "t20b.code.generation",
+   "politique": "belady",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.code.lecture",
+   "politique": "lru",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.code.lecture",
+   "politique": "lru",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 81479,
+   "rejouer": 19743,
+   "ecart": -61736,
+   "trace": "t20b.code.lecture",
+   "politique": "belady",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 81479,
+   "rejouer": 19743,
+   "ecart": -61736,
+   "trace": "t20b.code.lecture",
+   "politique": "belady",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.code.lecture",
+   "politique": "lru",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.code.lecture",
+   "politique": "lru",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 137206,
+   "rejouer": 44949,
+   "ecart": -92257,
+   "trace": "t20b.code.lecture",
+   "politique": "belady",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 137206,
+   "rejouer": 44949,
+   "ecart": -92257,
+   "trace": "t20b.code.lecture",
+   "politique": "belady",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 105946,
+   "rejouer": 71433,
+   "ecart": -34513,
+   "trace": "t20b.code.lecture",
+   "politique": "lru",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 105946,
+   "rejouer": 71433,
+   "ecart": -34513,
+   "trace": "t20b.code.lecture",
+   "politique": "lru",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 168283,
+   "rejouer": 64629,
+   "ecart": -103654,
+   "trace": "t20b.code.lecture",
+   "politique": "belady",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 168283,
+   "rejouer": 64629,
+   "ecart": -103654,
+   "trace": "t20b.code.lecture",
+   "politique": "belady",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 125076,
+   "rejouer": 109251,
+   "ecart": -15825,
+   "trace": "t20b.code.lecture",
+   "politique": "lru",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 125076,
+   "rejouer": 109251,
+   "ecart": -15825,
+   "trace": "t20b.code.lecture",
+   "politique": "lru",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 189455,
+   "rejouer": 83101,
+   "ecart": -106354,
+   "trace": "t20b.code.lecture",
+   "politique": "belady",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 189455,
+   "rejouer": 83101,
+   "ecart": -106354,
+   "trace": "t20b.code.lecture",
+   "politique": "belady",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 151461,
+   "rejouer": 132852,
+   "ecart": -18609,
+   "trace": "t20b.code.lecture",
+   "politique": "lru",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 151461,
+   "rejouer": 132852,
+   "ecart": -18609,
+   "trace": "t20b.code.lecture",
+   "politique": "lru",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 203665,
+   "rejouer": 98347,
+   "ecart": -105318,
+   "trace": "t20b.code.lecture",
+   "politique": "belady",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 203665,
+   "rejouer": 98347,
+   "ecart": -105318,
+   "trace": "t20b.code.lecture",
+   "politique": "belady",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 173409,
+   "rejouer": 155432,
+   "ecart": -17977,
+   "trace": "t20b.code.lecture",
+   "politique": "lru",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 173409,
+   "rejouer": 155432,
+   "ecart": -17977,
+   "trace": "t20b.code.lecture",
+   "politique": "lru",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 214009,
+   "rejouer": 114437,
+   "ecart": -99572,
+   "trace": "t20b.code.lecture",
+   "politique": "belady",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 214009,
+   "rejouer": 114437,
+   "ecart": -99572,
+   "trace": "t20b.code.lecture",
+   "politique": "belady",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 191462,
+   "rejouer": 172903,
+   "ecart": -18559,
+   "trace": "t20b.code.lecture",
+   "politique": "lru",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 191462,
+   "rejouer": 172903,
+   "ecart": -18559,
+   "trace": "t20b.code.lecture",
+   "politique": "lru",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 222030,
+   "rejouer": 126734,
+   "ecart": -95296,
+   "trace": "t20b.code.lecture",
+   "politique": "belady",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 222030,
+   "rejouer": 126734,
+   "ecart": -95296,
+   "trace": "t20b.code.lecture",
+   "politique": "belady",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 203730,
+   "rejouer": 187200,
+   "ecart": -16530,
+   "trace": "t20b.code.lecture",
+   "politique": "lru",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 203730,
+   "rejouer": 187200,
+   "ecart": -16530,
+   "trace": "t20b.code.lecture",
+   "politique": "lru",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 227813,
+   "rejouer": 143729,
+   "ecart": -84084,
+   "trace": "t20b.code.lecture",
+   "politique": "belady",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 227813,
+   "rejouer": 143729,
+   "ecart": -84084,
+   "trace": "t20b.code.lecture",
+   "politique": "belady",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.dialogue.generation",
+   "politique": "lru",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.dialogue.generation",
+   "politique": "lru",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 8539,
+   "rejouer": 3340,
+   "ecart": -5199,
+   "trace": "t20b.dialogue.generation",
+   "politique": "belady",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 8539,
+   "rejouer": 3340,
+   "ecart": -5199,
+   "trace": "t20b.dialogue.generation",
+   "politique": "belady",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.dialogue.generation",
+   "politique": "lru",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.dialogue.generation",
+   "politique": "lru",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 14996,
+   "rejouer": 5985,
+   "ecart": -9011,
+   "trace": "t20b.dialogue.generation",
+   "politique": "belady",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 14996,
+   "rejouer": 5985,
+   "ecart": -9011,
+   "trace": "t20b.dialogue.generation",
+   "politique": "belady",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 13167,
+   "rejouer": 9718,
+   "ecart": -3449,
+   "trace": "t20b.dialogue.generation",
+   "politique": "lru",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 13167,
+   "rejouer": 9718,
+   "ecart": -3449,
+   "trace": "t20b.dialogue.generation",
+   "politique": "lru",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 18037,
+   "rejouer": 7659,
+   "ecart": -10378,
+   "trace": "t20b.dialogue.generation",
+   "politique": "belady",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 18037,
+   "rejouer": 7659,
+   "ecart": -10378,
+   "trace": "t20b.dialogue.generation",
+   "politique": "belady",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 15169,
+   "rejouer": 13238,
+   "ecart": -1931,
+   "trace": "t20b.dialogue.generation",
+   "politique": "lru",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 15169,
+   "rejouer": 13238,
+   "ecart": -1931,
+   "trace": "t20b.dialogue.generation",
+   "politique": "lru",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 19797,
+   "rejouer": 9412,
+   "ecart": -10385,
+   "trace": "t20b.dialogue.generation",
+   "politique": "belady",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 19797,
+   "rejouer": 9412,
+   "ecart": -10385,
+   "trace": "t20b.dialogue.generation",
+   "politique": "belady",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 17150,
+   "rejouer": 15368,
+   "ecart": -1782,
+   "trace": "t20b.dialogue.generation",
+   "politique": "lru",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 17150,
+   "rejouer": 15368,
+   "ecart": -1782,
+   "trace": "t20b.dialogue.generation",
+   "politique": "lru",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 20944,
+   "rejouer": 11146,
+   "ecart": -9798,
+   "trace": "t20b.dialogue.generation",
+   "politique": "belady",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 20944,
+   "rejouer": 11146,
+   "ecart": -9798,
+   "trace": "t20b.dialogue.generation",
+   "politique": "belady",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 18555,
+   "rejouer": 17079,
+   "ecart": -1476,
+   "trace": "t20b.dialogue.generation",
+   "politique": "lru",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 18555,
+   "rejouer": 17079,
+   "ecart": -1476,
+   "trace": "t20b.dialogue.generation",
+   "politique": "lru",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 21779,
+   "rejouer": 12069,
+   "ecart": -9710,
+   "trace": "t20b.dialogue.generation",
+   "politique": "belady",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 21779,
+   "rejouer": 12069,
+   "ecart": -9710,
+   "trace": "t20b.dialogue.generation",
+   "politique": "belady",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 19965,
+   "rejouer": 18691,
+   "ecart": -1274,
+   "trace": "t20b.dialogue.generation",
+   "politique": "lru",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 19965,
+   "rejouer": 18691,
+   "ecart": -1274,
+   "trace": "t20b.dialogue.generation",
+   "politique": "lru",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 22372,
+   "rejouer": 15202,
+   "ecart": -7170,
+   "trace": "t20b.dialogue.generation",
+   "politique": "belady",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 22372,
+   "rejouer": 15202,
+   "ecart": -7170,
+   "trace": "t20b.dialogue.generation",
+   "politique": "belady",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 21066,
+   "rejouer": 19635,
+   "ecart": -1431,
+   "trace": "t20b.dialogue.generation",
+   "politique": "lru",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 21066,
+   "rejouer": 19635,
+   "ecart": -1431,
+   "trace": "t20b.dialogue.generation",
+   "politique": "lru",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 22876,
+   "rejouer": 18098,
+   "ecart": -4778,
+   "trace": "t20b.dialogue.generation",
+   "politique": "belady",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 22876,
+   "rejouer": 18098,
+   "ecart": -4778,
+   "trace": "t20b.dialogue.generation",
+   "politique": "belady",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "lru",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "lru",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 96453,
+   "rejouer": 19050,
+   "ecart": -77403,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "belady",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 96453,
+   "rejouer": 19050,
+   "ecart": -77403,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "belady",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "lru",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "lru",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 169265,
+   "rejouer": 54093,
+   "ecart": -115172,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "belady",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 169265,
+   "rejouer": 54093,
+   "ecart": -115172,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "belady",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 142493,
+   "rejouer": 99631,
+   "ecart": -42862,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "lru",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 142493,
+   "rejouer": 99631,
+   "ecart": -42862,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "lru",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 204441,
+   "rejouer": 79892,
+   "ecart": -124549,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "belady",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 204441,
+   "rejouer": 79892,
+   "ecart": -124549,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "belady",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 171028,
+   "rejouer": 143001,
+   "ecart": -28027,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "lru",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 171028,
+   "rejouer": 143001,
+   "ecart": -28027,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "lru",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 226380,
+   "rejouer": 101214,
+   "ecart": -125166,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "belady",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 226380,
+   "rejouer": 101214,
+   "ecart": -125166,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "belady",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 197191,
+   "rejouer": 172472,
+   "ecart": -24719,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "lru",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 197191,
+   "rejouer": 172472,
+   "ecart": -24719,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "lru",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 240857,
+   "rejouer": 137830,
+   "ecart": -103027,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "belady",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 240857,
+   "rejouer": 137830,
+   "ecart": -103027,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "belady",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 217298,
+   "rejouer": 195941,
+   "ecart": -21357,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "lru",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 217298,
+   "rejouer": 195941,
+   "ecart": -21357,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "lru",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 251273,
+   "rejouer": 163580,
+   "ecart": -87693,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "belady",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 251273,
+   "rejouer": 163580,
+   "ecart": -87693,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "belady",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 233501,
+   "rejouer": 214089,
+   "ecart": -19412,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "lru",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 233501,
+   "rejouer": 214089,
+   "ecart": -19412,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "lru",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 259053,
+   "rejouer": 185512,
+   "ecart": -73541,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "belady",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 259053,
+   "rejouer": 185512,
+   "ecart": -73541,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "belady",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 246342,
+   "rejouer": 230119,
+   "ecart": -16223,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "lru",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 246342,
+   "rejouer": 230119,
+   "ecart": -16223,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "lru",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 264454,
+   "rejouer": 205517,
+   "ecart": -58937,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "belady",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 264454,
+   "rejouer": 205517,
+   "ecart": -58937,
+   "trace": "t20b.dialogue.lecture",
+   "politique": "belady",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.prose-en.generation",
+   "politique": "lru",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.prose-en.generation",
+   "politique": "lru",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 8947,
+   "rejouer": 3377,
+   "ecart": -5570,
+   "trace": "t20b.prose-en.generation",
+   "politique": "belady",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 8947,
+   "rejouer": 3377,
+   "ecart": -5570,
+   "trace": "t20b.prose-en.generation",
+   "politique": "belady",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.prose-en.generation",
+   "politique": "lru",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.prose-en.generation",
+   "politique": "lru",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 18462,
+   "rejouer": 8810,
+   "ecart": -9652,
+   "trace": "t20b.prose-en.generation",
+   "politique": "belady",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 18462,
+   "rejouer": 8810,
+   "ecart": -9652,
+   "trace": "t20b.prose-en.generation",
+   "politique": "belady",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 21254,
+   "rejouer": 18847,
+   "ecart": -2407,
+   "trace": "t20b.prose-en.generation",
+   "politique": "lru",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 21254,
+   "rejouer": 18847,
+   "ecart": -2407,
+   "trace": "t20b.prose-en.generation",
+   "politique": "lru",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 22872,
+   "rejouer": 12002,
+   "ecart": -10870,
+   "trace": "t20b.prose-en.generation",
+   "politique": "belady",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 22872,
+   "rejouer": 12002,
+   "ecart": -10870,
+   "trace": "t20b.prose-en.generation",
+   "politique": "belady",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 22647,
+   "rejouer": 21516,
+   "ecart": -1131,
+   "trace": "t20b.prose-en.generation",
+   "politique": "lru",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 22647,
+   "rejouer": 21516,
+   "ecart": -1131,
+   "trace": "t20b.prose-en.generation",
+   "politique": "lru",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 23644,
+   "rejouer": 16574,
+   "ecart": -7070,
+   "trace": "t20b.prose-en.generation",
+   "politique": "belady",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 23644,
+   "rejouer": 16574,
+   "ecart": -7070,
+   "trace": "t20b.prose-en.generation",
+   "politique": "belady",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 23355,
+   "rejouer": 22708,
+   "ecart": -647,
+   "trace": "t20b.prose-en.generation",
+   "politique": "lru",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 23355,
+   "rejouer": 22708,
+   "ecart": -647,
+   "trace": "t20b.prose-en.generation",
+   "politique": "lru",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 23959,
+   "rejouer": 20170,
+   "ecart": -3789,
+   "trace": "t20b.prose-en.generation",
+   "politique": "belady",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 23959,
+   "rejouer": 20170,
+   "ecart": -3789,
+   "trace": "t20b.prose-en.generation",
+   "politique": "belady",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 23782,
+   "rejouer": 23320,
+   "ecart": -462,
+   "trace": "t20b.prose-en.generation",
+   "politique": "lru",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 23782,
+   "rejouer": 23320,
+   "ecart": -462,
+   "trace": "t20b.prose-en.generation",
+   "politique": "lru",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 24104,
+   "rejouer": 23054,
+   "ecart": -1050,
+   "trace": "t20b.prose-en.generation",
+   "politique": "belady",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 24104,
+   "rejouer": 23054,
+   "ecart": -1050,
+   "trace": "t20b.prose-en.generation",
+   "politique": "belady",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 24029,
+   "rejouer": 23759,
+   "ecart": -270,
+   "trace": "t20b.prose-en.generation",
+   "politique": "lru",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 24029,
+   "rejouer": 23759,
+   "ecart": -270,
+   "trace": "t20b.prose-en.generation",
+   "politique": "lru",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 24177,
+   "rejouer": 23495,
+   "ecart": -682,
+   "trace": "t20b.prose-en.generation",
+   "politique": "belady",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 24177,
+   "rejouer": 23495,
+   "ecart": -682,
+   "trace": "t20b.prose-en.generation",
+   "politique": "belady",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 24151,
+   "rejouer": 23943,
+   "ecart": -208,
+   "trace": "t20b.prose-en.generation",
+   "politique": "lru",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 24151,
+   "rejouer": 23943,
+   "ecart": -208,
+   "trace": "t20b.prose-en.generation",
+   "politique": "lru",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 24201,
+   "rejouer": 23797,
+   "ecart": -404,
+   "trace": "t20b.prose-en.generation",
+   "politique": "belady",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 24201,
+   "rejouer": 23797,
+   "ecart": -404,
+   "trace": "t20b.prose-en.generation",
+   "politique": "belady",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "lru",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "lru",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 80204,
+   "rejouer": 8668,
+   "ecart": -71536,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "belady",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 80204,
+   "rejouer": 8668,
+   "ecart": -71536,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "belady",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "lru",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "lru",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 139136,
+   "rejouer": 23870,
+   "ecart": -115266,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "belady",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 139136,
+   "rejouer": 23870,
+   "ecart": -115266,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "belady",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 117181,
+   "rejouer": 81561,
+   "ecart": -35620,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "lru",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 117181,
+   "rejouer": 81561,
+   "ecart": -35620,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "lru",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 168169,
+   "rejouer": 35887,
+   "ecart": -132282,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "belady",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 168169,
+   "rejouer": 35887,
+   "ecart": -132282,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "belady",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 139873,
+   "rejouer": 117005,
+   "ecart": -22868,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "lru",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 139873,
+   "rejouer": 117005,
+   "ecart": -22868,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "lru",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 186502,
+   "rejouer": 48541,
+   "ecart": -137961,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "belady",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 186502,
+   "rejouer": 48541,
+   "ecart": -137961,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "belady",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 161455,
+   "rejouer": 141204,
+   "ecart": -20251,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "lru",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 161455,
+   "rejouer": 141204,
+   "ecart": -20251,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "lru",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 198549,
+   "rejouer": 56432,
+   "ecart": -142117,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "belady",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 198549,
+   "rejouer": 56432,
+   "ecart": -142117,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "belady",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 177970,
+   "rejouer": 159314,
+   "ecart": -18656,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "lru",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 177970,
+   "rejouer": 159314,
+   "ecart": -18656,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "lru",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 207232,
+   "rejouer": 79985,
+   "ecart": -127247,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "belady",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 207232,
+   "rejouer": 79985,
+   "ecart": -127247,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "belady",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 191109,
+   "rejouer": 175229,
+   "ecart": -15880,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "lru",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 191109,
+   "rejouer": 175229,
+   "ecart": -15880,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "lru",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 213655,
+   "rejouer": 105569,
+   "ecart": -108086,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "belady",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 213655,
+   "rejouer": 105569,
+   "ecart": -108086,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "belady",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 201821,
+   "rejouer": 187592,
+   "ecart": -14229,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "lru",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 201821,
+   "rejouer": 187592,
+   "ecart": -14229,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "lru",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 218152,
+   "rejouer": 123878,
+   "ecart": -94274,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "belady",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 218152,
+   "rejouer": 123878,
+   "ecart": -94274,
+   "trace": "t20b.prose-en.lecture",
+   "politique": "belady",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "lru",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "lru",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 8474,
+   "rejouer": 3334,
+   "ecart": -5140,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "belady",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 8474,
+   "rejouer": 3334,
+   "ecart": -5140,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "belady",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "lru",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "lru",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 14285,
+   "rejouer": 7040,
+   "ecart": -7245,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "belady",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 14285,
+   "rejouer": 7040,
+   "ecart": -7245,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "belady",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 11870,
+   "rejouer": 8429,
+   "ecart": -3441,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "lru",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 11870,
+   "rejouer": 8429,
+   "ecart": -3441,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "lru",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 17300,
+   "rejouer": 9470,
+   "ecart": -7830,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "belady",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 17300,
+   "rejouer": 9470,
+   "ecart": -7830,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "belady",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 13818,
+   "rejouer": 11587,
+   "ecart": -2231,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "lru",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 13818,
+   "rejouer": 11587,
+   "ecart": -2231,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "lru",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 19385,
+   "rejouer": 12230,
+   "ecart": -7155,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "belady",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 19385,
+   "rejouer": 12230,
+   "ecart": -7155,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "belady",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 16035,
+   "rejouer": 14417,
+   "ecart": -1618,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "lru",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 16035,
+   "rejouer": 14417,
+   "ecart": -1618,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "lru",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 20860,
+   "rejouer": 14011,
+   "ecart": -6849,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "belady",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 20860,
+   "rejouer": 14011,
+   "ecart": -6849,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "belady",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 17918,
+   "rejouer": 16229,
+   "ecart": -1689,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "lru",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 17918,
+   "rejouer": 16229,
+   "ecart": -1689,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "lru",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 21977,
+   "rejouer": 16066,
+   "ecart": -5911,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "belady",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 21977,
+   "rejouer": 16066,
+   "ecart": -5911,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "belady",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 19714,
+   "rejouer": 18690,
+   "ecart": -1024,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "lru",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 19714,
+   "rejouer": 18690,
+   "ecart": -1024,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "lru",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 22751,
+   "rejouer": 17447,
+   "ecart": -5304,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "belady",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 22751,
+   "rejouer": 17447,
+   "ecart": -5304,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "belady",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 21781,
+   "rejouer": 20073,
+   "ecart": -1708,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "lru",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 21781,
+   "rejouer": 20073,
+   "ecart": -1708,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "lru",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 23218,
+   "rejouer": 18539,
+   "ecart": -4679,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "belady",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 23218,
+   "rejouer": 18539,
+   "ecart": -4679,
+   "trace": "t20b.prose-fr.generation",
+   "politique": "belady",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "lru",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "lru",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 98448,
+   "rejouer": 32963,
+   "ecart": -65485,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "belady",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 98448,
+   "rejouer": 32963,
+   "ecart": -65485,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "belady",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "lru",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "lru",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 174011,
+   "rejouer": 62736,
+   "ecart": -111275,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "belady",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 174011,
+   "rejouer": 62736,
+   "ecart": -111275,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "belady",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 149225,
+   "rejouer": 105137,
+   "ecart": -44088,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "lru",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 149225,
+   "rejouer": 105137,
+   "ecart": -44088,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "lru",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 209772,
+   "rejouer": 97684,
+   "ecart": -112088,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "belady",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 209772,
+   "rejouer": 97684,
+   "ecart": -112088,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "belady",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 179201,
+   "rejouer": 148312,
+   "ecart": -30889,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "lru",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 179201,
+   "rejouer": 148312,
+   "ecart": -30889,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "lru",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 231265,
+   "rejouer": 132269,
+   "ecart": -98996,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "belady",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 231265,
+   "rejouer": 132269,
+   "ecart": -98996,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "belady",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 204327,
+   "rejouer": 179205,
+   "ecart": -25122,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "lru",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 204327,
+   "rejouer": 179205,
+   "ecart": -25122,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "lru",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 245313,
+   "rejouer": 155778,
+   "ecart": -89535,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "belady",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 245313,
+   "rejouer": 155778,
+   "ecart": -89535,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "belady",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 223871,
+   "rejouer": 201206,
+   "ecart": -22665,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "lru",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 223871,
+   "rejouer": 201206,
+   "ecart": -22665,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "lru",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 255306,
+   "rejouer": 172894,
+   "ecart": -82412,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "belady",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 255306,
+   "rejouer": 172894,
+   "ecart": -82412,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "belady",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 238845,
+   "rejouer": 219433,
+   "ecart": -19412,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "lru",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 238845,
+   "rejouer": 219433,
+   "ecart": -19412,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "lru",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 262480,
+   "rejouer": 196877,
+   "ecart": -65603,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "belady",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 262480,
+   "rejouer": 196877,
+   "ecart": -65603,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "belady",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 250781,
+   "rejouer": 235100,
+   "ecart": -15681,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "lru",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 250781,
+   "rejouer": 235100,
+   "ecart": -15681,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "lru",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 267510,
+   "rejouer": 210864,
+   "ecart": -56646,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "belady",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 267510,
+   "rejouer": 210864,
+   "ecart": -56646,
+   "trace": "t20b.prose-fr.lecture",
+   "politique": "belady",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.tous.generation",
+   "politique": "lru",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.tous.generation",
+   "politique": "lru",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 34141,
+   "rejouer": 7536,
+   "ecart": -26605,
+   "trace": "t20b.tous.generation",
+   "politique": "belady",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 34141,
+   "rejouer": 7536,
+   "ecart": -26605,
+   "trace": "t20b.tous.generation",
+   "politique": "belady",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.tous.generation",
+   "politique": "lru",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.tous.generation",
+   "politique": "lru",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 61618,
+   "rejouer": 14745,
+   "ecart": -46873,
+   "trace": "t20b.tous.generation",
+   "politique": "belady",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 61618,
+   "rejouer": 14745,
+   "ecart": -46873,
+   "trace": "t20b.tous.generation",
+   "politique": "belady",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 57471,
+   "rejouer": 44884,
+   "ecart": -12587,
+   "trace": "t20b.tous.generation",
+   "politique": "lru",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 57471,
+   "rejouer": 44884,
+   "ecart": -12587,
+   "trace": "t20b.tous.generation",
+   "politique": "lru",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 75013,
+   "rejouer": 18830,
+   "ecart": -56183,
+   "trace": "t20b.tous.generation",
+   "politique": "belady",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 75013,
+   "rejouer": 18830,
+   "ecart": -56183,
+   "trace": "t20b.tous.generation",
+   "politique": "belady",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 64371,
+   "rejouer": 57807,
+   "ecart": -6564,
+   "trace": "t20b.tous.generation",
+   "politique": "lru",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 64371,
+   "rejouer": 57807,
+   "ecart": -6564,
+   "trace": "t20b.tous.generation",
+   "politique": "lru",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 81723,
+   "rejouer": 25206,
+   "ecart": -56517,
+   "trace": "t20b.tous.generation",
+   "politique": "belady",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 81723,
+   "rejouer": 25206,
+   "ecart": -56517,
+   "trace": "t20b.tous.generation",
+   "politique": "belady",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 71872,
+   "rejouer": 66235,
+   "ecart": -5637,
+   "trace": "t20b.tous.generation",
+   "politique": "lru",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 71872,
+   "rejouer": 66235,
+   "ecart": -5637,
+   "trace": "t20b.tous.generation",
+   "politique": "lru",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 86098,
+   "rejouer": 30618,
+   "ecart": -55480,
+   "trace": "t20b.tous.generation",
+   "politique": "belady",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 86098,
+   "rejouer": 30618,
+   "ecart": -55480,
+   "trace": "t20b.tous.generation",
+   "politique": "belady",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 77506,
+   "rejouer": 72323,
+   "ecart": -5183,
+   "trace": "t20b.tous.generation",
+   "politique": "lru",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 77506,
+   "rejouer": 72323,
+   "ecart": -5183,
+   "trace": "t20b.tous.generation",
+   "politique": "lru",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 89320,
+   "rejouer": 37190,
+   "ecart": -52130,
+   "trace": "t20b.tous.generation",
+   "politique": "belady",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 89320,
+   "rejouer": 37190,
+   "ecart": -52130,
+   "trace": "t20b.tous.generation",
+   "politique": "belady",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 82557,
+   "rejouer": 78550,
+   "ecart": -4007,
+   "trace": "t20b.tous.generation",
+   "politique": "lru",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 82557,
+   "rejouer": 78550,
+   "ecart": -4007,
+   "trace": "t20b.tous.generation",
+   "politique": "lru",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 91634,
+   "rejouer": 43617,
+   "ecart": -48017,
+   "trace": "t20b.tous.generation",
+   "politique": "belady",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 91634,
+   "rejouer": 43617,
+   "ecart": -48017,
+   "trace": "t20b.tous.generation",
+   "politique": "belady",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 87114,
+   "rejouer": 82272,
+   "ecart": -4842,
+   "trace": "t20b.tous.generation",
+   "politique": "lru",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 87114,
+   "rejouer": 82272,
+   "ecart": -4842,
+   "trace": "t20b.tous.generation",
+   "politique": "lru",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 93326,
+   "rejouer": 50236,
+   "ecart": -43090,
+   "trace": "t20b.tous.generation",
+   "politique": "belady",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 93326,
+   "rejouer": 50236,
+   "ecart": -43090,
+   "trace": "t20b.tous.generation",
+   "politique": "belady",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.tous.lecture",
+   "politique": "lru",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.tous.lecture",
+   "politique": "lru",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 356630,
+   "rejouer": 42478,
+   "ecart": -314152,
+   "trace": "t20b.tous.lecture",
+   "politique": "belady",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 356630,
+   "rejouer": 42478,
+   "ecart": -314152,
+   "trace": "t20b.tous.lecture",
+   "politique": "belady",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.tous.lecture",
+   "politique": "lru",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "t20b.tous.lecture",
+   "politique": "lru",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 619754,
+   "rejouer": 87620,
+   "ecart": -532134,
+   "trace": "t20b.tous.lecture",
+   "politique": "belady",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 619754,
+   "rejouer": 87620,
+   "ecart": -532134,
+   "trace": "t20b.tous.lecture",
+   "politique": "belady",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 514886,
+   "rejouer": 357776,
+   "ecart": -157110,
+   "trace": "t20b.tous.lecture",
+   "politique": "lru",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 514886,
+   "rejouer": 357776,
+   "ecart": -157110,
+   "trace": "t20b.tous.lecture",
+   "politique": "lru",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 750853,
+   "rejouer": 120196,
+   "ecart": -630657,
+   "trace": "t20b.tous.lecture",
+   "politique": "belady",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 750853,
+   "rejouer": 120196,
+   "ecart": -630657,
+   "trace": "t20b.tous.lecture",
+   "politique": "belady",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 615230,
+   "rejouer": 517645,
+   "ecart": -97585,
+   "trace": "t20b.tous.lecture",
+   "politique": "lru",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 615230,
+   "rejouer": 517645,
+   "ecart": -97585,
+   "trace": "t20b.tous.lecture",
+   "politique": "lru",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 833864,
+   "rejouer": 159045,
+   "ecart": -674819,
+   "trace": "t20b.tous.lecture",
+   "politique": "belady",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 833864,
+   "rejouer": 159045,
+   "ecart": -674819,
+   "trace": "t20b.tous.lecture",
+   "politique": "belady",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 714538,
+   "rejouer": 625828,
+   "ecart": -88710,
+   "trace": "t20b.tous.lecture",
+   "politique": "lru",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 714538,
+   "rejouer": 625828,
+   "ecart": -88710,
+   "trace": "t20b.tous.lecture",
+   "politique": "lru",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 888755,
+   "rejouer": 212050,
+   "ecart": -676705,
+   "trace": "t20b.tous.lecture",
+   "politique": "belady",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 888755,
+   "rejouer": 212050,
+   "ecart": -676705,
+   "trace": "t20b.tous.lecture",
+   "politique": "belady",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 792713,
+   "rejouer": 712058,
+   "ecart": -80655,
+   "trace": "t20b.tous.lecture",
+   "politique": "lru",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 792713,
+   "rejouer": 712058,
+   "ecart": -80655,
+   "trace": "t20b.tous.lecture",
+   "politique": "lru",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 928268,
+   "rejouer": 278910,
+   "ecart": -649358,
+   "trace": "t20b.tous.lecture",
+   "politique": "belady",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 928268,
+   "rejouer": 278910,
+   "ecart": -649358,
+   "trace": "t20b.tous.lecture",
+   "politique": "belady",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 855137,
+   "rejouer": 781796,
+   "ecart": -73341,
+   "trace": "t20b.tous.lecture",
+   "politique": "lru",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 855137,
+   "rejouer": 781796,
+   "ecart": -73341,
+   "trace": "t20b.tous.lecture",
+   "politique": "lru",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 957789,
+   "rejouer": 331540,
+   "ecart": -626249,
+   "trace": "t20b.tous.lecture",
+   "politique": "belady",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 957789,
+   "rejouer": 331540,
+   "ecart": -626249,
+   "trace": "t20b.tous.lecture",
+   "politique": "belady",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 902954,
+   "rejouer": 840558,
+   "ecart": -62396,
+   "trace": "t20b.tous.lecture",
+   "politique": "lru",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 902954,
+   "rejouer": 840558,
+   "ecart": -62396,
+   "trace": "t20b.tous.lecture",
+   "politique": "lru",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 978611,
+   "rejouer": 404301,
+   "ecart": -574310,
+   "trace": "t20b.tous.lecture",
+   "politique": "belady",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, taux publié",
+   "attendu": 978611,
+   "rejouer": 404301,
+   "ecart": -574310,
+   "trace": "t20b.tous.lecture",
+   "politique": "belady",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "w20b.wiki.generation",
+   "politique": "lru",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 8327,
+   "rejouer": 3049,
+   "ecart": -5278,
+   "trace": "w20b.wiki.generation",
+   "politique": "belady",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "w20b.wiki.generation",
+   "politique": "lru",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 14598,
+   "rejouer": 5577,
+   "ecart": -9021,
+   "trace": "w20b.wiki.generation",
+   "politique": "belady",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 12929,
+   "rejouer": 9930,
+   "ecart": -2999,
+   "trace": "w20b.wiki.generation",
+   "politique": "lru",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 17628,
+   "rejouer": 7871,
+   "ecart": -9757,
+   "trace": "w20b.wiki.generation",
+   "politique": "belady",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 14476,
+   "rejouer": 12935,
+   "ecart": -1541,
+   "trace": "w20b.wiki.generation",
+   "politique": "lru",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 19268,
+   "rejouer": 9636,
+   "ecart": -9632,
+   "trace": "w20b.wiki.generation",
+   "politique": "belady",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 16312,
+   "rejouer": 14946,
+   "ecart": -1366,
+   "trace": "w20b.wiki.generation",
+   "politique": "lru",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 20413,
+   "rejouer": 11594,
+   "ecart": -8819,
+   "trace": "w20b.wiki.generation",
+   "politique": "belady",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 17809,
+   "rejouer": 16498,
+   "ecart": -1311,
+   "trace": "w20b.wiki.generation",
+   "politique": "lru",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 21217,
+   "rejouer": 12601,
+   "ecart": -8616,
+   "trace": "w20b.wiki.generation",
+   "politique": "belady",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 19019,
+   "rejouer": 17904,
+   "ecart": -1115,
+   "trace": "w20b.wiki.generation",
+   "politique": "lru",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 21905,
+   "rejouer": 14474,
+   "ecart": -7431,
+   "trace": "w20b.wiki.generation",
+   "politique": "belady",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 20008,
+   "rejouer": 18867,
+   "ecart": -1141,
+   "trace": "w20b.wiki.generation",
+   "politique": "lru",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 22394,
+   "rejouer": 15706,
+   "ecart": -6688,
+   "trace": "w20b.wiki.generation",
+   "politique": "belady",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "w20b.wiki.lecture",
+   "politique": "lru",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 23753,
+   "rejouer": 4497,
+   "ecart": -19256,
+   "trace": "w20b.wiki.lecture",
+   "politique": "belady",
+   "emplacements": 38
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 0,
+   "rejouer": 0,
+   "ecart": 0,
+   "trace": "w20b.wiki.lecture",
+   "politique": "lru",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 40801,
+   "rejouer": 17641,
+   "ecart": -23160,
+   "trace": "w20b.wiki.lecture",
+   "politique": "belady",
+   "emplacements": 77
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 34317,
+   "rejouer": 23607,
+   "ecart": -10710,
+   "trace": "w20b.wiki.lecture",
+   "politique": "lru",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 49383,
+   "rejouer": 27411,
+   "ecart": -21972,
+   "trace": "w20b.wiki.lecture",
+   "politique": "belady",
+   "emplacements": 115
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 40695,
+   "rejouer": 33987,
+   "ecart": -6708,
+   "trace": "w20b.wiki.lecture",
+   "politique": "lru",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 54786,
+   "rejouer": 33034,
+   "ecart": -21752,
+   "trace": "w20b.wiki.lecture",
+   "politique": "belady",
+   "emplacements": 154
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 46702,
+   "rejouer": 40916,
+   "ecart": -5786,
+   "trace": "w20b.wiki.lecture",
+   "politique": "lru",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 58383,
+   "rejouer": 37424,
+   "ecart": -20959,
+   "trace": "w20b.wiki.lecture",
+   "politique": "belady",
+   "emplacements": 192
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 51705,
+   "rejouer": 46147,
+   "ecart": -5558,
+   "trace": "w20b.wiki.lecture",
+   "politique": "lru",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 60918,
+   "rejouer": 42429,
+   "ecart": -18489,
+   "trace": "w20b.wiki.lecture",
+   "politique": "belady",
+   "emplacements": 230
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 55633,
+   "rejouer": 50936,
+   "ecart": -4697,
+   "trace": "w20b.wiki.lecture",
+   "politique": "lru",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 62883,
+   "rejouer": 46435,
+   "ecart": -16448,
+   "trace": "w20b.wiki.lecture",
+   "politique": "belady",
+   "emplacements": 269
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 58920,
+   "rejouer": 54367,
+   "ecart": -4553,
+   "trace": "w20b.wiki.lecture",
+   "politique": "lru",
+   "emplacements": 307
+  },
+  {
+   "chemin": "P4 trace réelle, recalcul",
+   "attendu": 64307,
+   "rejouer": 51364,
+   "ecart": -12943,
+   "trace": "w20b.wiki.lecture",
+   "politique": "belady",
+   "emplacements": 307
+  }
+ ]
+}

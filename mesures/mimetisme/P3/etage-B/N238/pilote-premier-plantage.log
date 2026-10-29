@@ -1,0 +1,14 @@
+ref-openai-p3-N238-b0.041-20b.log : code 0, 715.8 s
+Traceback (most recent call last):
+  File "~\dev\active\troncons\outils\mimetisme\P3\p3_etageB_N238.py", line 161, in <module>
+    main(sys.argv[1:])
+    ~~~~^^^^^^^^^^^^^^
+  File "~\dev\active\troncons\outils\mimetisme\P3\p3_etageB_N238.py", line 152, in main
+    res = passe(b)
+  File "~\dev\active\troncons\outils\mimetisme\P3\p3_etageB_N238.py", line 132, in passe
+    shutil.copyfile(r1.JOURNAUX / f"juge-kl-p3-{nom}.{ext}", SORTIE / f"juge-kl-p3-{nom}.{ext}")
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "~\AppData\Local\Programs\Python\Python313\Lib\shutil.py", line 260, in copyfile
+    with open(src, 'rb') as fsrc:
+         ~~~~^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '~\\dev\\active\\troncons\\mesures\\moteur\\R\\r1\\juge-kl-p3-N238-b0.041.json'

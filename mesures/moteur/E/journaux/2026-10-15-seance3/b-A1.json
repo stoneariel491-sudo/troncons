@@ -1,0 +1,212 @@
+{
+  "commande": [
+    "~\\dev\\cibles\\troncons-E\\release\\banc-chemin.exe",
+    "essai-b",
+    "--journal",
+    "~\\dev\\active\\troncons\\mesures\\moteur\\E\\journaux\\2026-10-15-seance3\\b-A1.json",
+    "--fichier",
+    "~\\dev\\modeles\\gguf\\gpt-oss-20b-MXFP4.gguf",
+    "--morceaux",
+    "4",
+    "--serie",
+    "128",
+    "--profondeur",
+    "4",
+    "--graine",
+    "20261018",
+    "--repetitions-dma",
+    "16",
+    "--tours-abba",
+    "2"
+  ],
+  "essai": "essai-b",
+  "machine_debut": {
+    "batterie_pourcent": 80,
+    "ensemble_de_travail_o": 4919296,
+    "ensemble_de_travail_pointe_o": 4919296,
+    "heure": "2026-10-15T16:47:07.289",
+    "ram_disponible_o": 8052891648,
+    "ram_totale_o": 16780529664,
+    "secteur": true
+  },
+  "outil": "banc-chemin",
+  "resultat": {
+    "casser": false,
+    "disque": {
+      "duree_us_mediane": 17521,
+      "duree_us_p10": 16496,
+      "duree_us_p90": 21810,
+      "erreurs": 0,
+      "go_s": 2.67293533476068,
+      "go_s_etrangers": 0.0003874646862827524,
+      "lectures": 128,
+      "machine_debut": {
+        "batterie_pourcent": 80,
+        "ensemble_de_travail_o": 203046912,
+        "ensemble_de_travail_pointe_o": 203046912,
+        "heure": "2026-10-15T16:47:07.566",
+        "ram_disponible_o": 7840735232,
+        "ram_totale_o": 16780529664,
+        "secteur": true
+      },
+      "octets": 1610612736,
+      "octets_etrangers": 233472,
+      "octets_systeme": 1610846208,
+      "processeur": {
+        "autres": 0.5374800637958532,
+        "nous": 0.001594896331738437,
+        "occupe": 0.5390749601275917
+      },
+      "profondeur": 4,
+      "secondes": 0.6025633
+    },
+    "dma": {
+      "passes": [
+        {
+          "copies": 16,
+          "go_s": 12.44351996645548,
+          "go_s_mur": 12.371285694095382,
+          "lettre": "A",
+          "ms": 16.179231643676758,
+          "mur_ms": 16.273699999999998,
+          "octets": 12582912,
+          "rang": 0,
+          "tour": 0
+        },
+        {
+          "copies": 16,
+          "go_s": 12.492002708216528,
+          "go_s_mur": 12.482234973541528,
+          "lettre": "B",
+          "ms": 85.95433807373047,
+          "mur_ms": 86.0216,
+          "octets": 67108864,
+          "rang": 1,
+          "tour": 0
+        },
+        {
+          "copies": 16,
+          "go_s": 12.446232215368761,
+          "go_s_mur": 12.437788275087167,
+          "lettre": "B",
+          "ms": 86.27043151855469,
+          "mur_ms": 86.32900000000001,
+          "octets": 67108864,
+          "rang": 2,
+          "tour": 0
+        },
+        {
+          "copies": 16,
+          "go_s": 12.42570153304215,
+          "go_s_mur": 12.380947789188852,
+          "lettre": "A",
+          "ms": 16.20243263244629,
+          "mur_ms": 16.261000000000003,
+          "octets": 12582912,
+          "rang": 3,
+          "tour": 0
+        },
+        {
+          "copies": 16,
+          "go_s": 12.463783624535559,
+          "go_s_mur": 12.387422981079832,
+          "lettre": "A",
+          "ms": 16.15292739868164,
+          "mur_ms": 16.2525,
+          "octets": 12582912,
+          "rang": 0,
+          "tour": 1
+        },
+        {
+          "copies": 16,
+          "go_s": 12.39128822086646,
+          "go_s_mur": 12.383565617539528,
+          "lettre": "B",
+          "ms": 86.65296173095703,
+          "mur_ms": 86.70700000000001,
+          "octets": 67108864,
+          "rang": 1,
+          "tour": 1
+        },
+        {
+          "copies": 16,
+          "go_s": 12.390432939113326,
+          "go_s_mur": 12.38116669241892,
+          "lettre": "B",
+          "ms": 86.65894317626953,
+          "mur_ms": 86.7238,
+          "octets": 67108864,
+          "rang": 2,
+          "tour": 1
+        },
+        {
+          "copies": 16,
+          "go_s": 12.328815424042782,
+          "go_s_mur": 12.280429666770361,
+          "lettre": "A",
+          "ms": 16.32975959777832,
+          "mur_ms": 16.3941,
+          "octets": 12582912,
+          "rang": 3,
+          "tour": 1
+        }
+      ]
+    },
+    "fichier": "~\\dev\\modeles\\gguf\\gpt-oss-20b-MXFP4.gguf",
+    "graine": 20261018,
+    "justesse": {
+      "ecarts_chemin": 0,
+      "ecarts_disque": 0,
+      "morceaux": [
+        {
+          "decalage": 2041286656,
+          "duree_lecture_us": 7480,
+          "ecarts_chemin": 0,
+          "ecarts_disque": 0,
+          "k": 0
+        },
+        {
+          "decalage": 4429701120,
+          "duree_lecture_us": 3880,
+          "ecarts_chemin": 0,
+          "ecarts_disque": 0,
+          "k": 1
+        },
+        {
+          "decalage": 963059712,
+          "duree_lecture_us": 4529,
+          "ecarts_chemin": 0,
+          "ecarts_disque": 0,
+          "k": 2
+        },
+        {
+          "decalage": 10456354816,
+          "duree_lecture_us": 4550,
+          "ecarts_chemin": 0,
+          "ecarts_disque": 0,
+          "k": 3
+        }
+      ]
+    },
+    "machine_fin": {
+      "batterie_pourcent": 80,
+      "carte": {
+        "attente": "Auto",
+        "moteurs_de_copie": 1,
+        "nom": "NVIDIA GeForce RTX 4060 Laptop GPU",
+        "pilote": 13010,
+        "vram_libre_o": 7373586432,
+        "vram_totale_o": 8585216000
+      },
+      "ensemble_de_travail_o": 279511040,
+      "ensemble_de_travail_pointe_o": 279511040,
+      "heure": "2026-10-15T16:47:09.200",
+      "ram_disponible_o": 7574347776,
+      "ram_totale_o": 16780529664,
+      "secteur": true
+    },
+    "taille_fichier_o": 12109566624,
+    "taille_morceau_o": 12582912
+  },
+  "version": "0.1.0"
+}

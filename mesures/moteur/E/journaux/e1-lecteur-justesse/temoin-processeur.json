@@ -1,0 +1,174 @@
+{
+  "commande": [
+    "~\\dev\\cibles\\troncons-E\\release\\banc-chemin.exe",
+    "lecteur",
+    "--journal",
+    "mesures/moteur/E/journaux/e1-lecteur-justesse/temoin-processeur.json",
+    "--fichier",
+    "~/dev/modeles/gguf/gpt-oss-20b-MXFP4.gguf",
+    "--serie",
+    "8",
+    "--tours-abba",
+    "1",
+    "--repos-s",
+    "2",
+    "--verifier",
+    "2"
+  ],
+  "essai": "lecteur",
+  "machine_debut": {
+    "batterie_pourcent": 80,
+    "ensemble_de_travail_o": 4915200,
+    "ensemble_de_travail_pointe_o": 4915200,
+    "heure": "2026-10-15T15:42:11.047",
+    "ram_disponible_o": 436498432,
+    "ram_totale_o": 16780529664,
+    "secteur": true
+  },
+  "outil": "banc-chemin",
+  "resultat": {
+    "fichier": "~/dev/modeles/gguf/gpt-oss-20b-MXFP4.gguf",
+    "graine": 20261015,
+    "justesse": {
+      "casser": false,
+      "ecarts": 0,
+      "lectures": [
+        {
+          "decalage": 4205207552,
+          "ecarts": 0,
+          "k": 0
+        },
+        {
+          "decalage": 9758613504,
+          "ecarts": 0,
+          "k": 1
+        }
+      ]
+    },
+    "machine_fin": {
+      "batterie_pourcent": 80,
+      "ensemble_de_travail_o": 65159168,
+      "ensemble_de_travail_pointe_o": 77729792,
+      "heure": "2026-10-15T15:42:14.850",
+      "ram_disponible_o": 353841152,
+      "ram_totale_o": 16780529664,
+      "secteur": true
+    },
+    "passes": [
+      {
+        "duree_us_max": 33858,
+        "duree_us_mediane": 26617,
+        "duree_us_p10": 14459,
+        "duree_us_p90": 33571,
+        "erreurs": 0,
+        "go_s": 1.6184304022148588,
+        "go_s_etrangers": 0.09417136536325064,
+        "lectures": 8,
+        "lettre": "A",
+        "octets": 100663296,
+        "octets_etrangers": 5857280,
+        "octets_systeme": 106520576,
+        "processeur": {
+          "autres": 0.609375,
+          "nous": 0.0,
+          "occupe": 0.609375
+        },
+        "profondeur": 4,
+        "rang": 0,
+        "secondes": 0.0621981,
+        "secondes_mur": 0.0621981,
+        "tour": 0
+      },
+      {
+        "duree_us_max": 8231,
+        "duree_us_mediane": 7228,
+        "duree_us_p10": 6335,
+        "duree_us_p90": 7527,
+        "erreurs": 0,
+        "go_s": 1.791174599107467,
+        "go_s_etrangers": 0.1030931181004847,
+        "lectures": 8,
+        "lettre": "B",
+        "octets": 100663296,
+        "octets_etrangers": 5793792,
+        "octets_systeme": 106457088,
+        "processeur": {
+          "autres": 0.734375,
+          "nous": 0.015625,
+          "occupe": 0.75
+        },
+        "profondeur": 1,
+        "rang": 1,
+        "secondes": 0.0561996,
+        "secondes_mur": 0.0561996,
+        "tour": 0
+      },
+      {
+        "duree_us_max": 16251,
+        "duree_us_mediane": 6672,
+        "duree_us_p10": 5780,
+        "duree_us_p90": 9394,
+        "erreurs": 0,
+        "go_s": 1.5999379499976158,
+        "go_s_etrangers": 0.08214199659869352,
+        "lectures": 8,
+        "lettre": "B",
+        "octets": 100663296,
+        "octets_etrangers": 5168128,
+        "octets_systeme": 105831424,
+        "processeur": {
+          "autres": 0.671875,
+          "nous": 0.0,
+          "occupe": 0.671875
+        },
+        "profondeur": 1,
+        "rang": 2,
+        "secondes": 0.062917,
+        "secondes_mur": 0.062917,
+        "tour": 0
+      },
+      {
+        "duree_us_max": 27487,
+        "duree_us_mediane": 25744,
+        "duree_us_p10": 13136,
+        "duree_us_p90": 26594,
+        "erreurs": 0,
+        "go_s": 1.8932205888990867,
+        "go_s_etrangers": 0.11352120728826565,
+        "lectures": 8,
+        "lettre": "A",
+        "octets": 100663296,
+        "octets_etrangers": 6035968,
+        "octets_systeme": 106699264,
+        "processeur": {
+          "autres": 0.453125,
+          "nous": 0.0,
+          "occupe": 0.453125
+        },
+        "profondeur": 4,
+        "rang": 3,
+        "secondes": 0.0531704,
+        "secondes_mur": 0.0531704,
+        "tour": 0
+      }
+    ],
+    "profondeurs": [
+      4,
+      1
+    ],
+    "repos": {
+      "go_s": 0.24391230909969036,
+      "octets": 487905280,
+      "processeur": {
+        "autres": 0.783203125,
+        "nous": 0.0,
+        "occupe": 0.783203125
+      },
+      "secondes": 2.0003307
+    },
+    "taille_fichier_o": 12109566624,
+    "taille_morceau_o": 12582912,
+    "tours": 1
+  },
+  "version": "0.1.0"
+}

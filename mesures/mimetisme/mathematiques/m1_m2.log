@@ -1,0 +1,27 @@
+T1 {'ecarts': {'lru': 0.0, 'lfu': 0.0, 'statique': 0.0, 'belady': 0.0}, 'tient': True}
+M2 temoins {"W1_uniforme": {"1": [4.0, 4.0], "2": [7.876128754410824, 7.875], "4": [15.270689127957077, 15.2655029296875], "8": [28.72477530122158, 28.710415392997675], "16": [51.02136484037362, 50.98108116069474]}, "W2_fige": {"1": [4.0, 4.0], "2": [4.0, 4.0], "4": [4.0, 4.0], "8": [4.0, 4.0], "16": [4.0, 4.0]}}
+M2 t120b.prose-en.lecture.trace {'1': 1.0, '2': 1.188, '3': 1.331, '4': 1.455, '6': 1.669, '8': 1.856, '12': 2.186, '16': 2.485, '24': 3.033, '32': 3.54}
+M2 t120b.code.lecture.trace {'1': 1.0, '2': 1.136, '3': 1.242, '4': 1.336, '6': 1.506, '8': 1.662, '12': 1.943, '16': 2.2, '24': 2.669, '32': 3.101}
+M2 t120b.dialogue.lecture.trace {'1': 1.0, '2': 1.194, '3': 1.338, '4': 1.461, '6': 1.675, '8': 1.862, '12': 2.195, '16': 2.5, '24': 3.075, '32': 3.605}
+M2 t120b.prose-fr.lecture.trace {'1': 1.0, '2': 1.218, '3': 1.378, '4': 1.516, '6': 1.757, '8': 1.964, '12': 2.332, '16': 2.663, '24': 3.279, '32': 3.849}
+M2 w120b.wiki.lecture.trace {'1': 1.0, '2': 1.19, '3': 1.328, '4': 1.447, '6': 1.658, '8': 1.843, '12': 2.17, '16': 2.464, '24': 3.01, '32': 3.522}
+ajustement du prédicteur sur 2 traces...
+  IRLS 0: log-perte 88.72284 nat par (couche, expert)
+  IRLS 1: log-perte 23.96442 nat par (couche, expert)
+  IRLS 2: log-perte 15.61170 nat par (couche, expert)
+  IRLS 3: log-perte 13.38696 nat par (couche, expert)
+  IRLS 4: log-perte 12.83420 nat par (couche, expert)
+  IRLS 5: log-perte 12.75587 nat par (couche, expert)
+  IRLS 6: log-perte 12.75318 nat par (couche, expert)
+  IRLS 7: log-perte 12.75318 nat par (couche, expert)
+M1 dialogue (lecture) N=323: LRU 0.4621 LFU* 0.5745 PB 0.5878 (delta +0.0134) oracle 0.5334 Belady 0.7147 | mélangé delta -0.0134
+M1 dialogue (lecture) N=922: LRU 0.7882 LFU* 0.8418 PB 0.8444 (delta +0.0025) oracle 0.7480 Belady 0.9094 | mélangé delta -0.0118
+M1 prose-fr (lecture) N=323: LRU 0.5102 LFU* 0.6118 PB 0.6248 (delta +0.0129) oracle 0.5714 Belady 0.7429 | mélangé delta -0.0148
+M1 prose-fr (lecture) N=922: LRU 0.8223 LFU* 0.8575 PB 0.8642 (delta +0.0068) oracle 0.7772 Belady 0.9229 | mélangé delta -0.0133
+M1 wiki (lecture) N=323: LRU 0.4533 LFU* 0.5692 PB 0.5802 (delta +0.0110) oracle 0.5215 Belady 0.7063 | mélangé delta -0.0137
+M1 wiki (lecture) N=922: LRU 0.7698 LFU* 0.8227 PB 0.8258 (delta +0.0031) oracle 0.7318 Belady 0.8960 | mélangé delta -0.0112
+M1 wiki (génération) N=323: LRU 0.3920 LFU* 0.5057 PB 0.5093 (delta +0.0036) oracle 0.5033 Belady 0.6845 | mélangé delta -0.0089
+M1 wiki (génération) N=922: LRU 0.7766 LFU* 0.7939 PB 0.7985 (delta +0.0046) oracle 0.7418 Belady 0.8758 | mélangé delta -0.0075
+M1 prose-en (génération) N=323: LRU 0.7365 LFU* 0.7461 PB 0.7452 (delta -0.0008) oracle 0.7598 Belady 0.8371 | mélangé delta -0.0133
+M1 prose-en (génération) N=922: LRU 0.8521 LFU* 0.8625 PB 0.8687 (delta +0.0062) oracle 0.8454 Belady 0.9128 | mélangé delta -0.0034
+fini 283.21177530288696

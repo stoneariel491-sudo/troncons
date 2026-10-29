@@ -1,0 +1,353 @@
+\chapter{Sparsity and speculative decoding}\label{ch:sparsite}
+
+\begin{origine}
+\textbf{At the start}, two families of techniques promised to read fewer bytes per token: activation sparsity (read only the useful columns) and speculative decoding (read the weights once for several tokens), both published on machines where RAM holds the model.
+\textbf{This chapter establishes} the amortization theorem, $\mathcal E(\alpha,k) = (1-\alpha^{k+1})/(1-\alpha)$ tokens per read of the weights, and its corollaries; the exact condition under which speculation pays for a mixture of experts read from disk, which independent routing never satisfies; the measurement, on a SwiGLU model, that sparsity and speculation do not compose; and the acceptance rates measured on the Qwen3.5 family.
+\textbf{What remains} is the real expert-union curve of a 2026 MoE on draft tokens, the agreement of the native MTP module, and tree verification under Vulkan.
+Source: \fichier{fondations/05-sparsite.md}, \fichier{fondations/journaux/05-sparsite/}.
+\end{origine}
+
+\section{The judge, and the lever with the right slope}\label{sec:spec-juge}
+
+A pass of the target over $n$ tokens (a verification batch) costs, with perfectly overlapped stages,
+\begin{equation}\label{eq:passe}
+T(n) = \max\Bigl( \frac{O_{\mathrm{disk}}(n)}{W_{\mathrm{disk}}},\ \frac{O_{\mathrm{RAM}}(n)}{W_{\mathrm{PCIe}}},\ \frac{O_{\mathrm{VRAM}}(n)}{W_{\mathrm{VRAM}}},\ \frac{C(n)}{F} \Bigr),
+\end{equation}
+and, without overlap, the sum of the same terms (\cref{thm:toit}). $O_x(n)$ is the number of weight bytes the pass reads from stage $x$, $C(n) \approx 2 n N_{\text{active}}$ the number of operations, $F$ the effective compute throughput. For a \textbf{dense} model, $O_x(n)$ does not depend on $n$: that is the whole point. For an \textbf{MoE} or a model with \textbf{sparse activations}, $O_x(n)$ grows with $n$, because the pass reads the union of what its $n$ tokens request.
+
+Token throughput is $\mathcal E / (T(n) + T_{\text{draft}})$, where $\mathcal E$ is the number of tokens accepted per pass. Three levers: reduce $O(n)$ (sparsity, hot neurons, expert prediction); increase $\mathcal E$ at almost unchanged $T(n)$ (speculative decoding); hide $T_{\text{draft}}$ inside $T(n)$. When weights come from disk, $T(n)$ is counted in seconds and $T_{\text{draft}}$ in milliseconds: \textbf{the second lever crushes the other two, on one condition, that $O(n)$ stays flat in $n$}. Everything that follows quantifies that condition.
+
+\begin{proposition}[The compute knee]\label{prop:coude}
+For a dense model of $N$ active weights at $b$ bytes per weight, read from a stage of throughput $W$, verifying $n$ tokens stays bounded by reading as long as
+\begin{equation}\label{eq:coude}
+n \;<\; n^\star = \frac{F\, b}{2\, W}.
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+Reading costs $N b / W$ seconds whatever $n$; computing costs $2 n N / F$. The latter stays below the former as long as $2nN/F < Nb/W$, i.e.\ $n < Fb/(2W)$.
+\end{proof}
+
+With $F \approx 20$\,Tflop/s (order of magnitude of the FP16 tensor cores of an RTX 4060 Laptop, not measured, and lowered by dequantization) and $b = 0.6$ byte per weight (about 4.8 bits) \calc: $n^\star \approx 24$ if weights are in VRAM (251.3\,GB/s), $\approx 490$ if they cross the link (12.2\,GB/s; the study, with the link loaded at 6.38\,GB/s, gave 940), $\approx 2\,100$ if they come from disk (2.82\,GB/s). This table says why SpecExec verifies trees of 1\,024 to 2\,048 tokens in the offloaded regime, and why EAGLE on a card that holds the model stops at a few dozen: it is not a choice, it is $n^\star$. The measurement of \cref{fig:cn} confirms it despite its noise: up to 32 tokens, an all-in-VRAM pass costs at most 1.35 times a one-token pass.
+
+\begin{figure}[ht]
+\centering
+\GrapheCn
+\caption[The time of a pass of $n$ tokens]{Time of a pass of $n$ tokens, Qwen3.5-4B Q4\_K\_M all in VRAM, median and range of four ABBA series \mes. The declared noise threshold (10\,\%) is reached for no $n$ (shared card): indicative numbers. The knee lies between 32 and 128, where \cref{prop:coude} puts it.}
+\label{fig:cn}
+\sourcefig{\fichier{fondations/journaux/05-sparsite/cn/resume-4B-ngl99.txt}.}
+\end{figure}
+
+\section{Speculative decoding}\label{sec:speculatif}
+
+\subsection{The verification rule}
+
+Leviathan, Kalman and Matias~\cite{leviathan2023} and Chen et al.~\cite{chen2023spec} state the same rule. A draft with law $q$ proposes $x_1, \dots, x_k$; the target $p$ computes in one pass $p(\cdot \mid \text{prefix}, x_1, \dots, x_i)$ for $i = 0, \dots, k$. Each $x_i$ is accepted with probability $\min(1, p(x_i)/q(x_i))$; at the first refusal, a token is drawn from the residual law $r = (p - q)^+ / \lVert (p - q)^+ \rVert_1$; if everything is accepted, one more token is drawn from $p$.
+
+\begin{proposition}[Speculation is exact]\label{prop:exacte}
+The token emitted at each position follows exactly the target law $p$, and the acceptance probability of a position is $\alpha = \sum_x \min(p(x), q(x)) = 1 - \tfrac12 \lVert p - q \rVert_1$.
+\end{proposition}
+
+\begin{proof}
+The probability of emitting $x$ is that of proposing and accepting it, plus that of refusing then drawing $x$ from $r$:
+\[
+q(x) \min\Bigl(1, \frac{p(x)}{q(x)}\Bigr) + (1-\alpha)\, \frac{(p(x) - q(x))^+}{1 - \alpha} = \min(p(x), q(x)) + (p(x) - q(x))^+ = p(x),
+\]
+using $\lVert (p-q)^+ \rVert_1 = \sum_x (p(x) - \min(p(x),q(x))) = 1 - \alpha$. The acceptance probability is $\sum_x q(x)\min(1, p(x)/q(x)) = \sum_x \min(p(x), q(x))$, and $\sum_x \min(p,q) = 1 - \tfrac12 \sum_x |p - q|$ since $\min(a,b) = \tfrac12(a + b - |a-b|)$.
+\end{proof}
+
+In greedy decoding, a token is accepted if it is the target's argmax; $\alpha$ is then the argmax agreement rate, measured in \cref{sec:alpha}.
+
+\subsection{The amortization theorem}
+
+\begin{theoreme}[Tokens per read of the weights]\label{thm:amortissement}
+If each of the $k$ drafted positions is accepted with the same probability $\alpha < 1$, independently of the others and as long as none has been refused, the number $N$ of tokens produced by one verification pass (one full read of the active weights) has expectation
+\begin{equation}\label{eq:amortissement}
+\mathcal E(\alpha, k) \;=\; \E[N] \;=\; \sum_{i=0}^{k} \alpha^i \;=\; \frac{1 - \alpha^{k+1}}{1 - \alpha}.
+\end{equation}
+\end{theoreme}
+
+\begin{proof}
+Let $A$ be the number of drafted tokens accepted before the first refusal, $0 \le A \le k$. The pass always returns one token more than $A$: the correction drawn from $r$ at the first refusal, or the bonus token drawn from $p$ if everything is accepted. Hence $N = A + 1$. The first $i$ positions are all accepted with probability $\alpha^i$, so $\Prob(A \ge i) = \alpha^i$ for $0 \le i \le k$, and $\Prob(A \ge i) = 0$ beyond. For a non-negative integer variable, $\E[A] = \sum_{i \ge 1} \Prob(A \ge i)$; thus $\E[N] = 1 + \sum_{i=1}^{k} \alpha^i = \sum_{i=0}^{k} \alpha^i$, a geometric sum equal to $(1 - \alpha^{k+1})/(1-\alpha)$.
+\end{proof}
+
+\begin{corollaire}[The chain bound]\label{cor:borne-chaine}
+$\mathcal E(\alpha, k) < 1/(1 - \alpha)$ for every $k$, and the chain reaches the fraction $1 - \alpha^{k+1}$ of that bound. At $\alpha = 0.8$, $k = 8$ already gives 87\,\% of the bound: beyond, only a better draft or a \emph{tree} raises $\mathcal E$.
+\end{corollaire}
+
+\begin{proof}
+$\mathcal E(\alpha,k) (1-\alpha) = 1 - \alpha^{k+1} < 1$.
+\end{proof}
+
+\begin{corollaire}[The optimal $k$ when the pass is expensive]\label{cor:k-optimal}
+With a pass costing $T$ and a draft costing $t_b$ per proposed token, the throughput $\mathcal E(\alpha,k)/(T + k t_b)$ is maximal at a $k^\star$ that grows as $\log(T/t_b)/\log(1/\alpha)$; for $T = 8$\,s and $t_b = 5$\,ms, $k^\star = 25$ at $\alpha = 0.8$ and $48$ at $\alpha = 0.9$ \calc.
+\end{corollaire}
+
+\begin{proof}
+The marginal gain of the $(k{+}1)$-th drafted token is $\alpha^{k+1}$ token, its marginal cost $t_b$ for a total cost $T + kt_b$; the optimum roughly satisfies $\alpha^{k^\star} \mathcal E^{-1} \approx t_b/(T + k^\star t_b)$, hence $k^\star \approx \log(T/t_b)/\log(1/\alpha)$ up to logarithmic terms. The numerical values come from the exact maximization of $(1-\alpha^{k+1})/((1-\alpha)(T + kt_b))$ over the integers.
+\end{proof}
+
+\paragraph{The control.} The \texttt{amortissement.py} tool simulates 20\,000 chains per case and compares against \cref{eq:amortissement}: gap below 4 standard errors in all 9 cases. With a wrong formula (without the bonus token), 7 cases out of 9 fail \mes. \Cref{fig:amortissement} and \cref{tab:amortissement} give the values.
+
+\begin{figure}[ht]
+\centering
+\GrapheAmortissement
+\caption[Tokens produced per read of the weights, $\mathcal E(\alpha,k)$]{Tokens produced per full read of the active weights, $\mathcal E(\alpha, k)$, and their asymptotes $1/(1-\alpha)$ dotted (\cref{thm:amortissement,cor:borne-chaine}) \calc. The bound arrives fast: past $k \approx 8$, a longer chain barely helps.}
+\label{fig:amortissement}
+\sourcefig{\fichier{fondations/journaux/05-sparsite/amortissement-tables.json} (\fichier{outils/05-sparsite/amortissement.py}).}
+\end{figure}
+
+\begin{table}[ht]
+\centering\small
+\caption[Values of $\mathcal E(\alpha,k)$]{Tokens produced per full read of the active weights, $\mathcal E(\alpha,k)$ \calc.}
+\label{tab:amortissement}
+\begin{tabular}{@{}lrrrrrrrr@{}}
+\toprule
+$\alpha$ \textbackslash{} $k$ & 1 & 2 & 3 & 4 & 6 & 8 & 16 & $\infty$ \\
+\midrule
+0.5 & 1.50 & 1.75 & 1.88 & 1.94 & 1.98 & 2.00 & 2.00 & 2 \\
+0.6 & 1.60 & 1.96 & 2.18 & 2.31 & 2.43 & 2.47 & 2.50 & 2.5 \\
+0.7 & 1.70 & 2.19 & 2.53 & 2.77 & 3.06 & 3.20 & 3.33 & 3.33 \\
+0.8 & 1.80 & 2.44 & 2.95 & 3.36 & 3.95 & 4.33 & 4.89 & 5 \\
+0.9 & 1.90 & 2.71 & 3.44 & 4.10 & 5.22 & 6.13 & 8.33 & 10 \\
+0.95 & 1.95 & 2.85 & 3.71 & 4.52 & 6.03 & 7.40 & 11.64 & 20 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Trees}
+
+With a tree of $K$ nodes, the pass verifies all branches at once (tree attention mask) and keeps the longest accepted path (\cref{fig:speculation}). SpecInfer~\cite{specinfer2023} samples the branches, Sequoia~\cite{sequoia2024} builds the optimal tree by dynamic programming under a budget, SpecExec~\cite{specexec2024} keeps the $K$ most probable continuations of the draft: it is the variant made for the offloaded regime. Its decisive property: $\mathcal E$ is no longer bounded by $1/(1-\alpha)$ but by the coverage of the tree. SpecExec reports up to 20.6 tokens accepted per pass (budget 2\,048) on offloaded Llama 2 70B, and, \textbf{on a desktop RTX 4060, 70B in GPTQ: 9.7 tokens per pass, 3.28 tokens/s, $\times 4.6$} \litt.
+
+\begin{figure}[ht]
+\centering
+\SchemaSpeculation
+\caption[Chain and tree verification]{A verification pass as a chain and as a tree. The chain stops at the first refusal; the tree verifies all its branches in the same pass and keeps the longest accepted path.}
+\label{fig:speculation}
+\end{figure}
+
+\subsection{The variants}
+
+\begin{table}[ht]
+\centering\small
+\caption[The variants of speculative decoding]{The variants of speculative decoding: draft, published gain, availability under Windows without the CUDA toolkit \litt. llama.cpp~\cite{llamacpp} (commit \texttt{e467e5b}) only verifies chains.}
+\label{tab:variantes-spec}
+\begin{tabularx}{\linewidth}{@{}lXl@{}}
+\toprule
+Variant & Draft and published gain & Under Vulkan \\
+\midrule
+Small model~\cite{leviathan2023,chen2023spec} & model of the same family, 10 to 50 times smaller; lossless & yes (chain) \\
+Medusa~\cite{medusa2024} & extra heads on the last state; $\times2.2$ to $\times3.6$ & no \\
+EAGLE-2, EAGLE-3~\cite{eagle2_2024,eagle3_2025} & one layer reading the target's states, dynamic tree; up to $\times6.5$ & chain only \\
+Native MTP~\cite{gloeckle2024,deepseekv3_2024} & multi-token prediction module trained with the model; a free draft if resident in VRAM & yes (\texttt{draft-mtp}) \\
+DFlash~\cite{dflash2026} & block diffusion, a whole block per pass; more than $\times6$ & yes \\
+N-grams, prompt lookup~\cite{lookahead2024} & zero cost; huge on rewriting, nearly nil on free prose & yes \\
+LayerSkip, QSpec~\cite{layerskip2024,qspec2024} & the target itself, skipped layers or 4-bit activations; $\times1.6$ to $\times2.2$ & no \\
+\textbf{SubSpec}~\cite{subspec2025} & resident 4-bit substitutes of the offloaded layers; 27 to 35 tokens per pass; Qwen2.5-7B under 8\,GB: 2.68 $\to$ 27.1 tokens/s & no (PyTorch) \\
+SpecExec, Sequoia~\cite{specexec2024,sequoia2024} & trees of hundreds of nodes in the offloaded regime; 10 to 20 tokens per pass & no \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{The trap of hybrid models.} Qwen3.5, 3.6, 3.8 and Qwen3-Next mix full-attention layers with delta-rule linear-attention layers (Gated DeltaNet), whose state is a matrix per head updated at every token. A refused token cannot be removed from a recurrent state: the previous state must have been kept. For Qwen3.5-9B (32 value heads, $128 \times 128$ state per head, 24 linear layers out of 32) \calc:
+\[
+\text{state per layer} = 32 \times 128 \times 128 \times 4\ \text{bytes} = 2\,\text{MiB}, \qquad \text{model state} = 24 \times 2 = 48\,\text{MiB per kept position}.
+\]
+A tree of 256 nodes requires 12\,GiB: impossible on 8\,GB. STree~\cite{stree2025} verifies trees for state-space models by exploiting the structure of their transition matrices; the delta-rule transition, $\alpha_t (I - \beta_t k_t k_t^\top)$, is not diagonal, and no tree verification is published for it.
+
+\section{Mixtures of experts and speculation}\label{sec:moe-spec}
+
+A verification pass of an MoE reads the union of the experts of its $n$ tokens.
+
+\begin{lemme}[The union of experts under independent routing]\label{lem:union}
+If each token chooses $k_e$ distinct experts out of $E$, uniformly and independently of the other tokens, the expected number of distinct experts requested by $n$ tokens in a layer is
+\begin{equation}\label{eq:union}
+U(n) = E\,\Bigl(1 - \bigl(1 - \tfrac{k_e}{E}\bigr)^{n}\Bigr).
+\end{equation}
+\end{lemme}
+
+\begin{proof}
+A given expert is not chosen by a token with probability $1 - k_e/E$; by independence, it is chosen by none of the $n$ tokens with probability $(1 - k_e/E)^n$. By linearity of expectation, the expected number of experts chosen by at least one token is $E$ times the complementary probability.
+\end{proof}
+
+\begin{proposition}[When speculation pays for an MoE read from disk]\label{prop:spec-moe}
+If the bytes coming from disk are dominated by routed experts, verifying $k$ drafted tokens reduces the bytes read per produced token if and only if
+\begin{equation}\label{eq:spec-moe}
+\mathcal E(\alpha, k) \;>\; \frac{U(k+1)}{k_e}.
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+Without speculation, a token reads $k_e$ experts per layer. The verification pass covers $k+1$ positions (the prefix and the $k$ drafted tokens) and reads $U(k+1)$ experts per layer; it produces $\mathcal E(\alpha,k)$ tokens on average (\cref{thm:amortissement}). Bytes per produced token drop if and only if $U(k+1)/\mathcal E(\alpha,k) < k_e$.
+\end{proof}
+
+\begin{corollaire}[Speculation never pays on independent fine-grained experts]\label{cor:jamais}
+For $k = 1$, the condition becomes $1 + \alpha > 2 - k_e/E$, i.e.\ $\alpha > 1 - k_e/E$: $\alpha > 0.977$ for DeepSeek-V4-Flash ($k_e/E = 6/256$), $\alpha > 0.980$ for Qwen3.8-Flash-Next ($10/512$) \calc. In the fine-grained limit ($k_e(k+1) \ll E$), $U(k+1)/k_e \to k+1 > \mathcal E(\alpha,k)$ for every $\alpha < 1$.
+\end{corollaire}
+
+\begin{proof}
+By \cref{lem:union}, $U(2)/k_e = 2 - k_e/E$ and $\mathcal E(\alpha,1) = 1 + \alpha$. In the limit, $(1 - k_e/E)^{k+1} \approx 1 - (k+1)k_e/E$, so $U(k+1)/k_e \to k+1$; yet $\mathcal E(\alpha,k) = \sum_{i=0}^k \alpha^i < k + 1$ as soon as $\alpha < 1$.
+\end{proof}
+
+\begin{table}[ht]
+\centering\small
+\caption[Speculation and MoE models read from disk]{Speculation and MoE models whose experts come from disk, uniform independent routing (pessimistic) \calc.}
+\label{tab:spec-moe}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Model & $B_t$ / $B_e$ (GB) & $E$ / $k_e$ & $U(4)/U(1)$ & optimal $k$, $\alpha = 0.9$ \\
+\midrule
+DeepSeek-V4-Flash Q2\_K\_XL & 6.69 / 2.10 & 256 / 6 & 3.86 & \textbf{0} \\
+Qwen3.8-Flash-Next Q2\_K\_XL & 3.54 / 0.90 & 512 / 10 & 3.88 & \textbf{0} \\
+gpt-oss-120b MXFP4 & 1.69 / 1.91 & 128 / 4 & 3.82 & \textbf{0} \\
+Kimi-K2.6 Q2\_K\_XL & 8.52 / 6.90 & 384 / 8 & 3.88 & \textbf{0} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Stone's regime (batch of one, weights on disk) is exactly the one where Cascade~\cite{cascade2025} observes that speculation slows MoE models down.} Speculation therefore pays, for a fine-grained MoE read from disk, only if the real union is far below independence (neighbouring tokens share their experts), or if the expert set of the verification is bounded: MoE-Spec~\cite{moespec2026} (fixed budget per layer), AcceptMoE~\cite{acceptmoe2026} (eligibility restricted to experts already cached: $\times2.06$, $-0.27$ accuracy point), EcoSpec~\cite{ecospec2026} and EVICT~\cite{evict2026} (lossless), DraftExpert~\cite{draftexpert2026} \litt. The real union over draft tokens is published for no model the machine can read.
+
+\paragraph{Predicting experts does not reduce bytes.} Mixtral-offloading, ProMoE, HOBBIT (\cref{sec:moe-systemes}) predict in order to prefetch: this hides the loading latency behind computation (\cref{prop:volume}). In the disk regime, where the disk works all the time, prefetching only yields the step from the sum to the maximum of \cref{thm:toit}. Only caching and lossy substitution reduce the bytes coming from disk.
+
+\section{Activation sparsity}\label{sec:sparsite-activations}
+
+\begin{table}[ht]
+\centering\small
+\caption[Activation sparsity methods]{Activation sparsity methods \litt.}
+\label{tab:sparsite}
+\begin{tabularx}{\linewidth}{@{}lXl@{}}
+\toprule
+Method & What is sparse, published gain & Condition \\
+\midrule
+Deja Vu~\cite{dejavu2023} & heads and neurons per token, predicted one layer ahead; $\times2$ & ReLU (OPT) \\
+PowerInfer~\cite{powerinfer2024} & hot neurons on the card, cold on the CPU; up to $\times11.69$ & ReLU \\
+LLM in a flash~\cite{llminflash2024} & sliding window of recent neurons; row--column bundling & ReLU \\
+CATS~\cite{cats2024} & threshold on the input of \texttt{down}; +15\,\% speed & --- \\
+TEAL~\cite{teal2024} & magnitude threshold on the input of every matrix; $\times1.53$ at 40\,\% & column-major weights \\
+R-Sparse~\cite{rsparse2025} & channels and singular components; +43\,\% & --- \\
+TurboSparse~\cite{turbosparse2024} & retrained dReLU; $\times2$ to $\times5$ & retraining \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{What it takes for a zero to become an unread byte.} In VRAM: column-major weights and a kernel that loads only the live columns (TEAL's kernel requires it: \texttt{assert weight.stride(1) > 1}); no such kernel exists in llama.cpp, whose quantized types are row-major. On disk: the granularity is the page, and an FFN neuron of Qwen3.5-9B at 4.5 bits (three vectors of 4\,096) weighs about 6.9\,KiB \calc, two pages, far below the size at which this disk delivers its throughput (\cref{fig:disque}).
+
+\subsection{The measurement: unions, window, hot neurons}
+
+\paragraph{The instrument.} \texttt{llama\_numpy.py} is a numpy forward pass of a \enquote{llama} model read from the GGUF, written from scratch, with a hook on the input of every projection. Model: SmolLM2-135M-Instruct F16 (30 layers, SwiGLU). Control: the perplexity of the numpy pass must match \texttt{llama-perplexity} within 0.5\,\% (threshold declared before); it gives 22.6768 against 22.6739 over 16 windows (0.013\,\%, largest gap 0.18\,\%), and \textbf{the control fails when broken} (RoPE rotation by halves instead of adjacent pairs: 232.8 against 10.4) \mes.
+
+\begin{figure}[ht]
+\centering
+\GrapheUnions
+\caption[The union of the masks of $n$ consecutive tokens]{Share of the columns of \texttt{down} that a verification of $n$ consecutive tokens must read if each keeps its top-$k$ mask, versus per-token sparsity, and the same union if masks were independent (SmolLM2-135M, 2\,048 tokens) \mes. At 50\,\% sparsity, four tokens already read 90\,\% of the columns.}
+\label{fig:unions}
+\sourcefig{\fichier{fondations/journaux/05-sparsite/stats-smol.json}.}
+\end{figure}
+
+The unions (\cref{fig:unions}) lie below independence: correlation between neighbouring tokens exists, but it is weak. Weighted by the bytes of the four inputs of a block, the union is \textbf{0.895 at $n = 4$ and 0.976 at $n = 8$} for 50\,\% per-token sparsity \calc: a verification of four tokens reads only 10.5\,\% less than a dense pass. \textbf{Composed naively with speculation, per-token sparsity vanishes.}
+
+LLM in a flash's sliding window reduces traffic at the price of a RAM holding almost the whole matrix: at equal RAM (72\,\% of the columns), a dense static cache leaves 28\,\% of the bytes to the disk, the window $w = 1$ leaves 21.8\,\%, a gain of only 1.28. And \textbf{there is no power law of hot neurons in a SwiGLU model}: covering 80\,\% of the selections at 50\,\% sparsity takes 74\,\% of the channels of \texttt{down} \mes. PowerInfer's factor of 11.69 assumes ReLU sparsity (more than 90\,\% inactive neurons) and a power law that SwiGLU does not give.
+
+\subsection{A mask shared by the verified block}
+
+The only way to keep the bytes of sparsity under verification is for the $n$ tokens of a block to \textbf{share a single mask}. Measured rule: for each block of $n$ consecutive tokens, keep the $(1-s)D$ channels of largest energy $\sum_i v_{ij}^2$, optionally weighted by $\lVert W_{:,j} \rVert^2$, the norm of the column we give up reading.
+
+\begin{table}[ht]
+\centering\small
+\caption[The quality cost of a shared mask]{Perplexity of SmolLM2-135M under different sparsity rules, WikiText-2, 1\,020 paired positions \mes.}
+\label{tab:masque-commun}
+\begin{tabular}{@{}llrr@{}}
+\toprule
+Rule & columns read per pass of $n$ tokens & perplexity & gap \\
+\midrule
+none (dense) & 100\,\% & 17.86 & --- \\
+per-token top-$k$, $s = 25$\,\% & 75\,\% at $n=1$; $\approx$ 99\,\% at $n=4$ & 18.24 & +2.1\,\% \\
+per-token top-$k$, $s = 50$\,\% & 50\,\% at $n=1$; 89.5\,\% at $n=4$ & 27.09 & +51.6\,\% \\
+shared mask, block of 2, weighted, $s = 25$\,\% & 75\,\% for $n \le 2$ & 19.84 & +11.0\,\% \\
+shared mask, block of 4, weighted, $s = 25$\,\% & 75\,\% for $n \le 4$ & 23.96 & +34.1\,\% \\
+shared mask, block of 2, weighted, $s = 50$\,\% & 50\,\% for $n \le 2$ & 62.87 & $\times3.52$ \\
+shared mask, block of 4, weighted, $s = 50$\,\% & 50\,\% for $n \le 4$ & 301.0 & $\times16.9$ \\
+shared mask, block of 16, weighted, $s = 50$\,\% & 50\,\% for $n \le 16$ & 4\,276 & $\times239$ \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{fondations/journaux/05-sparsite/ppl-smol.json}.}
+\end{table}
+
+\textbf{On a dense SwiGLU without retraining, activation sparsity and speculative verification do not compose} (\cref{tab:masque-commun}): either each token keeps its mask and the pass reads almost everything, or tokens share a mask and quality collapses. The diagnosis confirms it: the share of a token's energy kept at density 0.5 drops from 0.956--0.986 (per-token mask) to 0.805--0.918 (block of 16), and the lost energy, compounded over 30 layers and 4 inputs, blows up perplexity; a random mask, the control, keeps 0.499 to 0.502. Caveat: 135 million parameters; TEAL reports smaller losses at 7--70 billion.
+
+\section{The computation for Stone's machine}\label{sec:spec-machine}
+
+\subsection{Acceptance rates, measured}\label{sec:alpha}
+
+The \enquote{same top token} of \texttt{llama-perplexity --kl-divergence} is the share of positions where the draft's argmax equals the target's, the text serving as prefix: it is the greedy acceptance rate of the first drafted position, rather a lower bound (in real generation, the prefix is the target's own text, usually more predictable).
+
+\begin{table}[ht]
+\centering\small
+\caption[Measured greedy acceptance rates]{Measured greedy acceptance rates and the tokens per pass they imply (\cref{thm:amortissement}) \mes~\calc.}
+\label{tab:alpha}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Draft $\to$ target & $\alpha$ & KLD & $\mathcal E(\alpha,8)$ & $1/(1-\alpha)$ \\
+\midrule
+control: 4B Q4\_K\_M against itself & \textbf{100.000\,\%} & 0 & --- & --- \\
+Qwen3.5-4B Q4\_K\_M $\to$ Qwen3.5-9B Q4\_K\_M & 76.8 $\pm$ 0.9\,\% & 0.279 & 3.91 & 4.31 \\
+4B IQ4\_XS (4.76 bits) $\to$ 4B Q4\_K\_M & 91.9 $\pm$ 0.3\,\% & 0.029 & 6.57 & 12.35 \\
+4B IQ3\_XXS (3.60 bits) $\to$ 4B Q4\_K\_M & 82.1 $\pm$ 0.4\,\% & 0.148 & 4.64 & 5.59 \\
+4B IQ2\_XXS (2.91 bits) $\to$ 4B Q4\_K\_M & 65.8 $\pm$ 0.5\,\% & 0.608 & 2.86 & 2.92 \\
+9B naive Q2\_K (3.41 bits, no imatrix) $\to$ 9B Q4\_K\_M & 34.0 $\pm$ 1.0\,\% & 2.60 & 1.52 & 1.52 \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{fondations/journaux/05-sparsite/alpha-*.log}, \fichier{temoin-alpha-4B-contre-lui-meme.log}, study 02 for the quantized copies of the 4B.}
+\end{table}
+
+The control falls at exactly 100\,\% when the target is the draft: the tool does measure agreement (\cref{tab:alpha}). A draft of the same family, half the size, returns at most 4.3 tokens per pass as a chain; a quantized copy of the target itself agrees much better (91.9\,\% at about 4.8 bits), hence SubSpec's acceptance length. \textbf{The naive substitute collapses}: the 9B Q2\_K requantized without an importance matrix takes perplexity from 8.47 to 105 and agreement to 34\,\%. A substitute is made with the best available quantization, not the simplest.
+
+\subsection{The resident substitute, transposed}
+
+SubSpec keeps a 4-bit copy of the target in VRAM and streams the 16-bit target over the link from 128\,GB of RAM. At Stone's, 16\,GB of RAM impose an already quantized target (about 4.8 bits) and 8\,GB of VRAM a very low-rate substitute. With the measured agreements, a 6\,GB VRAM budget for the substitute and a Q4\_K\_M target in RAM, the study computes for a 14B target (9.1\,GB, 1.42\,s pass, link loaded at 6.38\,GB/s): 0.70 tokens/s without speculation, \textbf{1.75 tokens/s ($\times 2.5$)} with the best substitute that fits (IQ2\_XXS, 5.1\,GB, $\alpha = 0.66$, $k^\star = 7$) \calc. A 2-bit substitute keeping 85\,\% agreement would take the 14B to about 3.6 tokens/s. \textbf{This is the exact point where quantization and speculation multiply}: extreme quantization no longer only reads less, it manufactures the draft.
+
+\subsection{Dense models read from disk}
+
+\begin{table}[ht]
+\centering\small
+\caption[Speculation and dense models read from disk]{Tokens/s of a dense model partly on disk, without and with speculation (resident draft, 5\,ms per token); disk assumed between 3 and 7\,GB/s by the study, the measured throughput (2.82\,GB/s) lying below the lower bound \calc.}
+\label{tab:spec-denses}
+\begin{tabular}{@{}llrrrrr@{}}
+\toprule
+Case & disk & $T(n)$ & no spec. & $\alpha=0.8$ & $\alpha=0.9$ & tree, 10/pass \\
+\midrule
+70B Q4 (42\,GB), 24\,GB on disk & 3\,GB/s, serial & 9.76\,s & 0.10 & 0.50 & 0.99 & 1.02 \\
+same & 7\,GB/s, overlapped & 3.43\,s & 0.29 & 1.40 & 2.72 & 2.87 \\
+70B $\approx$2.3 bits (20\,GB), 2\,GB on disk & 3\,GB/s, serial & 2.43\,s & 0.41 & 1.96 & 3.76 & 4.04 \\
+same & overlapped & 1.72\,s & 0.58 & 2.72 & 5.15 & 5.64 \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{fondations/journaux/05-sparsite/amortissement-tables.json}.}
+\end{table}
+
+\textbf{In the disk cases, speculation multiplies throughput by $\mathcal E$ almost exactly} (\cref{tab:spec-denses}): $k^\star$ is large, the draft negligible ($\times5$ at $\alpha = 0.8$, $\times10$ at $\alpha = 0.9$). Quantization and speculation multiply: going from 4.8 to 2.3 bits nearly takes the model off the disk, speculation then multiplies by $\mathcal E$, and it adds no quality loss.
+
+\section{What is missing in the world}
+
+\begin{enumerate}
+\item \textbf{Speculation with weights read from the NVMe when RAM is smaller than the model.} SpecExec (140--192\,GB of RAM), SubSpec (128\,GB), Sequoia, TriForce read weights from RAM; on 16\,GB and a 2.82\,GB/s disk, it is an unmeasured factor of 10.
+\item \textbf{Trees under Windows without CUDA}: llama.cpp verifies chains, capped at $1/(1-\alpha)$ (\cref{cor:borne-chaine}).
+\item \textbf{The real expert-union curves of 2026 fine-grained MoE models over draft tokens}: all profitability depends on the gap to \cref{eq:union}.
+\item \textbf{Splitting 8\,GB of VRAM between draft and target}: each GB given to the draft goes back to the link or the disk; nobody publishes the optimum.
+\item \textbf{Tree verification for delta-rule hybrids} (48\,MiB of state per node).
+\end{enumerate}
+
+\paragraph{Recommendations, for the arbiter.} The cheapest and most accurate draft is the target itself, quantized very low and resident, or its native MTP module; verify trees, not chains; for MoE models, verify only within the experts already in memory and measure the loss; do not invest in per-token activation sparsity for the disk regime on SwiGLU models.
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{The sparsity model is small} (135\,M); large models are sparser, and the correlation between neighbouring tokens may be stronger.
+\item \textbf{The per-token top-$k$ mask is not exactly TEAL} (calibrated thresholds, variable density); it has the same mean density.
+\item \textbf{The constant, independent $\alpha$ assumption} overestimates $\mathcal E$ for long chains.
+\item \textbf{Independent routing} is pessimistic; if neighbouring tokens share many experts, \enquote{optimal $k = 0$} falls.
+\item \textbf{$F = 20$\,Tflop/s} is not measured; $n^\star$ is an order of magnitude.
+\item \textbf{The \enquote{same top token} is not exactly $\alpha$}: forced by a text, first position only, greedy.
+\item \textbf{The substitute agreements come from the 4B}; a 14B quantizes better at equal bits.
+\item \textbf{The machines were shared}: perplexities do not depend on it, timings do.
+\end{itemize}
+\end{faux}

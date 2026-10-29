@@ -1,0 +1,23 @@
+# Outil de l'éclaireur du génome des poids (genome/01-eclaireur.md) : capture des entrées réelles des
+# experts de gpt-oss par une fourche de la référence f64, et substitution de bases pour la KL.
+# Hors de l'espace de travail du moteur (table [workspace] vide) : rien ne change pour les lots.
+[package]
+name = "genome-capture"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+trc-reference = { path = "../../../../moteur/crates/trc-reference" }
+trc-juge = { path = "../../../../moteur/crates/trc-juge" }
+trc-jetons = { path = "../../../../moteur/crates/trc-jetons" }
+rayon = "=1.12.0"
+half = "=2.7.1"
+anyhow = "=1.0.104"
+serde_json = "=1.0.151"
+
+[profile.release]
+opt-level = 3
+debug = "line-tables-only"

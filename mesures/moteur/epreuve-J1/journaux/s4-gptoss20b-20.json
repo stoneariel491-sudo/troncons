@@ -1,0 +1,5287 @@
+{
+ "outil": "mesures/moteur/epreuve-J1/decodeur_s4.py",
+ "debut": "2026-10-16T02:19:20",
+ "commande": [
+  "decodeur_s4.py",
+  "~/dev/modeles/trc/gpt-oss-20b.trc",
+  "~/dev/modeles/gguf/gpt-oss-20b-MXFP4.gguf",
+  "journaux/s4-gptoss20b-20.json",
+  "--n",
+  "20",
+  "--graine",
+  "20261016",
+  "--residents-complets"
+ ],
+ "graine": 20261016,
+ "casser": null,
+ "gguf": {
+  "chemin": "~/dev/modeles/gguf/gpt-oss-20b-MXFP4.gguf",
+  "version": 3,
+  "n_tenseurs": 459,
+  "n_kv": 36,
+  "alignement": 32,
+  "taille": 12109566624
+ },
+ "magie": true,
+ "entete": {
+  "version": [
+   1,
+   0
+  ],
+  "drapeaux": 1,
+  "alignement": 4096,
+  "taille_entete": 4096,
+  "taille_fichier_declaree": 11157405696,
+  "taille_fichier_reelle": 11157405696,
+  "sha256_source": "27cd6c432c7672cb812a92f611cf3ba7bbc35928262bb1e1253ff4ee6ae35901",
+  "taille_source": 12109566624,
+  "L": 24,
+  "E": 32,
+  "k": 4,
+  "matrices": 3,
+  "lignes": [
+   2880,
+   2880,
+   2880,
+   0
+  ],
+  "colonnes": [
+   2880,
+   2880,
+   2880,
+   0
+  ],
+  "poids_bloc": 32,
+  "octets_bloc": 17,
+  "type_ggml": 39,
+  "niveaux": 1,
+  "classes_echelle": 3,
+  "partition": [
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0
+  ],
+  "reserve_123": 0,
+  "reserve_132": 0,
+  "sections": [
+   [
+    4096,
+    12980519
+   ],
+   [
+    12988416,
+    1917714696
+   ],
+   [
+    1930706944,
+    149776
+   ],
+   [
+    1930858496,
+    49160
+   ],
+   [
+    1930911744,
+    9226493952
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "zeros_264_4088": true,
+  "empreinte_lue": "b286b46f3a13692c",
+  "empreinte_calculee": "b286b46f3a13692c",
+  "empreinte_ok": true,
+  "taille_ok": true,
+  "sections_alignees": true,
+  "sections_reservees_nulles": true,
+  "drapeaux_connus": true,
+  "taille_source_egale_gguf": true
+ },
+ "meta": {
+  "n_paires": 39,
+  "n_kv_gguf": 36,
+  "empreinte_ok": true,
+  "zeros_apres": true,
+  "longueur_section": 12980519,
+  "fin_utile": 12980519,
+  "ajoutees": [
+   [
+    "troncons.codeur.version",
+    "trc-codeur 0.1.0"
+   ],
+   [
+    "troncons.codeur.date",
+    "2026-10-15"
+   ],
+   [
+    "troncons.source.nom",
+    "gpt-oss-20b-MXFP4.gguf"
+   ]
+  ],
+  "paires_gguf_octet_pour_octet": true,
+  "section_multiple_4096": false
+ },
+ "residents": {
+  "n_tenseurs": 315,
+  "reserve": 0,
+  "debut_donnees_absolu": 13029376,
+  "longueur_section": 1917714696,
+  "fin_derniere_relative": 1917673728,
+  "empreinte_table_trouvee_a": {
+   "fin_exacte": true,
+   "aligne_8": true,
+   "aligne_256": true
+  },
+  "n_attendus": 315,
+  "memes_noms_meme_ordre": true,
+  "memes_noms_ensemble": true,
+  "defauts_forme": [],
+  "octets_residents": 1917670656,
+  "complets_verifies": 315,
+  "complets_faux": []
+ },
+ "tables": {
+  "n_enregistrements": 288,
+  "reserve": 0,
+  "empreinte_ok": true,
+  "zeros_apres": true,
+  "sommes_differentes_de_4096": [],
+  "sortes_contextes_charges": {
+   "0x03/0/2": 72,
+   "0x04/0/2": 72,
+   "0x04/1/2": 72,
+   "0x04/2/2": 72
+  }
+ },
+ "repertoire": {
+  "entrees": 768,
+  "empreinte_ok": true,
+  "defauts": [],
+  "n_defauts": 0,
+  "premier_troncon_au_debut_de_TRONCONS": true,
+  "fin_dernier_troncon": 11157405696,
+  "fin_section_TRONCONS": 11157405696,
+  "fin_fichier": 11157405696
+ },
+ "tires": [
+  [
+   22,
+   15
+  ],
+  [
+   4,
+   23
+  ],
+  [
+   13,
+   2
+  ],
+  [
+   11,
+   24
+  ],
+  [
+   2,
+   14
+  ],
+  [
+   17,
+   3
+  ],
+  [
+   18,
+   2
+  ],
+  [
+   22,
+   2
+  ],
+  [
+   4,
+   5
+  ],
+  [
+   7,
+   30
+  ],
+  [
+   14,
+   23
+  ],
+  [
+   16,
+   14
+  ],
+  [
+   8,
+   2
+  ],
+  [
+   13,
+   4
+  ],
+  [
+   19,
+   26
+  ],
+  [
+   6,
+   3
+  ],
+  [
+   13,
+   10
+  ],
+  [
+   1,
+   27
+  ],
+  [
+   9,
+   22
+  ],
+  [
+   16,
+   25
+  ]
+ ],
+ "troncons": [
+  {
+   "couche": 22,
+   "expert": 15,
+   "decalage": 10570350592,
+   "longueur0": 11948032,
+   "utiles0": 11944000,
+   "entete_partie": {
+    "magie": "0x30435254",
+    "couche": 22,
+    "expert": 15,
+    "niveau": 0,
+    "n_matrices": 3,
+    "n_flux": 12,
+    "utiles": 11944000,
+    "reserve_zeros": true
+   },
+   "zeros_apres_utiles": true,
+   "entete_ok": true,
+   "empreinte_partie_ok": true,
+   "flux": [
+    [
+     1,
+     0,
+     255,
+     256,
+     2880,
+     2880
+    ],
+    [
+     2,
+     0,
+     255,
+     3136,
+     11520,
+     11520
+    ],
+    [
+     3,
+     0,
+     0,
+     14656,
+     42080,
+     259200
+    ],
+    [
+     4,
+     0,
+     255,
+     56736,
+     3934256,
+     4147200
+    ],
+    [
+     1,
+     1,
+     255,
+     3990992,
+     2880,
+     2880
+    ],
+    [
+     2,
+     1,
+     255,
+     3993872,
+     11520,
+     11520
+    ],
+    [
+     3,
+     1,
+     0,
+     4005392,
+     43328,
+     259200
+    ],
+    [
+     4,
+     1,
+     255,
+     4048720,
+     3926544,
+     4147200
+    ],
+    [
+     1,
+     2,
+     255,
+     7975264,
+     2880,
+     2880
+    ],
+    [
+     2,
+     2,
+     255,
+     7978144,
+     11520,
+     11520
+    ],
+    [
+     3,
+     2,
+     0,
+     7989664,
+     41312,
+     259200
+    ],
+    [
+     4,
+     2,
+     255,
+     8030976,
+     3913024,
+     4147200
+    ]
+   ],
+   "flux_alignes_16": true,
+   "flux_reserves_nuls": true,
+   "contextes_fixes": [
+    [
+     1,
+     255
+    ],
+    [
+     2,
+     255
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     255
+    ]
+   ],
+   "ordre_flux_conforme_4_8": true,
+   "bilans": [
+    {
+     "matrice": 0,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 20502,
+      "octets_serialises": 42076,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 20502
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1958737,
+      "octets_serialises": 3934254,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1958737
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 1,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 21125,
+      "octets_serialises": 43322,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 21125
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1954876,
+      "octets_serialises": 3926532,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1954876
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 2,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 20116,
+      "octets_serialises": 41304,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 20116
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1948119,
+      "octets_serialises": 3913018,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1948119
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    }
+   ],
+   "voies_hors_L": 0,
+   "empreinte_origine_ok": true,
+   "secondes_decodage": 0.841,
+   "egal_gguf_octet_pour_octet": true,
+   "tient": true
+  },
+  {
+   "couche": 4,
+   "expert": 23,
+   "decalage": 3743342592,
+   "longueur0": 12009472,
+   "utiles0": 12005456,
+   "entete_partie": {
+    "magie": "0x30435254",
+    "couche": 4,
+    "expert": 23,
+    "niveau": 0,
+    "n_matrices": 3,
+    "n_flux": 12,
+    "utiles": 12005456,
+    "reserve_zeros": true
+   },
+   "zeros_apres_utiles": true,
+   "entete_ok": true,
+   "empreinte_partie_ok": true,
+   "flux": [
+    [
+     1,
+     0,
+     255,
+     256,
+     2880,
+     2880
+    ],
+    [
+     2,
+     0,
+     255,
+     3136,
+     11520,
+     11520
+    ],
+    [
+     3,
+     0,
+     0,
+     14656,
+     35792,
+     259200
+    ],
+    [
+     4,
+     0,
+     255,
+     50448,
+     3967296,
+     4147200
+    ],
+    [
+     1,
+     1,
+     255,
+     4017744,
+     2880,
+     2880
+    ],
+    [
+     2,
+     1,
+     255,
+     4020624,
+     11520,
+     11520
+    ],
+    [
+     3,
+     1,
+     0,
+     4032144,
+     33920,
+     259200
+    ],
+    [
+     4,
+     1,
+     255,
+     4066064,
+     3942192,
+     4147200
+    ],
+    [
+     1,
+     2,
+     255,
+     8008256,
+     2880,
+     2880
+    ],
+    [
+     2,
+     2,
+     255,
+     8011136,
+     11520,
+     11520
+    ],
+    [
+     3,
+     2,
+     0,
+     8022656,
+     36512,
+     259200
+    ],
+    [
+     4,
+     2,
+     255,
+     8059168,
+     3946288,
+     4147200
+    ]
+   ],
+   "flux_alignes_16": true,
+   "flux_reserves_nuls": true,
+   "contextes_fixes": [
+    [
+     1,
+     255
+    ],
+    [
+     2,
+     255
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     255
+    ]
+   ],
+   "ordre_flux_conforme_4_8": true,
+   "bilans": [
+    {
+     "matrice": 0,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 17359,
+      "octets_serialises": 35790,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 17359
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1975251,
+      "octets_serialises": 3967282,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1975251
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 1,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 16420,
+      "octets_serialises": 33912,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 16420
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1962699,
+      "octets_serialises": 3942178,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1962699
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 2,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 17720,
+      "octets_serialises": 36512,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 17720
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1964749,
+      "octets_serialises": 3946278,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1964749
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    }
+   ],
+   "voies_hors_L": 0,
+   "empreinte_origine_ok": true,
+   "secondes_decodage": 0.854,
+   "egal_gguf_octet_pour_octet": true,
+   "tient": true
+  },
+  {
+   "couche": 13,
+   "expert": 2,
+   "decalage": 6953844736,
+   "longueur0": 12013568,
+   "utiles0": 12012768,
+   "entete_partie": {
+    "magie": "0x30435254",
+    "couche": 13,
+    "expert": 2,
+    "niveau": 0,
+    "n_matrices": 3,
+    "n_flux": 12,
+    "utiles": 12012768,
+    "reserve_zeros": true
+   },
+   "zeros_apres_utiles": true,
+   "entete_ok": true,
+   "empreinte_partie_ok": true,
+   "flux": [
+    [
+     1,
+     0,
+     255,
+     256,
+     2880,
+     2880
+    ],
+    [
+     2,
+     0,
+     255,
+     3136,
+     11520,
+     11520
+    ],
+    [
+     3,
+     0,
+     0,
+     14656,
+     33984,
+     259200
+    ],
+    [
+     4,
+     0,
+     255,
+     48640,
+     3970000,
+     4147200
+    ],
+    [
+     1,
+     1,
+     255,
+     4018640,
+     2880,
+     2880
+    ],
+    [
+     2,
+     1,
+     255,
+     4021520,
+     11520,
+     11520
+    ],
+    [
+     3,
+     1,
+     0,
+     4033040,
+     32832,
+     259200
+    ],
+    [
+     4,
+     1,
+     255,
+     4065872,
+     3971088,
+     4147200
+    ],
+    [
+     1,
+     2,
+     255,
+     8036960,
+     2880,
+     2880
+    ],
+    [
+     2,
+     2,
+     255,
+     8039840,
+     11520,
+     11520
+    ],
+    [
+     3,
+     2,
+     0,
+     8051360,
+     32144,
+     259200
+    ],
+    [
+     4,
+     2,
+     255,
+     8083504,
+     3929264,
+     4147200
+    ]
+   ],
+   "flux_alignes_16": true,
+   "flux_reserves_nuls": true,
+   "contextes_fixes": [
+    [
+     1,
+     255
+    ],
+    [
+     2,
+     255
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     255
+    ]
+   ],
+   "ordre_flux_conforme_4_8": true,
+   "bilans": [
+    {
+     "matrice": 0,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 16452,
+      "octets_serialises": 33976,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 16452
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1976604,
+      "octets_serialises": 3969988,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1976604
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 1,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 15878,
+      "octets_serialises": 32828,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 15878
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1977147,
+      "octets_serialises": 3971074,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1977147
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 2,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 15535,
+      "octets_serialises": 32142,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 15535
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1956237,
+      "octets_serialises": 3929254,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1956237
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    }
+   ],
+   "voies_hors_L": 0,
+   "empreinte_origine_ok": true,
+   "secondes_decodage": 0.843,
+   "egal_gguf_octet_pour_octet": true,
+   "tient": true
+  },
+  {
+   "couche": 11,
+   "expert": 24,
+   "decalage": 6448640000,
+   "longueur0": 12042240,
+   "utiles0": 12041184,
+   "entete_partie": {
+    "magie": "0x30435254",
+    "couche": 11,
+    "expert": 24,
+    "niveau": 0,
+    "n_matrices": 3,
+    "n_flux": 12,
+    "utiles": 12041184,
+    "reserve_zeros": true
+   },
+   "zeros_apres_utiles": true,
+   "entete_ok": true,
+   "empreinte_partie_ok": true,
+   "flux": [
+    [
+     1,
+     0,
+     255,
+     256,
+     2880,
+     2880
+    ],
+    [
+     2,
+     0,
+     255,
+     3136,
+     11520,
+     11520
+    ],
+    [
+     3,
+     0,
+     0,
+     14656,
+     32208,
+     259200
+    ],
+    [
+     4,
+     0,
+     255,
+     46864,
+     3973216,
+     4147200
+    ],
+    [
+     1,
+     1,
+     255,
+     4020080,
+     2880,
+     2880
+    ],
+    [
+     2,
+     1,
+     255,
+     4022960,
+     11520,
+     11520
+    ],
+    [
+     3,
+     1,
+     0,
+     4034480,
+     34272,
+     259200
+    ],
+    [
+     4,
+     1,
+     255,
+     4068752,
+     3966576,
+     4147200
+    ],
+    [
+     1,
+     2,
+     255,
+     8035328,
+     2880,
+     2880
+    ],
+    [
+     2,
+     2,
+     255,
+     8038208,
+     11520,
+     11520
+    ],
+    [
+     3,
+     2,
+     0,
+     8049728,
+     39872,
+     259200
+    ],
+    [
+     4,
+     2,
+     255,
+     8089600,
+     3951584,
+     4147200
+    ]
+   ],
+   "flux_alignes_16": true,
+   "flux_reserves_nuls": true,
+   "contextes_fixes": [
+    [
+     1,
+     255
+    ],
+    [
+     2,
+     255
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     255
+    ]
+   ],
+   "ordre_flux_conforme_4_8": true,
+   "bilans": [
+    {
+     "matrice": 0,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 15567,
+      "octets_serialises": 32206,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 15567
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1978211,
+      "octets_serialises": 3973202,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1978211
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 1,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 16599,
+      "octets_serialises": 34270,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 16599
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1974894,
+      "octets_serialises": 3966568,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1974894
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 2,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 19398,
+      "octets_serialises": 39868,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 19398
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1967401,
+      "octets_serialises": 3951582,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1967401
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    }
+   ],
+   "voies_hors_L": 0,
+   "empreinte_origine_ok": true,
+   "secondes_decodage": 0.834,
+   "egal_gguf_octet_pour_octet": true,
+   "tient": true
+  },
+  {
+   "couche": 2,
+   "expert": 14,
+   "decalage": 2865668096,
+   "longueur0": 12054528,
+   "utiles0": 12051856,
+   "entete_partie": {
+    "magie": "0x30435254",
+    "couche": 2,
+    "expert": 14,
+    "niveau": 0,
+    "n_matrices": 3,
+    "n_flux": 12,
+    "utiles": 12051856,
+    "reserve_zeros": true
+   },
+   "zeros_apres_utiles": true,
+   "entete_ok": true,
+   "empreinte_partie_ok": true,
+   "flux": [
+    [
+     1,
+     0,
+     255,
+     256,
+     2880,
+     2880
+    ],
+    [
+     2,
+     0,
+     255,
+     3136,
+     11520,
+     11520
+    ],
+    [
+     3,
+     0,
+     0,
+     14656,
+     30544,
+     259200
+    ],
+    [
+     4,
+     0,
+     255,
+     45200,
+     3986176,
+     4147200
+    ],
+    [
+     1,
+     1,
+     255,
+     4031376,
+     2880,
+     2880
+    ],
+    [
+     2,
+     1,
+     255,
+     4034256,
+     11520,
+     11520
+    ],
+    [
+     3,
+     1,
+     0,
+     4045776,
+     23344,
+     259200
+    ],
+    [
+     4,
+     1,
+     255,
+     4069120,
+     3965440,
+     4147200
+    ],
+    [
+     1,
+     2,
+     255,
+     8034560,
+     2880,
+     2880
+    ],
+    [
+     2,
+     2,
+     255,
+     8037440,
+     11520,
+     11520
+    ],
+    [
+     3,
+     2,
+     0,
+     8048960,
+     33088,
+     259200
+    ],
+    [
+     4,
+     2,
+     255,
+     8082048,
+     3969808,
+     4147200
+    ]
+   ],
+   "flux_alignes_16": true,
+   "flux_reserves_nuls": true,
+   "contextes_fixes": [
+    [
+     1,
+     255
+    ],
+    [
+     2,
+     255
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     255
+    ]
+   ],
+   "ordre_flux_conforme_4_8": true,
+   "bilans": [
+    {
+     "matrice": 0,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 14729,
+      "octets_serialises": 30530,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 14729
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1984691,
+      "octets_serialises": 3986162,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1984691
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 1,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 11135,
+      "octets_serialises": 23342,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 11135
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1974327,
+      "octets_serialises": 3965434,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1974327
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 2,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 16008,
+      "octets_serialises": 33088,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 16008
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1976512,
+      "octets_serialises": 3969804,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1976512
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    }
+   ],
+   "voies_hors_L": 0,
+   "empreinte_origine_ok": true,
+   "secondes_decodage": 0.844,
+   "egal_gguf_octet_pour_octet": true,
+   "tient": true
+  },
+  {
+   "couche": 17,
+   "expert": 3,
+   "decalage": 8505790464,
+   "longueur0": 11980800,
+   "utiles0": 11977392,
+   "entete_partie": {
+    "magie": "0x30435254",
+    "couche": 17,
+    "expert": 3,
+    "niveau": 0,
+    "n_matrices": 3,
+    "n_flux": 12,
+    "utiles": 11977392,
+    "reserve_zeros": true
+   },
+   "zeros_apres_utiles": true,
+   "entete_ok": true,
+   "empreinte_partie_ok": true,
+   "flux": [
+    [
+     1,
+     0,
+     255,
+     256,
+     2880,
+     2880
+    ],
+    [
+     2,
+     0,
+     255,
+     3136,
+     11520,
+     11520
+    ],
+    [
+     3,
+     0,
+     0,
+     14656,
+     44752,
+     259200
+    ],
+    [
+     4,
+     0,
+     255,
+     59408,
+     3930080,
+     4147200
+    ],
+    [
+     1,
+     1,
+     255,
+     3989488,
+     2880,
+     2880
+    ],
+    [
+     2,
+     1,
+     255,
+     3992368,
+     11520,
+     11520
+    ],
+    [
+     3,
+     1,
+     0,
+     4003888,
+     45312,
+     259200
+    ],
+    [
+     4,
+     1,
+     255,
+     4049200,
+     3938576,
+     4147200
+    ],
+    [
+     1,
+     2,
+     255,
+     7987776,
+     2880,
+     2880
+    ],
+    [
+     2,
+     2,
+     255,
+     7990656,
+     11520,
+     11520
+    ],
+    [
+     3,
+     2,
+     0,
+     8002176,
+     36400,
+     259200
+    ],
+    [
+     4,
+     2,
+     255,
+     8038576,
+     3938816,
+     4147200
+    ]
+   ],
+   "flux_alignes_16": true,
+   "flux_reserves_nuls": true,
+   "contextes_fixes": [
+    [
+     1,
+     255
+    ],
+    [
+     2,
+     255
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     255
+    ]
+   ],
+   "ordre_flux_conforme_4_8": true,
+   "bilans": [
+    {
+     "matrice": 0,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 21839,
+      "octets_serialises": 44750,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 21839
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1956648,
+      "octets_serialises": 3930076,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1956648
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 1,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 22115,
+      "octets_serialises": 45302,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 22115
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1960891,
+      "octets_serialises": 3938562,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1960891
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 2,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 17663,
+      "octets_serialises": 36398,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 17663
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1961011,
+      "octets_serialises": 3938802,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1961011
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    }
+   ],
+   "voies_hors_L": 0,
+   "empreinte_origine_ok": true,
+   "secondes_decodage": 0.861,
+   "egal_gguf_octet_pour_octet": true,
+   "tient": true
+  },
+  {
+   "couche": 18,
+   "expert": 2,
+   "decalage": 8878403584,
+   "longueur0": 12009472,
+   "utiles0": 12008048,
+   "entete_partie": {
+    "magie": "0x30435254",
+    "couche": 18,
+    "expert": 2,
+    "niveau": 0,
+    "n_matrices": 3,
+    "n_flux": 12,
+    "utiles": 12008048,
+    "reserve_zeros": true
+   },
+   "zeros_apres_utiles": true,
+   "entete_ok": true,
+   "empreinte_partie_ok": true,
+   "flux": [
+    [
+     1,
+     0,
+     255,
+     256,
+     2880,
+     2880
+    ],
+    [
+     2,
+     0,
+     255,
+     3136,
+     11520,
+     11520
+    ],
+    [
+     3,
+     0,
+     0,
+     14656,
+     34336,
+     259200
+    ],
+    [
+     4,
+     0,
+     255,
+     48992,
+     3971504,
+     4147200
+    ],
+    [
+     1,
+     1,
+     255,
+     4020496,
+     2880,
+     2880
+    ],
+    [
+     2,
+     1,
+     255,
+     4023376,
+     11520,
+     11520
+    ],
+    [
+     3,
+     1,
+     0,
+     4034896,
+     34048,
+     259200
+    ],
+    [
+     4,
+     1,
+     255,
+     4068944,
+     3974096,
+     4147200
+    ],
+    [
+     1,
+     2,
+     255,
+     8043040,
+     2880,
+     2880
+    ],
+    [
+     2,
+     2,
+     255,
+     8045920,
+     11520,
+     11520
+    ],
+    [
+     3,
+     2,
+     0,
+     8057440,
+     36080,
+     259200
+    ],
+    [
+     4,
+     2,
+     255,
+     8093520,
+     3914528,
+     4147200
+    ]
+   ],
+   "flux_alignes_16": true,
+   "flux_reserves_nuls": true,
+   "contextes_fixes": [
+    [
+     1,
+     255
+    ],
+    [
+     2,
+     255
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     255
+    ]
+   ],
+   "ordre_flux_conforme_4_8": true,
+   "bilans": [
+    {
+     "matrice": 0,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 16632,
+      "octets_serialises": 34336,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 16632
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1977357,
+      "octets_serialises": 3971494,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1977357
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 1,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 16485,
+      "octets_serialises": 34042,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 16485
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1978656,
+      "octets_serialises": 3974092,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1978656
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 2,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 17503,
+      "octets_serialises": 36078,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 17503
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1948872,
+      "octets_serialises": 3914524,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1948872
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    }
+   ],
+   "voies_hors_L": 0,
+   "empreinte_origine_ok": true,
+   "secondes_decodage": 0.843,
+   "egal_gguf_octet_pour_octet": true,
+   "tient": true
+  },
+  {
+   "couche": 22,
+   "expert": 2,
+   "decalage": 10414645248,
+   "longueur0": 12029952,
+   "utiles0": 12025888,
+   "entete_partie": {
+    "magie": "0x30435254",
+    "couche": 22,
+    "expert": 2,
+    "niveau": 0,
+    "n_matrices": 3,
+    "n_flux": 12,
+    "utiles": 12025888,
+    "reserve_zeros": true
+   },
+   "zeros_apres_utiles": true,
+   "entete_ok": true,
+   "empreinte_partie_ok": true,
+   "flux": [
+    [
+     1,
+     0,
+     255,
+     256,
+     2880,
+     2880
+    ],
+    [
+     2,
+     0,
+     255,
+     3136,
+     11520,
+     11520
+    ],
+    [
+     3,
+     0,
+     0,
+     14656,
+     30240,
+     259200
+    ],
+    [
+     4,
+     0,
+     255,
+     44896,
+     3960384,
+     4147200
+    ],
+    [
+     1,
+     1,
+     255,
+     4005280,
+     2880,
+     2880
+    ],
+    [
+     2,
+     1,
+     255,
+     4008160,
+     11520,
+     11520
+    ],
+    [
+     3,
+     1,
+     0,
+     4019680,
+     27952,
+     259200
+    ],
+    [
+     4,
+     1,
+     255,
+     4047632,
+     3939232,
+     4147200
+    ],
+    [
+     1,
+     2,
+     255,
+     7986864,
+     2880,
+     2880
+    ],
+    [
+     2,
+     2,
+     255,
+     7989744,
+     11520,
+     11520
+    ],
+    [
+     3,
+     2,
+     0,
+     8001264,
+     29424,
+     259200
+    ],
+    [
+     4,
+     2,
+     255,
+     8030688,
+     3995200,
+     4147200
+    ]
+   ],
+   "flux_alignes_16": true,
+   "flux_reserves_nuls": true,
+   "contextes_fixes": [
+    [
+     1,
+     255
+    ],
+    [
+     2,
+     255
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     255
+    ]
+   ],
+   "ordre_flux_conforme_4_8": true,
+   "bilans": [
+    {
+     "matrice": 0,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 14581,
+      "octets_serialises": 30234,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 14581
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1971800,
+      "octets_serialises": 3960380,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1971800
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 1,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 13440,
+      "octets_serialises": 27952,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 13440
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1961223,
+      "octets_serialises": 3939226,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1961223
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 2,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 14171,
+      "octets_serialises": 29414,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 14171
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1989207,
+      "octets_serialises": 3995194,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1989207
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    }
+   ],
+   "voies_hors_L": 0,
+   "empreinte_origine_ok": true,
+   "secondes_decodage": 0.846,
+   "egal_gguf_octet_pour_octet": true,
+   "tient": true
+  },
+  {
+   "couche": 4,
+   "expert": 5,
+   "decalage": 3526987776,
+   "longueur0": 12005376,
+   "utiles0": 12005008,
+   "entete_partie": {
+    "magie": "0x30435254",
+    "couche": 4,
+    "expert": 5,
+    "niveau": 0,
+    "n_matrices": 3,
+    "n_flux": 12,
+    "utiles": 12005008,
+    "reserve_zeros": true
+   },
+   "zeros_apres_utiles": true,
+   "entete_ok": true,
+   "empreinte_partie_ok": true,
+   "flux": [
+    [
+     1,
+     0,
+     255,
+     256,
+     2880,
+     2880
+    ],
+    [
+     2,
+     0,
+     255,
+     3136,
+     11520,
+     11520
+    ],
+    [
+     3,
+     0,
+     0,
+     14656,
+     35216,
+     259200
+    ],
+    [
+     4,
+     0,
+     255,
+     49872,
+     3961312,
+     4147200
+    ],
+    [
+     1,
+     1,
+     255,
+     4011184,
+     2880,
+     2880
+    ],
+    [
+     2,
+     1,
+     255,
+     4014064,
+     11520,
+     11520
+    ],
+    [
+     3,
+     1,
+     0,
+     4025584,
+     29584,
+     259200
+    ],
+    [
+     4,
+     1,
+     255,
+     4055168,
+     3953808,
+     4147200
+    ],
+    [
+     1,
+     2,
+     255,
+     8008976,
+     2880,
+     2880
+    ],
+    [
+     2,
+     2,
+     255,
+     8011856,
+     11520,
+     11520
+    ],
+    [
+     3,
+     2,
+     0,
+     8023376,
+     36640,
+     259200
+    ],
+    [
+     4,
+     2,
+     255,
+     8060016,
+     3944992,
+     4147200
+    ]
+   ],
+   "flux_alignes_16": true,
+   "flux_reserves_nuls": true,
+   "contextes_fixes": [
+    [
+     1,
+     255
+    ],
+    [
+     2,
+     255
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     255
+    ]
+   ],
+   "ordre_flux_conforme_4_8": true,
+   "bilans": [
+    {
+     "matrice": 0,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 17069,
+      "octets_serialises": 35210,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 17069
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1972260,
+      "octets_serialises": 3961300,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1972260
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 1,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 14255,
+      "octets_serialises": 29582,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 14255
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1968509,
+      "octets_serialises": 3953798,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1968509
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 2,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 17784,
+      "octets_serialises": 36640,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 17784
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1964105,
+      "octets_serialises": 3944990,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1964105
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    }
+   ],
+   "voies_hors_L": 0,
+   "empreinte_origine_ok": true,
+   "secondes_decodage": 0.852,
+   "egal_gguf_octet_pour_octet": true,
+   "tient": true
+  },
+  {
+   "couche": 7,
+   "expert": 30,
+   "decalage": 4981448704,
+   "longueur0": 12017664,
+   "utiles0": 12014224,
+   "entete_partie": {
+    "magie": "0x30435254",
+    "couche": 7,
+    "expert": 30,
+    "niveau": 0,
+    "n_matrices": 3,
+    "n_flux": 12,
+    "utiles": 12014224,
+    "reserve_zeros": true
+   },
+   "zeros_apres_utiles": true,
+   "entete_ok": true,
+   "empreinte_partie_ok": true,
+   "flux": [
+    [
+     1,
+     0,
+     255,
+     256,
+     2880,
+     2880
+    ],
+    [
+     2,
+     0,
+     255,
+     3136,
+     11520,
+     11520
+    ],
+    [
+     3,
+     0,
+     0,
+     14656,
+     34320,
+     259200
+    ],
+    [
+     4,
+     0,
+     255,
+     48976,
+     3968208,
+     4147200
+    ],
+    [
+     1,
+     1,
+     255,
+     4017184,
+     2880,
+     2880
+    ],
+    [
+     2,
+     1,
+     255,
+     4020064,
+     11520,
+     11520
+    ],
+    [
+     3,
+     1,
+     0,
+     4031584,
+     32640,
+     259200
+    ],
+    [
+     4,
+     1,
+     255,
+     4064224,
+     3957008,
+     4147200
+    ],
+    [
+     1,
+     2,
+     255,
+     8021232,
+     2880,
+     2880
+    ],
+    [
+     2,
+     2,
+     255,
+     8024112,
+     11520,
+     11520
+    ],
+    [
+     3,
+     2,
+     0,
+     8035632,
+     35728,
+     259200
+    ],
+    [
+     4,
+     2,
+     255,
+     8071360,
+     3942864,
+     4147200
+    ]
+   ],
+   "flux_alignes_16": true,
+   "flux_reserves_nuls": true,
+   "contextes_fixes": [
+    [
+     1,
+     255
+    ],
+    [
+     2,
+     255
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     255
+    ]
+   ],
+   "ordre_flux_conforme_4_8": true,
+   "bilans": [
+    {
+     "matrice": 0,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 16617,
+      "octets_serialises": 34306,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 16617
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1975708,
+      "octets_serialises": 3968196,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1975708
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 1,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 15783,
+      "octets_serialises": 32638,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 15783
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1970111,
+      "octets_serialises": 3957002,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1970111
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 2,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 17328,
+      "octets_serialises": 35728,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 17328
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1963036,
+      "octets_serialises": 3942852,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1963036
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    }
+   ],
+   "voies_hors_L": 0,
+   "empreinte_origine_ok": true,
+   "secondes_decodage": 0.833,
+   "egal_gguf_octet_pour_octet": true,
+   "tient": true
+  },
+  {
+   "couche": 14,
+   "expert": 23,
+   "decalage": 7591292928,
+   "longueur0": 12034048,
+   "utiles0": 12030240,
+   "entete_partie": {
+    "magie": "0x30435254",
+    "couche": 14,
+    "expert": 23,
+    "niveau": 0,
+    "n_matrices": 3,
+    "n_flux": 12,
+    "utiles": 12030240,
+    "reserve_zeros": true
+   },
+   "zeros_apres_utiles": true,
+   "entete_ok": true,
+   "empreinte_partie_ok": true,
+   "flux": [
+    [
+     1,
+     0,
+     255,
+     256,
+     2880,
+     2880
+    ],
+    [
+     2,
+     0,
+     255,
+     3136,
+     11520,
+     11520
+    ],
+    [
+     3,
+     0,
+     0,
+     14656,
+     35008,
+     259200
+    ],
+    [
+     4,
+     0,
+     255,
+     49664,
+     3966528,
+     4147200
+    ],
+    [
+     1,
+     1,
+     255,
+     4016192,
+     2880,
+     2880
+    ],
+    [
+     2,
+     1,
+     255,
+     4019072,
+     11520,
+     11520
+    ],
+    [
+     3,
+     1,
+     0,
+     4030592,
+     37744,
+     259200
+    ],
+    [
+     4,
+     1,
+     255,
+     4068336,
+     3967536,
+     4147200
+    ],
+    [
+     1,
+     2,
+     255,
+     8035872,
+     2880,
+     2880
+    ],
+    [
+     2,
+     2,
+     255,
+     8038752,
+     11520,
+     11520
+    ],
+    [
+     3,
+     2,
+     0,
+     8050272,
+     35664,
+     259200
+    ],
+    [
+     4,
+     2,
+     255,
+     8085936,
+     3944304,
+     4147200
+    ]
+   ],
+   "flux_alignes_16": true,
+   "flux_reserves_nuls": true,
+   "contextes_fixes": [
+    [
+     1,
+     255
+    ],
+    [
+     2,
+     255
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     255
+    ]
+   ],
+   "ordre_flux_conforme_4_8": true,
+   "bilans": [
+    {
+     "matrice": 0,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 16963,
+      "octets_serialises": 34998,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 16963
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1974872,
+      "octets_serialises": 3966524,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1974872
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 1,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 18330,
+      "octets_serialises": 37732,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 18330
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1975378,
+      "octets_serialises": 3967536,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1975378
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 2,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 17289,
+      "octets_serialises": 35650,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 17289
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1963758,
+      "octets_serialises": 3944296,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1963758
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    }
+   ],
+   "voies_hors_L": 0,
+   "empreinte_origine_ok": true,
+   "secondes_decodage": 0.861,
+   "egal_gguf_octet_pour_octet": true,
+   "tient": true
+  },
+  {
+   "couche": 16,
+   "expert": 14,
+   "decalage": 8253341696,
+   "longueur0": 12046336,
+   "utiles0": 12046096,
+   "entete_partie": {
+    "magie": "0x30435254",
+    "couche": 16,
+    "expert": 14,
+    "niveau": 0,
+    "n_matrices": 3,
+    "n_flux": 12,
+    "utiles": 12046096,
+    "reserve_zeros": true
+   },
+   "zeros_apres_utiles": true,
+   "entete_ok": true,
+   "empreinte_partie_ok": true,
+   "flux": [
+    [
+     1,
+     0,
+     255,
+     256,
+     2880,
+     2880
+    ],
+    [
+     2,
+     0,
+     255,
+     3136,
+     11520,
+     11520
+    ],
+    [
+     3,
+     0,
+     0,
+     14656,
+     34448,
+     259200
+    ],
+    [
+     4,
+     0,
+     255,
+     49104,
+     3973856,
+     4147200
+    ],
+    [
+     1,
+     1,
+     255,
+     4022960,
+     2880,
+     2880
+    ],
+    [
+     2,
+     1,
+     255,
+     4025840,
+     11520,
+     11520
+    ],
+    [
+     3,
+     1,
+     0,
+     4037360,
+     40112,
+     259200
+    ],
+    [
+     4,
+     1,
+     255,
+     4077472,
+     3978624,
+     4147200
+    ],
+    [
+     1,
+     2,
+     255,
+     8056096,
+     2880,
+     2880
+    ],
+    [
+     2,
+     2,
+     255,
+     8058976,
+     11520,
+     11520
+    ],
+    [
+     3,
+     2,
+     0,
+     8070496,
+     34144,
+     259200
+    ],
+    [
+     4,
+     2,
+     255,
+     8104640,
+     3941456,
+     4147200
+    ]
+   ],
+   "flux_alignes_16": true,
+   "flux_reserves_nuls": true,
+   "contextes_fixes": [
+    [
+     1,
+     255
+    ],
+    [
+     2,
+     255
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     255
+    ]
+   ],
+   "ordre_flux_conforme_4_8": true,
+   "bilans": [
+    {
+     "matrice": 0,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 16681,
+      "octets_serialises": 34434,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 16681
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1978533,
+      "octets_serialises": 3973846,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1978533
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 1,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 19513,
+      "octets_serialises": 40098,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 19513
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1980920,
+      "octets_serialises": 3978620,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1980920
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 2,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 16534,
+      "octets_serialises": 34140,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 16534
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1962336,
+      "octets_serialises": 3941452,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1962336
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    }
+   ],
+   "voies_hors_L": 0,
+   "empreinte_origine_ok": true,
+   "secondes_decodage": 0.842,
+   "egal_gguf_octet_pour_octet": true,
+   "tient": true
+  },
+  {
+   "couche": 8,
+   "expert": 2,
+   "decalage": 5029441536,
+   "longueur0": 12013568,
+   "utiles0": 12010064,
+   "entete_partie": {
+    "magie": "0x30435254",
+    "couche": 8,
+    "expert": 2,
+    "niveau": 0,
+    "n_matrices": 3,
+    "n_flux": 12,
+    "utiles": 12010064,
+    "reserve_zeros": true
+   },
+   "zeros_apres_utiles": true,
+   "entete_ok": true,
+   "empreinte_partie_ok": true,
+   "flux": [
+    [
+     1,
+     0,
+     255,
+     256,
+     2880,
+     2880
+    ],
+    [
+     2,
+     0,
+     255,
+     3136,
+     11520,
+     11520
+    ],
+    [
+     3,
+     0,
+     0,
+     14656,
+     34752,
+     259200
+    ],
+    [
+     4,
+     0,
+     255,
+     49408,
+     3966400,
+     4147200
+    ],
+    [
+     1,
+     1,
+     255,
+     4015808,
+     2880,
+     2880
+    ],
+    [
+     2,
+     1,
+     255,
+     4018688,
+     11520,
+     11520
+    ],
+    [
+     3,
+     1,
+     0,
+     4030208,
+     35936,
+     259200
+    ],
+    [
+     4,
+     1,
+     255,
+     4066144,
+     3989888,
+     4147200
+    ],
+    [
+     1,
+     2,
+     255,
+     8056032,
+     2880,
+     2880
+    ],
+    [
+     2,
+     2,
+     255,
+     8058912,
+     11520,
+     11520
+    ],
+    [
+     3,
+     2,
+     0,
+     8070432,
+     41440,
+     259200
+    ],
+    [
+     4,
+     2,
+     255,
+     8111872,
+     3898192,
+     4147200
+    ]
+   ],
+   "flux_alignes_16": true,
+   "flux_reserves_nuls": true,
+   "contextes_fixes": [
+    [
+     1,
+     255
+    ],
+    [
+     2,
+     255
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     255
+    ]
+   ],
+   "ordre_flux_conforme_4_8": true,
+   "bilans": [
+    {
+     "matrice": 0,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 16837,
+      "octets_serialises": 34746,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 16837
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1974804,
+      "octets_serialises": 3966388,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1974804
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 1,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 17432,
+      "octets_serialises": 35936,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 17432
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1986548,
+      "octets_serialises": 3989876,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1986548
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 2,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 20179,
+      "octets_serialises": 41430,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 20179
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1940704,
+      "octets_serialises": 3898188,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1940704
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    }
+   ],
+   "voies_hors_L": 0,
+   "empreinte_origine_ok": true,
+   "secondes_decodage": 0.836,
+   "egal_gguf_octet_pour_octet": true,
+   "tient": true
+  },
+  {
+   "couche": 13,
+   "expert": 4,
+   "decalage": 6977888256,
+   "longueur0": 12050432,
+   "utiles0": 12047664,
+   "entete_partie": {
+    "magie": "0x30435254",
+    "couche": 13,
+    "expert": 4,
+    "niveau": 0,
+    "n_matrices": 3,
+    "n_flux": 12,
+    "utiles": 12047664,
+    "reserve_zeros": true
+   },
+   "zeros_apres_utiles": true,
+   "entete_ok": true,
+   "empreinte_partie_ok": true,
+   "flux": [
+    [
+     1,
+     0,
+     255,
+     256,
+     2880,
+     2880
+    ],
+    [
+     2,
+     0,
+     255,
+     3136,
+     11520,
+     11520
+    ],
+    [
+     3,
+     0,
+     0,
+     14656,
+     36432,
+     259200
+    ],
+    [
+     4,
+     0,
+     255,
+     51088,
+     3972784,
+     4147200
+    ],
+    [
+     1,
+     1,
+     255,
+     4023872,
+     2880,
+     2880
+    ],
+    [
+     2,
+     1,
+     255,
+     4026752,
+     11520,
+     11520
+    ],
+    [
+     3,
+     1,
+     0,
+     4038272,
+     43456,
+     259200
+    ],
+    [
+     4,
+     1,
+     255,
+     4081728,
+     3972080,
+     4147200
+    ],
+    [
+     1,
+     2,
+     255,
+     8053808,
+     2880,
+     2880
+    ],
+    [
+     2,
+     2,
+     255,
+     8056688,
+     11520,
+     11520
+    ],
+    [
+     3,
+     2,
+     0,
+     8068208,
+     34416,
+     259200
+    ],
+    [
+     4,
+     2,
+     255,
+     8102624,
+     3945040,
+     4147200
+    ]
+   ],
+   "flux_alignes_16": true,
+   "flux_reserves_nuls": true,
+   "contextes_fixes": [
+    [
+     1,
+     255
+    ],
+    [
+     2,
+     255
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     255
+    ]
+   ],
+   "ordre_flux_conforme_4_8": true,
+   "bilans": [
+    {
+     "matrice": 0,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 17675,
+      "octets_serialises": 36422,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 17675
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1978000,
+      "octets_serialises": 3972780,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1978000
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 1,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 21190,
+      "octets_serialises": 43452,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 21190
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1977646,
+      "octets_serialises": 3972072,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1977646
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 2,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 16670,
+      "octets_serialises": 34412,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 16670
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1964128,
+      "octets_serialises": 3945036,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1964128
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    }
+   ],
+   "voies_hors_L": 0,
+   "empreinte_origine_ok": true,
+   "secondes_decodage": 0.853,
+   "egal_gguf_octet_pour_octet": true,
+   "tient": true
+  },
+  {
+   "couche": 19,
+   "expert": 26,
+   "decalage": 9550962688,
+   "longueur0": 11943936,
+   "utiles0": 11942368,
+   "entete_partie": {
+    "magie": "0x30435254",
+    "couche": 19,
+    "expert": 26,
+    "niveau": 0,
+    "n_matrices": 3,
+    "n_flux": 12,
+    "utiles": 11942368,
+    "reserve_zeros": true
+   },
+   "zeros_apres_utiles": true,
+   "entete_ok": true,
+   "empreinte_partie_ok": true,
+   "flux": [
+    [
+     1,
+     0,
+     255,
+     256,
+     2880,
+     2880
+    ],
+    [
+     2,
+     0,
+     255,
+     3136,
+     11520,
+     11520
+    ],
+    [
+     3,
+     0,
+     0,
+     14656,
+     45200,
+     259200
+    ],
+    [
+     4,
+     0,
+     255,
+     59856,
+     3904752,
+     4147200
+    ],
+    [
+     1,
+     1,
+     255,
+     3964608,
+     2880,
+     2880
+    ],
+    [
+     2,
+     1,
+     255,
+     3967488,
+     11520,
+     11520
+    ],
+    [
+     3,
+     1,
+     0,
+     3979008,
+     43744,
+     259200
+    ],
+    [
+     4,
+     1,
+     255,
+     4022752,
+     3919648,
+     4147200
+    ],
+    [
+     1,
+     2,
+     255,
+     7942400,
+     2880,
+     2880
+    ],
+    [
+     2,
+     2,
+     255,
+     7945280,
+     11520,
+     11520
+    ],
+    [
+     3,
+     2,
+     0,
+     7956800,
+     32624,
+     259200
+    ],
+    [
+     4,
+     2,
+     255,
+     7989424,
+     3952944,
+     4147200
+    ]
+   ],
+   "flux_alignes_16": true,
+   "flux_reserves_nuls": true,
+   "contextes_fixes": [
+    [
+     1,
+     255
+    ],
+    [
+     2,
+     255
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     255
+    ]
+   ],
+   "ordre_flux_conforme_4_8": true,
+   "bilans": [
+    {
+     "matrice": 0,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 22062,
+      "octets_serialises": 45196,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 22062
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1943984,
+      "octets_serialises": 3904748,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1943984
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 1,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 21332,
+      "octets_serialises": 43736,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 21332
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1951430,
+      "octets_serialises": 3919640,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1951430
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 2,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 15775,
+      "octets_serialises": 32622,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 15775
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1968077,
+      "octets_serialises": 3952934,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1968077
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    }
+   ],
+   "voies_hors_L": 0,
+   "empreinte_origine_ok": true,
+   "secondes_decodage": 0.842,
+   "egal_gguf_octet_pour_octet": true,
+   "tient": true
+  },
+  {
+   "couche": 6,
+   "expert": 3,
+   "decalage": 4272242688,
+   "longueur0": 12029952,
+   "utiles0": 12028064,
+   "entete_partie": {
+    "magie": "0x30435254",
+    "couche": 6,
+    "expert": 3,
+    "niveau": 0,
+    "n_matrices": 3,
+    "n_flux": 12,
+    "utiles": 12028064,
+    "reserve_zeros": true
+   },
+   "zeros_apres_utiles": true,
+   "entete_ok": true,
+   "empreinte_partie_ok": true,
+   "flux": [
+    [
+     1,
+     0,
+     255,
+     256,
+     2880,
+     2880
+    ],
+    [
+     2,
+     0,
+     255,
+     3136,
+     11520,
+     11520
+    ],
+    [
+     3,
+     0,
+     0,
+     14656,
+     35024,
+     259200
+    ],
+    [
+     4,
+     0,
+     255,
+     49680,
+     3968160,
+     4147200
+    ],
+    [
+     1,
+     1,
+     255,
+     4017840,
+     2880,
+     2880
+    ],
+    [
+     2,
+     1,
+     255,
+     4020720,
+     11520,
+     11520
+    ],
+    [
+     3,
+     1,
+     0,
+     4032240,
+     31280,
+     259200
+    ],
+    [
+     4,
+     1,
+     255,
+     4063520,
+     3967552,
+     4147200
+    ],
+    [
+     1,
+     2,
+     255,
+     8031072,
+     2880,
+     2880
+    ],
+    [
+     2,
+     2,
+     255,
+     8033952,
+     11520,
+     11520
+    ],
+    [
+     3,
+     2,
+     0,
+     8045472,
+     36768,
+     259200
+    ],
+    [
+     4,
+     2,
+     255,
+     8082240,
+     3945824,
+     4147200
+    ]
+   ],
+   "flux_alignes_16": true,
+   "flux_reserves_nuls": true,
+   "contextes_fixes": [
+    [
+     1,
+     255
+    ],
+    [
+     2,
+     255
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     255
+    ]
+   ],
+   "ordre_flux_conforme_4_8": true,
+   "bilans": [
+    {
+     "matrice": 0,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 16972,
+      "octets_serialises": 35016,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 16972
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1975686,
+      "octets_serialises": 3968152,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1975686
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 1,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 15102,
+      "octets_serialises": 31276,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 15102
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1975381,
+      "octets_serialises": 3967542,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1975381
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 2,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 17847,
+      "octets_serialises": 36766,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 17847
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1964522,
+      "octets_serialises": 3945824,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1964522
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    }
+   ],
+   "voies_hors_L": 0,
+   "empreinte_origine_ok": true,
+   "secondes_decodage": 0.845,
+   "egal_gguf_octet_pour_octet": true,
+   "tient": true
+  },
+  {
+   "couche": 13,
+   "expert": 10,
+   "decalage": 7050067968,
+   "longueur0": 12001280,
+   "utiles0": 11998640,
+   "entete_partie": {
+    "magie": "0x30435254",
+    "couche": 13,
+    "expert": 10,
+    "niveau": 0,
+    "n_matrices": 3,
+    "n_flux": 12,
+    "utiles": 11998640,
+    "reserve_zeros": true
+   },
+   "zeros_apres_utiles": true,
+   "entete_ok": true,
+   "empreinte_partie_ok": true,
+   "flux": [
+    [
+     1,
+     0,
+     255,
+     256,
+     2880,
+     2880
+    ],
+    [
+     2,
+     0,
+     255,
+     3136,
+     11520,
+     11520
+    ],
+    [
+     3,
+     0,
+     0,
+     14656,
+     32256,
+     259200
+    ],
+    [
+     4,
+     0,
+     255,
+     46912,
+     3968496,
+     4147200
+    ],
+    [
+     1,
+     1,
+     255,
+     4015408,
+     2880,
+     2880
+    ],
+    [
+     2,
+     1,
+     255,
+     4018288,
+     11520,
+     11520
+    ],
+    [
+     3,
+     1,
+     0,
+     4029808,
+     33840,
+     259200
+    ],
+    [
+     4,
+     1,
+     255,
+     4063648,
+     3969360,
+     4147200
+    ],
+    [
+     1,
+     2,
+     255,
+     8033008,
+     2880,
+     2880
+    ],
+    [
+     2,
+     2,
+     255,
+     8035888,
+     11520,
+     11520
+    ],
+    [
+     3,
+     2,
+     0,
+     8047408,
+     37728,
+     259200
+    ],
+    [
+     4,
+     2,
+     255,
+     8085136,
+     3913504,
+     4147200
+    ]
+   ],
+   "flux_alignes_16": true,
+   "flux_reserves_nuls": true,
+   "contextes_fixes": [
+    [
+     1,
+     255
+    ],
+    [
+     2,
+     255
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     255
+    ]
+   ],
+   "ordre_flux_conforme_4_8": true,
+   "bilans": [
+    {
+     "matrice": 0,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 15590,
+      "octets_serialises": 32252,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 15590
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1975858,
+      "octets_serialises": 3968496,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1975858
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 1,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 16382,
+      "octets_serialises": 33836,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 16382
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1976286,
+      "octets_serialises": 3969352,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1976286
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 2,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 18327,
+      "octets_serialises": 37726,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 18327
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1948360,
+      "octets_serialises": 3913500,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1948360
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    }
+   ],
+   "voies_hors_L": 0,
+   "empreinte_origine_ok": true,
+   "secondes_decodage": 0.836,
+   "egal_gguf_octet_pour_octet": true,
+   "tient": true
+  },
+  {
+   "couche": 1,
+   "expert": 27,
+   "decalage": 2637189120,
+   "longueur0": 12009472,
+   "utiles0": 12009040,
+   "entete_partie": {
+    "magie": "0x30435254",
+    "couche": 1,
+    "expert": 27,
+    "niveau": 0,
+    "n_matrices": 3,
+    "n_flux": 12,
+    "utiles": 12009040,
+    "reserve_zeros": true
+   },
+   "zeros_apres_utiles": true,
+   "entete_ok": true,
+   "empreinte_partie_ok": true,
+   "flux": [
+    [
+     1,
+     0,
+     255,
+     256,
+     2880,
+     2880
+    ],
+    [
+     2,
+     0,
+     255,
+     3136,
+     11520,
+     11520
+    ],
+    [
+     3,
+     0,
+     0,
+     14656,
+     39328,
+     259200
+    ],
+    [
+     4,
+     0,
+     255,
+     53984,
+     3930352,
+     4147200
+    ],
+    [
+     1,
+     1,
+     255,
+     3984336,
+     2880,
+     2880
+    ],
+    [
+     2,
+     1,
+     255,
+     3987216,
+     11520,
+     11520
+    ],
+    [
+     3,
+     1,
+     0,
+     3998736,
+     46112,
+     259200
+    ],
+    [
+     4,
+     1,
+     255,
+     4044848,
+     3950528,
+     4147200
+    ],
+    [
+     1,
+     2,
+     255,
+     7995376,
+     2880,
+     2880
+    ],
+    [
+     2,
+     2,
+     255,
+     7998256,
+     11520,
+     11520
+    ],
+    [
+     3,
+     2,
+     0,
+     8009776,
+     35152,
+     259200
+    ],
+    [
+     4,
+     2,
+     255,
+     8044928,
+     3964112,
+     4147200
+    ]
+   ],
+   "flux_alignes_16": true,
+   "flux_reserves_nuls": true,
+   "contextes_fixes": [
+    [
+     1,
+     255
+    ],
+    [
+     2,
+     255
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     255
+    ]
+   ],
+   "ordre_flux_conforme_4_8": true,
+   "bilans": [
+    {
+     "matrice": 0,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 19127,
+      "octets_serialises": 39326,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 19127
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1956786,
+      "octets_serialises": 3930352,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1956786
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 1,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 22517,
+      "octets_serialises": 46106,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 22517
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1966871,
+      "octets_serialises": 3950522,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1966871
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 2,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 17040,
+      "octets_serialises": 35152,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 17040
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1973663,
+      "octets_serialises": 3964106,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1973663
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    }
+   ],
+   "voies_hors_L": 0,
+   "empreinte_origine_ok": true,
+   "secondes_decodage": 0.839,
+   "egal_gguf_octet_pour_octet": true,
+   "tient": true
+  },
+  {
+   "couche": 9,
+   "expert": 22,
+   "decalage": 5654536192,
+   "longueur0": 12021760,
+   "utiles0": 12018848,
+   "entete_partie": {
+    "magie": "0x30435254",
+    "couche": 9,
+    "expert": 22,
+    "niveau": 0,
+    "n_matrices": 3,
+    "n_flux": 12,
+    "utiles": 12018848,
+    "reserve_zeros": true
+   },
+   "zeros_apres_utiles": true,
+   "entete_ok": true,
+   "empreinte_partie_ok": true,
+   "flux": [
+    [
+     1,
+     0,
+     255,
+     256,
+     2880,
+     2880
+    ],
+    [
+     2,
+     0,
+     255,
+     3136,
+     11520,
+     11520
+    ],
+    [
+     3,
+     0,
+     0,
+     14656,
+     33872,
+     259200
+    ],
+    [
+     4,
+     0,
+     255,
+     48528,
+     3968992,
+     4147200
+    ],
+    [
+     1,
+     1,
+     255,
+     4017520,
+     2880,
+     2880
+    ],
+    [
+     2,
+     1,
+     255,
+     4020400,
+     11520,
+     11520
+    ],
+    [
+     3,
+     1,
+     0,
+     4031920,
+     32224,
+     259200
+    ],
+    [
+     4,
+     1,
+     255,
+     4064144,
+     3970080,
+     4147200
+    ],
+    [
+     1,
+     2,
+     255,
+     8034224,
+     2880,
+     2880
+    ],
+    [
+     2,
+     2,
+     255,
+     8037104,
+     11520,
+     11520
+    ],
+    [
+     3,
+     2,
+     0,
+     8048624,
+     36080,
+     259200
+    ],
+    [
+     4,
+     2,
+     255,
+     8084704,
+     3934144,
+     4147200
+    ]
+   ],
+   "flux_alignes_16": true,
+   "flux_reserves_nuls": true,
+   "contextes_fixes": [
+    [
+     1,
+     255
+    ],
+    [
+     2,
+     255
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     255
+    ]
+   ],
+   "ordre_flux_conforme_4_8": true,
+   "bilans": [
+    {
+     "matrice": 0,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 16394,
+      "octets_serialises": 33860,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 16394
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1976102,
+      "octets_serialises": 3968984,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1976102
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 1,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 15570,
+      "octets_serialises": 32212,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 15570
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1976643,
+      "octets_serialises": 3970066,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1976643
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 2,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 17503,
+      "octets_serialises": 36078,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 17503
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1958678,
+      "octets_serialises": 3934136,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1958678
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    }
+   ],
+   "voies_hors_L": 0,
+   "empreinte_origine_ok": true,
+   "secondes_decodage": 0.83,
+   "egal_gguf_octet_pour_octet": true,
+   "tient": true
+  },
+  {
+   "couche": 16,
+   "expert": 25,
+   "decalage": 8385572864,
+   "longueur0": 12042240,
+   "utiles0": 12039632,
+   "entete_partie": {
+    "magie": "0x30435254",
+    "couche": 16,
+    "expert": 25,
+    "niveau": 0,
+    "n_matrices": 3,
+    "n_flux": 12,
+    "utiles": 12039632,
+    "reserve_zeros": true
+   },
+   "zeros_apres_utiles": true,
+   "entete_ok": true,
+   "empreinte_partie_ok": true,
+   "flux": [
+    [
+     1,
+     0,
+     255,
+     256,
+     2880,
+     2880
+    ],
+    [
+     2,
+     0,
+     255,
+     3136,
+     11520,
+     11520
+    ],
+    [
+     3,
+     0,
+     0,
+     14656,
+     30080,
+     259200
+    ],
+    [
+     4,
+     0,
+     255,
+     44736,
+     3968576,
+     4147200
+    ],
+    [
+     1,
+     1,
+     255,
+     4013312,
+     2880,
+     2880
+    ],
+    [
+     2,
+     1,
+     255,
+     4016192,
+     11520,
+     11520
+    ],
+    [
+     3,
+     1,
+     0,
+     4027712,
+     44720,
+     259200
+    ],
+    [
+     4,
+     1,
+     255,
+     4072432,
+     3971136,
+     4147200
+    ],
+    [
+     1,
+     2,
+     255,
+     8043568,
+     2880,
+     2880
+    ],
+    [
+     2,
+     2,
+     255,
+     8046448,
+     11520,
+     11520
+    ],
+    [
+     3,
+     2,
+     0,
+     8057968,
+     32448,
+     259200
+    ],
+    [
+     4,
+     2,
+     255,
+     8090416,
+     3949216,
+     4147200
+    ]
+   ],
+   "flux_alignes_16": true,
+   "flux_reserves_nuls": true,
+   "contextes_fixes": [
+    [
+     1,
+     255
+    ],
+    [
+     2,
+     255
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     255
+    ]
+   ],
+   "ordre_flux_conforme_4_8": true,
+   "bilans": [
+    {
+     "matrice": 0,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 14498,
+      "octets_serialises": 30068,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 14498
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1975893,
+      "octets_serialises": 3968566,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1975893
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 1,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 21817,
+      "octets_serialises": 44706,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 21817
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1977174,
+      "octets_serialises": 3971128,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1977174
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    },
+    {
+     "matrice": 2,
+     "delta": {
+      "P": 259200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 8,
+      "W": 15687,
+      "octets_serialises": 32446,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 15687
+     },
+     "codes": {
+      "P": 4147200,
+      "N": 256,
+      "geometrie": 1,
+      "reserve": 0,
+      "T": 127,
+      "W": 1966218,
+      "octets_serialises": 3949216,
+      "voies_hors_L": 0,
+      "tuiles_fin_differente_du_debut_suivant": 0,
+      "mots_lus": 1966218
+     },
+     "produits_declares": [
+      259200,
+      4147200
+     ],
+     "longueur_biais": 11520,
+     "longueur_medianes": 2880,
+     "medianes_egales_tri_B_2": 2880,
+     "lignes": 2880
+    }
+   ],
+   "voies_hors_L": 0,
+   "empreinte_origine_ok": true,
+   "secondes_decodage": 0.842,
+   "egal_gguf_octet_pour_octet": true,
+   "tient": true
+  }
+ ],
+ "n_tiennent": 20,
+ "fin": "2026-10-16T02:19:45"
+}

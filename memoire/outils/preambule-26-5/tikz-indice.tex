@@ -1,0 +1,33 @@
+% Reproduction courte de l'erreur TikZ du Tome II sous LaTeX 2026-06-01 : \textsubscript (ou \textsuperscript)
+% dans un nœud TikZ, quand la dernière taille des fontes mathématiques globales n'est pas celle du nœud.
+% Le nouveau \@textsubscript appelle \check@mathfonts hors de tout groupe : son \aftergroup\restglb@settings
+% tombe juste après l'accolade fermante du texte du nœud, où TikZ attend « ; ».
+% \def\CORRIGE{1} : la parade du préambule (un groupe autour de \textsuperscript et \textsubscript).
+\documentclass[11pt]{scrbook}
+\newif\ifanglais
+\ifdefined\ANGLAIS\anglaistrue\else\anglaisfalse\fi
+\newcommand{\Racine}{~/dev/active/troncons/memoire}
+\newcommand{\Depot}{~/dev/active/troncons}
+\ifdefined\AVANT
+  \input{~/dev/active/troncons/memoire/essai/construction-tomes/preambule-avant}
+\else
+  \input{~/dev/active/troncons/memoire/commun/preambule}
+\fi
+\begin{document}
+Une formule à la taille du texte : $x_1$.
+
+\typeout{NOEUD A : tiny, align=center, textsubscript}
+\tikz\node[font=\sffamily\tiny, align=center] {ctx\textsubscript{0}};
+$y$ \typeout{NOEUD B : tiny, sans align, textsubscript}
+\tikz\node[font=\sffamily\tiny] {ctx\textsubscript{0}};
+$y$ \typeout{NOEUD C : tiny, textsubscript dans un groupe}
+\tikz\node[font=\sffamily\tiny, align=center] {{ctx\textsubscript{0}}};
+$y$ \typeout{NOEUD D : tiny, indice mathématique}
+\tikz\node[font=\sffamily\tiny, align=center] {ctx$_0$};
+$y$ \typeout{NOEUD E : tiny, textsuperscript}
+\tikz\node[font=\sffamily\tiny] {4\textsuperscript{e}};
+$y$ \typeout{NOEUD F : taille du texte, textsubscript (témoin : même taille, pas d'erreur attendue)}
+\tikz\node {ctx\textsubscript{0}};
+\typeout{FIN}
+Dans le texte : 1\textsuperscript{er}, H\textsubscript{2}O, $x^2$.
+\end{document}

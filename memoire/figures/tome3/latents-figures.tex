@@ -1,0 +1,445 @@
+% Figures du lot « espaces latents » du Tome III : III-7.6 (l'espace latent des états de la couche 23),
+% III-9.1 (d) (une rangée de 32 poids avant et après la mutation synonyme), III-9.7 (l'erreur de sortie d'un
+% expert dans les directions de ses entrées). Gardé par \ifdefined\GrapheLatentsEtats.
+% Données : \Racine/figures/tome3/donnees/latents-*.csv et latents-chiffres.tex (chaque nombre écrit dans
+% une légende ou une annotation), écrits par memoire/outils/tome3_latents.py depuis mesures/genome/tome3/
+% latents/ (outils/genome/tome3/latents_*.py). Styles et couleurs propres au lot préfixés « lat ».
+%
+% Second flux (2026-10-27) : palette et convention de légende du Tome III (palette-tome3.tex,
+% legende-tome3.tex ; memoire/tome3/CONVENTIONS-figures.md) ; graves du juge de design G1 (couleurs du
+% dictionnaire), G2 (III-7.6 en petits multiples) et D20 (III-9.7 lue par la fonction d'appui). Détail et
+% décisions : memoire/tome3/REPRISE-figures2-latents.md.
+%
+% Pour chaque figure <X> (LatentsEtats, LatentsRangee, LatentsNuage) : \Graphe<X> (le dessin), et, par la
+% convention G9, \Titre<X>, \Legende<X>, \Source<X>. Emploi au chapitre :
+%   \begin{figure}\centering\GrapheLatentsEtats\LegendeFigure{LatentsEtats}\label{...}\end{figure}
+
+\ifdefined\GrapheLatentsEtats\else
+\ifdefined\LegendeTomeTrois\else\input{\Racine/figures/tome3/legende-tome3}\fi
+\newcommand{\LatDonnees}{\Racine/figures/tome3/donnees}
+% Un pourcentage après une macro de nombre : « 22.0% » en anglais, « 22,0 % » en français.
+\newcommand{\LatPc}{\EF{\%}{\,\%}}
+\input{\LatDonnees/latents-chiffres.tex}
+
+% --- les couleurs : celles du dictionnaire du Tome III, sous leur nom ---------------------------------
+% III-7.6 : une seule teinte pour l'expert d'un panneau (la place du panneau dit l'expert, la couleur ne
+% porte plus rien seule) ; les états de petite marge en encre ; le reste du nuage en gris.
+\colorlet{latExpert}{CouleurCategorieA}
+\colorlet{latFragile}{Encre}
+\colorlet{latFond}{CouleurAutres}
+\colorlet{latCarte}{black!30}
+% III-9.1 (d) et III-9.7 : la frontière et le synonyme du dictionnaire ; les entrées en gris moyen.
+\colorlet{latEntree}{black!35}
+
+\pgfplotsset{
+  % une carte d'états : axes égaux, sans grille
+  lat/carte/.style={t3 graphe, scale only axis, axis equal image, grid=none,
+    axis line style={black!30}, tick style={black!30}, tick label style={font=\scriptsize},
+    label style={font=\scriptsize}},
+  lat/muet/.style={xtick=\empty, ytick=\empty},
+  % le nuage d'une carte : gris, et les états de petite marge en encre par-dessus
+  lat/nuage gris/.style={scatter, only marks, mark=*, scatter src=explicit symbolic,
+    scatter/classes={autre={mark size=0.42pt, draw=latCarte, fill=latCarte, line width=0.1pt},
+                     petite={mark size=0.62pt, draw=latFragile, fill=latFragile, line width=0.1pt}}},
+  % troisième passe (DN13 du juge de design) : dans (c), un état fragile est un anneau d'encre autour d'un point de
+  % l'expert, plus un point noir plein ; en gris et à petite échelle, le noir plein se fondait dans le bleu
+  lat/nuage expert/.style={scatter, only marks, mark=*, scatter src=explicit symbolic,
+    scatter/classes={autre={mark size=0.55pt, draw=latExpert, fill=latExpert, line width=0.1pt},
+                     petite={mark size=0.95pt, draw=latFragile, fill=latExpert!45, line width=0.35pt}}},
+  lat/fond/.style={only marks, mark=*, mark size=0.32pt, mark options={draw=latFond, fill=latFond, line width=0.1pt}},
+  % le nom des experts, posé sur la carte
+  lat/noms/.style={only marks, mark=none, point meta=explicit symbolic, nodes near coords,
+    nodes near coords style={t3 etiquette, font=\sffamily\scriptsize\bfseries, anchor=center,
+      fill opacity=0.8}},
+}
+% Une marque se trace toujours avec son contour (draw=none est ignoré pour les marques sous le style
+% memoire : le contour sort en noir) : contour et fond de la même couleur, contour de 0,1 pt.
+% Une pastille de clé : #1 couleur, #2 rayon (pt).
+\newcommand{\LatPastille}[2]{\tikz[baseline=-0.55ex]\fill[#1] (0,0) circle (#2pt);}
+
+% =====================================================================================================
+% III-7.6. L'espace latent des 6 132 états de la couche 23.
+% Un panneau des petits multiples. #1 : numéro du groupe (1 à 8) ; #2 : son nom (Un à Huit) ;
+% #3 : colonne (0 à 3) ; #4 : ligne (0 ou 1).
+\newcommand{\LatMultiple}[4]{%
+\begin{axis}[lat/carte, lat/muet, width=2.55cm, height=2.55cm, at={(#3*2.95cm, -5.8cm-#4*2.75cm)},
+  anchor=north west, axis line style={black!20}]
+\addplot[lat/fond] table[x=x, y=y] {\LatDonnees/latents-etats-tsne.csv};
+\addplot[lat/nuage expert] table[x=x, y=y, meta=marge] {\LatDonnees/latents-etats-tsne-g#1.csv};
+% l'expert et sa part, dans le coin haut gauche du panneau
+\node[t3 etiquette, anchor=north west, inner sep=1.2pt] at (rel axis cs:0.02,0.98)
+  {\textbf{\csname LatGroupe#2\endcsname}\enspace{\color{black!55}\csname LatGroupe#2Part\endcsname\LatPc}};
+\end{axis}}
+\newcommand{\GrapheLatentsEtats}{%
+\begin{tikzpicture}
+% (a) l'ACP
+\begin{axis}[lat/carte, name=latacp, width=4.3cm, height=4.3cm, at={(0,0)}, anchor=north west,
+  title={\EF{(a) PCA of the states}{(a) ACP des états}},
+  xlabel={\EF{PC1 (\LatAcpVarUn\% of the variance)}{CP1 (\LatAcpVarUn\,\% de la variance)}},
+  ylabel={\EF{PC2 (\LatAcpVarDeux\%)}{CP2 (\LatAcpVarDeux\,\%)}}, ylabel shift=-3pt]
+\addplot[lat/nuage gris] table[x=x, y=y, meta=marge] {\LatDonnees/latents-etats-acp.csv};
+\addplot[t3 rappel, quiver={u=\thisrow{acpx}-\thisrow{acplx}, v=\thisrow{acpy}-\thisrow{acply}}, forget plot]
+  table[x=acplx, y=acply] {\LatDonnees/latents-etats-reperes.csv};
+\addplot[lat/noms] table[x=acplx, y=acply, meta=expert] {\LatDonnees/latents-etats-reperes.csv};
+\end{axis}
+% (b) la t-SNE
+\IfFileExists{\LatDonnees/latents-etats-tsne.csv}{%
+\begin{axis}[lat/carte, lat/muet, name=lattsne, width=4.3cm, height=4.3cm, at={(7.15cm,0)}, anchor=north west,
+  title={\EF{(b) t-SNE of the same states}{(b) t-SNE des mêmes états}},
+  xlabel={\EF{neighbourhoods kept, distances not}{voisinages gardés, distances non}},
+  label style={text=black!55}]
+\addplot[lat/nuage gris] table[x=x, y=y, meta=marge] {\LatDonnees/latents-etats-tsne.csv};
+\addplot[t3 rappel, quiver={u=\thisrow{tsnex}-\thisrow{tsnelx}, v=\thisrow{tsney}-\thisrow{tsnely}}, forget plot]
+  table[x=tsnelx, y=tsnely] {\LatDonnees/latents-etats-reperes.csv};
+\addplot[lat/noms] table[x=tsnelx, y=tsnely, meta=expert] {\LatDonnees/latents-etats-reperes.csv};
+\end{axis}
+% (c) les petits multiples
+\node[t3 titre panneau] at (-0.02cm, -5.55cm) {\EF{(c) one panel per first expert, on the t-SNE map}%
+  {(c) un panneau par expert premier, sur la carte de la t-SNE}};
+\LatMultiple{1}{Un}{0}{0}\LatMultiple{2}{Deux}{1}{0}\LatMultiple{3}{Trois}{2}{0}\LatMultiple{4}{Quatre}{3}{0}%
+\LatMultiple{5}{Cinq}{0}{1}\LatMultiple{6}{Six}{1}{1}\LatMultiple{7}{Sept}{2}{1}\LatMultiple{8}{Huit}{3}{1}%
+}{}
+% la clé, sous les panneaux
+\node[anchor=north west, t3 sans cesure, font=\sffamily\scriptsize, align=left, inner sep=0pt, text=black!75,
+  text width=12.2cm] at (0, -11.4cm) {%
+  % troisième passe (N6 du juge latents, DN13 du juge de design) : chaque gris a sa pastille, et l'état fragile
+  % de (c) son anneau
+  \mbox{\LatPastille{latCarte}{1.6}\,\EF{(a), (b) a state}{(a), (b) un état}}\hspace{1.1em}%
+  \mbox{\LatPastille{latFond}{1.6}\,\EF{(c) a state of another expert}{(c) un état d'un autre expert}}\hspace{1.1em}%
+  \mbox{\LatPastille{latFragile}{1.6}\,\tikz[baseline=-0.55ex]\draw[latFragile, fill=latExpert!45, line width=0.6pt] (0,0) circle (1.9pt);\,%
+    \EF{margin $z_{(1)}-z_{(2)}<\LatMargeDouzeDix$ (\LatMargeQuantile\%; ring in (c))}%
+    {marge $z_{(1)}-z_{(2)}<\LatMargeDouzeDix$ (\LatMargeQuantile\,\% ; anneau dans (c))}}\hspace{1.1em}%
+  \mbox{\LatPastille{latExpert}{1.6}\,\EF{(c) the panel's expert}{(c) l'expert du panneau}}\hspace{1.1em}%
+  \mbox{\textbf{\LatGroupeUn}\enspace{\color{black!55}\LatGroupeUnPart\LatPc}\enspace\EF{expert, its share of the states}{expert, sa part des états}}};
+\end{tikzpicture}}
+
+\Titre{LatentsEtats}{The latent space of the \LatEtats{} states of layer~\LatCouche{} of gpt-oss-20b}%
+{L'espace latent des \LatEtats{} états de la couche~\LatCouche{} de gpt-oss-20b}
+\Legende{LatentsEtats}{\mes}%
+{The \LatEtats{} states of layer~\LatCouche{} gather by first expert, and the states of small margin
+stand more often on the edges of the groups (\LatBordFragile{} of their neighbours with another expert, against
+\LatBordLarge).}%
+{Les \LatEtats{} états de la couche~\LatCouche{} se regroupent par expert premier, et les états de
+petite marge se tiennent plus souvent aux bords des groupes (\LatBordFragile{} de voisins d'un autre expert, contre
+\LatBordLarge).}%
+{Calibration states of gpt-oss-20b ($h$ after the post-attention norm, \LatDim{} dimensions, windows 10 to 21 of
+wiki.test). First expert: the largest router logit; margin: $z_{(1)}-z_{(2)}$, the gap between the two largest biased
+logits. In black (ringed in (c)), the \LatFragiles{} states of smallest margin (\LatMargeQuantile\%, below \LatMargeDouzeDix).
+(a)~PCA, centred and unscaled: \LatAcpVarPlan\% of the variance, trustworthiness $T(\LatK)=\LatAcpT$, continuity
+$C(\LatK)=\LatAcpC$, Spearman correlation of distances \LatAcpRho. (b)~t-SNE written from scratch, deterministic
+(perplexity \LatTsnePerplexite): $T=\LatTsneT$, $C=\LatTsneC$, Spearman \LatTsneRho; kept by the threshold declared
+before the run ($T$ and $C$ at least those of the PCA), which its PCA initialisation already meets: it exceeds it by
+\LatTsneGainT{} and \LatTsneGainC. Its distances between groups and its areas do not read. Numbers: where the states
+of the group are densest (density, not purity: in the PCA the group is often a minority there), moved aside a little
+where two names overlapped. (c)~The eight most frequent first experts (\LatGroupesPart\% of the states;
+\LatAutresExperts{} others). Share of the \LatK{} nearest neighbours with the same first expert: \LatAccordHaut\% in
+the original space, \LatAcpAccord\% (PCA), \LatTsneAccord\% (t-SNE), \LatAccordHasard\% by chance (sum of the squared
+shares). Edge of a state, the share of its \LatKBord{} neighbours with another first expert: \LatBordFragile{} for the
+states of small margin against \LatBordLarge{} beyond the median (t-SNE plane), \LatBordOrigFragile{} against
+\LatBordOrigLarge{} in the original space (judge of the first flow); the margin of the set of four experts served,
+$z_{(4)}-z_{(5)}$, does not mark them (\LatBordQuatreCinq{} below the 10th centile, as \LatBordQuatreCinqLarge{} beyond the median) and is not drawn. Controls: the router re-read reproduces the
+\LatWzeroEnsembles{} sets of the log (without its bias: \LatWzeroCassure); fidelity 1 for the full PCA,
+$T=\LatTemoinPermuteT$ for a permuted plane; edges equal to the judge's (with \LatKBordCasse{} neighbours, they depart
+from them).}%
+{États de calibration de gpt-oss-20b ($h$ après la norme d'après l'attention, \LatDim{} dimensions, fenêtres 10 à 21
+de wiki.test). Expert premier : le plus grand logit du routeur ; marge : $z_{(1)}-z_{(2)}$, l'écart des deux plus
+grands logits biaisés. En noir (cerclés dans (c)), les \LatFragiles{} états de plus petite marge (\LatMargeQuantile\,\%, sous
+\LatMargeDouzeDix). (a)~ACP centrée, non réduite : \LatAcpVarPlan\,\% de la variance, confiance $T(\LatK)=\LatAcpT$,
+continuité $C(\LatK)=\LatAcpC$, Spearman des distances \LatAcpRho. (b)~t-SNE écrite de zéro, déterministe (perplexité
+\LatTsnePerplexite) : $T=\LatTsneT$, $C=\LatTsneC$, Spearman \LatTsneRho{} ; gardée par le seuil déclaré avant la
+passe ($T$ et $C$ au moins ceux de l'ACP), que son initialisation par l'ACP atteint déjà : elle le dépasse de
+\LatTsneGainT{} et de \LatTsneGainC. Ses distances entre groupes et ses aires ne se lisent pas. Numéros : là où les
+états du groupe sont le plus serrés (la densité, pas la pureté : dans l'ACP, le groupe y est souvent minoritaire), un
+peu écartés là où deux noms se recouvraient. (c)~Les huit experts premiers les plus fréquents (\LatGroupesPart\,\% des états ;
+\LatAutresExperts{} autres). Part des \LatK{} plus proches voisins de même expert premier : \LatAccordHaut\,\% dans
+l'espace d'origine, \LatAcpAccord\,\% (ACP), \LatTsneAccord\,\% (t-SNE), \LatAccordHasard\,\% au hasard (somme des
+carrés des parts). Bord d'un état, la part de ses \LatKBord{} voisins d'un autre expert premier : \LatBordFragile{}
+pour les états de petite marge contre \LatBordLarge{} au-delà de la médiane (plan de la t-SNE), \LatBordOrigFragile{}
+contre \LatBordOrigLarge{} dans l'espace d'origine (juge du premier flux) ; la marge de l'ensemble des quatre experts
+servis, $z_{(4)}-z_{(5)}$, ne les marque pas (\LatBordQuatreCinq{} sous le 10\textsuperscript{e} centile comme \LatBordQuatreCinqLarge{} au-delà de la médiane) et n'est pas dessinée. Témoins : le routeur relu
+redonne les \LatWzeroEnsembles{} ensembles du journal (sans son biais : \LatWzeroCassure) ; fidélité 1 pour l'ACP
+complète, $T=\LatTemoinPermuteT$ pour un plan permuté ; bords égaux à ceux du juge (à \LatKBordCasse{} voisins, ils
+s'en écartent).}
+\Source{LatentsEtats}{\fichier{mesures/genome/tome3/latents/etats-c23.csv}, \fichier{etats-c23.json}
+(\EF{seed}{graine} \LatGraine), \EF{by}{par} \fichier{outils/genome/tome3/latents_etats.py}\Pv{}
+\EF{captures}{captures} \fichier{h-L23.f32}, \fichier{routage-L23.bin} (\EF{scout}{éclaireur})\Pv{}
+\EF{edges in the original space}{bords dans l'espace d'origine} \fichier{outils/genome/tome3/juge-latents/juge-etats-marges.json}\Pv{}
+\fichier{memoire/outils/tome3_latents.py} (\EF{controls}{témoins} \fichier{latents-temoins.json}).}
+
+% =====================================================================================================
+% III-9.1 (d). Une rangée de 32 poids : exact, frontière, synonyme ; les codons changés.
+\newcommand{\LatRangeeLigne}[3]{% #1 ordonnée, #2 colonne du CSV, #3 fichier
+\addplot[only marks, mark=none, point meta=explicit symbolic, nodes near coords, nodes near coords align=center,
+  every node near coord/.append style={font=\scriptsize\sffamily, anchor=center, inner sep=0pt}]
+  table[x=j, y expr=#1, meta=#2] {\LatDonnees/latents-#3.csv};}
+\newcommand{\GrapheLatentsRangee}{%
+\begin{tikzpicture}
+\begin{axis}[t3 graphe, t3 points, width=0.93\linewidth, height=6.4cm, xmin=-0.7, xmax=31.7, ymin=-4.6, ymax=4.6,
+  clip=false, xtick={0,...,31}, xticklabels={}, ytick={-4,-3,-2,-1,0,1,2,3,4}, minor ytick={-1.5,-0.5,0.5,1.5},
+  grid=none, ymajorgrids, yminorgrids, major grid style={black!9}, minor grid style={black!5},
+  tick style={black!30}, xtick style={draw=none}, tick label style={font=\scriptsize}, label style={font=\small},
+  ylabel={\EF{weight / block scale $s_b$}{poids / échelle du bloc $s_b$}},
+  title={\EF{(c) one row of 32 weights, before and after}{(c) une rangée de 32 poids, avant et après}},
+  title style={yshift=0.62cm},
+  legend style={at={(0.5,1.02)}, anchor=south, legend columns=4, draw=none, fill=none,
+    /tikz/every even column/.append style={column sep=0.45cm}}]
+% les colonnes dont le codon change
+\addplot[ybar, bar width=0.86, bar shift=0pt, draw=none, fill=CouleurSynonyme!10, forget plot]
+  table[x=j, y expr=4.6] {\LatDonnees/latents-rangee-change.csv};
+\addplot[ybar, bar width=0.86, bar shift=0pt, draw=none, fill=CouleurSynonyme!10, forget plot]
+  table[x=j, y expr=-4.6] {\LatDonnees/latents-rangee-change.csv};
+% les huit niveaux de la base
+\foreach \latniv in {\LatNivUn,\LatNivDeux,\LatNivTrois} {
+  \edef\latcmd{\noexpand\draw[CouleurFrontiere, line width=0.5pt, dash pattern=on 2.2pt off 1.6pt]
+    (axis cs:-0.7,\latniv) -- (axis cs:31.7,\latniv) (axis cs:-0.7,-\latniv) -- (axis cs:31.7,-\latniv);}\latcmd}
+% de la base frontière à la base synonyme ; troisième passe (N5 du juge latents) : la flèche est posée à droite
+% des marques, sans raccourci au départ, pour que la plus courte (±c_0, en j = 11) se voie aussi
+\addplot[quiver={u=0, v={\thisrow{synonyme}-\thisrow{frontiere}}}, draw=CouleurSynonyme, line width=0.9pt,
+  -{Stealth[length=1.4mm]}, shorten >=0.6pt, forget plot]
+  table[x expr=\thisrow{j}+0.36, y=frontiere] {\LatDonnees/latents-rangee-change.csv};
+\addplot[only marks, t3 frontiere point] table[x=j, y=frontiere] {\LatDonnees/latents-rangee.csv};
+\addlegendentry{\EF{frontier base}{base frontière}}
+\addplot[only marks, t3 synonyme point] table[x=j, y=synonyme] {\LatDonnees/latents-rangee.csv};
+\addlegendentry{\EF{synonym base}{base synonyme}}
+\addplot[only marks, mark=triangle*, mark size=1.9pt, mark options={solid, fill=CouleurExact, draw=white,
+  line width=0.3pt}] table[x=j, y=exact] {\LatDonnees/latents-rangee.csv};
+\addlegendentry{\EF{exact weight (E2M1 grid)}{poids exact (grille E2M1)}}
+\addlegendimage{area legend, draw=none, fill=CouleurSynonyme!10}
+\addlegendentry{\EF{codon changed (\LatRangChanges{} of 32)}{codon changé (\LatRangChanges{} sur 32)}}
+% étiquettes des niveaux, à droite
+\node[t3 etiquette, anchor=west, text=black!60] at (axis cs:31.8,0) {$\pm c_0$};
+\node[t3 etiquette, anchor=west, text=black!60] at (axis cs:31.8,\LatNivDeux) {$+c_1$};
+\node[t3 etiquette, anchor=west, text=black!60] at (axis cs:31.8,\LatNivTrois) {$+c_2$};
+\node[t3 etiquette, anchor=west, text=black!60] at (axis cs:31.8,-\LatNivDeux) {$-c_1$};
+\node[t3 etiquette, anchor=west, text=black!60] at (axis cs:31.8,-\LatNivTrois) {$-c_2$};
+% la bande des codons
+\LatRangeeLigne{-5.3}{j}{rangee}
+\LatRangeeLigne{-6.1}{code}{rangee}
+\LatRangeeLigne{-6.9}{sf}{rangee}
+\LatRangeeLigne{-7.7}{ss}{rangee-garde}
+\begin{scope}[every node near coord/.append style={text=CouleurSynonyme, font=\scriptsize\sffamily\bfseries}]
+\LatRangeeLigne{-7.7}{ss}{rangee-change}
+\end{scope}
+\node[anchor=east, t3 sans cesure, font=\scriptsize\sffamily, text=black!55] at (axis cs:-0.8,-5.3) {$j$};
+\node[anchor=east, t3 sans cesure, font=\scriptsize\sffamily, text=black!70] at (axis cs:-0.8,-6.1) {\EF{MXFP4 code}{code MXFP4}};
+\node[anchor=east, t3 sans cesure, font=\scriptsize\sffamily, text=black!70] at (axis cs:-0.8,-6.9) {\EF{frontier $\pm k$}{frontière $\pm k$}};
+\node[anchor=east, t3 sans cesure, font=\scriptsize\sffamily, text=CouleurSynonyme] at (axis cs:-0.8,-7.7) {\EF{synonym $\pm k$}{synonyme $\pm k$}};
+\draw[black!15] (axis cs:-0.7,-5.7) -- (axis cs:31.7,-5.7);
+\end{axis}
+\end{tikzpicture}}
+% les niveaux, lus du CSV (aucun nombre recopié)
+\pgfplotstableread{\LatDonnees/latents-rangee-niveaux.csv}\LatNiveaux
+\pgfplotstablegetelem{0}{y}\of{\LatNiveaux}\edef\LatNivUn{\pgfplotsretval}
+\pgfplotstablegetelem{2}{y}\of{\LatNiveaux}\edef\LatNivDeux{\pgfplotsretval}
+\pgfplotstablegetelem{4}{y}\of{\LatNiveaux}\edef\LatNivTrois{\pgfplotsretval}
+
+\Titre{LatentsRangee}{A row of 32 weights before and after the synonymous mutation}%
+{Une rangée de 32 poids avant et après la mutation synonyme}
+\Legende{LatentsRangee}{\mes}%
+{The synonymous mutation changes \LatRangChanges{} of the 32 symbols of this row and moves \LatRangEloignes{} of
+these weights away from their exact value (the other one, a zero, changes sign at the same distance): it is
+synonymous for the output, not for the weights.}%
+{La mutation synonyme change \LatRangChanges{} des 32 symboles de cette rangée et en éloigne \LatRangEloignes{}
+de leur valeur exacte (l'autre, un zéro, change de signe à la même distance) : elle est synonyme pour la sortie,
+pas pour les poids.}%
+{Panel (c) of \cref{fig:t3-syno-base-propre}: a row of 32 weights of the same matrix as panels (a), (b) and (b$'$) (gpt-oss-20b, layer~8,
+expert~0, gate): row \LatRangLigne, block \LatRangBloc{} (columns \LatRangColA{} to \LatRangColB), in units of the
+block scale $s_b=2^{\LatRangExpoRel}$. Black triangles: the exact weight, on the E2M1 grid; grey diamonds: the
+frontier base (its symbol is a function of the code); blue circles: the synonym base ($\lambda=1$, $\delta^\ast=1$),
+as served by the lot~B \texttt{.sym} files; an arrow, beside the marks, goes from the frontier value to the synonym value where the
+symbol changes. Dashed lines: the levels $\pm c_k$ of the base ($c_0=\LatCentreUn$, $c_1=\LatCentreDeux$,
+$c_2=\LatCentreTrois$; $c_3=\LatCentreQuatre$ is out of the frame), the same for both bases. In the band, $j$ is the
+column in the block, then the MXFP4 code (hexadecimal), then each base's symbol: ``$+k$'' and ``$-k$'' stand for the
+level $\pm c_k$ ($k=0$ to $3$), not for a signed zero. The block was drawn (seed) among the \LatRangCandidats{} blocks
+whose number of changed symbols equals the median over the matrix (\LatRangMediane{} of 32; mean \LatRangMoyenne,
+\LatRangPartMatrice\% of the symbols of the matrix): typical by construction. In this block the synonym raises the
+weight error (\LatRangErrS{} against \LatRangErrF, in $s_b^2$); over the whole matrix the error energy rises by
+\LatSpecEnergieHausse\% (\LatSpecEnergieF{} to \LatSpecEnergieS) while the output error falls
+\LatSpecCalibRapport-fold on calibration (\LatSpecCalibF{} to \LatSpecCalibS) and \LatSpecEvalRapport-fold seen by
+the evaluation. Not shown: the output, which only (a), (b) and (b$'$) show; one row cannot show where the error goes (to the
+mute directions of $H$, panel (b)). Control: the symbols read reproduce $\lVert W-\hat W\rVert_F^2=\sum_k e_k$ of the
+lot~B file to \LatRangTemoin{} relative (another expert's files: a relative gap of \LatRangCassure).}%
+{Panneau (c) de la \cref{fig:t3-syno-base-propre} : une rangée de 32 poids de la même matrice que les panneaux (a), (b) et (b$'$) (gpt-oss-20b,
+couche~8, expert~0, gate) : ligne \LatRangLigne, bloc \LatRangBloc{} (colonnes \LatRangColA{} à \LatRangColB), en
+unités de l'échelle du bloc $s_b=2^{\LatRangExpoRel}$. Triangles noirs : le poids exact, sur la grille E2M1 ; losanges
+gris : la base frontière (son symbole est une fonction du code) ; ronds bleus : la base synonyme ($\lambda=1$,
+$\delta^\ast=1$), telle que la servent les fichiers \texttt{.sym} du lot~B ; une flèche, à côté des marques, va de la valeur frontière à la
+valeur synonyme là où le symbole change. Tirets : les niveaux $\pm c_k$ de la base ($c_0=\LatCentreUn$,
+$c_1=\LatCentreDeux$, $c_2=\LatCentreTrois$ ; $c_3=\LatCentreQuatre$ sort du cadre), les mêmes pour les deux bases.
+Dans la bande, $j$ est la colonne dans le bloc, puis le code MXFP4 (hexadécimal), puis le symbole de chaque base :
+« $+k$ » et « $-k$ » notent le niveau $\pm c_k$ ($k=0$ à $3$), pas un zéro signé. Le bloc est tiré (graine) parmi les
+\LatRangCandidats{} blocs dont le nombre de symboles changés égale la médiane sur la matrice (\LatRangMediane{} sur 32 ;
+moyenne \LatRangMoyenne, \LatRangPartMatrice\,\% des symboles de la matrice) : typique par construction. Dans ce bloc,
+le synonyme augmente l'erreur sur les poids (\LatRangErrS{} contre \LatRangErrF, en $s_b^2$) ; sur la matrice entière,
+l'énergie de l'erreur monte de \LatSpecEnergieHausse\,\% (\LatSpecEnergieF{} à \LatSpecEnergieS) quand l'erreur de
+sortie baisse \LatSpecCalibRapport{} fois en calibration (\LatSpecCalibF{} à \LatSpecCalibS) et
+\LatSpecEvalRapport{} fois vue par l'évaluation. Non montré : la sortie, que seuls (a), (b) et (b$'$) montrent ; une rangée ne
+peut pas montrer où va l'erreur (vers les directions muettes de $H$, panneau (b)). Témoin : les symboles lus redonnent
+$\lVert W-\hat W\rVert_F^2=\sum_k e_k$ du fichier du lot~B à \LatRangTemoin{} relatif près (les fichiers d'un autre
+expert : un écart relatif de \LatRangCassure).}
+\Source{LatentsRangee}{\fichier{mesures/genome/tome3/latents/rangee-L08-E00-gate.csv}, \fichier{rangee-L08-E00-gate.json}
+(\EF{seed}{graine} \LatRangGraine), \EF{by}{par} \fichier{outils/genome/tome3/latents_rangee.py}\Pv{}
+\fichier{mesures/genome/construction/synonyme/figures/spectre-L08-E00-gate.csv}\Pv{}
+\fichier{memoire/outils/tome3_latents.py}.}
+
+% =====================================================================================================
+% III-9.7. L'erreur de sortie d'un expert dans les directions de ses entrées : la fonction d'appui
+% θ ↦ ‖ΔW v(θ)‖ des deux bases dans les plans (u1, u2) et (u1, u3), la rose des directions des entrées, et
+% le rapport synonyme / frontière le long de u1, u2, u3.
+% Un panneau polaire. #1 : plan (12, 13) ; #2 : indice du second axe (2, 3) ; #3 : options.
+% Du centre vers le bord : la courbe synonyme, la rose des entrées (en anneau, sans unité radiale), la courbe
+% frontière. L'échelle radiale (unités de la sortie) se lit sur les graduations du demi-axe bas.
+\newcommand{\LatPanneauAppui}[3]{%
+\begin{axis}[t3 graphe, scale only axis, width=4.6cm, height=4.6cm, axis equal image, axis lines=none,
+  xmin=-\LatNuageRayon, xmax=\LatNuageRayon, ymin=-\LatNuageRayon, ymax=\LatNuageRayon, clip=false, #3]
+% les deux axes propres, et la graduation radiale sur le demi-axe bas
+\draw[black!30, line width=0.4pt] (axis cs:-\LatNuageRayon,0) -- (axis cs:\LatNuageRayon,0)
+  (axis cs:0,-\LatNuageRayon) -- (axis cs:0,\LatNuageRayon);
+\node[t3 etiquette, anchor=west, text=black!65, inner sep=1.5pt] at (axis cs:\LatNuageRayon,0) {$u_1$};
+\node[t3 etiquette, anchor=south, text=black!65, inner sep=1.5pt] at (axis cs:0,\LatNuageRayon) {$u_#2$};
+\foreach \latr in {0.05,0.10} {
+  \edef\latcmd{\noexpand\draw[black!45, line width=0.4pt] (axis cs:-0.004,-\latr) -- (axis cs:0.004,-\latr);
+    \noexpand\node[t3 etiquette, anchor=west, text=black!55, inner sep=0.8pt] at (axis cs:0.005,-\latr)
+      {\noexpand\pgfmathprintnumber[fixed, fixed zerofill, precision=2]{\latr}};}\latcmd}
+% la rose des directions des entrées
+\addplot[quiver={u=\thisrow{dx}, v=\thisrow{dy}}, draw=latEntree, line width=1.5pt, line cap=butt, forget plot]
+  table[x=x0, y=y0] {\LatDonnees/latents-rose-#1.csv};
+% les deux fonctions d'appui
+\addplot[t3 frontiere, forget plot] table[x=x, y=y] {\LatDonnees/latents-appui-frontiere-#1.csv};
+\addplot[t3 synonyme, fill=CouleurSynonyme, fill opacity=0.18, forget plot]
+  table[x=x, y=y] {\LatDonnees/latents-appui-synonyme-#1.csv};
+\fill[Encre] (axis cs:0,0) circle (0.8pt);
+\end{axis}}
+\newcommand{\GrapheLatentsNuage}{%
+\begin{tikzpicture}
+\LatPanneauAppui{12}{2}{name=latappuia, at={(0,0)}, anchor=south west,
+  title={\EF{(a) plane of axes 1 and 2 of $H$}{(a) plan des axes 1 et 2 de $H$}}}
+\LatPanneauAppui{13}{3}{name=latappuib, at={(5.15cm,0)}, anchor=south west,
+  title={\EF{(b) plane of axes 1 and 3}{(b) plan des axes 1 et 3}}}
+% (c) le rapport, axe par axe
+% Troisième passe (GN1 du juge latents, DN15 du juge de design) : une quatrième barre, à droite d'un filet, donne le
+% même rapport sur les entrées réelles entières (médiane, et leur étendue en moustache) : c'est elle que la tête cite.
+\begin{axis}[t3 graphe, ybar, t3 barres, name=latbarres, at={(11.15cm,0)}, anchor=south west, scale only axis,
+  width=3.25cm, height=4.6cm, bar width=0.40cm, xmin=0.45, xmax=4.85, ymin=0, ymax=1.18,
+  xtick={1,2,3,4.25}, xticklabels={$u_1$,$u_2$,$u_3$,$x$}, xtick style={draw=none},
+  ytick={0,0.5,1}, t3 decimales y=1, grid=none, ymajorgrids, major grid style={black!8},
+  tick label style={font=\scriptsize}, label style={font=\scriptsize},
+  ylabel={\EF{synonym / frontier}{synonyme / frontière}}, ylabel shift=-2pt,
+  title={\EF{(c) along each axis}{(c) axe par axe}},
+  bar shift=0pt, clip=false]
+\addplot[fill=CouleurSynonyme, draw=CouleurSynonyme!70!black, line width=0.4pt,
+  nodes near coords={\pgfmathprintnumber[fixed, fixed zerofill, precision=3]{\pgfplotspointmeta}},
+  nodes near coords style={t3 nombre=CouleurSynonyme, font=\sffamily\scriptsize, anchor=south, inner sep=1pt}]
+  table[x=k, y=rapport] {\LatDonnees/latents-barres.csv};
+\addplot[fill=CouleurSynonyme!35, draw=CouleurSynonyme!70!black, line width=0.4pt,
+  error bars/.cd, y dir=both, y explicit, error mark=-, error bar style={Encre!75, line width=0.6pt}]
+  table[x=k, y=rapport, y error plus=haut, y error minus=bas] {\LatDonnees/latents-barres-entrees.csv};
+\draw[black!30, line width=0.4pt] (axis cs:3.6,0) -- (axis cs:3.6,1.18);
+\node[t3 nombre=CouleurSynonyme, anchor=south, inner sep=1pt] at (axis cs:4.25,\LatNuageEntreesMaxBrut) {\LatNuageEntreesMed};
+\draw[t3 frontiere] (axis cs:0.45,1) -- (axis cs:4.85,1);
+\node[t3 nombre=CouleurFrontiereMarque, anchor=south east, inner sep=1pt] at (axis cs:3.55,1.01) {\EF{frontier}{frontière}};
+% λ_k sous chaque axe, en gris : où les entrées pèsent
+\node[t3 sans cesure, font=\sffamily\scriptsize, text=black!55, anchor=east, inner sep=0pt] at (axis cs:0.4,-0.17) {$\lambda_k$};
+\node[t3 sans cesure, font=\sffamily\scriptsize, text=black!55, anchor=base, inner sep=0pt] at (axis cs:1,-0.2) {\LatNuageLambdaUn};
+\node[t3 sans cesure, font=\sffamily\scriptsize, text=black!55, anchor=base, inner sep=0pt] at (axis cs:2,-0.2) {\LatNuageLambdaDeux};
+\node[t3 sans cesure, font=\sffamily\scriptsize, text=black!55, anchor=base, inner sep=0pt] at (axis cs:3,-0.2) {\LatNuageLambdaTrois};
+\end{axis}
+% la clé, sous les panneaux
+\node[anchor=north west, t3 sans cesure, font=\sffamily\scriptsize, align=left, inner sep=0pt, text=black!75,
+  text width=13.8cm] at ([yshift=-0.55cm]latappuia.south west) {%
+  \mbox{\tikz[baseline=-0.55ex]\draw[t3 frontiere] (0,0) -- (0.55,0);\,%
+    \EF{frontier: $\lVert\Delta W v\rVert$ for a unit input $v$}{frontière : $\lVert\Delta W v\rVert$ pour une entrée unité $v$}}\hspace{1.2em}%
+  \mbox{\tikz[baseline=-0.55ex]{\fill[CouleurSynonyme, fill opacity=0.18] (0,-0.09) rectangle (0.55,0.09);
+    \draw[t3 synonyme] (0,0) -- (0.55,0);}\,\EF{synonym, the same}{synonyme, de même}}\hspace{1.2em}%
+  % troisième passe (DN15) : la rose a une icône de barre, pas de trait (elle se confondait avec la frontière)
+  \mbox{\tikz[baseline=-0.55ex]{\fill[latEntree] (0,-0.07) rectangle (0.12,0.07);
+    \fill[latEntree] (0.16,-0.07) rectangle (0.24,0.04);\fill[latEntree] (0.28,-0.07) rectangle (0.34,0.0);}\,%
+    \EF{projected directions of the \LatNuageN{} inputs, per \LatNuageRosePas$^\circ$ slice;}{directions projetées des
+      \LatNuageN{} entrées, par tranche de \LatNuageRosePas$^\circ$ ;}}\space
+  \mbox{\EF{median angle of an input to the plane $(u_1, u_2)$: \LatNuageAngleMed$^\circ$}{angle médian d'une entrée
+      au plan $(u_1, u_2)$ : \LatNuageAngleMed$^\circ$}}};
+\end{tikzpicture}}
+
+\Titre{LatentsNuage}{The output error of an expert in the directions of its inputs, frontier and synonym}%
+{L'erreur de sortie d'un expert dans les directions de ses entrées, frontière et synonyme}
+\Legende{LatentsNuage}{\mes\,\calc}%
+{In the planes of the first axes of $H$, where the expert's inputs project, the synonym brings the output error
+down to at most \LatNuageConeRapport{} of the frontier's; on the whole inputs, \LatNuageHorsTrois\% of whose
+squared norm lies outside these three axes, to \LatNuageEntreesMed{} (median; \LatNuageEntreesMin{} to
+\LatNuageEntreesMax).}%
+{Dans les plans des premiers axes de $H$, où se projettent les entrées de l'expert, le synonyme ramène l'erreur de
+sortie à au plus \LatNuageConeRapport{} de celle de la frontière ; sur les entrées entières, dont \LatNuageHorsTrois\,\%
+de la norme au carré est hors de ces trois axes, à \LatNuageEntreesMed{} (médiane ; de \LatNuageEntreesMin{} à
+\LatNuageEntreesMax).}%
+{Expert~0 of layer~8 of gpt-oss-20b, gate matrix, and its \LatNuageN{} real calibration inputs $x$ (the positions the
+router sends it, windows 10 to 21 of wiki.test), on the first eigen-axes $u_k$ of $H=\sum g^2xx^\top/\sum g^2$ (not
+damped, the $H$ of \cref{fig:t3-syno-base-propre}; $\lambda_1=\LatNuageLambdaUn$, $\lambda_2=\LatNuageLambdaDeux$,
+$\lambda_3=\LatNuageLambdaTrois$, \LatNuagePartTrace\% of the trace). (a), (b)~In each unit direction $v$ of the plane,
+each closed curve reaches $\lVert\Delta W v\rVert$, the output error for a unit input of direction $v$, with $\Delta
+W=W-\hat W$ for that base: the support function of the ellipse $M^{1/2}$, $M=B^\top\Delta W^\top\Delta W B$,
+$B=[u_1\ u_k]$; the radial scale, in the units of the output, is marked on the lower half-axis. The frontier is almost a
+circle: it spreads its error evenly. In the ring between the two curves, the rose counts the projected directions of
+the inputs, their projections onto the plane (bar length proportional to the count; its radial place carries no unit):
+\LatNuageConeQuantile\% of the projections lie within $\pm\LatNuageConeDouze^\circ$ of $u_1$ in (a) and
+$\pm\LatNuageConeTreize^\circ$ in (b); for a unit input in that cone, the synonym's error is at most
+\LatNuageConeRapportDouze{} (a) and \LatNuageConeRapportTreize{} (b) of the frontier's. $H$ is not centred: $u_1$ carries the mean of the inputs, all near
+$u_1^\top x=\LatNuageMoyUn$ (spread \LatNuageEcartUn, against \LatNuageEcartDeux{} along $u_2$), and $\lambda_1$ owes
+most to that mean ($\LatNuageMoyUn^2\approx\LatNuageMoyCarre$). (c)~The ratio synonym / frontier of $\lVert\Delta W
+u_k\rVert$ along each axis: \LatNuageRapportUn{} along $u_1$, the axis where the inputs weigh most (their mean),
+\LatNuageRapportDeux{} along $u_2$, \LatNuageRapportTrois{} along $u_3$ (frontier \LatNuageErrFUn,
+\LatNuageErrFDeux, \LatNuageErrFTrois). Right of the rule, the same ratio for the \LatNuageN{} real inputs in their
+\LatDim{} dimensions, $\lVert\Delta W_s x\rVert/\lVert\Delta W_f x\rVert$: median \LatNuageEntreesMed, from
+\LatNuageEntreesMin{} to \LatNuageEntreesMax{} (whisker), \LatNuageEntreesSousTete\% of them below
+\LatNuageConeRapport; an input makes a median angle of \LatNuageAngleMed$^\circ$ with the plane $(u_1, u_2)$. These
+ratios come from the journal of the second-flow judge, recomputed from the GGUF, the \texttt{.sym} files and the
+captures; a control ties them to the committed files: their $g^2$-weighted quadratic ratio equals
+$\sqrt{\sum_k\lambda_k e_k^{\mathrm{syn}}/\sum_k\lambda_k e_k^{\mathrm{fr}}}$ of the lot~B file to $10^{-9}$ (with
+$\lambda_1$ off by 1\%, it departs). Not shown: the \LatNuageAutresDirections{} other directions, where the synonym
+puts the weight error it removes here (panel (b) of \cref{fig:t3-syno-base-propre}); weighted by the inputs, the output error falls there
+too, from \LatNuageAutresF{} to \LatNuageAutresS, and these directions carry \LatNuageAutresPartGain\% of the output
+gain; the held-out evaluation inputs, on which the gain shrinks (\LatSpecEvalRapport-fold against \LatSpecCalibRapport-fold). The curves are computed from the ellipses
+committed by the lot: $M$ is recovered from their \LatNuageEllipsePoints{} points by least squares and recovers $e_k$ and the half-axes of
+the lot's file to \LatNuageAppuiTemoin{} relative (with a scale factor off by \LatNuageCasseF\%, it departs from them). Control of the
+lot: $\lambda_1$ to $\lambda_3$ and $e_1$ to $e_3$ equal those of the lot~B file to \LatNuageTemoin{} relative (from
+the evaluation inputs, $\lambda_1$ moves by \LatNuageCassure\%).}%
+{Expert~0 de la couche~8 de gpt-oss-20b, matrice gate, et ses \LatNuageN{} entrées réelles de calibration $x$ (les
+positions que le routeur lui envoie, fenêtres 10 à 21 de wiki.test), sur les premiers axes propres $u_k$ de
+$H=\sum g^2xx^\top/\sum g^2$ (non amortie, la $H$ de la \cref{fig:t3-syno-base-propre} ; $\lambda_1=\LatNuageLambdaUn$,
+$\lambda_2=\LatNuageLambdaDeux$, $\lambda_3=\LatNuageLambdaTrois$, \LatNuagePartTrace\,\% de la trace). (a), (b)~Dans
+chaque direction unité $v$ du plan, chaque courbe fermée atteint $\lVert\Delta W v\rVert$, l'erreur de sortie pour une
+entrée unité de direction $v$, avec $\Delta W=W-\hat W$ pour cette base : la fonction d'appui de l'ellipse $M^{1/2}$,
+$M=B^\top\Delta W^\top\Delta W B$, $B=[u_1\ u_k]$ ; l'échelle radiale, dans les unités de la sortie, est graduée sur le
+demi-axe bas. La frontière est presque un cercle : elle répartit son erreur à plat. Dans l'anneau entre les deux
+courbes, la rose compte les directions projetées des entrées, leurs projections sur le plan (longueur proportionnelle
+au compte ; sa place radiale n'a pas d'unité) : \LatNuageConeQuantile\,\% des projections sont à moins de
+$\pm\LatNuageConeDouze^\circ$ de $u_1$ dans (a), de $\pm\LatNuageConeTreize^\circ$ dans (b) ; pour une entrée unité de
+ce cône, l'erreur du synonyme vaut au plus \LatNuageConeRapportDouze{} (a) et \LatNuageConeRapportTreize{} (b) de celle
+de la frontière.
+$H$ n'est pas centrée : $u_1$ porte la moyenne des entrées, toutes près de $u_1^\top x=\LatNuageMoyUn$ (écart-type
+\LatNuageEcartUn, contre \LatNuageEcartDeux{} le long de $u_2$), et $\lambda_1$ doit l'essentiel à cette moyenne
+($\LatNuageMoyUn^2\approx\LatNuageMoyCarre$). (c)~Le rapport synonyme / frontière de $\lVert\Delta W u_k\rVert$ le long
+de chaque axe : \LatNuageRapportUn{} le long de $u_1$, l'axe où les entrées pèsent le plus (leur moyenne),
+\LatNuageRapportDeux{} le long de $u_2$, \LatNuageRapportTrois{} le long de $u_3$ (frontière \LatNuageErrFUn,
+\LatNuageErrFDeux, \LatNuageErrFTrois). À droite du filet, le même rapport pour les \LatNuageN{} entrées réelles dans
+leurs \LatDim{} dimensions, $\lVert\Delta W_s x\rVert/\lVert\Delta W_f x\rVert$ : médiane \LatNuageEntreesMed, de
+\LatNuageEntreesMin{} à \LatNuageEntreesMax{} (moustache), \LatNuageEntreesSousTete\,\% d'entre elles sous
+\LatNuageConeRapport ; une entrée fait un angle médian de \LatNuageAngleMed$^\circ$ avec le plan $(u_1, u_2)$. Ces
+rapports viennent du journal du juge du second flux, refaits depuis le GGUF, les fichiers \texttt{.sym} et les
+captures ; un témoin les relie aux fichiers commités : leur rapport quadratique pondéré par $g^2$ égale
+$\sqrt{\sum_k\lambda_k e_k^{\mathrm{syn}}/\sum_k\lambda_k e_k^{\mathrm{fr}}}$ du fichier du lot~B à $10^{-9}$ près
+(avec $\lambda_1$ faux de 1\,\%, il s'en écarte). Non montrés : les \LatNuageAutresDirections{} autres directions, où le
+synonyme met l'erreur sur les poids qu'il retire ici (panneau (b) de la \cref{fig:t3-syno-base-propre}) ; pondérée par les entrées, l'erreur de
+sortie y baisse aussi, de \LatNuageAutresF{} à \LatNuageAutresS, et ces directions portent \LatNuageAutresPartGain\,\%
+du gain de sortie ; les entrées d'évaluation tenues à l'écart, sur lesquelles le
+gain se réduit (\LatSpecEvalRapport{} fois contre \LatSpecCalibRapport). Les courbes sont calculées depuis les
+ellipses commitées par le lot : $M$ se retrouve de leurs \LatNuageEllipsePoints{} points par moindres carrés et redonne les $e_k$ et les
+demi-axes du fichier du lot à \LatNuageAppuiTemoin{} relatif près (avec un facteur d'échelle faux de \LatNuageCasseF\,\%, elle s'en
+écarte). Témoin du lot : $\lambda_1$ à $\lambda_3$ et $e_1$ à $e_3$ égalent ceux du fichier du lot~B à
+\LatNuageTemoin{} relatif près (tirée des entrées d'évaluation, $\lambda_1$ bouge de \LatNuageCassure\,\%).}
+\Source{LatentsNuage}{\fichier{mesures/genome/tome3/latents/nuage-L08-E00-gate-points.csv},
+\fichier{nuage-L08-E00-gate-ellipses.csv}, \fichier{nuage-L08-E00-gate.json}, \EF{by}{par}
+\fichier{outils/genome/tome3/latents_nuage.py}\Pv{} \EF{real inputs}{entrées réelles}
+\fichier{outils/genome/tome3/juge2-latents/journaux/juge2-nuage-rangee.json}
+(\texttt{entrees\_reelles})\Pv{} \fichier{memoire/outils/tome3_latents.py}
+(\EF{controls}{témoins} \fichier{latents-temoins.json}).}
+\fi

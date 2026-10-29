@@ -1,0 +1,121 @@
+# 2026-10-15T16:25:35-04:00 ~\dev\cibles\troncons-R\release\juge.exe reference --gguf ~\dev\modeles\gguf\gpt-oss-20b-MXFP4.gguf --jetons-de ~\dev\essais\troncons\lot-R\r0\processeur.kld --sortie ~\dev\essais\troncons\lot-R\r1\ref-llamacpp-imite-q8-kv16-20b.kld --fenetres 10 --yarn llamacpp --fils 4 --journal ~\dev\active\troncons\mesures\moteur\R\r1\ref-llamacpp-imite-q8-kv16-20b.json --kl-contre-base --imiter q8,kv16
+# avant : {"date": "2026-10-15T16:25:34-04:00", "batterie_statut": "2", "carte": "6837 MiB, 8188 MiB, 9 %", "processus_llama_ou_traceur": "traceur:24048"}
+[1792095939] référence ouverte en 4.2 s : Hyper { couches: 24, d_modele: 2880, tetes: 64, tetes_kv: 8, dim_tete: 64, experts: 32, actifs: 4, d_ff: 2880, fenetre: 128, vocab: 201088, eps: 9.999999747378752e-6, base_rope: 150000.0, facteur_yarn: 32.0, ctx_origine: 4096.0, beta_rapide: 32.0, beta_lent: 1.0 }, rampe [8, 18]
+[1792095977] couche 0 : 36.7 s, 0.42 Go d'experts lus en tout
+[1792096016] couche 1 : 39.4 s, 0.85 Go d'experts lus en tout
+[1792096054] couche 2 : 38.1 s, 1.27 Go d'experts lus en tout
+[1792096094] couche 3 : 39.5 s, 1.68 Go d'experts lus en tout
+[1792096131] couche 4 : 37.5 s, 2.11 Go d'experts lus en tout
+[1792096169] couche 5 : 38.1 s, 2.53 Go d'experts lus en tout
+[1792096207] couche 6 : 37.8 s, 2.96 Go d'experts lus en tout
+[1792096245] couche 7 : 38.0 s, 3.37 Go d'experts lus en tout
+[1792096282] couche 8 : 37.2 s, 3.79 Go d'experts lus en tout
+[1792096321] couche 9 : 38.2 s, 4.15 Go d'experts lus en tout
+[1792096359] couche 10 : 38.7 s, 4.52 Go d'experts lus en tout
+[1792096399] couche 11 : 39.7 s, 4.88 Go d'experts lus en tout
+[1792096436] couche 12 : 37.0 s, 5.26 Go d'experts lus en tout
+[1792096475] couche 13 : 38.5 s, 5.65 Go d'experts lus en tout
+[1792096513] couche 14 : 38.2 s, 6.06 Go d'experts lus en tout
+[1792096551] couche 15 : 38.4 s, 6.47 Go d'experts lus en tout
+[1792096590] couche 16 : 38.3 s, 6.87 Go d'experts lus en tout
+[1792096628] couche 17 : 38.8 s, 7.25 Go d'experts lus en tout
+[1792096664] couche 18 : 36.0 s, 7.67 Go d'experts lus en tout
+[1792096704] couche 19 : 39.1 s, 8.08 Go d'experts lus en tout
+[1792096745] couche 20 : 41.6 s, 8.51 Go d'experts lus en tout
+[1792096787] couche 21 : 41.1 s, 8.93 Go d'experts lus en tout
+[1792096824] couche 22 : 37.6 s, 9.36 Go d'experts lus en tout
+[1792096862] couche 23 : 38.2 s, 9.77 Go d'experts lus en tout
+{
+  "avx2_fma": true,
+  "blocs_mxfp4_e255": 0,
+  "cassure_yarn_sans_echelle": false,
+  "commande": [
+    "~\\dev\\cibles\\troncons-R\\release\\juge.exe",
+    "reference",
+    "--gguf",
+    "~\\dev\\modeles\\gguf\\gpt-oss-20b-MXFP4.gguf",
+    "--jetons-de",
+    "~\\dev\\essais\\troncons\\lot-R\\r0\\processeur.kld",
+    "--sortie",
+    "~\\dev\\essais\\troncons\\lot-R\\r1\\ref-llamacpp-imite-q8-kv16-20b.kld",
+    "--fenetres",
+    "10",
+    "--yarn",
+    "llamacpp",
+    "--fils",
+    "4",
+    "--journal",
+    "~\\dev\\active\\troncons\\mesures\\moteur\\R\\r1\\ref-llamacpp-imite-q8-kv16-20b.json",
+    "--kl-contre-base",
+    "--imiter",
+    "q8,kv16"
+  ],
+  "concentration": 1.3465735902799727,
+  "debut_unix": 1792095935,
+  "duree_s": 1027.6138839,
+  "entrees_ecrites": 2550,
+  "experts_distincts_par_couche": [
+    32,
+    32,
+    32,
+    31,
+    32,
+    32,
+    32,
+    31,
+    32,
+    27,
+    28,
+    27,
+    29,
+    29,
+    31,
+    31,
+    30,
+    29,
+    32,
+    31,
+    32,
+    32,
+    32,
+    31
+  ],
+  "fenetres": 10,
+  "fils": 4,
+  "fin_unix": 1792096963,
+  "gguf": "~\\dev\\modeles\\gguf\\gpt-oss-20b-MXFP4.gguf",
+  "imitation_llamacpp": "Imitation { q8: true, kv16: true }",
+  "kl_base_contre_reference_brute": {
+    "dp_rms": 0.019496211916362624,
+    "kl_incertitude": 0.0019768319395373707,
+    "kl_max": 2.67086985327904,
+    "kl_mediane": 0.0024868430548217173,
+    "kl_min": -0.00006739051540637522,
+    "kl_moyenne": 0.022027516224816177,
+    "kl_p90": 0.03193262184479105,
+    "kl_p99": 0.3979678669374189,
+    "kl_p999": 1.1283197460741685,
+    "ln_rapport_ppl": 0.0060681822403116925,
+    "ln_rapport_ppl_incertitude": 0.006131383769922183,
+    "meme_premier": 0.9160784313725491,
+    "meme_premier_incertitude": 0.005491844195383084,
+    "meme_premier_wilson95": [
+      0.9046807646437256,
+      0.9262243773614056
+    ],
+    "n": 2550,
+    "ppl_p": 455.0050009757978,
+    "ppl_q": 457.77444849987535
+  },
+  "lectures_experts": 737,
+  "n_ctx": 512,
+  "octets_experts_lus": 9768021120,
+  "outil": "juge reference",
+  "rampe_yarn": [
+    8.0,
+    18.0
+  ],
+  "variante_yarn": "LlamaCpp"
+}
+
+# fin 2026-10-15T16:42:43-04:00 code 0 durée 1028.1 s

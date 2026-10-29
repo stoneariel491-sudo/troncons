@@ -1,0 +1,16 @@
+{
+  "outil": "banc_k", "mode": "debit-gemv", "date": "2026-10-15T17:02:48",
+  "commande": "~\\dev\\cibles\\troncons-K\\banc\\banc_k.exe debit-gemv ~\\dev\\modeles\\gguf\\gpt-oss-120b-MXFP4.gguf 17 ~\\dev\\active\\troncons\\mesures\\moteur\\K\\journaux\\k2-debit-1-20261015-1701.json --experts 24 --passes 5",
+  "carte": "NVIDIA GeForce RTX 4060 Laptop GPU", "sm": "8.9", "multiprocesseurs": 24, "vram_libre_mio": 7096,
+  "couche": 17, "experts": 24, "groupes": 6, "passes": 5, "ordre": "A B B A",
+  "A": "gemv_mxfp4_lot, 12 matrices par lancement", "B": "gemv_mxfp4, une matrice par lancement",
+  "octets_vram_occupes": 318099456, "octets_equiv_par_groupe": 52876800, "octets_lus_par_groupe": 53153280,
+  "temps_s_par_groupe": {"A": [2.512707e-04, 2.259411e-04, 2.337887e-04, 2.256676e-04, 2.260120e-04, 2.255854e-04, 2.255706e-04, 2.255710e-04, 2.256912e-04, 2.255257e-04], "B": [3.435535e-04, 3.428643e-04, 3.470081e-04, 3.383924e-04, 3.334857e-04, 3.440472e-04, 3.451139e-04, 3.549697e-04, 3.446827e-04, 3.471861e-04]},
+  "mediane_s_par_groupe": {"A": 2.256794e-04, "B": 3.443649e-04},
+  "dispersion": {"A": 0.1142, "B": 0.0644},
+  "go_s_equiv": {"A": 234.30, "B": 153.55, "A_pire": 210.44},
+  "go_s_lus": {"A": 235.53, "B": 154.35},
+  "latence_lot_seul_s": {"mediane": 2.343200e-04, "min": 2.273280e-04, "max": 2.979840e-04},
+  "seuil_go_s_equiv": 167.52, "seuil_source": "0,8 x 209,4 Go/s (ARCHITECTURE.md 6.5, K2)",
+  "seuil_tient": true
+}

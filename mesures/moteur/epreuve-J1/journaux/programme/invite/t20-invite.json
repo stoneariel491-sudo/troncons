@@ -1,0 +1,124 @@
+{
+  "alimentation": {
+    "ACLineStatus": 1,
+    "BatteryFlag": 1,
+    "BatteryLifePercent": 80,
+    "secteur": true
+  },
+  "base": "../base-invite-708.kld",
+  "commande": "evaluer --modele ~/dev/modeles/trc/gpt-oss-20b.trc --base ../base-invite-708.kld --fenetres 1 --positions 708 --flux --sortie t20-invite.kld --empreintes t20-invite-empreintes.csv --journal t20-invite.json",
+  "compteurs": {
+    "acces": 655,
+    "defauts_disque": 655,
+    "emplacements": 362,
+    "evictions": 293,
+    "experts_decodes": 655,
+    "experts_verifies": 0,
+    "h_vram": 0.0,
+    "lectures_enchassement": 708,
+    "lectures_troncons": 655,
+    "ms_copie_carte": 0.0,
+    "ms_decodage_carte": 0.0,
+    "octets_copies_cache": 7869095936,
+    "octets_disque_cache": 7869095936,
+    "octets_dma": 7869095936,
+    "octets_lus": 9177247744,
+    "octets_lus_enchassement": 5799936,
+    "octets_lus_troncons": 7869095936,
+    "pas": 0,
+    "pf_emis": 0,
+    "pf_octets": 0,
+    "pf_utiles": 0,
+    "s_attente_routeur": 0.0,
+    "s_fin_jeton": 0.0,
+    "s_lectures": 0.0,
+    "s_pas": 15.4149431,
+    "succes_ram": 0,
+    "succes_vram": 0,
+    "tiedes": 0
+  },
+  "date_utc": "2026-10-16T09:03:07Z",
+  "empreinte_csv_sha256": "9cc1c766bbcb8ce414ff3e846cf43cb86119c0f4ee2a08342913227ee1196cec",
+  "fenetres": 1,
+  "flux": true,
+  "flux_experts": 655,
+  "flux_positions": 708,
+  "moteur": {
+    "arrivees": 12,
+    "brut": false,
+    "carte": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "chargement": {
+      "empreintes_verifiees": 314,
+      "lectures": 78,
+      "octets_lus": 1302351872,
+      "octets_tenseurs": 1302341376,
+      "secondes": 1.4631573,
+      "tenseurs": 314
+    },
+    "contexte": 4096,
+    "couches": 24,
+    "couches_d_avance": 3,
+    "emplacements": 362,
+    "enchassement_en_ram": false,
+    "etapes_memoire": [
+      {
+        "ensemble_travail": 4964352,
+        "etape": "avant"
+      },
+      {
+        "ensemble_travail": 18366464,
+        "etape": "fichier"
+      },
+      {
+        "ensemble_travail": 128282624,
+        "etape": "contexte_flux"
+      },
+      {
+        "ensemble_travail": 129273856,
+        "etape": "noyaux"
+      },
+      {
+        "ensemble_travail": 130076672,
+        "etape": "modele"
+      },
+      {
+        "ensemble_travail": 130297856,
+        "etape": "luts"
+      },
+      {
+        "ensemble_travail": 279212032,
+        "etape": "fenetre_et_tampons"
+      },
+      {
+        "ensemble_travail": 279478272,
+        "etape": "emplacements_cache_evenements"
+      }
+    ],
+    "experts": 32,
+    "fichier": "~/dev/modeles/trc/gpt-oss-20b.trc",
+    "k": 4,
+    "longueur_arrivee": 12144640,
+    "longueur_lecture": null,
+    "octets_emplacement": 13254144,
+    "octets_epingles": 146563072,
+    "octets_vram_moteur": 6355582640,
+    "ouverture_s": 1.7246285000000001,
+    "prechargement": false,
+    "profondeur_es": 4,
+    "ram_tiede_go": 0.0,
+    "temoin": false,
+    "tiedes": 0,
+    "vocab": 201088,
+    "vram_plafond_mio": 7179
+  },
+  "n_ctx": 708,
+  "outil": "troncons evaluer",
+  "pas": 0,
+  "pas_s": 0.0,
+  "positions_notees": 353,
+  "positions_par_fenetre": 708,
+  "ppl_positions_notees": 289.95336960289376,
+  "secondes": 15.4190924,
+  "sortie": "t20-invite.kld",
+  "version": "0.1.0"
+}

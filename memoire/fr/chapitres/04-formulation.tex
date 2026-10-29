@@ -1,0 +1,261 @@
+\chapter{Formulation du problème}\label{ch:formulation}
+
+\begin{origine}
+\textbf{Au départ}, un théorème et quatre leviers mesurés chacun de son côté : la borne de débit d'une chaîne d'étages (\cref{thm:toit}), puis la quantification, le chargement, la spéculation et les modèles visés (\cref{ch:quant,ch:chargement,ch:sparsite,ch:modeles}).
+\textbf{Ce chapitre établit} une seule équation qui les contient tous, le temps d'un jeton d'un mélange d'experts servi par la carte, terme par terme ; un modèle de localité à une constante, avec ses trois scénarios calés sur la littérature ; le problème d'optimisation que troncons doit résoudre, avec ses contraintes de mémoire et de qualité ; l'élasticité du plafond à chaque grandeur, démontrée, qui dit lesquelles comptent et lesquelles sont de l'ornement sur cette machine ; un exemple posé pas à pas ; le terme qui manquait à la condition de la spéculation ; et les témoins qui font tomber l'équation quand on la fausse.
+\textbf{Il reste} à remplacer le modèle de localité par la courbe mesurée de gpt-oss-120b, et la base estimée par la base mesurée (\cref{ch:avenir}).
+Source : \fichier{fondations/07-ce-qui-manque.md} (§ 1 et annexe A), outil \fichier{outils/07-synthese/plafonds.py}, journal \fichier{fondations/journaux/07-synthese/plafonds.json}.
+\end{origine}
+
+\section{Le jeton comme chaîne d'étages}\label{sec:jeton-chaine}
+
+Un jeton de décodage, au lot de un, applique chaque poids actif une fois. Ses octets traversent la chaîne de la \cref{fig:chemin} : disque, RAM, lien PCIe, VRAM, unités de calcul. Le \cref{thm:toit} borne son temps par le maximum des temps d'étage, et le \cref{cor:permanent} dit que ce maximum s'atteint à une pénalité de remplissage près. Trois termes manquent encore pour décrire un vrai moteur ; les études les ont rencontrés un par un.
+
+\begin{definition}[Équation du jeton]\label{def:equation-jeton}
+Le temps d'un jeton produit est
+\begin{equation}\label{eq:jeton}
+t \;=\; \frac{1}{\mathcal E}\,\Bigl[\max\bigl(T_{\mathrm{D}},\,T_{\mathrm{P}},\,T_{\mathrm{G}}\bigr) + t_{\mathrm{lat}}\Bigr] \;+\; t_0 ,
+\end{equation}
+où $T_{\mathrm{D}}$, $T_{\mathrm{P}}$, $T_{\mathrm{G}}$ sont les temps d'occupation du disque, du lien et de la carte (\cref{sec:termes-moe}), et :
+\begin{itemize}
+\item $t_0$ est le coût fixe d'un jeton (lancements de noyaux, synchronisations, couches récurrentes) ;
+\item $t_{\mathrm{lat}} \ge 0$ est la latence de lecture que le préchargement n'a pas cachée ; elle vaut zéro si la file du disque ne se vide jamais ;
+\item $\mathcal E \ge 1$ est le nombre moyen de jetons rendus par une lecture des poids (\cref{thm:amortissement}) ; $\mathcal E = 1$ sans spéculation.
+\end{itemize}
+\end{definition}
+
+\paragraph{D'où vient chaque terme.} $t_0 \approx \SI{3.5}{\milli\second}$ \calc~sur une mesure de l'étude de la quantification : Qwen3.5-4B Q4\_K\_M tout en VRAM rend de 68,9 à 69,9 jetons/s selon la série ABBA, soit 14,3 à 14,5\,ms par jeton, alors que ses 2,73\,Go lus à 251\,Go/s n'en demandent que 10,9 (\fichier{fondations/journaux/02-quantification/vitesse-4B-3.json}, champ \texttt{reference\_jetons\_s}). Le terme $t_{\mathrm{lat}}$ est l'écart entre le plafond (le maximum) et le plancher (la somme) du \cref{thm:toit} ; il peut dominer : chez Edge0, le temps bloqué sur les lectures va de 101,9 à 575\,ms par pas alors que le disque travaille au plus 12\,\% du pas \litt~(\cref{ch:chargement}). Le facteur $\mathcal E$ est celui du \cref{ch:sparsite} ; pour un mélange d'experts, la lecture d'une passe de vérification grossit avec le nombre de jetons vérifiés, ce que traite la \cref{sec:spec-rho}.
+
+\section{Les termes pour un mélange d'experts servi par la carte}\label{sec:termes-moe}
+
+On reprend les grandeurs du \cref{ch:chargement} : $B_t$ octets toujours lus (attention, routeurs, normes, tête), résidents en VRAM ; $B_e$ octets d'experts routés lus par jeton ; $E_{\mathrm{tot}}$ octets de tous les experts. Une part $h_v$ des octets d'experts est servie par la VRAM, $h_r$ par la RAM, $h_s = 1 - h_v - h_r$ par le disque. Les octets qui traversent le disque et le lien sont compressés des facteurs $r_d$ et $r_p$ (octets servis sur octets transportés). La carte décode à $W_{\mathrm{dec}}$ (octets servis produits par seconde) et calcule le produit matrice-vecteur à $W_g$ sur des poids décodés. Enfin $\delta = \max(0, B_t - V)$ est la part des toujours-lus qui ne tient pas dans la VRAM utile $V$.
+
+\begin{proposition}[Temps d'étage d'un MoE dont la carte décode tout]\label{prop:termes}
+Si la carte calcule toutes les couches et décode à l'arrivée tout ce qui ne vient pas de sa propre mémoire, les temps d'étage de l'\cref{eq:jeton} sont
+\begin{align}
+T_{\mathrm{D}} &= \frac{h_s\,B_e}{r_d\,W_{\mathrm{D}}}, \label{eq:td}\\
+T_{\mathrm{P}} &= \frac{1}{W_{\mathrm{P}}}\Bigl(\frac{h_r\,B_e}{r_p} + \frac{h_s\,B_e}{r_d} + \delta\Bigr), \label{eq:tp}\\
+T_{\mathrm{G}} &= \frac{(1-h_v)\,B_e}{W_{\mathrm{dec}}} + \frac{B_t + B_e}{W_g}. \label{eq:tg}
+\end{align}
+\end{proposition}
+
+\begin{proof}
+Le disque ne lit que les octets d'experts absents de la VRAM et de la RAM, soit $h_s B_e$ octets servis, transportés sous $h_s B_e/r_d$ octets ; d'où l'\cref{eq:td} par l'\cref{hyp:etage}. Le lien porte tout ce qui entre dans la carte : les experts venus de la RAM (compressés de $r_p$), ceux venus du disque (compressés de $r_d$, puisqu'ils ne sont décodés qu'à l'arrivée) et le débord des toujours-lus. La carte décode tout ce qui n'était pas déjà décodé dans sa mémoire, $(1-h_v)B_e$ octets servis, puis lit une fois chaque poids actif, $B_t + B_e$ octets, pour le produit. Décodeur et produit occupent les mêmes multiprocesseurs : leurs temps s'additionnent au lieu de se recouvrir.
+\end{proof}
+
+\begin{remarque}[Trois sens du mot « architecture »]
+Au \cref{sec:toit}, l'architecture A est celle où le processeur décompresse, l'architecture B celle où la carte décompresse ; le \cref{cor:sans-croisement} y a tranché pour B. La \cref{prop:termes} est écrite pour cette architecture B. Les trois \emph{candidates} A, B et C du \cref{ch:avenir} sont toutes bâties sur elle et s'opposent sur un autre axe : la précision servie à chaque étage. On garde les noms des études pour ne pas casser leurs renvois.
+\end{remarque}
+
+Le disque et le lien se recouvrent avec la carte : leurs moteurs de copie sont libres pendant le calcul, et la part cachée mesurée (\cref{eq:part-cachee}) vaut 0,98 à 1,01 \mes~(\fichier{fondations/journaux/04-chargement/}). C'est ce qui autorise le maximum de l'\cref{eq:jeton}.
+
+\section{La localité, en une constante}\label{sec:localite-beta}
+
+Les parts $h_v$ et $h_r$ dépendent de la capacité de chaque étage et de la façon dont les jetons successifs réutilisent leurs experts. Faute de mesure sur le modèle visé, on pose un modèle à une seule constante.
+
+\begin{hypothese}[Succès en loi de puissance]\label{hyp:beta}
+Si un étage contient une part $c$ des octets d'experts, il sert une part $h(c) = c^{\beta}$ des octets demandés, avec $0 < \beta \le 1$. Pour deux étages emboîtés (VRAM de capacité $c_v$, RAM de capacité $c_r$), $h_v = h(c_v)$ et $h_v + h_r = h(c_v + c_r)$.
+\end{hypothese}
+
+$\beta = 1$ est le routage uniforme, sans aucune réutilisation : le pire cas, celui de l'étude des modèles. Les deux autres valeurs se calent sur le seul point publié exploitable, un cache sur une couche de Qwen3-30B-A3B (128 experts, 8 actifs) : à 13,4\,\% du budget, un LRU sert 65,9\,\% des demandes et l'oracle de Belady 79,1\,\% \litt~(\cref{ch:chargement}). Une seule constante fait passer une seule courbe par un point :
+\begin{align}
+\beta_{\mathrm{LRU}} &= \frac{\ln 0{,}659}{\ln 0{,}134} = \frac{-0{,}4170}{-2{,}0099} = 0{,}2075, \label{eq:beta-lru}\\
+\beta_{\mathrm{Belady}} &= \frac{\ln 0{,}791}{\ln 0{,}134} = \frac{-0{,}2345}{-2{,}0099} = 0{,}1167 \quad \calc. \label{eq:beta-belady}
+\end{align}
+Second point, pour vérifier : moe-stream implique au moins 53\,\% de succès à 31\,\% du budget (\cref{lem:succes-implique}) ; le scénario LRU y donne $0{,}31^{0{,}2075} = 0{,}784 \ge 0{,}53$ : compatible. La \cref{fig:localite-hypotheses} montre les trois courbes.
+
+\begin{figure}[ht]
+\centering
+\GrapheLocaliteHypotheses
+\caption[Les trois scénarios de localité]{Les trois scénarios de localité $h(c) = c^\beta$ \calc. Chaque $\beta$ fait passer sa courbe par le point publié correspondant (LRU, Belady ; Qwen3-30B-A3B, une couche) ; le routage uniforme ($\beta = 1$) est le pire cas. Ce sont des hypothèses, pas des mesures du modèle visé : la première mesure sur gpt-oss est au \cref{ch:avenir}.}
+\label{fig:localite-hypotheses}
+\sourcefig{\fichier{fondations/journaux/07-synthese/plafonds.json} (champ \texttt{betas}), tiré par \fichier{memoire/outils/donnees_figures.py}.}
+\end{figure}
+
+\textbf{Ce modèle est une hypothèse dite, pas une loi.} Il suppose que la forme de la courbe de Qwen3-30B (8 actifs sur 128) vaut pour gpt-oss-120b (4 actifs sur 128), et il extrapole un point unique. Tous les plafonds des architectures candidates en dépendent d'un facteur 5 ; c'est pourquoi les trois scénarios sont toujours donnés ensemble.
+
+\section{Les chiffres de la machine}\label{sec:chiffres-machine}
+
+\begin{table}[ht]
+\centering\small
+\caption[Les grandeurs de l'équation du jeton]{Les grandeurs de l'équation du jeton sur la machine de Stone, sur secteur. Les débits sont ceux des chapitres de mesure ; chaque ligne nomme son journal.}
+\label{tab:grandeurs}
+\begin{tabular}{@{}p{0.40\linewidth}rlp{0.25\linewidth}@{}}
+\toprule
+Grandeur & Valeur & & Journal \\
+\midrule
+$W_{\mathrm{D}}$, disque, lectures de 4\,Mio en QD 4 (taille d'une matrice d'expert) & 2,58\,Go/s & \mes & \fichier{01-machine/disque-analyse.md} \\
+$W_{\mathrm{D}}$, disque, lectures de 16\,Mio en QD 1 & 2,82\,Go/s & \mes & \fichier{01-machine/debits-mesures.json} \\
+disque, 4\,Kio aléatoires (fautes de page) & 0,22\,Go/s & \mes & \fichier{01-machine/disque-balayage.csv} \\
+$W_{\mathrm{P}}$, DMA hôte $\to$ carte depuis la RAM épinglée & 12,2\,Go/s & \mes & \fichier{01-machine/carte-complement.jsonl} \\
+lecture de la VRAM par un shader & 251,3\,Go/s & \mes & \fichier{01-machine/carte.jsonl} \\
+$W_g$, produit matrice-vecteur MXFP4 brut, Vulkan & 209,4\,Go/s & \mes & \fichier{03-entropie/} \\
+$W_{\mathrm{dec}}$, décodeur rANS v4, Vulkan & 70\,Go/s & \mes & \fichier{03-entropie/} \\
+décodeur et réassemblage des trois flux de classe & 41,6\,Go/s & \mes & \fichier{03-entropie/} \\
+$r$, codage sans perte de gpt-oss-120b (trois classes) & 1,1026 & \mes & \fichier{03-entropie/} \\
+$V$, $M$ : VRAM et RAM utiles pour des poids & 6,5 et 11\,Go & hyp. & étude 06 \\
+$t_0$, coût fixe d'un jeton & 3,5\,ms & \calc & \fichier{02-quantification/vitesse-4B-3.json} \\
+$B_t$, $B_e$, $E_{\mathrm{tot}}$ de gpt-oss-120b & 1,686 ; 1,909 ; 61,07\,Go & \mes & \fichier{07-synthese/inventaire-gptoss.json} \\
+\bottomrule
+\end{tabular}
+\sourcefig{\EF{}{Chemins relatifs à} \fichier{fondations/journaux/}.}
+\end{table}
+
+Deux mises en garde valent pour tout ce qui suit. \textbf{La machine était partagée} : toutes les mesures ont tourné avec d'autres agents, et les débits « au mieux » sont des bornes inférieures du repos (\cref{ch:machine}). \textbf{Sur batterie}, c'est une autre machine : la carte passe à 52,6\,W, le lien en Gen 3, tout ce qui passe par le processeur perd un facteur 4 à 6 ; la DMA tient à 11,8\,Go/s, le décodeur tombe à 26,8\,Go/s (\cref{sec:batterie}). Les chiffres de ce chapitre sont ceux du secteur.
+
+\section{Le problème, posé}\label{sec:probleme}
+
+Ce que Stone demande se lit maintenant comme un problème d'optimisation sous contraintes. On note $\theta$ l'ensemble des décisions d'un moteur : le format des poids (bits par poids, codage, donc $B_t$, $B_e$, $r_d$, $r_p$), le placement et la politique de cache (donc $c_v$, $c_r$ et, par l'\cref{hyp:beta}, $h_v$, $h_r$, $h_s$), l'ordonnancement des lectures (donc $t_{\mathrm{lat}}$), la spéculation (donc $\mathcal E$), et la politique de défaut (servir exact, attendre, servir une version moins précise, re-router).
+
+\begin{definition}[Le problème de troncons]\label{def:probleme}
+Pour un modèle donné et la machine de Stone, trouver
+\begin{equation}\label{eq:probleme}
+\theta^\star \in \argmax_{\theta}\; \frac{1}{t(\theta)}
+\quad\text{sous}\quad
+\begin{cases}
+\mathrm{VRAM}_{\max}(\theta) \le \SI{8188}{\mebi\byte}, \\
+\mathrm{RAM}_{\max}(\theta) \le M_{\text{fenêtre}} \quad \text{(indépendant de la taille du modèle, \cref{def:fenetre})}, \\
+\mathrm{KL}\bigl(p_\theta \,\|\, p_{\text{exact}}\bigr) \le \kappa, \quad \text{premier choix identique} \ge \pi_0 ,
+\end{cases}
+\end{equation}
+où $t(\theta)$ est donné par l'\cref{eq:jeton}, $p_\theta$ est la loi du jeton suivant que rend le moteur, $p_{\text{exact}}$ celle que rendent les poids d'origine, et $(\kappa, \pi_0)$ un budget de qualité déclaré avant la mesure.
+\end{definition}
+
+Le budget retenu est dérivé d'une grandeur mesurée, pas posé au jugé : $\kappa = 0{,}0055$ et $\pi_0 = 95{,}96\,\%$, l'écart mesuré entre deux moteurs justes lisant les mêmes poids (\cref{sec:protocole-jugement}). La raison : une perte plus petite que l'écart entre deux implémentations correctes ne se distingue pas d'un changement de moteur. Une solution exacte ($\mathrm{KL} = 0$ par construction) satisfait la troisième contrainte quel que soit $\kappa$.
+
+\paragraph{Ce qui rend le problème difficile.} Les contraintes couplent ce que les études mesuraient séparément. Comprimer avec perte réduit $B_e$ mais consomme le budget $\kappa$. Comprimer sans perte augmente $r_d$ mais charge le décodeur ($T_{\mathrm{G}}$). Un grand cache en RAM augmente $h_r$ mais viole la fenêtre si $M_{\text{fenêtre}}$ est petit. La spéculation augmente $\mathcal E$ mais fait lire l'union des experts de plusieurs jetons. La section suivante dit, sur cette machine, lequel de ces couplages compte.
+
+\section{Ce qui tient le maximum : les élasticités}\label{sec:elasticites}
+
+\begin{proposition}[Élasticités du plafond]\label{prop:elasticites}
+Soit $d = 1/t$ le plafond donné par l'\cref{eq:jeton} avec $\mathcal E = 1$, $t_{\mathrm{lat}} = 0$, et supposons que le disque tienne strictement le maximum : $T_{\mathrm{D}} > \max(T_{\mathrm{P}}, T_{\mathrm{G}})$. Notons $\eta = T_{\mathrm{D}} / (T_{\mathrm{D}} + t_0)$. Alors
+\begin{equation}\label{eq:elasticites}
+\frac{\partial \ln d}{\partial \ln W_{\mathrm{D}}} = \frac{\partial \ln d}{\partial \ln r_d} = +\eta, \qquad
+\frac{\partial \ln d}{\partial \ln h_s} = \frac{\partial \ln d}{\partial \ln B_e} = -\eta, \qquad
+\frac{\partial \ln d}{\partial \ln x} = 0 \;\; \text{pour } x \in \{W_{\mathrm{P}}, W_{\mathrm{dec}}, W_g, r_p\},
+\end{equation}
+et $\partial \ln d / \partial \ln t_0 = -(1 - \eta)$.
+\end{proposition}
+
+\begin{proof}
+Sous l'hypothèse stricte, le maximum vaut $T_{\mathrm{D}}$ dans un voisinage du point (les trois fonctions sont continues), donc $t = T_{\mathrm{D}} + t_0$ y est dérivable et ne dépend ni de $W_{\mathrm{P}}$, ni de $W_{\mathrm{dec}}$, ni de $W_g$, ni de $r_p$ : leurs élasticités sont nulles. Pour $x \in \{W_{\mathrm{D}}, r_d, h_s, B_e\}$, l'\cref{eq:td} donne $\partial \ln T_{\mathrm{D}} / \partial \ln x = \mp 1$, et
+\[
+\frac{\partial \ln d}{\partial \ln x} = -\frac{\partial \ln t}{\partial \ln x} = -\frac{T_{\mathrm{D}}}{T_{\mathrm{D}} + t_0}\,\frac{\partial \ln T_{\mathrm{D}}}{\partial \ln x} = \pm \eta .
+\]
+$B_e$ figure aussi dans $T_{\mathrm{P}}$ et $T_{\mathrm{G}}$, qui ne sont pas le maximum : sa dérivée ne passe que par $T_{\mathrm{D}}$. Enfin $\partial \ln t / \partial \ln t_0 = t_0 / (T_{\mathrm{D}} + t_0) = 1 - \eta$.
+\end{proof}
+
+Pour gpt-oss-120b dans le scénario LRU calé (\cref{sec:exemple-pose}), $T_{\mathrm{D}} = 157$\,ms, $T_{\mathrm{P}} = 58$\,ms, $T_{\mathrm{G}} = 36$\,ms : le disque tient le maximum avec une marge de 2,7 sur le lien, et $\eta = 157/160{,}5 = 0{,}978$ \calc. Le \cref{tab:elasticites} en tire ce que vaut chaque gain.
+
+\begin{table}[ht]
+\centering\small
+\caption[Ce que vaut chaque grandeur]{Élasticité du plafond de gpt-oss-120b, architecture candidate A, scénario LRU calé \calc~(\cref{prop:elasticites}, $\eta = 0{,}978$).}
+\label{tab:elasticites}
+\begin{tabular}{@{}lrrp{0.36\linewidth}@{}}
+\toprule
+Grandeur & Élasticité & 10\,\% gagnés valent & Remarque \\
+\midrule
+$W_{\mathrm{D}}$ (débit du disque) & $+0{,}98$ & $+9{,}8\,\%$ & BitLocker et VMD en prennent 53\,\% (\cref{ch:machine}) \\
+$r_d$ (compression des octets lus) & $+0{,}98$ & $+9{,}8\,\%$ & sans perte : 1,10 atteint ; avec perte : la quantification \\
+$B_e$ (bits par poids actif) & $-0{,}98$ & $+10{,}8\,\%$ & la pente de la quantification (\cref{ch:quant}) \\
+$h_s$ (part lue du disque) & $-0{,}98$ & $+10{,}8\,\%$ & un point de succès gagné vaut $+4{,}4\,\%$ à $h_s = 0{,}234$ (de 160,5 à 153,8\,ms) \\
+$W_{\mathrm{P}}$, $W_{\mathrm{dec}}$, $W_g$ & 0 & 0 & tant qu'ils ne tiennent pas le maximum \\
+$t_0$ & $-0{,}02$ & $+0{,}2\,\%$ & 3,5\,ms sur 160 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{corollaire}[Les noyaux de la carte sont de l'ornement en régime disque]\label{cor:ornement}
+Tant que le disque tient le maximum, rendre les noyaux de la carte plus rapides (décodeur, produit matrice-vecteur, coût fixe) rapporte moins de 2\,\% sur gpt-oss-120b.
+\end{corollaire}
+
+\begin{proof}
+Par la \cref{prop:elasticites}, seules $t_0$ (élasticité $-0{,}022$) et les grandeurs d'élasticité nulle dépendent des noyaux. Supprimer entièrement $t_0$ ferait passer $t$ de 160,5 à 157\,ms, soit $+2{,}2\,\%$ au plus ; tout gain partiel rapporte moins. (Le chiffre de 2\,\% est arrondi depuis $1 - \eta = 0{,}022$.)
+\end{proof}
+
+C'est une idée tuée par le nombre, pour ce régime : le travail sur la vitesse des noyaux en VRAM ne redevient un levier que lorsque le disque cesse de limiter, par exemple sur un volume non chiffré où le lien reprend la main (\cref{ch:avenir}). La \cref{fig:plafond-hs} montre les deux régimes sur une même courbe.
+
+\begin{figure}[ht]
+\centering
+\GraphePlafondHs
+\caption[Le plafond selon la part lue du disque]{Plafond de gpt-oss-120b selon la part $h_s$ des octets d'experts lue sur le disque, architecture candidate A \calc. À droite, le disque tient le maximum et la courbe a la pente $-1$ en échelle logarithmique (\cref{prop:elasticites}) ; à gauche, sous $h_s \approx 0{,}1$, le lien et la carte reprennent le maximum et la courbe s'aplatit. Le codage sans perte décale tout le régime disque d'un facteur $r = 1{,}1026$.}
+\label{fig:plafond-hs}
+\sourcefig{\fichier{fondations/journaux/07-synthese/csv/plafond-gptoss120b-contre-hs.csv} (outil \fichier{outils/07-synthese/plafonds.py}).}
+\end{figure}
+
+\section{Un exemple posé pas à pas}\label{sec:exemple-pose}
+
+gpt-oss-120b MXFP4, codage sans perte à trois classes ($r_d = r_p = 1{,}1026$), architecture candidate A, scénario LRU calé, $V = 6{,}5$\,Go, cache tiède de 11\,Go en RAM (\fichier{fondations/07-ce-qui-manque.md}, annexe A.3) \calc.
+\begin{enumerate}
+\item Capacité de la VRAM pour les experts : $c_v = (6{,}5 - 1{,}686)/61{,}07 = 0{,}0788$, d'où $h_v = 0{,}0788^{0{,}2075} = 0{,}590$.
+\item Capacité de la RAM : le cache tiède garde des experts codés, donc 11\,Go en contiennent $11 \times 1{,}1026 = 12{,}13$\,Go servis : $c_r = 12{,}13/61{,}07 = 0{,}1986$. Alors $h_v + h_r = 0{,}2774^{0{,}2075} = 0{,}766$, d'où $h_r = 0{,}176$ et $h_s = 0{,}234$.
+\item Disque : $T_{\mathrm{D}} = 0{,}234 \times 1{,}909 / 1{,}1026 / 2{,}58 = \SI{0.157}{\second}$.
+\item Lien : $T_{\mathrm{P}} = (0{,}176 + 0{,}234) \times 1{,}909 / 1{,}1026 / 12{,}2 = \SI{0.058}{\second}$ (les toujours-lus tiennent en VRAM : $\delta = 0$).
+\item Carte : $T_{\mathrm{G}} = 0{,}410 \times 1{,}909 / 41{,}6 + (1{,}686 + 1{,}909)/209{,}4 = 0{,}0188 + 0{,}0172 = \SI{0.036}{\second}$ (décodeur à trois flux de classe, 41,6\,Go/s).
+\item Plafond : $t = 0{,}157 + 0{,}0035 = 0{,}161$\,s, soit \textbf{6,24 jetons/s} ; plancher en série : $t = 0{,}157 + 0{,}058 + 0{,}036 + 0{,}0035 = 0{,}254$\,s, soit \textbf{3,93 jetons/s}.
+\end{enumerate}
+Les mêmes six lignes, refaites par l'outil, donnent 6,2414 et 3,9322 (\fichier{fondations/journaux/07-synthese/csv/architectures-gptoss120b.csv}, ligne \texttt{lru\_cale, A\_sans\_perte}).
+
+\section{La fenêtre de travail, chiffrée}\label{sec:fenetre-chiffree}
+
+La \cref{def:fenetre} demande une mémoire de pointe qui ne dépende pas de la taille du modèle. Dans l'\cref{eq:jeton}, la RAM n'apparaît que par $c_r$, la capacité du cache tiède : c'est un réglage, pas une conséquence du modèle. Le reste de la RAM de pointe tient aux tampons d'arrivée (les défauts d'un jeton, en double tampon) et aux structures du moteur.
+
+\begin{figure}[ht]
+\centering
+\GraphePlafondRam
+\caption[La fenêtre de travail : plafond selon la RAM]{Plafond de gpt-oss-120b (63,4\,Go) selon le cache tiède en RAM, architecture candidate A \calc. La première colonne est A0 : sans aucun cache en RAM, 1,9\,Go de RAM de pointe et 3,6 jetons/s de plafond dans le scénario LRU calé. Chaque Go de cache ajoute environ 0,24 jeton/s dans ce scénario ; la RAM de pointe va de 1,9\,Go (sans cache) à 12,3\,Go (11\,Go de cache).}
+\label{fig:plafond-ram}
+\sourcefig{\fichier{fondations/journaux/07-synthese/csv/plafond-gptoss120b-contre-ram.csv}.}
+\end{figure}
+
+C'est la réponse chiffrée à « sans RAM ni rien » (\cref{fig:plafond-ram}) : la RAM ne disparaît pas, elle cesse de dépendre du modèle. Le partisan de A a resserré la fenêtre depuis : avec des tampons de quelques couches au lieu de deux jetons entiers, A0 descend à 0,64\,Go de RAM de pointe (1,26\,Go si la table d'enchâssement reste en RAM) \calc~(\fichier{decisions/partisan-A.md}, § 0, point 7). Il en tire le témoin direct de la \cref{def:fenetre} : gpt-oss-20b et gpt-oss-120b ont la même taille d'expert (13,25\,Mo), le même nombre d'experts actifs et la même table d'enchâssement, donc leur RAM de pointe en A0 doit être la même à 0,5\,Mo près, alors que leurs fichiers font 12,1 et 63,4\,Go.
+
+\section{Le terme qui manquait à la spéculation}\label{sec:spec-rho}
+
+Le \cref{cor:jamais} conclut que la spéculation ne paie jamais sur des experts fins \emph{indépendants}. Mais deux jetons voisins réutilisent une partie de leurs experts ; un seul nombre suffit à en tenir compte.
+
+\begin{proposition}[Spéculation sous réutilisation des experts]\label{prop:spec-rho}
+Soit $\rho \in [0, 1]$ la part moyenne des experts d'un jeton qui figuraient déjà parmi ceux du jeton précédent, dans la même couche. Une passe de vérification d'un jeton proposé ($k = 1$) réduit les octets d'experts lus par jeton produit si et seulement si
+\begin{equation}\label{eq:spec-rho}
+\alpha \;>\; 1 - \rho .
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+Sans spéculation, chaque jeton lit $k_e$ experts par couche. La passe de vérification porte sur deux positions ; le second jeton apporte $k_e(1-\rho)$ experts nouveaux en moyenne, donc la passe lit $U(2) = k_e(2-\rho)$ experts par couche. Elle rend $\mathcal E(\alpha,1) = 1 + \alpha$ jetons (\cref{thm:amortissement}). Les octets par jeton produit baissent si et seulement si $k_e(2-\rho)/(1+\alpha) < k_e$, soit $\alpha > 1 - \rho$.
+\end{proof}
+
+Sous l'indépendance, $\rho = k_e/E$ et l'on retrouve le \cref{cor:jamais} : $\alpha > 1 - 4/128 = 0{,}969$ pour gpt-oss-120b. Avec les réutilisations publiées, la condition tombe à $\alpha > 0{,}556$ pour Qwen3-30B-A3B ($\rho = 0{,}444$) et $\alpha > 0{,}75$ pour Qwen3.6-35B-A3B ($\rho \approx 0{,}25$) \calc~sur \litt~(\fichier{fondations/journaux/07-synthese/plafonds.json}, champ \texttt{moe\_speculation\_condition\_k1}). Si $\rho$ valait 0,44 sur le modèle visé, un brouillon à $\alpha = 0{,}8$ rendrait 1,8 jeton pour 1,56 fois les experts d'un jeton : $+16\,\%$ de débit, là où le \cref{ch:sparsite} concluait à une perte. \textbf{La conclusion « $k$ optimal $= 0$ » dépend donc d'un nombre que personne ne publie pour gpt-oss-120b} ; la trace de routage qui donne $h(c)$ donne aussi $\rho$.
+
+\section{Les témoins de l'équation}\label{sec:temoins-equation}
+
+Une équation qu'on ne peut pas faire tomber ne prouve rien. L'outil \texttt{plafonds.py} refait trois chiffres publiés par d'autres études, le seuil étant déclaré avant le lancement : 1\,\% d'écart sur chaque valeur.
+
+\begin{table}[ht]
+\centering\small
+\caption[Les témoins de l'équation du jeton]{Les témoins de l'équation du jeton \calc. La cassure remplace le débit mesuré du disque par le plafond du lien : le témoin qui en dépend tombe, les deux autres tiennent.}
+\label{tab:temoins-equation}
+\begin{tabular}{@{}p{0.5\linewidth}rrcc@{}}
+\toprule
+Témoin & Attendu & Obtenu & Tient & Cassé \\
+\midrule
+T1 : gpt-oss-120b, placement du \cref{sec:toit}, $r = 1$, recouvert & 1,98 & 1,994 & oui & \textbf{tombe} (5,569) \\
+T2 : Qwen3.5-9B tout sur le disque, $r = 16$, la carte décode & 8,85 & 8,847 & oui & tient \\
+T3 : le placement de T1 au débit du lien (7,877\,Go/s), chiffre de l'étude 06 & 5,6 & 5,569 & oui & tient \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{fondations/journaux/07-synthese/plafonds.json} et \fichier{plafonds-casse.json}.}
+\end{table}
+
+\paragraph{Un écart corrigé en passant.} L'étude de l'entropie chiffrait à $+14{,}4\,\%$ l'effet du taux sans perte (1,1026) sur la capacité du cache, en supposant tout le cache codé, VRAM comprise. Or sa propre mesure dit que le produit fondu au décodeur est 3,7 fois plus lent que le produit brut : la carte doit garder ses experts décodés, et seule la RAM grandit. L'effet est alors de $+13{,}1\,\%$ \calc~(champ \texttt{gain\_taux\_sur\_cache\_uniforme} de \fichier{plafonds.json}).
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{Le modèle $h(c) = c^\beta$ extrapole un point.} Il vient d'un LRU sur une couche de Qwen3-30B-A3B, sur un domaine ; la courbe de gpt-oss-120b peut être plus plate ou plus raide. Les trois scénarios encadrent une croyance, ils ne bornent pas la réalité.
+\item \textbf{Le plafond suppose un recouvrement parfait} et une file de disque jamais vide ($t_{\mathrm{lat}} = 0$). Le plancher en série est plus proche de ce qu'obtiennent les moteurs publiés, qui tombent entre 18 et 45\,\% de leur borne (\cref{ch:chargement}).
+\item \textbf{$t_0 = 3{,}5$\,ms vient d'un autre modèle}, sous CUDA ; un moteur Vulkan qui synchronise après chaque routeur (36 fois par jeton) peut avoir un coût fixe plus grand, et l'élasticité de $t_0$ grandirait avec lui.
+\item \textbf{11\,Go de RAM épinglée} : le pilote d'affichage de Windows peut limiter la mémoire hôte visible de la carte ; si le cache tiède doit vivre en mémoire paginable, chaque succès en RAM passe par une copie du processeur. Non vérifié.
+\item \textbf{La condition $\alpha > 1 - \rho$} suppose $\alpha$ constant et $\rho$ indépendant de la position ; elle ne dit rien de $k > 1$, où l'union de $n$ jetons décroît moins vite qu'un modèle à un paramètre.
+\item \textbf{Le budget de qualité $\kappa$} vient d'un modèle hybride (Qwen3.5-4B) ; l'écart entre deux moteurs justes sur gpt-oss peut être autre, et doit être remesuré sur lui.
+\end{itemize}
+\end{faux}

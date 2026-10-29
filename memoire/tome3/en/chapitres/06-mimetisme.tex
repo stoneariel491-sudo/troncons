@@ -1,0 +1,864 @@
+% Volume~III, chapter 6: mimicry, six leads from the world to the pipeline (English version).
+% Translated on 2026-10-29 by translator EN1 from memoire/tome3/fr/chapitres/06-mimetisme.tex (writer B,
+% corrected: G3, M5, M8), number for number, same labels. Sources as in the French chapter:
+% genome/mimetisme/tri.md; for each lead Pk, genome/mimetisme/Pk/{resultat.md, pour-le-memoire.md, JUGEMENT*.md}
+% and the thresholds of mesures/mimetisme/Pk/. The verdict of each lead is that of its judge. P3: only what is
+% judged (stage A, stage B at N = 146 and at N = 238, online router); the second draw, in progress in another
+% session, is cited by no number. The figures of mimicry are included as their leads drew them
+% (\FigureHorsStyle, \HorsStyle), none is redrawn; where their words are French, the English caption says so.
+% New sources: memoire/sources/tome3-mimetisme.bib (records reread on 2026-10-29).
+
+\chapter{Mimicry: six leads from the world to the pipeline}\label{t3mim:ch}
+
+\begin{origine}
+\textbf{The starting point} is that the round of the genome had kept three gains (the zero codon, the column context, the synonymous mutation) and closed the global tropical guard, the seed, the duplicate, the Hebbian rule and the spectra (\fichier{genome/05-synthese.md} §\,2 and §\,3). The engine had only a shared LRU cache (\texttt{trc-cache} exports only \texttt{Lru} and \texttt{Belady}). Six scouts, each in charge of a domain of the world (life, physics, mathematics, engineering, human systems, the Earth and the cosmos), had returned 45 candidates, a good share of them already judged by a measurement.
+\textbf{This chapter establishes} the sorting of these candidates into six leads and what each gave under its judge. P1, the two-scale cache memory: the mechanical ``fails'' is decided by 147 tokens produced after the end of the message; on the real answer the LFU(32) gains $+0.0185$, over three blocks: \emph{open}. P2, the exclusive cache: a theorem (the two-stage exclusive cache is worth an LRU of capacity $V+R$) and a reduction of the disk share by 28 and 51\,\%; the real bargain is ``3.2\,GB of RAM or an overlapped descent'': \emph{open}. P3, cache-conditioned routing: $-10\,\%$ of misses for a KL of 0.0314 in the engine, but no condition holds at its unfavourable bound: \emph{borderline}. P4, calibrated prefetching: the guaranteed precision holds (0.92 for about 1\,\% more bytes), the gain does not (3.3 to 3.5\,\%): \emph{open, rather on the side of fails}. P5, the spin glass: the optimiser lowers the calibration error by 52\,\% and the held-out error by only 5\,\%: \emph{open}, and the announced mechanism does not hold at the threshold. P6, fidelity decided by call: \emph{open} at decoding, ``holds'' at prefill, but a ``holds'' that could hardly fail. Each lead brings its derivations, set out in full here.
+\textbf{What remains} is healthy generations of the 120b (P1, P4), the ABBA passes of the engine (P2, P4), the second draw of P3 (in progress in another session, none of its numbers here), the real weights of P5 (step~2), the end-to-end KL of P6 (step~1).
+Sources: \fichier{genome/mimetisme/tri.md}; for each lead $k$, \fichier{genome/mimetisme/Pk/resultat.md}, \fichier{pour-le-memoire.md}, \fichier{JUGEMENT.md} (P3: also \fichier{JUGEMENT-etage-B.md}, \fichier{JUGEMENT-N238.md}, \fichier{JUGEMENT-routeur-ligne.md}); thresholds and logs under \fichier{mesures/mimetisme/}.
+\end{origine}
+
+\begin{enbref}
+Mimicry asks other disciplines how they solved a problem that resembles ours: keeping in memory what will serve again, letting the rest go, deciding fast under uncertainty. The image is that of a borrowing: a climatologist knows that a slow reservoir integrates the forcing of a fast reservoir; a physicist knows that a spin glass has valleys where a greedy descent stops; a statistician knows how to guarantee a precision without knowing the law of the data. None of these resemblances is a proof: each proposes a measurement, and it is the measurement that decides. Out of six leads, none clearly ``holds'' under its judge; four remain open for a precise reason, put in numbers (traces too short or degenerate, an unmeasured overlap, an unvalidated simulator, synthetic weights), and two say something clear: an inclusive RAM stage smaller than the VRAM is of no use, and a router that favours the present experts removes 10\,\% of the misses for a KL of the order of 0.03, at the edge of what is admitted.
+\end{enbref}
+
+% =====================================================================================================
+\section{The sorting: forty-five candidates, six leads}\label{t3mim:sec:tri}
+
+\paragraph{Where the candidates come from.} Each scout read its domain and proposed mechanisms transposable to the path of the weights, with, when it was possible without the card, a first measurement on the traces of the engine. The sorting (\fichier{genome/mimetisme/tri.md}, 2026-10-27) removed their duplicates, ranked them, and wrote for each of the six leads retained a complete protocol: data, quantity, threshold, controls, second path, cost. The thresholds of the sorting are committed before the document (\fichier{mesures/mimetisme/tri/00-seuils-declares.md}, commit \texttt{ec124f5}); a sorting measures nothing. Ranking criterion: expected gain $\times$ novelty $\times$ feasibility on existing data, without a graphics card, with priority to the real bottleneck (bytes read per word, flips of the routing, prefetching). Common constraints: no card, two threads, normal priority, RAM aimed below 1.5\,GB; as long as the lock on the card exists, no heavy reading of a model file.
+
+\paragraph{The same mechanisms under different names.} Removing the duplicates is the first result of the sorting: six domains reach the same lever under six names (\cref{t3mim:tab:doublons}).
+
+\begin{table}[tbp]
+\centering\small
+\caption[The removal of duplicate candidates]{The removal of duplicates: the same mechanisms under the names of different domains (\fichier{genome/mimetisme/tri.md} §\,1). The number follows the name of the scout.}
+\label{t3mim:tab:doublons}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.26\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.2\linewidth}@{}}
+\toprule
+Common mechanism & Scouts and original names & Signal \\
+\midrule
+LFU with a long half-life & life \#1 (ACT-R), Earth \#1 (Hasselmann, two reservoirs), human \#1 and \#8 (Anderson and Schooler), engineering \#2, physics \#4 (Omori--Utsu, Kohlrausch), Earth \#7 and \#4 & six domains, one lever: a half-life longer than 8 tokens \\
+Routing that favours the residents & mathematics \#1 (cache-conditional), Earth \#6 (sticky fault), human \#5 (item substitution, two choices) & three domains \\
+Predicting the experts to come & mathematics \#2 (conformal prediction), human \#2 (case law), life \#2 (olfactory circuit of the fly), life \#4, Earth \#5, engineering \#2 & six domains \\
+Prefetching subordinate to demand & engineering \#4 (TCP Nice, LEDBAT), human \#3 (BOLA), mathematics \#2 & three \\
+Choosing fidelity at read time & physics \#3 (Fermi occupation), life \#5 and \#7a (foveation), human \#6 (triage), engineering \#6, human \#3, life \#3 & six \\
+Exclusive cache & engineering \#1 and \#5 & one, but measured \\
+Ceiling of batched verification & mathematics \#5, life \#6 & two, closed \\
+Curve without a cliff & mathematics \#8, engineering \#7 & two, closed \\
+Allocation of slots between layers & life \#7b (Charnov), Earth \#8, human \#7 & three, closed \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The strongest signal is the long-memory LFU: it comes out of four scouts positively (life, Earth and cosmos, human, engineering) and out of two negatively (physics: the shape of the kernel does not matter; mathematics: a learnt predictor adds only $+0.012$). But all its measurements had been made on \emph{reading} traces: the decaying LFU had never been measured on a generation, which is the real load. And the ``LFU $-0.075$ in generation'' of engineering was not the counter-example it seemed: its ``lfu'' has no decay (the counter rises, only the ``adm'' policy halves it, read in \fichier{outils/mimetisme/ingenierie/cache2.py}). The question remained open, hence P1.
+
+\paragraph{Two families.} Three of the six leads touch the bottleneck without touching quality (P1, P2, P4: fewer bytes read for the same output to the bit); three trade quality for bytes (P3, P5, P6) and are judged by the KL. The latter share a bar: the slope of the fast mode, 0.13 of KL for $-34\,\%$ of bytes, linearised as 0.038 for 10 points; P6 was to provide the curve KL$(f)$ that this slope lacked.
+
+\paragraph{What is ruled out, and why.} The sorting rules out some thirty candidates, each by a number or a written reason (\fichier{tri.md} §\,4). The most telling: the physical memory kernels (Omori--Utsu, Kohlrausch), closed by measurement E1 ($+0.0051$, $+0.0028$, $+0.0044$ against a threshold of $+0.015$: the shape does not matter, the half-life does, and it goes into P1); the Fermi cut-off (removing the expert of small weight), closed by E2 (0.09\,\% of the misses below 0.05; the gateway to the fast mode becomes P6); batched verification, killed by its ceiling ($G(4) = 1.44$, $G(8) = 1.84$ for a free draft); the learnt eviction predictor ($+0.0124$ against the best tuned LFU, below $+0.05$); segments with ghost lists (the SLRU with a 20\,\% probation collapses, 0.257 against 0.738); the cache in coded form, dominated by P2 ($-8\,\%$ of bytes for 120\,ms of card per token); and, narrowly, reverse water-filling by usage (0.094 bit achieved against a threshold of 0.126), the best compression lead not retained.
+
+\paragraph{The shared instruments.} Three rules hold for all the leads. (i) The \emph{group sequential stopping} of O'Brien and Fleming \cite{obrien1979}, calibrated by Monte Carlo by the human scout (constant $c = 2.840$): 6.8 windows out of 10 on average over five decisive series, with a floor of 6 windows, because one series crossed the boundary at 4 windows ($t = -5.1$) and was no longer decisive at 10 ($t = -2.1$). (ii) The \emph{pairing rule} of lot R: a mode is better if $\bar d + 2\sigma(\bar d) < 0$, $\sigma$ by blocks of windows. (iii) \emph{Separate prefill and generation in any cache judgement}: admission policies win at reading ($+0.081$) and lose at generation ($-0.094$) (engineering, H3); it is the common trap, and P1 and P4 fell into it otherwise than expected (\cref{t3mim:sec:p1-traces}).
+
+\paragraph{The common form of the six protocols.} Each lead committed its threshold before any reading of data, and each judge checked the order of the commits by \texttt{git log}; each lead has a control whose answer is known in advance and a break that must make it fail; each main number has a second path; and each lead was redone by an independent judge, written without the code of the lead. The verdict of this chapter is always that of the judge.
+
+% =====================================================================================================
+\section{P1: the two-scale cache memory}\label{t3mim:sec:p1}
+
+\paragraph{The idea.} A cache of experts decides whom to keep. The LRU keeps the most recent; the LFU, the most frequent. Human memory forgets as a power law \cite{anderson1991reflections}, and the climate has two reservoirs, a fast one that follows the forcing and a slow one that integrates it \cite{hasselmann1976stochastic}; the ``cache'' version of this idea is the LRFU \cite{lee2001lrfu}, a score that decays with a half-life. If such a score wins in generation, it is the cheapest change of the project: one counter per expert, 4\,608 floats for the 120b. The four records are reread through Crossref on 2026-10-29; the papers are not, and nothing in the verdict depends on them.
+
+\subsection{The exponentially decaying score, a rate estimator}\label{t3mim:sec:p1-score}
+
+\begin{definition}[Half-life score]\label{t3mim:def:score}
+Let an expert be accessed at tokens $s_1 < s_2 < \dots$ For a half-life $h$ (in tokens), its score at token $t$ is
+\begin{equation}\label{t3mim:eq:score}
+c_h(t) = \sum_{s_i \le t} 2^{-(t - s_i)/h}, \qquad \text{updated by } c \leftarrow c \cdot 2^{-\Delta t / h} + 1 .
+\end{equation}
+The cache evicts the resident with the smallest score. We set $\tau = h / \ln 2$, the time constant.
+\end{definition}
+
+\begin{lemme}[Expectation and variance]\label{t3mim:lem:esperance}
+If the accesses form a Poisson process of rate $\lambda$ per token, $\E[c_h] = \lambda h / \ln 2$ and $\operatorname{Var}[c_h] = \lambda h / (2\ln 2)$. So $\hat r_h = c_h \ln 2 / h$ is an unbiased estimator of $\lambda$, with variance $\lambda \ln 2 / (2h) = \lambda/(2\tau)$.
+\end{lemme}
+\begin{proof}
+The score is a Poisson process filtered by the kernel $k(u) = 2^{-u/h} = e^{-u/\tau}$. By Campbell's formula, $\E[c_h] = \lambda \int_0^\infty e^{-u/\tau}\,\dd u = \lambda\tau$ and $\operatorname{Var}[c_h] = \lambda \int_0^\infty e^{-2u/\tau}\,\dd u = \lambda\tau/2$. Multiplying by $\ln 2/h = 1/\tau$: $\E[\hat r_h] = \lambda$ and $\operatorname{Var}[\hat r_h] = \lambda/(2\tau)$.
+\end{proof}
+The relative deviation, $\sqrt{\ln 2 / (2h\lambda)}$, is the price of a short memory: at $\lambda = 0.1$ access per token and $h = 8$, it is $\sqrt{0.6931/1.6} = 0.66$ \calc.
+
+\begin{lemme}[Lag bias]\label{t3mim:lem:retard}
+If the rate drifts linearly, $\lambda(t) = \lambda_0 + \lambda' t$, then $\E[\hat r_h(t)] = \lambda(t) - \lambda'\tau$, and the mean squared error is $\mathrm{MSE}(\tau) = \lambda/(2\tau) + \lambda'^2\tau^2$.
+\end{lemme}
+\begin{proof}
+$\E[\hat r_h(t)] = \int_0^\infty \lambda(t-u)\,e^{-u/\tau}\,\dd u/\tau = \lambda(t) - \lambda' \int_0^\infty u\,e^{-u/\tau}\,\dd u/\tau = \lambda(t) - \lambda'\tau$. The MSE is the variance of \cref{t3mim:lem:esperance} plus the square of the bias.
+\end{proof}
+
+\begin{proposition}[Optimal horizon]\label{t3mim:prop:horizon}
+For $0 < \lambda' < \infty$, the MSE is minimal at $\tau^\ast = \bigl(\lambda/(4\lambda'^2)\bigr)^{1/3}$, which is neither $0$ (the LRU) nor $\infty$ (the LFU).
+\end{proposition}
+\begin{proof}
+$\dd\,\mathrm{MSE}/\dd\tau = -\lambda/(2\tau^2) + 2\lambda'^2\tau$ vanishes at $\tau^3 = \lambda/(4\lambda'^2)$; the second derivative $\lambda/\tau^3 + 2\lambda'^2$ is positive.
+\end{proof}
+The horizon grows when the drift weakens and when the rate is low. The measurement places the best $h$, chosen on the readings of the other genres, at $h^\ast = 32$ ($\tau = 46$ tokens) at 326 slots, and at 32 or 64 at 922 \mes~(\fichier{mesures/mimetisme/P1/juge-120b-*.json}, field \texttt{cv}).
+
+\begin{proposition}[The LRU--LFU continuum]\label{t3mim:prop:continuum}
+As $h \to 0$, the order of the scores tends to the order of the last accesses (LRU); as $h \to \infty$, to the order of the counts (LFU).
+\end{proposition}
+\begin{proof}
+$c_h(t) = 2^{-(t - s_{\text{last}})/h}\bigl(1 + \sum_{i \ne \text{last}} 2^{-(s_{\text{last}} - s_i)/h}\bigr)$. As $h \to 0$, the second factor tends to 1 and the first orders by $s_{\text{last}}$; as $h \to \infty$, each term of the sum \eqref{t3mim:eq:score} tends to 1 and the score to the count.
+\end{proof}
+This is the LRFU family \cite{lee2001lrfu}. The controls check it to the bit: at $h = 0.001$ the hit rate equals that of the LRU to within 0 on eight traces; at $h = \infty$ it equals the ``lfu'' of \texttt{cache2} to within 0 \mes~(\fichier{mesures/mimetisme/P1/temoins.json}).
+
+\paragraph{Two reservoirs.} The mixture $M(w) = (1-w)\,\hat r_8 + w\,\hat r_{128}$ is the output of a linear filter with impulse response $k(u) = (1-w)\tfrac{\ln 2}{8}2^{-u/8} + w\tfrac{\ln 2}{128}2^{-u/128}$, a sum of two relaxations, with transfer function
+\begin{equation}\label{t3mim:eq:transfert}
+K(s) = \frac{1-w}{1 + 8s/\ln 2} + \frac{w}{1 + 128 s/\ln 2},
+\end{equation}
+two real poles: it is Hasselmann's two-reservoir structure, stated here as an analogy of form. $M(0) = \mathrm{LFU}(8)$ and $M(1) = \mathrm{LFU}(128)$ to within 0 (control W3). The mixture is not better than the LFU(32) alone: $-0.0031$, $+0.1042$, $-0.0657$, $+0.0892$ against $-0.0176$, $+0.1136$, $-0.0449$, $+0.0981$ on the four cases of the verdict \mes.
+
+\paragraph{From hit rate to speed.} If the disk bounds everything, the time of a token is proportional to the misses, $v \propto 1/(1-s)$, and a cache of hit rate $s_1$ against $s_0$ speeds up by a factor
+\begin{equation}\label{t3mim:eq:vitesse}
+\rho = \frac{1 - s_0}{1 - s_1}.
+\end{equation}
+The declared threshold ($+0.02$ of hit rate on 0.2621 of misses) is worth $\rho = 0.2621/0.2421 = 1.083$; the wiki generation ($0.3944 \to 0.5080$) would be worth $0.6056/0.4920 = 1.23$, but on a loop; a cold window of the 120b (LRU 0.45, $\bar d = +0.094$) would be worth $0.55/0.456 = 1.21$ \calc. (The note of the lead writes $\rho \approx 1.19$ for this last case; the computation set out gives 1.21.)
+
+\subsection{The protocol and the mechanical verdict}\label{t3mim:sec:p1-verdict}
+
+\paragraph{Declared protocol} (\fichier{genome/mimetisme/P1/protocole.md}, commit \texttt{c861e8f}, after the thresholds \texttt{ec124f5}). Data: seven traces of the 120b (five readings: code, dialogue, prose-en, prose-fr, wiki; two generations of 256 tokens: prose-en and wiki), and those of the 20b. Quantity: the global hit rate, under the group rule of \texttt{trc-cache} (the 4 experts of a layer are pinned during their group), 326 and 922 slots. $h^\ast$ chosen by cross-validation on the readings of the \emph{other} genres. Threshold: $\mathrm{LFU}(h^\ast) - \mathrm{LRU} \ge +0.02$ and $z > 2$ on the two generations and the chain (cache warmed by reading the same genre, then generation); dead below $+0.005$ on one of them.
+
+\paragraph{Controls} \mes~(\fichier{mesures/mimetisme/P1/temoins.json}). W0: the LRU of the lead equals that of \texttt{cache2} (gap 0 on 8 traces), and the landmarks of the threshold come back (0.7379 and 0.45279). W1: LFU($h = 0.001$) $=$ LRU to within 0. W2: LFU($\infty$) $=$ ``lfu'' of \texttt{cache2} (0.66268 and 0.42632). W3: the extremes of the mixture, to within 0. W4, the break: the inverted decay ($h = 8$) falls below the LRU by more than 0.02 on each trace tested, narrowly on the wiki generation (0.0269). W5: the verdict function returns ``holds'', ``fails'', ``open'', ``open'' on four fabricated gaps. W6: Belady \cite{belady1966} bounds every policy from above (margins 0.094 and 0.165). Second path: a Rust kernel against the Python one, hit-rate gap at most $9.8 \times 10^{-6}$ over 108 series.
+
+\begin{table}[tbp]
+\centering\small
+\caption[P1: the verdict at the declared threshold]{P1: the verdict at the declared threshold, 120b, 326 slots, $h^\ast = 32$ by cross-validation \mes. $\sigma$ by blocks of 32 tokens. The judge redoes each number to within $10^{-5}$ by its own path.}
+\label{t3mim:tab:p1}
+\begin{tabular}{@{}lrrrrrl@{}}
+\toprule
+Case & LRU & LFU(32) & $d$ & $\sigma$ & $z$ & oracle $h$ (not retained) \\
+\midrule
+generation prose-en & 0.7379 & 0.7204 & \textbf{$-$0.0176} & 0.0213 & $-0.8$ & $h = 8$: $+0.0055$ \\
+generation wiki & 0.3944 & 0.5080 & $+0.1136$ & 0.0416 & 2.7 & $h = 32$ \\
+chain prose-en & 0.7402 & 0.6953 & $-0.0449$ & 0.0224 & $-2.0$ & $h = 8$: $+0.0021$ \\
+chain wiki & 0.3957 & 0.4938 & $+0.0981$ & 0.0493 & 2.0 & $h = 32$ \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{genome/mimetisme/P1/resultat.md} §\,2; \fichier{mesures/mimetisme/P1/juge-120b-326.json}; judge: \fichier{genome/mimetisme/P1/JUGEMENT.md} §\,2.}
+\end{table}
+
+At the declared threshold, P1 \textbf{fails}: the prose-en generation is below $+0.005$ (\cref{t3mim:tab:p1}). Even the oracle $h$ of this trace gives only $+0.0055$. At 922 slots, nothing either ($+0.0058$, $+0.0099$, $-0.0442$, $-0.0126$). What the chain shows: warming the cache by reading the same genre does not help the generation (LRU $0.7379 \to 0.7402$), and harms the LFU without decay (prose-en: 0.6627 in generation alone, 0.1411 in the chain); decay rescues the LFU at the reading--generation boundary (LFU(8) in the chain: $+0.0021$ and $+0.0856$). The counts of the reading become pollution when the generation moves to another region of experts.
+
+\subsection{What the generation traces really were}\label{t3mim:sec:p1-traces}
+
+The lead saw, before its judge, that the two generations end badly: prose-en falls to 2 distinct tokens per block of 32 from token 128 on, wiki to 4 or 5 over its last 100 tokens (\cref{fig:t3-mim-p1-blocs}, bottom panels). It wrote this down as ``loop of greedy decoding''. The judge read the tokens themselves and corrected the reading \mes~(\fichier{genome/mimetisme/P1/JUGEMENT.md} §\,4.1): in \fichier{t120b.prose-en.generation.jetons}, the harmony sequence is complete (\texttt{<|end|>}, \texttt{<|start|>}, \texttt{<|channel|>}, \texttt{<|message|>} at tokens 47 to 52 and 64 to 69), then \textbf{\texttt{<|return|>} at token 109}. The model finished its answer cleanly; it is the tracer that forced 147 more tokens, which no chat engine produces. The sentence of the lead therefore reads thus: \barre{``loop of greedy decoding''}: tokens produced after \texttt{<|return|>}.
+
+\begin{figure}[tbp]
+\centering
+\FigureHorsStyle{\Mimetisme/P1/figures/p1-blocs-generations.png}
+\caption[P1: hit rate per block of the two generations of the 120b]{\textbf{The whole LFU $-$ LRU gap of the generations of the 120b is decided in their second half, where the distinct tokens collapse.} \mes~Top: hit rate per block of 32 tokens, 326 slots, empty cache (LRU, LFU with half-life 32, LFU without decay, layer clock). Bottom: distinct tokens per block. The original title, in French, says ``finissent en boucle'' (end in a loop); the judge showed that the second half of prose-en is made of tokens produced after the end of the message (\texttt{<|return|>} at token 109), and that wiki is a raw completion without a chat template. \HorsStyle\sourcefig{\fichier{mesures/mimetisme/P1/figure-blocs.csv}; script \fichier{outils/mimetisme/P1/figures\_p1.py}.}}
+\label{fig:t3-mim-p1-blocs}
+\end{figure}
+
+\begin{table}[tbp]
+\centering\small
+\caption[P1: the real answer against the tokens after the end]{P1, prose-en generation of the 120b, 326 slots, cut at the end of the message (probe S1 of the judge, declared before computation) \mes.}
+\label{t3mim:tab:p1-tete}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+& head 0--108 (real answer) & tail 109--255 (after the end) \\
+\midrule
+LRU & 0.415 & 0.977 \\
+LFU(8) $-$ LRU & $+0.0215$ & $-0.0063$ \\
+\textbf{LFU(32) $-$ LRU} & $\mathbf{+0.0185}$ & $-0.0443$ \\
+LFU($\infty$) $-$ LRU & $+0.0134$ & $-0.1409$ \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{genome/mimetisme/P1/JUGEMENT.md} §\,4.1; \fichier{mesures/mimetisme/P1/juge/sondes.json}.}
+\end{table}
+
+On the real answer, every $h$ gives a positive gain, from $+0.012$ to $+0.022$ (\cref{t3mim:tab:p1-tete}); the negative comes entirely from the tail, where two tokens fit in the LRU. The head makes only three whole blocks of 32: no usable $z$, and it is not a result, only the proof that the ``fails'' measures the tracer. The wiki trace is not a conversation either: its prompt is raw WikiText cut in the middle of a word, the model does completion on it and repeats ``Here is a summary''; on its head (tokens 0 to 159), LFU(32) $-$ LRU $= +0.041$, on its tail $+0.234$ \mes: the wiki gain of the verdict is also mostly a loop effect.
+
+\paragraph{A hole in the specification.} Does the count of an expert survive its eviction? The protocol did not say. The judge, losing the count at eviction, obtained LFU($\infty$) $= 0.2705$ instead of 0.66268; the landmark W2 is recovered, to within $10^{-6}$, only if the count of each of the 4\,608 experts is \emph{kept for life} \mes~(\fichier{mesures/mimetisme/P1/juge/juge-oubli.json}). That is the convention measured by P1; in the engine, it costs a table of 4\,608 counters. The verdict is robust to it: with an ``in-cache'' LFU, the prose-en generation gives $-0.0111$ and fails too.
+
+\subsection{The cold windows: frequency, not half-life}\label{t3mim:sec:p1-fenetres}
+
+To know whether the gain exists on a text that moves forward, the lead declared before computation a post hoc analysis (\fichier{genome/mimetisme/P1/posthoc-declare.md}): the five readings cut into 42 disjoint windows of 256 tokens, empty cache at the start of each, same choice of $h^\ast$, same threshold, and the requirement of more than one genre ($\ge +0.02$ for 3 genres out of 5).
+
+\begin{table}[tbp]
+\centering\small
+\caption[P1: the cold windows of 256 tokens]{P1: the 42 cold windows of 256 tokens of the readings \mes. The rows of the 120b at 326 are redone by the judge (to within $10^{-4}$); the others are not.}
+\label{t3mim:tab:p1-fenetres}
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+Model, capacity & LRU per genre & $\bar d$ & $\sigma$ & $z$ & LFU wins & genres $\ge +0.02$ \\
+\midrule
+120b, 326 & 0.35 to 0.51 & $+0.0939$ & 0.0029 & 32.8 & 42/42 & 5/5 \\
+120b, 922 & 0.69 to 0.81 & $+0.0314$ & 0.0030 & 10.4 & 38/42 & 4/5 \\
+20b, 217 & 0.67 to 0.78 & $+0.0528$ & 0.0020 & 27.0 & 42/42 & 5/5 \\
+20b, 307 & 0.82 to 0.90 & $+0.0248$ & 0.0014 & 18.2 & 41/42 & 5/5 \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/mimetisme/P1/fenetres-120b.json}, \fichier{fenetres-20b.json}; \fichier{genome/mimetisme/P1/resultat.md} §\,4.}
+\end{table}
+
+Under the declared rule, the analysis would say ``holds'' (\cref{t3mim:tab:p1-fenetres}). But \emph{its break fails}: the inverted decay does not fall below the LRU in a 256-token window (it exceeds it by $+0.0174$ on the 120b). What the window sees is not the half-life: the LFU \emph{without} decay already gives $+0.0849$, decay adds only $+0.009$ ($\sigma = 0.0018$). Over 256 tokens, the counts have no time to age; what pays is frequency, a few hot experts (\cref{fig:t3-mim-p1-froides}). And this gain does not transfer to the healthy generations of the 20b: at 217 slots, code $-0.0015$, dialogue $+0.0015$, prose-fr $+0.0524$, wiki $-0.0297$ \mes. The imposed text of a reading and the greedy text of the model do not have the same structure of expert usage.
+
+\begin{figure}[tbp]
+\centering
+\FigureHorsStyle{\Mimetisme/P1/figures/p1-fenetres-froides.png}
+\caption[P1: cold windows, hit rate of the LRU against the policy]{\textbf{On a cold window of 256 tokens, the LFU beats the LRU 42 times out of 42, with or without decay: it is frequency that pays.} \mes~Each point is a window; the diagonal is the LRU. Left: 120b, 326 slots; right: 20b, 217. The title of the left panel runs over into the right one in the original. \HorsStyle\sourcefig{\fichier{mesures/mimetisme/P1/fenetres-120b.csv}, \fichier{fenetres-20b.csv}; script \fichier{outils/mimetisme/P1/figures\_p1.py}.}}
+\label{fig:t3-mim-p1-froides}
+\end{figure}
+
+\paragraph{The space of usages.} Why does reading prepare generation so badly? \Cref{fig:t3-mim-p1-topologie} represents each block of 32 tokens by the vector of its expert usages (4\,608 dimensions, norm 1). The generation forms a separate block in the matrix of cosine similarities (0.4 to 0.5 with the reading, 0.3 for the repeated tail); in the principal plane (41 and 15\,\% of the variance for wiki, 30 and 13\,\% for prose-en), the reading occupies a compact cloud and the generation goes off on a distinct trajectory. A cache warmed by the reading contains the wrong region, and the old counts pollute.
+
+\begin{figure}[tbp]
+\centering
+\FigureHorsStyle[width=0.86\linewidth]{\Mimetisme/P1/figures/p1-topologie-usages.png}
+\caption[P1: the latent space of the blocks of expert usages]{\textbf{The generation occupies another region of the space of expert usages than the reading that precedes it.} \mes~Top: cosine similarity between blocks of 32 tokens (reading then generation, separated by the white line). Bottom: projection on the first two principal axes of the centred vectors; squares: generation. The tail of the generation is made of tokens after the end of the message (judge, \cref{t3mim:sec:p1-traces}). \HorsStyle\sourcefig{\fichier{mesures/mimetisme/P1/figure-topologie.csv}; script \fichier{outils/mimetisme/P1/figures\_p1.py}.}}
+\label{fig:t3-mim-p1-topologie}
+\end{figure}
+
+\paragraph{Verdict of the judge: open.} The number is reproduced to the bit by an independent path, and the mechanical ``fails'' is exact at the declared threshold. But it does not judge the LFU in generation: it is decided by 147 tokens after the end. On the real answer, the LFU(32) gains $+0.0185$, below the threshold of $+0.02$ and over three blocks: neither held nor failed. To close P1: at least four generations of the 120b stopped at \texttt{<|return|>}, judged on the tokens before the end alone, and the convention of the count written down (kept for life).
+
+% =====================================================================================================
+\section{P2: the exclusive cache from VRAM to RAM}\label{t3mim:sec:p2}
+
+\paragraph{The idea.} In a storage hierarchy, when the upper level evicts a block, it can \emph{demote} it into the lower level instead of duplicating it: this is the exclusive hierarchy of Wong and Wilkes \cite{wong2002exclusive}. The cache of the engine does the opposite: in \texttt{Cache::demander}, the RAM is filled at each disk miss and refreshed at each VRAM hit (read by the sorting and by the judge in \fichier{moteur/crates/trc-cache/src/lib.rs}, lines 153 to 241). It therefore contains the most recent experts, already in VRAM. The simulation of the scout said so without appeal: the inclusive cache with $R \le V$ adds 0.0000 of hit rate.
+
+\subsection{The LRU stack and the theorem}\label{t3mim:sec:p2-theoreme}
+
+\begin{definition}[Stack distance]\label{t3mim:def:pile}
+The LRU stack is the list of the experts already seen, from the most recent (rank 1) to the oldest. The stack distance of an access to $x$ is the rank of $x$ in the stack just before the access (infinite at the first access). We write $F(C)$ for the share of accesses with stack distance at most $C$.
+\end{definition}
+
+\begin{lemme}[Inclusion, Mattson et al.]\label{t3mim:lem:mattson}
+An LRU cache of capacity $C$ contains, at every instant, the first $C$ elements of the LRU stack. An access is a hit in it if and only if its stack distance is at most $C$; the hit rate of an LRU of capacity $C$ is therefore $F(C)$.
+\end{lemme}
+\begin{proof}
+By induction on the accesses. An access of distance $d \le C$ brings $x$ to the top; ranks $1, \dots, d-1$ slide down one place, the set of the first $C$ ranks is unchanged: a hit. An access of distance $d > C$ brings $x$ to the top and pushes rank $C$ to rank $C+1$, which is exactly the least recent of the cache, the one the LRU evicts: a miss.
+\end{proof}
+This is the property of the stack algorithms of Mattson, Gecsei, Slutz and Traiger \cite{mattson1970} (record reread through Crossref by lot O on 2026-10-15; the paper is not reread here, and the proof above does not rely on it).
+
+\begin{theoreme}[The two-stage exclusive cache is worth an LRU of capacity $V + R$]\label{t3mim:thm:exclusif}
+Let a VRAM stage of capacity $V$ and a RAM stage of capacity $R$ be given, both LRU. On a VRAM miss, the VRAM victim is demoted to the top of the RAM; if the requested expert is in RAM, it is promoted and leaves the RAM; if the RAM overflows, its oldest disappears. Then, at every instant, the VRAM contains ranks $1, \dots, V$ of the stack, the RAM ranks $V+1, \dots, V+R$, and the total hit rate is $F(V+R)$.
+\end{theoreme}
+\begin{proof}
+By induction on the accesses; true for the empty stack. Consider an access to $x$ of rank $d$.
+\emph{If $d \le V$}, $x$ goes to the top, ranks $1, \dots, d-1$ slide down one place; the set of ranks $1, \dots, V$ is unchanged, and so is the RAM: a VRAM hit.
+\emph{If $V < d \le V + R$}, $x$ is in RAM; it is promoted and leaves it. The old rank $V$ becomes rank $V+1$: it is the VRAM victim (its oldest), which enters at the top of the RAM, in its place of rank $V+1$. The old ranks $V+1, \dots, d-1$ slide to ranks $V+2, \dots, d$, the ranks beyond $d$ do not move: the RAM is exactly ranks $V+1, \dots, V+R$ of the new stack. A RAM hit.
+\emph{If $d > V + R$} (or at the first access), $x$ goes to the top, the VRAM victim (rank $V$) becomes rank $V+1$ and enters at the top of the RAM; the RAM overflows by one element, its oldest, which is rank $V+R+1$ of the new stack, and it leaves. A disk miss.
+\end{proof}
+
+\begin{corollaire}[The stack band]\label{t3mim:cor:bande}
+The share served by the RAM is $F(V+R) - F(V)$, the disk share $1 - F(V+R)$. The gain of the exclusive cache is the mass of the stack distances lying in the band $(V, V+R]$.
+\end{corollaire}
+
+With the pinning of the groups, the victim is the oldest \emph{outside the group}, and the equality is no longer exact. Measured (control T2, 7 traces, $R = 80$ and 336): the gap to the LRU of capacity $V+R$ does not exceed $6.6 \times 10^{-4}$; on the 20b without pinning, it is exactly 0 \mes~(\fichier{mesures/mimetisme/P2/holdout20b-t2-sans-epinglage.json}). \Cref{fig:t3-mim-p2-pile} shows the theorem on the two generations: the gain is the area under $F$ between $V$ and $V+R$, 0.08 on prose-en where the curve is almost flat after $V$, 0.32 on wiki whose working set straddles the boundary.
+
+\begin{figure}[tbp]
+\centering
+\FigureHorsStyle{\Mimetisme/P2/figures/fig1-distances-de-pile.pdf}
+\caption[P2: the stack distances and the band $(V, V+R\rbrack$]{\textbf{The gain of an exclusive stage is the mass of the stack distances in the band $(V, V+R]$.} \mes\,\calc~$F(C)$, hit rate of an LRU of capacity $C$, on the two generations of the 120b; hatched band for $V = 326$, $R = 336$. \HorsStyle\sourcefig{\fichier{mesures/mimetisme/P2/explore-distances.csv}; script \fichier{outils/mimetisme/P2/figures.py}.}}
+\label{fig:t3-mim-p2-pile}
+\end{figure}
+
+\paragraph{The inclusive cache, seen through the same stack.} The judge measured that an inclusive cache whose RAM has $R' = V + R = 662$ entries has \emph{exactly} the disk share of the exclusive cache at $R = 336$ (0.184489 and 0.288493 on the two generations, pinning included), without any demotion \mes~(\fichier{mesures/mimetisme/P2/juge/budget-egal.json}). The same stack argument explains it; the following proposition is set out by the writing, under a hypothesis on the rule of the engine that the judge read in the code but that is not measured in itself.
+
+\begin{proposition}[The inclusive cache with RAM $R' \ge V$]\label{t3mim:prop:inclusif}
+Suppose, without pinning, that the inclusive RAM receives each expert read from the disk, that the date of each of its entries is refreshed at each access (served by the VRAM or by it), and that it evicts its oldest entry. If $R' \ge V$, the RAM contains at every instant ranks $1, \dots, R'$ of the stack, and the total hit rate is $F(R')$.
+\end{proposition}
+\begin{proof}
+By induction; true at the start, as long as the RAM is not full (each expert seen entered it at its first access). Suppose the RAM equal to the first $R'$ ranks; since $V \le R'$, the VRAM (the first $V$ ranks, \cref{t3mim:lem:mattson}) is included in it. An access of rank $d \le R'$ is served (by the VRAM if $d \le V$, by the RAM otherwise) and refreshes the entry of $x$ in the RAM: the RAM remains the first $R'$ ranks of the new stack. An access of rank $d > R'$ is a disk miss; $x$ enters the RAM and its oldest entry, the old rank $R'$, now rank $R'+1$, leaves.
+\end{proof}
+Hence, at equal capacities in entries, $1 - F(662)$ for the inclusive cache at 662 as for the exclusive $(326, 336)$. For $R < V$ the argument does not go through: an entry of the RAM can age while the VRAM serves experts absent from the RAM. The lead gives only a sketch, and the measurement stands in for it: 0 RAM hits at $R = 80$ and 160 on the 7 traces (\fichier{mesures/mimetisme/P2/grille.csv}, inclusive mode), at most $7.65 \times 10^{-4}$ at $R = V = 326$ \mes~(\fichier{mesures/mimetisme/P2/t1bord.csv}).
+
+\subsection{The cost of demotion}\label{t3mim:sec:p2-cout}
+
+A disk miss costs $a = 4.1$\,ms (11.6\,MB at 2.82\,GB/s); a miss served by the decoded RAM $b = 1.09$\,ms (13.25\,MB at 12.2\,GB/s); a demotion from VRAM to RAM costs $b$ too \calc. Let $\varphi$ be the number of VRAM misses per token and $\rho$ the share of them served by the RAM; each VRAM miss causes a demotion. Per token:
+\begin{align}
+T_{\text{LRU}} &= \varphi\,a, \nonumber\\
+T_{\text{serial}} &= \varphi\,\bigl[(1-\rho)\,a + \rho\,b + b\bigr], \nonumber\\
+T_{\text{overlapped}} &= \varphi\,\bigl[(1-\rho)\,a + \rho\,b\bigr]. \label{t3mim:eq:p2-cout}
+\end{align}
+The serial gain is $\varphi\,[\rho(a-b) - b]$, positive if and only if
+\begin{equation}\label{t3mim:eq:p2-seuil}
+\rho > \frac{b}{a-b} = \frac{1.09}{3.01} = 0.362 .
+\end{equation}
+With a fraction $\omega$ of the demotion overlapped by the computation, profitability requires $\rho(a-b) \ge (1-\omega)\,b$, that is $\omega \ge 1 - \rho(a-b)/b$. The measured times say it directly: on prose-en, the LRU alone costs 154.7\,ms per token, the overlapped exclusive 121.1\,ms and the demotion 39.75\,ms, so one needs $\omega \ge 1 - 33.6/39.75 = 0.154$ \calc; $\rho \approx 0.30$ is below threshold \eqref{t3mim:eq:p2-seuil} there, and $\rho \approx 0.52$ on wiki above it.
+
+\subsection{The measurement, the verdict and what the judge corrects}\label{t3mim:sec:p2-verdict}
+
+\paragraph{Declared threshold} (\fichier{genome/mimetisme/P2/seuil-declare.md}, committed before any reading of a trace): relative reduction of the disk share, exclusive against inclusive, $V = 326$, $R = 336$, of at least 15\,\% on the two generations, \emph{and} demotion traffic at most 25\,\% of a 345\,ms token; dead below 5\,\% on one of them.
+
+\begin{table}[tbp]
+\centering\small
+\caption[P2: the verdict]{P2, $V = 326$, $R = 336$: the lead and the judge \mes. Gap below $10^{-5}$ on the disk shares, below 0.1\,\% on the demotions.}
+\label{t3mim:tab:p2}
+\begin{tabular}{@{}llrrrrr@{}}
+\toprule
+Generation & & inclusive disk & exclusive disk & reduction & demotions/token & demotion/345\,ms \\
+\midrule
+prose-en & lead & 0.2573 & 0.1845 & 28.3\,\% & 36.5 & 11.5\,\% \\
+ & judge & 0.257270 & 0.184489 & 28.29\,\% & 36.469 & 11.52\,\% \\
+wiki & lead & 0.5926 & 0.2885 & 51.3\,\% & 85.9 & \textbf{27.2\,\%} \\
+ & judge & 0.592556 & 0.288493 & 51.31\,\% & 85.938 & 27.15\,\% \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{genome/mimetisme/P2/resultat.md} §\,1; \fichier{genome/mimetisme/P2/JUGEMENT.md} §\,1; \fichier{mesures/mimetisme/P2/verdict.json}, \fichier{juge/verdict-juge.json}.}
+\end{table}
+
+The first condition holds on the two generations (28.3 and 51.3\,\% against 15\,\%), the second fails on wiki (27.2\,\% against 25\,\%): \textbf{open} (\cref{t3mim:tab:p2}). Relative to the disk time proper to wiki (357.6\,ms with the LRU alone), the demotion is still worth 26.2\,\%: the verdict does not move. Controls, all held and able to fail: $R = 0$ reproduces the LRU alone to the integer (T0); the inclusive cache at $R \le V$ adds 0 (T1, tolerance relaxed to $10^{-3}$ at the edge $R = V$, said beforehand); the exclusive cache equals the LRU of $V+R$ to within $6.63 \times 10^{-4}$ (T2); demotion removed reproduces the LRU alone, filling at the miss reproduces the inclusive cache (T3); the scout's simulator is recovered to within $4.8 \times 10^{-4}$ (T4). Second path: a timestamp-based Rust implementation, equal to the Python one on 154 cells. \Cref{fig:t3-mim-p2-disque} shows the inclusive cache stuck to the LRU alone as long as $R \le V$, then pulling away; the exclusive one takes off from $R = 80$.
+
+\begin{figure}[tbp]
+\centering
+\FigureHorsStyle{\Mimetisme/P2/figures/fig2-part-disque-contre-R.pdf}
+\caption[P2: disk share against the size of the RAM]{\textbf{The inclusive RAM stage is of no use as long as $R \le V$; the exclusive one serves from the first entry.} \mes~Share of the accesses served by the disk against $R$, two generations of the 120b, $V = 326$ and 922; dotted, the LRU alone. The judge recalls that $V = 922$ decoded entries make 12.2\,GB of VRAM, more than the card (8\,188\,MiB): it is not an option on this machine. \HorsStyle\sourcefig{\fichier{mesures/mimetisme/P2/grille.csv}; script \fichier{outils/mimetisme/P2/figures.py}.}}
+\label{fig:t3-mim-p2-disque}
+\end{figure}
+
+\begin{table}[tbp]
+\centering\small
+\caption[P2: service time of the misses per token]{P2: service time of the misses per token, $V = 326$, $R = 336$ \calc~on \mes. In parentheses, the gain over the LRU alone.}
+\label{t3mim:tab:p2-temps}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Trace & LRU alone & serial exclusive & overlapped exclusive \\
+\midrule
+prose-en, generation & 154.7\,ms & 160.9 ($-6.1$) & 121.1 ($+33.6$) \\
+wiki, generation & 357.6\,ms & 313.8 ($+43.8$) & 220.1 ($+137.5$) \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/mimetisme/P2/net-selectif-120b.csv} (rows $s = 0$); redone by the judge to within 1\,ms (J4c).}
+\end{table}
+
+\paragraph{What the judge corrects} (\fichier{genome/mimetisme/P2/JUGEMENT.md} §\,3). (1) The reference of the threshold, ``committed in 6f3d737'', designates a commit that is on no branch (amended version of a commit that carried a trailer); the commit on \texttt{main} is \texttt{6d325d8}, same second, identical content. (2) The reference ``inclusive at $R = 336$'' is degenerate by construction: ``28 and 51\,\% against the inclusive cache'' reads ``against nothing''. The real alternative is the inclusive cache with $R' = 662$, which has the same disk share (\cref{t3mim:prop:inclusif}) without any demotion; the real bargain of the exclusive cache is therefore to save $V$ entries of RAM (about 3.2\,GB: 7.68\,GB encoded against 4.45\,GB decoded) against the demotion traffic. Serially, this inclusive cache beats the exclusive one ($+25.7$ against $-6.1$\,ms on prose-en, $+105.0$ against $+43.8$ on wiki); overlapped, the exclusive one wins. (3) $V = 922$ is not an option on the card of the machine. (4) Selective demotion (demoting only the victims reused at least $s$ times in VRAM), chosen after the fact and stated as such, is only a setting on the same curve: its advantage exists only serially, and overlapped it loses on wiki (253.2\,ms against 220.1). (5) The theorem is not new: it is Mattson's inclusion and the argument of Wong and Wilkes; it is correct, and the judge redoes it exactly by a third path (stack distances by a Fenwick tree: 6\,801 $=$ 6\,801 and 10\,635 $=$ 10\,635 misses).
+
+\paragraph{Verdict of the judge: open, reproduced.} What P2 really brings: an inclusive RAM stage of size $R \le V$ is of no use (the current \texttt{--ram-tiede}, in simulation); the exclusive cache reaches the disk share of an inclusive one of $V+R$ entries with $V$ fewer entries of RAM, at the price of 36 to 86 demotions per token. Stone's decision is not ``exclusive or inclusive at equal $R$'', it is ``3.2\,GB more RAM, or an overlapped demotion''. The crux remains the overlap of the demotion, to be measured in the engine in ABBA, against the inclusive cache at $V+R$, which requires no code.
+
+% =====================================================================================================
+\section{P3: cache-conditioned routing, bounded by the margin}\label{t3mim:sec:p3}
+
+\paragraph{The idea.} Skliar et al. add a bias to the logits of the experts already in cache before the top-$k$ of the router \cite{skliar2025cacheconditional}. Three scouts reached it by other paths: the seismic fault that sticks (rate-and-state friction), the substitution of an out-of-stock item, the power of two choices of queues; these are analogies, and the measurement alone decides. P3 changes the \emph{stream of requests}, not the policy: Belady is optimal for a fixed stream, and the policy no longer moves (the best predictor exceeds the tuned LFU by $+0.011$ to $+0.013$, mathematics M1). It is also the riskiest of the six: a wanted flip costs like a suffered flip, and the flips carry 96.5\,\% of the KL on the positions that flip (\fichier{genome/05-synthese.md} §\,2.2).
+
+\paragraph{This chapter cites only what is judged.} Stage A (open loop), stage B at $N = 146$, stage B at $N = 238$ and the online biased router in the engine each have their committed judgement. A second draw is in progress in another session (\fichier{genome/mimetisme/P3/REPRISE-second-tirage.md}): none of its numbers is cited. A control at $\beta = 0.3$ outside the engine (\fichier{resultat-temoin-b0.3.md}) has no judgement of its own: it is not cited either.
+
+\subsection{The geometry: a shifted wall, a band}\label{t3mim:sec:p3-geometrie}
+
+A router of gpt-oss-20b returns, per cell (position $t$, layer $\ell$), 32 logits $z \in \mathbb{R}^{32}$; the chosen set $S(z)$ is that of the four largest. In $\mathbb{R}^{32}$, the regions $\{z : S(z) = S_0\}$ are polyhedral cones; their walls are hyperplanes $\{z_i = z_j\}$ of the braid arrangement, and the wall that counts for $S$ is the tropical locus $\{z : z_{(4)} = z_{(5)}\}$, where the \emph{margin} $m(z) = z_{(4)} - z_{(5)}$ vanishes. The margin is, up to $\sqrt 2$, the distance from $z$ to the nearest wall that changes $S$ (\cref{t3tro:ch} makes it its subject).
+
+The bias of Skliar et al. is a \emph{translation} $z' = z + \beta\,\mathbf{1}_R$, where $\mathbf{1}_R$ indicates the resident experts. It does not change the geometry of the regions; it moves the point. For a pair ($a$ absent, $b$ resident), this amounts to shifting the wall $z_a = z_b$ to $z_a = z_b + \beta$ (\cref{fig:t3-mim-p3-paroi}). Every cell whose point falls in the band between the two walls changes its choice: $a$ was taken, $b$ now is. \emph{The share of cells changed is the probability mass of the band.}
+
+\begin{figure}[tbp]
+\centering
+\FigureHorsStyle[width=0.55\linewidth]{\Mimetisme/P3/figures/fig-paroi.pdf}
+\caption[P3: the wall of the router shifted by $\beta$]{\textbf{The bias towards the residents does not deform the regions of the router: it shifts a wall, and the band swept is the share of the cells that change.} \schema~Plane $(z_b, z_a)$ of an absent $a$ and a resident $b$: wall of the router $z_a = z_b$ (zero margin) and biased wall $z_a = z_b + \beta$. A diagram, not a measurement. \HorsStyle\sourcefig{\fichier{genome/mimetisme/P3/figures/fig-paroi.tex}.}}
+\label{fig:t3-mim-p3-paroi}
+\end{figure}
+
+\paragraph{The mass of the band, measured.} The distribution function of the margin over the 122\,640 cells (24 layers $\times$ 5\,110 positions) is known to within $3 \times 10^{-6}$, recomputed independently of the logs \mes~(\fichier{mesures/mimetisme/P3/etage-A.json}):
+
+\begin{center}\small
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+$\beta$ (logit) & 0.01 & 0.03 & 0.1 & 0.3 \\
+\midrule
+$P(m < \beta)$ & 0.0818 & 0.2240 & 0.5632 & 0.9035 \\
+mean density $P(m<\beta)/\beta$ & 8.2 & 7.5 & 5.6 & 3.0 \\
+\bottomrule
+\end{tabular}
+\end{center}
+The mass grows almost linearly up to $\beta \approx 0.03$ (density at zero $g(0) \approx 8$ per unit of logit, consistent with the almost exponential law of the margin of \cref{t3tro:ch}), then saturates. The mean range of the logits is 4.136: $\beta = 0.1$ corresponds to $\lambda = 0.024$ in the normalisation of the paper.
+
+\paragraph{The residence factor.} Variant V2 (swapping only the 4\textsuperscript{th} absent for the 5\textsuperscript{th} resident) changes a cell exactly when $m < \beta$, the 4\textsuperscript{th} is absent and the 5\textsuperscript{th} resident. If the margin were independent of residence,
+\begin{equation}\label{t3mim:eq:p3-part}
+\text{share changed}(\beta) = P(m < \beta)\cdot P(a \text{ absent}) \cdot P(b \text{ resident} \mid a \text{ absent}).
+\end{equation}
+The measured ratio ``share changed / $P(m<\beta)$'' is 0.237, 0.232, 0.225, 0.210 at the four $\beta$ at $N = 146$, and 0.222 to 0.188 at $N = 238$ \mes: almost constant, it is indeed a residence factor. With $P(a \text{ absent})$ read from the rank-4 misses at $\beta = 0$ (0.544 and 0.301), one draws, at the smallest $\beta$, $P(b \text{ resident} \mid a \text{ absent}) = 0.437$ and 0.738 \calc.
+
+\paragraph{A swap avoids more than one miss.} At small $\beta$, each swapped expert avoids 1.44 to 1.57 misses at $N = 146$ and 1.18 to 1.25 at $N = 238$ \mes: the miss of the moment, plus the absent one that does not enter the cache and does not evict a useful one from it, plus the recency restored to the resident. The exchange rate at the $-10\,\%$ point is $0.1 \times 216\,397 / (0.1198 \times 122\,640) = 1.47$ misses per cell at $N = 146$, and 1.21 at $N = 238$ \calc.
+
+\subsection{The decision criterion in one quantity}\label{t3mim:sec:p3-critere}
+
+\begin{proposition}[The threshold on the slope $\kappa$]\label{t3mim:prop:kappa}
+Let $f^\ast(N)$ be the share of cells to change to remove 10\,\% of the misses at budget $N$, and suppose the excess KL linear in the share changed, $\mathrm{KL} = \kappa f$ (small-$\beta$ regime). The success threshold (KL $\le \varepsilon = 0.038$ at $-10\,\%$) is equivalent to
+\begin{equation}\label{t3mim:eq:kappa}
+\kappa \le \kappa_{\max}(N) = \frac{\varepsilon}{f^\ast(N)},
+\end{equation}
+and the death threshold (KL $> 0.07$) to $\kappa > 0.07/f^\ast(N)$.
+\end{proposition}
+\begin{proof}
+At the point $f = f^\ast$, $\mathrm{KL} = \kappa f^\ast \le \varepsilon \iff \kappa \le \varepsilon/f^\ast$; likewise for 0.07.
+\end{proof}
+With $f^\ast(146) = 11.98\,\%$ and $f^\ast(238) = 7.31\,\%$ (interpolated crossings): $\kappa_{\max} = 0.038/0.1198 = 0.317$ and $0.038/0.0731 = 0.520$; death is at $\kappa = 0.584$ and 0.958 \calc. The only $\kappa$ known before stage B was that of the spontaneous flips between two almost exact engines:
+\begin{equation}\label{t3mim:eq:kappa0}
+\kappa_0 = \frac{0.0145 - 0.00168}{5\,087/122\,640} = \frac{0.01282}{0.04148} = 0.309 ,
+\end{equation}
+2.5\,\% below $\kappa_{\max}$ at $N = 146$: a tiny margin. Form \eqref{t3mim:eq:kappa} is the one to retain: a threshold on a slope, $\varepsilon$ being the linearised slope of the fast mode times ten points.
+
+\subsection{Stage A: the open loop}\label{t3mim:sec:p3-etageA}
+
+Thresholds (\fichier{mesures/mimetisme/P3/00-seuils-declares.md}, commit \texttt{1606f9f}, the only file of the commit, before any contact with the data). Model: gpt-oss-20b, 5\,110 positions (10 windows of 511), 122\,640 cells; global LRU cache with the group rule, $N = 146$ (19\,\%) and 238 (31\,\%); causal flips (residents $=$ content of the cache just before the group), unbiased mixing weights. The sets are computed on the trajectory of the exact model: this is the \emph{open loop}.
+
+\begin{table}[tbp]
+\centering\small
+\caption[P3, stage A: misses avoided and cells changed]{P3, stage A: misses avoided and share of cells changed, by $\beta$ \mes. Each number is redone by the judge, miss for miss, with another GGUF reader, another matrix product and another cache.}
+\label{t3mim:tab:p3-A}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+& $N = 146$ (19\,\%) & $N = 238$ (31\,\%) \\
+\midrule
+misses at $\beta = 0$ & 216\,397 (hit rate 0.5589) & 108\,472 (hit rate 0.7789) \\
+V1 (all residents), $\beta = 0.03$ & $-5.1\,\%$; 6.0\,\% changed & $-7.5\,\%$; 5.4\,\% \\
+V1, $\beta = 0.06$ & $-9.9\,\%$; 11.9\,\% & $-14.3\,\%$; 10.5\,\% \\
+V1, $\beta = 0.1$ & $\mathbf{-16.1\,\%}$; 19.3\,\% & $\mathbf{-22.6\,\%}$; 16.6\,\% \\
+V1, $\beta = 0.3$ & $-40.9\,\%$; 48.2\,\% & $-53.0\,\%$; 37.7\,\% \\
+V2 (4\textsuperscript{th}/5\textsuperscript{th} only), $\beta = 0.1$ & $-10.4\,\%$; 12.7\,\% & $-15.3\,\%$; 11.4\,\% \\
+crossing of $-10\,\%$ (V1) & $\beta = 0.060$; 12.0\,\% & $\beta = 0.041$; 7.3\,\% \\
+a priori KL at this crossing ($0.309 \times$ share) & 0.037 & 0.023 \\
+$\beta = -0.1$ (favouring the absent ones) & $+17.4\,\%$ & $+28.2\,\%$ \\
+random mask, same density, $\beta = 0.1$ & $+0.7\,\%$ & $+1.9\,\%$ (judge: $+1.48\,\%$) \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{genome/mimetisme/P3/resultat.md} §\,2; \fichier{mesures/mimetisme/P3/etage-A.csv}, \fichier{affinage.csv}; judge: \fichier{genome/mimetisme/P3/JUGEMENT.md} §\,2.}
+\end{table}
+
+The lever has amplitude, and it comes from residence: the random mask of the same density gains nothing, the inverted sign loses (\cref{t3mim:tab:p3-A}). At small $\beta$, a single expert changes per changed cell (1.00 to 1.02), and the expert of highest logit stays chosen in 99.98 to 100\,\% of the cells: the lever touches only the last ranks. The V1 and V2 curves overlap in the plane (share changed, misses avoided) (\cref{fig:t3-mim-p3-pareto}): the currency of the lever is the number of cells changed, not the shape of the bias. If speed followed $1/\text{misses}$, $-10$, $-16$ and $-23\,\%$ of misses would give $\times 1.11$, $\times 1.19$ and $\times 1.29$ \calc, which is not measured.
+
+\begin{figure}[tbp]
+\centering
+\FigureHorsStyle{\Mimetisme/P3/figures/fig-pareto.pdf}
+\caption[P3, stage A: misses avoided against cells changed]{\textbf{The currency of the lever is the number of cells changed: the two variants of the bias fall on the same curve.} \mes~Misses avoided against share of cells with a changed set, V1 and V2, at the two budgets; markers at $-10\,\%$ of misses and at the crossing. The label ``KL a priori 0.037'' is the constant of the spontaneous flips; the judge shows that it is probably too low for an online router (0.090 per root of a cascade). In the original, this label overlaps the legend. \HorsStyle\sourcefig{\fichier{mesures/mimetisme/P3/series/*.csv}; \fichier{genome/mimetisme/P3/figures/fig-pareto.tex}, script \fichier{outils/mimetisme/P3/p3\_series.py}.}}
+\label{fig:t3-mim-p3-pareto}
+\end{figure}
+
+Controls \mes: W1, the logits recomputed from $h$ and the F32 router recover the set of the capture in 122\,640 cells out of 122\,640 (break: without the bias of the router, 0.6544); W2, $\beta = 0$ reproduces the misses of the replay; W3, the signs; W4, the bound E7 respected (ratios 0.53 to 0.78; tolerance of 1.5 not derived, stated); W5, a second, independent LRU reproduces the exact count on the 16 rows; W6, causality by truncation. Declared verdict of stage A: \textbf{open, stage B justified} ($-10\,\%$ reached at both budgets, a priori KL below 0.07).
+
+\paragraph{What the judge of stage A adds} (\fichier{genome/mimetisme/P3/JUGEMENT.md} §\,4). The numbers are exact. Two readings are too optimistic. (1) Stage B, as written, imposes on the f64 reference the sets of the open loop at \emph{all} the cells: it forbids the secondary flips that the wanted flip would trigger in the following layers. Yet 59\,\% of the flips of lot R are secondary (3\,006 out of 5\,087), and $P(\text{flip at } \ell+1 \mid \text{flip at } \ell) = 26.6\,\%$ against 3.4\,\% (\cref{t3tro:ch}). Stage B therefore measures the \emph{direct} cost of the flips, a plausible lower bound: a stage-B KL above 0.07 kills P3, a KL below 0.038 is not enough for ``holds''. (2) The direction of the error of the a priori KL is probably known: relative to the roots of the cascades alone, the constant is $0.0128/(2\,081/122\,640) = 0.755$ instead of 0.309 \calc, hence an a priori KL of 0.090 at $N = 146$ (above death) and 0.055 at $N = 238$.
+
+\subsection{Stage B: the excess KL measured}\label{t3mim:sec:p3-etageB}
+
+Stage B imposes, in the f64 reference of lot R, the biased sets, and measures the excess KL and the first output choice against the reference. Thresholds (declared with stage A, recalled in \fichier{mesures/mimetisme/P3/02-etage-B-declare.md}, commit \texttt{c4a037a}, before any pass): ``holds'' if, at the same $\beta$, $-10\,\%$ of misses, KL $\le 0.038$ and identical first choice $\ge 95\,\%$; ``fails'' if KL $> 0.07$ at the $\beta$ of $-10\,\%$.
+
+\paragraph{At $N = 146$.} At $\beta = 0.06$: misses $-9.93\,\%$ (194\,904), KL 0.0209, first choice 88.4\,\%; at $\beta = 0.07$: $-11.53\,\%$, KL 0.0239, first choice 87.6\,\% \mes. The judge rereads them from the \texttt{.kld} files with a second reader, to the last digit shown (KL 0.0208902 and 0.0239339), and the control $\beta = 0$ falls to zero to the bit (same SHA-256 fingerprint as the reference). The KL holds, the first choice fails: \textbf{inconclusive at the literal threshold}. The judge asked where the disagreements of first choice come from (\cref{t3mim:tab:p3-quasi}): largely from near-ties of the reference (half below 0.1 logit of margin, 86\,\% below 0.3, against 14 and 37\,\% of the positions), but not only: outside the positions with margin $< 0.1$, the first choice stays at 93.7 and 93.2\,\%, below 95\,\%. This split is post hoc and does not change the verdict.
+
+\begin{table}[tbp]
+\centering\small
+\caption[P3, stage B at $N = 146$: the disagreements of first choice]{P3, stage B at $N = 146$: where the disagreements of first choice fall, according to the margin of the reference (log-probability of the 1\textsuperscript{st} minus that of the 2\textsuperscript{nd}) \mes~by the judge.}
+\label{t3mim:tab:p3-quasi}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+& break T1 (51) & $\beta = 0.06$ (295) & $\beta = 0.07$ (317) & all positions \\
+\midrule
+disagreements at margin $< 0.1$ & 84.3\,\% & 53.6\,\% & 53.3\,\% & 14.4\,\% of the positions \\
+disagreements at margin $< 0.3$ & 94.1\,\% & 86.1\,\% & 85.8\,\% & 37.2\,\% of the positions \\
+median margin of the disagreements & 0.015 & 0.087 & 0.088 & (agreements: 0.51) \\
+first choice if margin $\ge 0.1$ & 99.6\,\% & 93.7\,\% & 93.2\,\% & \\
+first choice if margin $\ge 0.3$ & 99.8\,\% & 97.4\,\% & 97.2\,\% & \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{genome/mimetisme/P3/JUGEMENT-etage-B.md} §\,4; \fichier{mesures/mimetisme/P3/juge/etage-B/}.}
+\end{table}
+
+\paragraph{At $N = 238$, with a weighted criterion fixed after reading.} The following criterion was written \emph{after} reading $N = 146$, and says so in so many words (\fichier{mesures/mimetisme/P3/03-critere-marge-declare.md}, commit \texttt{e8bf954}, before any pass at $N = 238$): the ``weighted'' reading requires the first choice $\ge 95\,\%$ on only the positions where the margin of the reference is at least 0.3 logit. Its reason, independent of the number read: taking the 2\textsuperscript{nd} token instead of the 1\textsuperscript{st} costs at most the margin in log-probability; a flip at margin $< 0.3$ is cheap. A ``holds'' at $N = 238$ alone is called \emph{partial}. At the first step that crosses $-10\,\%$, $\beta_1 = 0.041$: misses 97\,604, that is $-10.0192\,\%$ (20.8 misses below the threshold of 97\,624.8); KL 0.0117202; literal first choice 91.96\,\%; weighted 98.75\,\% (20 disagreements out of 1\,601 positions) \mes, reproduced by the judge to the last digit. Declared verdict: \textbf{weighted ``holds, partial''; literal ``inconclusive''}.
+
+The judge of $N = 238$ raises a serious point of scope (\fichier{genome/mimetisme/P3/JUGEMENT-N238.md} §\,5, G1): on the real data, the weighted condition \emph{never bites before the KL}. Eight real files of KL $\le 0.029$ all pass it at 97.1\,\% or more, llama.cpp included (92.55\,\% literal and 98.06\,\% weighted against the same reference); the only real file that misses it has a KL of 0.243. The lever at $\beta_1$ is closer to the reference than llama.cpp in the weighted reading, and 0.6 point further in the literal one. The weighted ``holds'' therefore says, to date, ``$-10\,\%$ of misses and KL $\le 0.038$'', not a third thing.
+
+\subsection{The online biased router, in the engine}\label{t3mim:sec:p3-ligne}
+
+Only the online trial lifts the open loop: the bias applies to the logits recomputed at each layer on the real trajectory, with the residents drawn from the cache of the engine at the same instant. Mechanism, quantities, thresholds, control and break are declared before the least line of engine code (\fichier{mesures/mimetisme/P3/06-routeur-ligne-declare.md}, commit \texttt{0f38124}, then the code in \texttt{eb78770}): a kernel \texttt{routeur\_topk\_biais} chooses the four experts by \texttt{logit + b}, computes the weights on the unbiased logits, behind a flag absent by default; baseline for comparison: the same engine without bias (P0), 238 slots, same windows.
+
+\begin{table}[tbp]
+\centering\small
+\caption[P3: the online biased router]{P3, online biased router in the engine, 238 slots, against the same engine without bias \mes. Redone by the judge to the last digit shown; the weighted reading is counted on the 1\,592 positions of P0 with margin $\ge 0.3$.}
+\label{t3mim:tab:p3-ligne}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+$\beta$ & misses (change) & KL & literal & weighted \\
+\midrule
+0 (P0, and P0b) & 108\,679 & 0 & 100\,\% & 100\,\% \\
+\textbf{0.041} & 97\,780 ($-10.0286\,\%$) & \textbf{0.031388} & 88.549\,\% & \textbf{96.357\,\%} \\
+0.05 & 95\,610 ($-12.0253\,\%$) & 0.037692 & 87.569\,\% & 96.043\,\% \\
+0.3 (break) & 50\,911 ($-53.1547\,\%$) & 0.089069 & 76.980\,\% & 88.631\,\% \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{genome/mimetisme/P3/JUGEMENT-routeur-ligne.md} §\,3; \fichier{mesures/mimetisme/P3/routeur-ligne/}, \fichier{mesures/mimetisme/P3/juge/routeur-ligne/}.}
+\end{table}
+
+At the point estimate, the weighted reading \textbf{holds} and the literal one is \textbf{inconclusive}; the break $\beta = 0.3$ fails, and the control $\beta = 0$ is equal to the bit (trace and 5\,120 fingerprints) to the engine before the option (\cref{t3mim:tab:p3-ligne}). The judge read the kernel line by line: the bias enters only the selection, not the weights nor the order; its emulation on 20\,000 draws and the real data of layer 0 show no leak.
+
+\paragraph{Serious point G1: nothing holds at its unfavourable bound.} By resampling the ten windows, the upper bound of the KL is above 0.038 for 20 seeds out of 20 (0.03831 to 0.03849); the lower bound of the weighted reading is below 95\,\% for 14 seeds out of 20 (94.96 to 95.02\,\%); the margin of 31 misses at the threshold falls to $-86$ if the cache restarts empty at each window, and the $-10\,\%$ is not reached at three neighbouring budgets out of four (230: $-9.45\,\%$; 234: $-9.75\,\%$; 246: $-9.84\,\%$) \mes. ``Holds'' is an estimate at the edge; ``borderline'' is the right word.
+
+\paragraph{The drift, layer by layer.} Online, the share of cells changed rises with depth, whereas it is flat in open loop (\cref{t3mim:tab:p3-derive}). The judge separates what cannot come from the bias alone: a cell is ``inconsistent'' if an incoming expert was absent from the real cache, or an outgoing one present, which is impossible if its logits are those of P0. At least 39.3\,\% of the cells changed are certain drift (6\,207 out of 15\,799), 0 in layer 0, 59\,\% in layer 23; 87.5\,\% of them have an upstream layer changed at the same step: the drift passes mostly through the residual of the step, the routing cascade, and five times less through the KV history.
+
+\begin{table}[tbp]
+\centering\small
+\caption[P3 online: the drift per layer]{P3 online, $\beta_1 = 0.041$: share of the cells of the layer (in \%) \mes~by the judge.}
+\label{t3mim:tab:p3-derive}
+\setlength{\tabcolsep}{4.2pt}
+\begin{tabular}{@{}lrrrrrrrrr@{}}
+\toprule
+layer & 0 & 3 & 6 & 9 & 12 & 15 & 18 & 21 & 23 \\
+\midrule
+changed online & 7.38 & 8.65 & 11.12 & 10.02 & 12.64 & 17.63 & 15.19 & 12.41 & 20.12 \\
+changed in open loop & 7.30 & 6.87 & 8.00 & 5.91 & 6.32 & 9.80 & 8.51 & 5.13 & 7.50 \\
+natural flips (P0 $\ne$ ref.) & 0.04 & 0.27 & 0.57 & 0.55 & 0.88 & 1.57 & 1.60 & 1.94 & 2.95 \\
+certain drift & 0 & 1.70 & 3.01 & 3.72 & 5.23 & 7.20 & 6.01 & 6.30 & 11.94 \\
+inconsistent share of the changed & 0 & 19.6 & 27.1 & 37.0 & 41.3 & 40.8 & 39.5 & 50.7 & 59.3 \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{genome/mimetisme/P3/JUGEMENT-routeur-ligne.md} §\,5; \fichier{mesures/mimetisme/P3/juge/routeur-ligne/cellules.json}.}
+\end{table}
+
+\paragraph{Verdict of the judges: borderline, not a building block.} The lever exists, it comes from the cache, and it is measured in the engine: $-10\,\%$ of misses for a KL of 0.031. But none of the three conditions holds at its unfavourable bound, the weighted gate does not bite before the KL, and a single budget, a single reading text, a single pass carry it. The lever cannot serve as a building block without a second draw (another text, another budget) that confirms it; that draw is in progress elsewhere, and this chapter does not cite it.
+
+% =====================================================================================================
+\section{P4: prefetching with calibrated confidence}\label{t3mim:sec:p4}
+
+\paragraph{The idea.} The prefetching of the project died of its \emph{precision}: $p = 0.692$, $+34\,\%$ of bytes, $-11\,\%$ of speed (lot O, §\,9.2), and lot O wrote that it would come back only with $p > 0.9$. Two borrowings: conformal prediction, which guarantees the precision of a subset of predictions without any distributional assumption \cite{angelopoulos2021gentle,angelopoulos2021ltt}; and background traffic that occupies only the free resource and backs off on demand \cite{shalunov2012ledbat}. The predictor is case-based reasoning, like case law: the 20 earlier tokens of the same text whose path of experts most resembles vote for the experts of layer $\ell_0 + d$.
+
+\subsection{The guarantee, set out}\label{t3mim:sec:p4-garantie}
+
+A token $t$ crosses $L$ layers; at layer $\ell$ it asks for $k$ experts. The cache (global LRU) leaves a set of misses. At the end of the routing of $\ell_0$, the predictor proposes for $\ell = \ell_0 + d$ candidates $e$ of confidence $s(e) \in [0, 1]$ (weighted share of the 20 neighbours that carry $e$). A \emph{load} is a candidate absent from the cache with $s \ge \theta$; its precision is $p(\theta) = P(e \in S \mid e \text{ loaded}, s \ge \theta)$, its coverage $u(\theta)$ the share of the misses preceded by a correct load.
+
+\begin{proposition}[Split conformal calibration, fixed sequence]\label{t3mim:prop:conforme}
+On the calibration half, let $n(\theta)$ be the loads of confidence $\ge \theta$, of which $x(\theta)$ are correct, and $\mathrm{LB}(\theta) = B^{-1}(\delta;\, x, n - x + 1)$ the one-sided Clopper--Pearson bound \cite{clopper1934} of level $1 - \delta$. One tests $H_\theta : p(\theta) < 0.9$ going down the grid from the highest threshold that retains at least 30 loads, and stops at the first failure; $\theta^\ast$ is the last threshold rejected. If the labels are exchangeable, $P\bigl(p(\theta^\ast) < 0.9\bigr) \le \delta$, without multiplicity correction.
+\end{proposition}
+\begin{proof}[Sketch]
+For each fixed $\theta$, $P(\mathrm{LB}(\theta) \ge 0.9 \mid p(\theta) < 0.9) \le \delta$ by construction of the Clopper--Pearson bound. In a fixed sequence stopped at the first failure, a family-wise error requires that the \emph{first} true hypothesis met be wrongly rejected, which happens with probability at most $\delta$; this is the principle of ``Learn then Test'' \cite{angelopoulos2021ltt}.
+\end{proof}
+Declared setting: $\delta = 0.1$ (one-sided bound at 90\,\%), grid with a step of 0.02 (\fichier{mesures/mimetisme/P4/00-seuils-declares.md}). The exchangeability hypothesis is false for ordered tokens (the history of neighbours grows); the gap goes in the right direction in the four sessions (test precision 0.919, 0.905, 0.947, 0.922 against 0.911, 0.904, 0.918, 0.914 in calibration), without proving it.
+
+\subsection{The simulator and the gain}\label{t3mim:sec:p4-gain}
+
+The time of a layer without prediction is $t_\ell = a + n_d\tau + \mathbb{1}[n_d > 0]\,q + c + o$, with $n_d$ misses, $\tau = 4.1$\,ms per read, $q = 1.0 + 0.85$\,ms (copy, decoding), $a + c = 2.22$\,ms of computation and $o$ a calibration offset (the base takes 460\,ms per token). A background read starts only in a computation window but finishes its course: it delays the next demand by $\delta_r = \tau - (a + c) = 1.9$\,ms. A correct read saves $\tau$; a wrong one costs $\delta_r$. With $U$ correct loads and $C$ loads on the test half:
+\begin{equation}\label{t3mim:eq:p4-gain}
+\text{saving} = U\tau - C\,\delta_r, \qquad \text{gain} = \frac{\text{saving}}{T_{\text{base}} - \text{saving}} .
+\end{equation}
+For code: $U = 12\,770$, $C = 13\,892$, $T_{\text{base}} = 516.7\,\mathrm{ms} \times 1\,271$ tokens; saving $= 52\,357 - 26\,395 = 25\,962$\,ms, gain $= 25\,962 / (656\,726 - 25\,962) = 4.12\,\%$ \calc, against 3.58\,\% simulated. When $\delta_r \to 0$ one recovers the formula of the sorting, which overestimates by 2 to 2.4 times. The formula of lot O, $f - (1-p)/p \times \text{disk share}$ with $p = 0.918$, $f = 80/460 = 0.174$ and a disk share of 0.69, gives $+11\,\%$: it assumes that every correct read is hidden in full, which is false when the computation window (2.2\,ms) is shorter than the read (4.1\,ms). Ceiling (perfect predictor): $\times 1.21$ by the computation of lot O.
+
+\subsection{The measurement and the verdict}\label{t3mim:sec:p4-verdict}
+
+\paragraph{Declared threshold} (commits \texttt{47339c2}, amendment \texttt{4732d35}, before the first session measurement): at least $+5\,\%$ of simulated speed for at most 5\,\% more bytes, on 3 reading genres out of 4 and in generation, with an achieved precision of at least 0.85; dead below $+2\,\%$ or below 0.8 precision. Rule 3 of the amendment: as long as the simulator is not validated, the verdict cannot go beyond ``open''.
+
+\paragraph{Controls.} T0 (two equal LRUs) holds. T2, perfect predictor: $\times 1.2247$ (v1) then $\times 1.1786$ (v2), which misses the $\times 1.21 \pm 2\,\%$ by 0.6 point. \textbf{T3 misses}: a synthetic predictor of precision 0.692 was to reproduce the engine's $-11\,\%$; the simulator gives $+5.2$ then $+4.9\,\%$. It is the only measured point of the engine, and the simulator does not recover it: all its gains are orders of magnitude, with an unknown sign of error. The break by shuffled labels holds: no calibration finds a threshold, 7 sessions out of 7.
+
+\begin{table}[tbp]
+\centering\small
+\caption[P4: the lead and its judge]{P4, 120b, 326 slots (7\,\%), $d = 2$, ``read ahead'' arm, test half: the lead / the judge \mes. Gains from the simulator, not validated.}
+\label{t3mim:tab:p4}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+Session & $\theta^\ast$ & precision & coverage & extra bytes & simulated gain \\
+\midrule
+code & 0.86 / 0.86 & 0.919 / 0.914 & 10.9 / 10.9\,\% & $+0.84$ / $+0.91\,\%$ & $+3.58$ / $+3.46\,\%$ \\
+dialogue & 0.80 / 0.82 & 0.905 / 0.918 & 16.9 / 15.1\,\% & $+1.47$ / $+1.14\,\%$ & $+4.96$ / $+4.39\,\%$ \\
+prose-en & 0.90 / 0.90 & 0.947 / 0.947 & 7.9 / 7.9\,\% & $+0.41$ / $+0.42\,\%$ & $+2.60$ / $+2.56\,\%$ \\
+prose-fr & 0.86 / 0.86 & 0.922 / 0.920 & 9.5 / 9.4\,\% & $+0.72$ / $+0.74\,\%$ & $+2.89$ / $+2.82\,\%$ \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{genome/mimetisme/P4/resultat.md} §\,3; \fichier{genome/mimetisme/P4/JUGEMENT.md} §\,1; \fichier{mesures/mimetisme/P4/juge/juge-120b.json}.}
+\end{table}
+
+What holds: the precision guarantee, 0.905 to 0.947 (0.918 aggregated; 0.922 for the judge) for $+0.4$ to $+1.5\,\%$ of bytes, where the killed prefetching had 0.692 for $+34\,\%$. What does not hold: the gain, $+3.51\,\%$ on average ($+3.31\,\%$ for the judge), 0 genres out of 4 at $+5\,\%$ (\cref{t3mim:tab:p4}). The ``pin without reading anything'' arm is dead ($+0.09\,\%$). \Cref{fig:t3-mim-p4} shows the bottleneck: holding 0.9 precision costs the coverage, 8 to 17\,\% of the misses, with the same slope for the four genres. On the 20b at 154 slots, the four genres pass $+5\,\%$ ($+5.05$ to $+9.10\,\%$), not redone by the judge.
+
+\begin{figure}[tbp]
+\centering
+\FigureHorsStyle{\MimetismeMesures/P4/figures/p4-precision-couverture-gain.png}
+\caption[P4: precision, coverage and simulated gain]{\textbf{Calibration holds the precision at 0.9; it is the coverage that stays small, and the gain with it.} \mes~Left: precision--coverage curves of the test half, per session of the 120b at 7\,\%; points: $\theta^\ast$ calibrated on the other half. Right: simulated speed gain, ``read ahead'' arm, against the threshold of $+5\,\%$ and death at $+2\,\%$; simulator not validated (control T3 missed). \HorsStyle\sourcefig{\fichier{mesures/mimetisme/P4/figures/p4-precision-couverture.csv}, \fichier{p4-gains-par-session.csv}; script \fichier{outils/mimetisme/P4/p4\_figures.py}.}}
+\label{fig:t3-mim-p4}
+\end{figure}
+
+\paragraph{What the judge adds} (\fichier{genome/mimetisme/P4/JUGEMENT.md} §\,3). (1) The ``generation'' leg rests on the two degenerate traces of P1 (\cref{t3mim:sec:p1-traces}): the ``98.9\,\% hit rate, nothing to prefetch'' of prose-en is that of a loop of blanks; on wiki, the calibration finds no threshold because its calibration half (before the loop) has a precision of 0.73 at $\theta = 0.9$, whereas its test half (in the loop) reaches 0.979. Neither a failure nor a success of the mechanism: unrepresentative data. (2) The gain depends on the anchoring at 460\,ms: code makes 92 misses per token in the simulated LRU, which already exceeds 460\,ms and makes the calibration offset negative; anchored per session, the gain of code falls to $+0.42\,\%$; the reading mean goes from $+3.08$ to $+3.61\,\%$ depending on the anchoring, never more than one genre out of 4 above $+5\,\%$. (3) A sentence of the code is inaccurate (the offset $o$ is fitted on the same four sessions), with no effect on the gain.
+
+\paragraph{Verdict of the judge: open, rather on the side of fails.} Conformal calibration settles the precision problem that had killed prefetching; the bottleneck is now coverage. The only valid arbiter: an ABBA pass of the engine with the gate $\theta^\ast$, which would also validate the simulator.
+
+% =====================================================================================================
+\section{P5: the choice of the synonym symbols as a spin glass}\label{t3mim:sec:p5}
+
+\paragraph{The idea.} The synonymous mutation of lot B (\cref{t3sno:ch}) puts each expert weight into one of eight levels by minimising a weighted error in a single greedy pass; it is the only lossy gain that has passed the KL ($-0.0098 \pm 0.0033$). The physicist recognises in it the energy of a spin glass, and knows that the greedy pass stops there in a valley; simulated annealing \cite{kirkpatrick1983} and replica exchange \cite{hukushima1996} cross the barriers. It is the domain furthest from computation of all the candidates retained, and the scout found no annealing nor replica exchange applied to the quantisation of a large language model.
+
+\subsection{The problem set out}\label{t3mim:sec:p5-probleme}
+
+A row of an expert matrix has $n = 2\,880$ weights $w_j$, in blocks of 32 sharing a scale $s_b = 2^{e_b - 128}$ (MXFP4). The synonymous mutation puts each weight into one of $k = 8$ levels $\pm c_m s_j$ ($m = 0, \dots, 3$, $c = (0.4743,\ 2.8486,\ 6.8372,\ 12)$ in doubled magnitudes). Let $q$ be the vector of the chosen levels and $r = w - q$ the residual. The output error, averaged over the inputs $x_i$ of the expert weighted by the square $g_i^2$ of the router weight, and the code cost are
+\begin{equation}\label{t3mim:eq:p5-energie}
+E(q) = r^\top H r + \lambda' \sum_j \ell(q_j), \qquad H = \frac{\sum_i g_i^2\,x_i x_i^\top}{\sum_i g_i^2} + \delta\,\bar m\,I,
+\end{equation}
+with $\ell(m) = -\log_2 p_m$ the code length of level $m$, $\bar m$ the mean of the diagonal of $H$ without damping and $\delta$ the damping of GPTQ (deployed value $\delta = 1$).
+
+\begin{lemme}[Change of a single weight]\label{t3mim:lem:variation}
+If the level of coordinate $j$ is replaced, the residual changes by $\delta r = q_j - q_j'$ at position $j$ only, and
+\[
+E(q') - E(q) = 2\,\delta r\,(Hr)_j + \delta r^2 H_{jj} + \lambda'\bigl(\ell(q_j') - \ell(q_j)\bigr).
+\]
+\end{lemme}
+\begin{proof}
+$r' = r + \delta r\,e_j$, so $r'^\top H r' - r^\top H r = 2\,\delta r\,e_j^\top H r + \delta r^2\,e_j^\top H e_j$.
+\end{proof}
+Keeping the vector $Hr$ up to date costs $n$ operations per accepted change ($Hr \mathrel{+}= \delta r\,H_{:,j}$); evaluating the $k - 1$ candidates of a coordinate costs $O(k)$. That is what makes the sweeps practicable; the energy kept incrementally equals the energy recomputed from scratch to within $1.3 \times 10^{-15}$ relative \mes.
+
+\paragraph{Three readings of the same object.} (i) \emph{The closest vector.} With $H = VV^\top$, $V$ upper triangular, $r^\top H r = \sum_i \bigl(\sum_{j \le i} V_{ji} r_j\bigr)^2$: term $i$ depends only on $r_1, \dots, r_i$. Choosing $q_1$ that minimises the first term, then $q_2$ given $q_1$, etc., is Babai's nearest-plane algorithm \cite{babai1986}, and GPTQ run from back to front is identical to it \cite{chen2025babai,frantar2022gptq}. Each term is minimised exactly given the past, never looking at the future. (ii) \emph{A spin glass.} Writing the level of $j$ by a Potts state $\sigma_{jm} \in \{0,1\}$, $\sum_m \sigma_{jm} = 1$, $r_j = w_j - s_j \sum_m c_m \sigma_{jm}$,
+\begin{equation}\label{t3mim:eq:potts}
+E_{\text{err}} = \text{const} - 2\sum_{j,m} h_{jm}\,\sigma_{jm} + \sum_{j,j',m,m'} J^{mm'}_{jj'}\,\sigma_{jm}\sigma_{j'm'}, \quad h_{jm} = s_j c_m (Hw)_j,\ J^{mm'}_{jj'} = H_{jj'} s_j s_{j'} c_m c_{m'} ,
+\end{equation}
+an eight-state Potts model on the complete graph of 2\,880 sites, whose couplings are not independent: $H$ is a sum of $N$ rank-one terms (147 to 1\,334 calibration inputs per expert, according to the logs reread by the judge) plus the damping. One seeks a \emph{discrete} vector almost orthogonal to $N$ patterns $x_i$: this is the frame of the symmetric binary perceptron, for which Aubin, Perkins and Zdeborová conjecture a ``frozen'' landscape where local algorithms get stuck \cite{aubin2019perceptrons}. This connection is a frame, not a result: their patterns are independent Gaussians and their weights $\pm 1$. (iii) \emph{A Gibbs measure}, $\pi_T(q) \propto e^{-E(q)/T}$.
+
+\begin{proposition}[The two dynamics preserve $\pi_T$]\label{t3mim:prop:gibbs}
+(a) The heat bath on one coordinate, which redraws $q_j$ with probability $p_m \propto e^{-\Delta E_m/T}$ ($\Delta E_m$ of \cref{t3mim:lem:variation}), satisfies detailed balance for $\pi_T$; at $T \to 0$, it is cyclic coordinate descent. (b) In replica exchange at temperatures $T_1 < \dots < T_{n_t}$, accepting the exchange of the states of two copies $a, b$ with probability $\min\bigl(1, e^{(\beta_a - \beta_b)(E_a - E_b)}\bigr)$, $\beta = 1/T$, preserves the product law $\prod_a \pi_{T_a}$.
+\end{proposition}
+\begin{proof}
+(a) The drawing law is $\pi_T$ conditioned on the other coordinates: $P(q \to q') = \pi_T(q') / Z_j$, where $Z_j = \sum_m \pi_T(q \text{ with } j \leftarrow m)$ does not depend on the current level of $j$; so $\pi_T(q)\,P(q \to q') = \pi_T(q)\pi_T(q')/Z_j$, symmetric in $q, q'$. (b) The exchange multiplies the weight of the product law by $\dfrac{\pi_{T_a}(q_b)\,\pi_{T_b}(q_a)}{\pi_{T_a}(q_a)\,\pi_{T_b}(q_b)} = e^{-\beta_a E_b - \beta_b E_a + \beta_a E_a + \beta_b E_b} = e^{(\beta_a - \beta_b)(E_a - E_b)}$; the Metropolis rule on this ratio restores detailed balance.
+\end{proof}
+Simulated annealing is the same idea without exchange: a single copy whose $T$ decreases. Setting of step 1: 8 temperatures from $0.02$ to $1.0$ times the mean Babai error per weight, exchange at each sweep, 40 sweeps, then quenching at $T = 0$ of the best state visited; all copies start from Babai.
+
+\subsection{The controls: the glass is real at small dimension}\label{t3mim:sec:p5-temoins}
+
+Thresholds of step 1 committed before any reading of a capture (\fichier{mesures/mimetisme/P5/00-seuil-declare.md}, commit \texttt{ab92f4e}); three addenda, each committed one second before its first log (checked by the judge).
+
+\begin{table}[tbp]
+\centering\small
+\caption[P5: the controls]{P5: the controls, all declared before being run \mes.}
+\label{t3mim:tab:p5-temoins}
+\renewcommand{\arraystretch}{1.1}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.2\linewidth}>{\raggedright\arraybackslash}p{0.32\linewidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+Control & Set-up & Result \\
+\midrule
+W1 brute force & 10 weights, 5 levels ($5^{10} = 9\,765\,625$ states), 1\,000 correlated $H$ & Babai misses the optimum on \textbf{847 / 1\,000} (median excess 106\,\%, up to $\times 33$): the instrument can fail \\
+W1, replica exchange & \barre{200 sweeps, 8 temperatures}; 3\,000 sweeps, 12 temperatures & \barre{at the optimum everywhere}: fails on 43 / 1\,000; final setting: \textbf{1\,000 / 1\,000} \\
+W2 breaks & 0 sweeps; frozen temperatures; permuted $H$ & Babai exactly; optimum on only 107 / 847; 2 / 847 \\
+W3 sphere decoding & Fincke--Pohst \cite{fincke1985}, $n = 16$, real block of $H$ & exchange $=$ sphere on 10 / 10; Babai not optimal on 6 / 10 (8 to 44\,\% above) \\
+W4 & generic Babai against \texttt{synonyme.py::choisir} & 0 symbols different out of 2\,048 \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{genome/mimetisme/P5/resultat.md} §\,2; \fichier{mesures/mimetisme/P5/temoins-*.json}, \fichier{W3-sphere-n16.json}.}
+\end{table}
+
+At small dimension and strong conditioning, the glass is real (\cref{t3mim:tab:p5-temoins}): Babai loses up to $\times 33$ on the toy, 44\,\% on a real block of 16 columns, and replica exchange solves it. \Cref{fig:t3-mim-p5-paysage} shows a slice of it: a basin that the greedy pass does not reach. The question of the lead is whether this glass still exists at $n = 2\,880$ and $\delta = 1$, where the damping softens it.
+
+\begin{figure}[tbp]
+\centering
+\FigureHorsStyle[width=0.5\linewidth]{\MimetismeMesures/P5/figures/paysage-toy.pdf}
+\caption[P5: slice of a landscape with $5^{10}$ states]{\textbf{On a ten-weight toy, the greedy pass stops in a valley that the exact optimum leaves.} \mes~Slice of an energy landscape with $5^{10}$ states (instance 464) along two coordinates, the other eight frozen at the Babai solution; circle: Babai; star: levels that the exact optimum gives to these two coordinates. The energy of a cell of the slice is not that of the optimum (1\,248 for Babai, 37.9 for the optimum, all coordinates free). \HorsStyle\sourcefig{\fichier{mesures/mimetisme/P5/figures/paysage-toy.csv}; script \fichier{outils/mimetisme/P5/figures.py}.}}
+\label{fig:t3-mim-p5-paysage}
+\end{figure}
+
+\subsection{Step 1: the gain can be measured and does not transfer}\label{t3mim:sec:p5-etape1}
+
+Step 1, without a model file (the lock on the card existed): the real $H$ of layers 0, 8, 16, 23, built from the captures of inputs, with \emph{synthetic} Gaussian weights; 8 instances (layers $\times$ experts 0 and 16), 64 rows each, $\delta = 1$, rate equal to within $\pm 0.005$ bit. Threshold: a fall of the held-out evaluation error of at least 10\,\% on at least 6 instances out of 8; dead below 3\,\% in median.
+
+\begin{table}[tbp]
+\centering\small
+\caption[P5: gains of cyclic descent, lead and judge]{P5: held-out evaluation gain of cyclic descent ($\lambda = 0$) against Babai, in \%, $\delta = 1$, 64 rows \mes. The judge redoes each instance to within $4 \times 10^{-14}$ point, then on new weights (seed 2026).}
+\label{t3mim:tab:p5}
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+Instance & $N$ calib. & lead & judge, same weights & judge, new weights & $\Delta H_0$ (bit) \\
+\midrule
+L0-E0 & 762 & 4.74 & 4.74 & 0.40 & $+0.0032$ \\
+L0-E16 & 1\,334 & 8.87 & 8.87 & 6.87 & $+0.0045$ \\
+L8-E0 & 1\,329 & 7.88 & 7.88 & 8.06 & $+0.0040$ \\
+L8-E16 & 300 & 3.83 & 3.83 & $-0.27$ & $+0.0033$ \\
+L16-E0 & 330 & 3.23 & 3.23 & 6.87 & $+0.0040$ \\
+L16-E16 & 147 & 1.43 & 1.43 & 3.90 & $+0.0025$ \\
+L23-E0 & 303 & 7.55 & 7.55 & 12.07 & $+0.0035$ \\
+L23-E16 & 239 & 5.43 & 5.43 & 4.07 & $+0.0035$ \\
+\midrule
+median & & 5.09 & 5.09 & 5.47 & \\
+$\ge 10\,\%$ & & 0 / 8 & 0 / 8 & 1 / 8 & \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{genome/mimetisme/P5/JUGEMENT.md} §\,2; \fichier{mesures/mimetisme/P5/etape1/gains-d1.csv}, \fichier{juge/}.}
+\end{table}
+
+At the better of the two $\lambda$ (at equal rate), the median rises to 5.46\,\% for cyclic descent; the lead publishes 6.8\,\% for replica exchange. On the calibration, the fall is 51.5\,\% (descent) and 54.6\,\% (exchange); on the optimised objective, 6.8 and 7.8\,\% \mes. \textbf{Open}: below the success threshold, outside the death zone (\cref{t3mim:tab:p5,fig:t3-mim-p5-gains}). The optimiser is good on what it is given, and what it learns hardly transfers: the ratios of objective to evaluation are 8 to 10.
+
+\begin{figure}[tbp]
+\centering
+\FigureHorsStyle{\MimetismeMesures/P5/figures/gains-etape1.pdf}\\[4pt]
+\FigureHorsStyle[width=0.5\linewidth]{\MimetismeMesures/P5/figures/delta.pdf}
+\caption[P5: gains per instance and damping]{\textbf{The optimiser removes half of the calibration error and twenty times less of the held-out error.} \mes~Top: fall of the error against Babai, per instance, on the calibration, on the optimised objective and on the held-out evaluation; cyclic descent (left) and replica exchange (right), success (10\,\%) and death (3\,\%) thresholds. The bars of replica exchange are those of the lead; the judge reproduces them only in class (median 4.8\,\% against 6.8\,\%). Bottom: mean evaluation error against the damping $\delta$, relative to deployed Babai ($\delta = 1$). Synthetic weights (step 1). \HorsStyle\sourcefig{\fichier{mesures/mimetisme/P5/etape1/gains-d1.csv}, \fichier{etape1/table-delta.csv}; script \fichier{outils/mimetisme/P5/figures.py}.}}
+\label{fig:t3-mim-p5-gains}
+\end{figure}
+
+\paragraph{Why: the error moved into the kernel of the calibration.} Decompose the error in the eigenbasis $(\lambda_k, u_k)$ of $H_{\text{train}}$: $E = \sum_k e_k\,(u_k^\top H u_k)$, $e_k = \lVert \Delta W u_k \rVert^2$. An optimiser that minimises $\sum_k \lambda_k e_k$ at a roughly fixed budget of weight error \emph{moves} the error towards the directions of small $\lambda_k$. Yet the calibration $H$ has rank at most $N$, from 147 to 1\,334 for $n = 2\,880$; in its kernel it is zero and only the damping sees the error, whereas the evaluation places 40\,\% (Babai) to 47\,\% (descent) of its own there. On L8-E0 (32 rows), the evaluation error falls by 38\,\% in the first three groups of directions (0.00602 $\to$ 0.00373) and rises by 6\,\% in the other eleven (0.01225 $\to$ 0.01303) \mes~(\cref{fig:t3-mim-p5-spectre}). This is the mechanism of a model learnt on $N$ examples in dimension $n > N$: the empirical energy is flat where the true energy is not.
+
+\begin{figure}[tbp]
+\centering
+\FigureHorsStyle{\MimetismeMesures/P5/figures/spectre-erreur.pdf}
+\caption[P5: where the error is moved]{\textbf{The optimiser pushes the error towards the directions that the calibration does not see, and the evaluation finds it there.} \mes~Layer 8, expert 0, $\delta = 1$: share of the energy per group of eigendirections of $H$, from the top of the spectrum (0) towards the bottom (13), on the weights (left), seen by the training $H$ (middle), seen by the held-out $H$ (right); frontier, Babai, cyclic descent, replica exchange. Groups 7 to 13 are in the kernel of the calibration. \HorsStyle\sourcefig{\fichier{mesures/mimetisme/P5/figures/spectre-erreur.csv}; script \fichier{outils/mimetisme/P5/figures.py}.}}
+\label{fig:t3-mim-p5-spectre}
+\end{figure}
+
+\paragraph{Damping and heat.} Mean evaluation error relative to deployed Babai: Babai 1.157, 1.040, 1.000, 1.044 at $\delta$ = 0.1, 0.3, 1, 3; descent 1.191, 1.039, 0.946, 0.946; exchange 1.196, 1.025, 0.935, 0.945 \mes. $\delta = 1$ is near the optimum of Babai; the optimiser does not move the best $\delta$, and overfits below it. A table that compared with Babai \emph{at the same} $\delta$ gave ``11\,\%'' at $\delta = 3$: an artefact, struck out by the lead itself. The Gibbs estimator (a state drawn at finite $T$ would generalise better than the ground state) was tried on L8-E0: $-8.1$, $-9.0$, $-8.9$, $-7.9$, $-4.3$, $-0.3\,\%$ at $T/e_b$ = 0 to 1; a plateau within the noise, then degradation; no gain in generalisation from heat.
+
+\paragraph{In bits.} At high resolution, $D \propto 2^{-2R}$, an error ratio $\rho$ is worth $\Delta R = -\tfrac12 \log_2 \rho$: $\rho = 0.935 \to 0.049$ bit per weight, $0.946 \to 0.040$, $0.866 \to 0.104$, against $0.80 \to 0.161$ aimed at \calc, checked by the judge. The cost: the descent takes about 0.1\,s per row against 6\,ms for Babai ($\times 15$ to $\times 30$), the exchange about fifteen times more.
+
+\subsection{The announced mechanism, and what the judge says of it}\label{t3mim:sec:p5-juge}
+
+The lead looked for the cause of the non-transfer in the finiteness of the calibration sample and declared a test (addendum 3, commit \texttt{d958a46}): train on the calibration plus windows 0 to 4 of the evaluation, judge on windows 5 to 9; ``supported'' if the median gain of the descent on the test rises by at least 2 points and rises on at least 6 instances out of 8. It wrote: ``+5.9 to +7.3\,\% (\dots\ +2.6 points; \barre{supported threshold held})''. The judge (\fichier{genome/mimetisme/P5/JUGEMENT.md} §\,4) rereads the declaration: the two medians published side by side make $+1.41$ points, which falls into ``undecided''; the $+2.6$ is the median of the rises per instance, another quantity that the declaration did not fix. Then he isolates $N$ by a test declared beforehand (J5): \emph{remove} half of the calibration inputs, same source, same test. Dividing $N$ by 2.3 in median lowers the median gain by only 0.43 point, below the threshold of 0.5: \textbf{not supported}. What addendum 3 measured mixes ``more $N$'' and ``inputs taken from the evaluation file, neighbours of the test''. What is clear: $N$ matters for Babai itself (dividing $N$ by 2 costs it 6\,\% of evaluation error in median).
+
+The judge's replica exchange reproduces the fall of the lead's objective to within 0.1 point on each instance, but not its evaluation gain: median 4.8\,\%, below its own descent (5.1\,\%), 0 / 8 above 10\,\% (the 12.3\,\% of L0-E16 becomes 6.3\,\%). At equal quality of objective, two exchanges land on states whose held-out error differs by 2 to 6 points: the ``$+1.4$ points above the descent'' is optimiser noise.
+
+\paragraph{Verdict of the judge: open; the mechanism does not hold at the threshold.} The main number holds for cyclic descent, identically and on new weights; that of the exchange is reproduced only in class. Step 2 (real weights) is not authorised by the rule and has not run. The lever ``number of calibration inputs'' remains a hypothesis, to be measured with a fixed source and distant windows.
+
+% =====================================================================================================
+\section{P6: fidelity decided by call}\label{t3mim:sec:p6}
+
+\paragraph{The idea.} The mixing weights of the router are a softmax over four scores, like the occupation numbers of four levels of a physical system; a low occupation weighs little in the output. The physical image (a Fermi surface) is an analogy: what it proposes is to serve in \emph{fast} mode (the compressed companion of lot B) the expert called with a small weight, instead of removing it. The idea of degrading according to importance is not new \cite{hobbit2024,lu2024notallexperts}, nor that of refining in mixed precision \cite{haidar2018mixed}; what P6 was to provide the project is the curve that the whole of lot B lacks, the KL as a function of the share $f$ of the misses served fast, of which only the ends were measured (0.0044 and 0.145).
+
+\subsection{The model and its quantities}\label{t3mim:sec:p6-modele}
+
+An access $a = (t, \ell, s)$ calls expert $x_a$ with weight $w_a$ ($\sum_s w = 1$). A \emph{stay} $\sigma$ of an expert in the cache runs from its entry (a miss) to its eviction; $A(\sigma)$ is the set of its accesses. The gate fixes the level of a stay at its entry: $\varphi(\sigma) = F$ (fast) if and only if $w_{a_0(\sigma)} < \theta$. A stay costs $\rho = 0.718$ exact expert if it is fast, 1 otherwise. The perturbed energy of the ``accept'' rule and the total energy are
+\begin{equation}\label{t3mim:eq:p6-energie}
+\mathcal E = \sum_\sigma \mathbb{1}[\varphi(\sigma) = F] \sum_{a \in A(\sigma)} w_a^2, \qquad \mathcal E_{\text{all}} = \sum_a w_a^2 .
+\end{equation}
+\begin{hypothese}[Small perturbation]\label{t3mim:hyp:energie}
+The output deviation at access $a$ is $w_a\,\varepsilon_x$, with $\varepsilon_x$ an expert deviation of common variance; the total deviation variance is then proportional to the energy. This is not the KL.
+\end{hypothese}
+The bytes saved are $S = (1 - \rho)\,f$, $f$ being the share of fast stays; all-fast gives $S_{\text{all}} = 0.282$ and $\mathcal E = \mathcal E_{\text{all}}$. The quantity of the lead is the energy per byte saved, relative to that of all-fast:
+\begin{equation}\label{t3mim:eq:p6-r}
+r(\theta) = \frac{\mathcal E/\mathcal E_{\text{all}}}{S / S_{\text{all}}} = \frac{\mathcal E/\mathcal E_{\text{all}}}{f} .
+\end{equation}
+
+\begin{proposition}[The break by chance]\label{t3mim:prop:p6-hasard}
+If $\varphi$ is drawn independently of the weights with $P(F) = f$, then $\E[\mathcal E] = f\,\mathcal E_{\text{all}}$ and $\E[r] = 1$.
+\end{proposition}
+\begin{proof}
+$\mathcal E = \sum_\sigma \varphi(\sigma)\,e(\sigma)$, with $e(\sigma) = \sum_{A(\sigma)} w^2$ independent of $\varphi(\sigma)$; so $\E[\mathcal E] = f \sum_\sigma e(\sigma) = f\,\mathcal E_{\text{all}}$.
+\end{proof}
+Measured: $1.0001 \pm 0.023$ over 50 draws and 7 traces \mes.
+
+\begin{proposition}[The gate alone]\label{t3mim:prop:p6-porte}
+Let $p(\theta) = P(w < \theta)$ and $\hat{\mathcal E}(\theta) = \E[w^2 ;\, w < \theta] / \E[w^2]$. For a count without carry-over (each access carries its own label) and a selection independent of the state of the cache, $r_0(\theta) = \hat{\mathcal E}(\theta)/p(\theta) = \E[w^2 \mid w < \theta]/\E[w^2] < 1$ as soon as the law of $w$ is not degenerate.
+\end{proposition}
+\begin{proof}
+$\E[w^2;\, w<\theta] = p(\theta)\,\E[w^2 \mid w < \theta]$; since $w^2$ increases on $[0, 1]$, $\E[w^2 \mid w < \theta] < \E[w^2]$ if $P(w \ge \theta) > 0$ and $P(w<\theta)>0$.
+\end{proof}
+Measured: $r_0(0.20) = 0.414$, $r_0(0.25) = 0.614$ \mes. The lead concluded from it: \barre{``the misses are not correlated with the small weights; the gain of the gate comes from the law of $w$, not from the cache''}. That is false, says the judge (\fichier{genome/mimetisme/P6/JUGEMENT.md} §\,4.2): the misses are distributed as 19.4, 23.1, 26.8 and 30.6\,\% over ranks 0 to 3, and 29.6\,\% of the misses are below $\theta = 0.20$, against 24.9\,\% when the rank within the group is destroyed; the state of the cache gives the gate about 19\,\% more bytes saved at equal $\theta$ ($29.6/24.9 = 1.19$). The test of the lead (shuffling the vectors by layer) kept the rank: the correlation goes into $S$, not into $r$, which sees nothing of it.
+
+\paragraph{Carry-over.} A ``fast'' label fixed at entry holds for the whole stay: $\mathcal E = \mathcal E_{\text{gate}} + \mathcal E_{\text{rest}}$. At $\theta = 0.20$ on the generations of the 120b, $\mathcal E_{\text{gate}}/\mathcal E_{\text{all}} = 0.0476$ and $\mathcal E_{\text{rest}}/\mathcal E_{\text{all}} = 0.1609$: the rest carries 77\,\% of the energy \mes. With $f = 0.0855/0.282 = 0.303$, $r = 0.2085/0.303 = 0.688$ \calc. The entry weight predicts the rest badly (correlation 0.34 and 0.25). The \emph{clairvoyant bound}, which would know the largest weight the expert will receive during its stay ($\varphi^\ast = F \iff \max_{A(\sigma)} w < \theta$), reaches $r^\ast = 0.185$: carry-over costs a factor 3.7. The rule ``promote at $\theta'$'' rereads the whole exact expert at the first hit of weight $\ge \theta'$, because the fast file is not nested in the exact one.
+
+\paragraph{Variant B, prefill.} In a batch of $n_\beta$ tokens, each key $u = (\text{batch}, \ell, x)$ is read once. One reads in fast mode the $f$ keys of smallest score, with three scores: the maximum $m_u = \max_j w_j$ (rule A), the mass $M_u = \sum_j w_j$ (rule B), the energy $e_u = \sum_j w_j^2$ (rule C).
+
+\begin{proposition}[The energy oracle]\label{t3mim:prop:p6-oracle}
+At fixed $f$, rule C minimises $\mathcal E$ among all subsets of $f\,|U|$ keys; it therefore bounds A and B from below.
+\end{proposition}
+\begin{proof}
+$\mathcal E = \sum_{u \in F} e_u$ is additive; the subset of $f|U|$ keys of smallest sum is that of the $f|U|$ smallest terms.
+\end{proof}
+The maximum is a poor substitute for $e_u$ because it ignores the number of calls ($m_u^2 \le e_u \le n_u m_u^2$); the mass $M_u = n_u \bar w_u$ counts them.
+
+\subsection{The measurement, the verdict and what the judge corrects}\label{t3mim:sec:p6-verdict}
+
+Thresholds (\fichier{mesures/mimetisme/P6/00-seuils-declares.md}, commit \texttt{4d2b915}, amendment \texttt{c206831}, before any reading of a trace): decoding, ``holds'' if on \emph{each} of the two generations of the 120b $r \le 0.70$ with at least 8\,\% of bytes saved at $\theta = 0.20$; variant B, ``holds'' if $r \le 0.70$ at 8\,\% on 3 genres out of 4 and $r_B \le 0.9\,r_A$.
+
+\begin{table}[tbp]
+\centering\small
+\caption[P6: the decoding of the 120b]{P6, decoding of the 120b, $\theta = 0.20$, 323 slots, LFU with half-life 8, $\rho = 0.718$: bytes saved $S$ and energy per byte $r$ \mes. Reproduced by the judge to within $10^{-4}$ in $S$ and $10^{-3}$ in $r$.}
+\label{t3mim:tab:p6}
+\begin{tabular}{@{}lrrrl@{}}
+\toprule
+Rule & prose-en $S$ / $r$ & wiki $S$ / $r$ & cumulative $S$ / $r$ & holds? \\
+\midrule
+accept & 10.10\,\% / 0.725 & \textbf{7.78\,\%} / 0.565 & 8.55\,\% / 0.688 & no \\
+promote at 0.30 & 8.22\,\% / 0.461 & 6.95\,\% / 0.391 & 7.37\,\% / 0.442 & no \\
+promote at 0.40 & 9.29\,\% / 0.573 & 7.51\,\% / 0.451 & 8.10\,\% / 0.539 & no \\
+promote at 0.50 & 9.77\,\% / 0.613 & 7.74\,\% / 0.553 & 8.41\,\% / 0.612 & no \\
+clairvoyant (bound) & 8.85\,\% / 0.140 & 7.19\,\% / 0.227 & 7.74\,\% / 0.185 & outside the verdict \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{genome/mimetisme/P6/resultat.md} §\,2; \fichier{genome/mimetisme/P6/JUGEMENT.md} §\,1; \fichier{mesures/mimetisme/P6/}, \fichier{juge/juge.json}.}
+\end{table}
+
+\paragraph{Decoding: open.} No rule passes 8\,\% on wiki ($7.78 \pm 0.38\,\%$ for ``accept''), none has $r > 0.90$ (\cref{t3mim:tab:p6}). Cumulated over the two traces, ``accept'' and ``promote at 0.40'' would pass, but the declared rule required each trace: verdict \textbf{open}, and the lead did not move its threshold. The judge adds that ``open'' comes from the choice of a fixed $\theta$ rather than from the mechanism: the weights pile up around 0.2, and $S$ goes from 2.2\,\% ($\theta = 0.15$) to 8.5\,\% (0.20) then 16\,\% (0.25); at exactly $S = 8\,\%$, trace by trace, $r$ is 0.669 and 0.573, both below 0.70 (exploratory, outside the threshold).
+
+\paragraph{Variant B: holds, but could hardly fail.} At 8\,\% of the prefill bytes, $r_B = 0.039$ to $0.060$ (threshold 0.70) and $r_B/r_A = 0.61$ to $0.66$ on the four genres of the 120b, and $r_B$ from 0.030 to 0.074 on the 20b; random drawing gives $r = 1.00$ \mes. The judge measures the oracle of \cref{t3mim:prop:p6-oracle}: $r_B$ is within 4\,\% of it on the four genres (and within 1.5 to 4.3\,\% on eight genres, 120b and 20b). The threshold ``fails if $r_B \ge r_A$'' could hardly fail, since the maximum is a worse substitute for the energy than the sum whatever the law of the weights. At step 0, the mass says only that the energy of a batch concentrates in the often-called experts; it says nothing about the KL.
+
+\begin{figure}[tbp]
+\centering
+\FigureHorsStyle[width=0.49\linewidth]{\Mimetisme/P6/figures/plan-octets-energie.png}\hfill
+\FigureHorsStyle[width=0.49\linewidth]{\Mimetisme/P6/figures/r-selon-theta.png}
+\caption[P6: the bytes--energy plane and $r$ as a function of $\theta$]{\textbf{A gate on the call weight costs less energy per byte than all-fast, and the aggregated mass of prefill almost nothing; but energy is not the KL.} \mes~Left: perturbed energy against bytes saved (decoding of the 120b: accept, promote at 0.40, clairvoyant bound; prefill: mass aggregated by batches of 512; dashes: proportional all-fast, $r = 1$). Right: $r$ as a function of $\theta$, cumulated over the two generations, bars at $1\sigma$ (blocks of 32 tokens), threshold 0.70. \HorsStyle\sourcefig{\fichier{mesures/mimetisme/P6/courbe-plan-decodage.csv}, \fichier{courbe-plan-prefill-B.csv}; script \fichier{outils/mimetisme/P6/figures.py}.}}
+\label{fig:t3-mim-p6}
+\end{figure}
+
+\paragraph{The curve KL$(f)$, set out as a hypothesis.} Step 0, that of the bytes--energy plane of \cref{fig:t3-mim-p6}, can only eliminate. Under the linear hypothesis $\mathrm{KL}(f) - \mathrm{KL}(0) = (\mathrm{KL}(1) - \mathrm{KL}(0))\,\mathcal E(f)/\mathcal E_{\text{all}}$, with the ends measured on the 20b (0.0044 and 0.1448), 8\,\% of the prefill bytes would cost 0.002 of KL and 14\,\% from 0.006 to 0.009. This is not a result: 96.5\,\% of the KL of the fast mode comes from routing flips, which are non-linear, and the convexity could go either way. Step 1, which would measure the points $(f, \mathrm{KL})$ on the 20b, has not been launched (lock on the card, 8.31\,GB to read); the judge asks that it keep the maximum, chance \emph{and} the energy oracle as comparisons at equal bytes: if the KL follows the energy, mass and oracle give the same KL.
+
+\paragraph{Verdict of the judge.} Decoding of the 120b: \textbf{open}, reproduced. Variant B: ``holds'' at step 0, reproduced, but almost the oracle of its own measurement: nothing is said about quality. The gate saves 7.8 to 10.1\,\% of the bytes read in generation for 16 to 26\,\% of the energy of all-fast; only step 1 will say what the energy is worth.
+
+% =====================================================================================================
+\section{The map from the world to the pipeline}\label{t3mim:sec:carte}
+
+The sorting arranges each borrowed concept on the stage of the pipeline it touches: \textbf{F} the format and entropy coding, \textbf{Q} the choice of the symbols, \textbf{K} the cache of experts, \textbf{R} the routing, \textbf{L} reading, scheduling and prefetching, \textbf{J} the judge and the method. \Cref{t3mim:tab:carte} gives the essentials, with today's verdict (figure III-6.17, which would draw it, is not drawn). \Cref{t3mim:tab:bilan} gathers the six leads before their judges.
+
+\begin{table}[tbp]
+\centering\footnotesize
+\caption[The map from the world to the pipeline]{The map from the world to the pipeline: the borrowed concepts, their stage, their verdict (\fichier{genome/mimetisme/tri.md} §\,6, verdicts of the leads updated by their judges).}
+\label{t3mim:tab:carte}
+\renewcommand{\arraystretch}{1.08}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.2\linewidth}c>{\raggedright\arraybackslash}p{0.27\linewidth}@{}}
+\toprule
+Concept from the world & Domain & Stage & Verdict \\
+\midrule
+Slow and fast reservoir (Hasselmann); power-law forgetting (ACT-R) & climate; psychology & K & P1: open \\
+Seismic aftershocks (Omori--Utsu), Hawkes processes & seismology & K & closed (E1) \\
+Tides, periodic phase of the layer & geophysics & K & small gain, comparator of P1 \\
+Exclusive hierarchy (demotion) & storage & K & P2: open \\
+Compressed cache & architecture & K & dominated by P2 \\
+Nucleation, nucleus barrier & thermodynamics & K & closed (E3) \\
+Allocation by marginal utility (Charnov, hydraulics, METRIC) & ecology, hydrology, logistics & K & closed \\
+Admission by frequency (TinyLFU); segments with ghost lists & systems & K & closed in generation; not measured \\
+Sticky fault; item substitution, two choices & seismology; retail, queues & R & P3: borderline \\
+Tropical hypersurface, margin of the top-$k$ & mathematics & R & guard closed (\cref{t3tro:ch}); band in P3 \\
+Maslov smoothing & mathematics & R & closed \\
+Conformal prediction; case law & statistics; law & L & P4: open, rather fails \\
+Olfactory circuit of the fly & neuroscience & L & variant of P4 \\
+Background traffic that yields (TCP Nice, LEDBAT) & networks & L & in P4, not measured alone \\
+Parareal, COLA, P wave & simulation, earthquakes & L & closed (no byte) \\
+Batched verification; erasure codes & information & L & closed \\
+Buffer-based control (BOLA) & video & L & not measured, after P6 \\
+Fermi occupation, gate; foveation, triage, Pareto tail & physics; vision, medicine, economics & R, L & P6: open (decoding), step 0 (B) \\
+Iterative refinement in mixed precision & scientific computing & Q, L & in P6 \\
+Spin glass, annealing, replica exchange & physics of disordered systems & Q & P5: open \\
+Reverse water-filling by usage & rate--distortion & Q & not retained, to be grafted \\
+Tensor networks, holography, Landauer & condensed matter & F, Q & unfavourable, closed \\
+Seed, genome, duplication, Hebbian, spectra & biology & F, Q & closed (\crefrange{t3gen:ch}{t3pre:ch}, \cref{t3spe:ch}) \\
+Group sequential stopping & clinical trials & J & instrument \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[tbp]
+\centering\footnotesize
+\caption[The six leads before their judges]{The six leads before their judges.}
+\label{t3mim:tab:bilan}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}p{0.27\linewidth}>{\raggedright\arraybackslash}p{0.17\linewidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+Lead & Main number (judge) & Verdict of the judge & What is missing to decide \\
+\midrule
+P1 & LFU(32) $-$ LRU: $-0.0176$ at the threshold; $+0.0185$ on the real answer & open (mechanical ``fails'') & 4 generations of the 120b stopped at \texttt{<|return|>} \\
+P2 & disk share $-28$ and $-51\,\%$; demotion 11.5 and 27.2\,\% of the token & open & overlap of the demotion (engine ABBA), against the inclusive cache at $V+R$ \\
+P3 & $-10.03\,\%$ of misses, KL 0.0314 online & borderline & second draw (another text, another budget), in progress elsewhere \\
+P4 & precision 0.92; simulated gain $+3.3\,\%$ & open, rather fails & engine ABBA with the gate $\theta^\ast$ \\
+P5 & descent $-5.1\,\%$ of held-out error & open; mechanism not held & test of $N$ with a fixed source; real weights (step 2) \\
+P6 & decoding $r = 0.69$; prefill $r_B = 0.04$ to 0.06 & open; B holds at step 0 & end-to-end KL on the 20b (step 1) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% =====================================================================================================
+\section{What could be wrong}\label{t3mim:sec:faux}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{Two generation traces for the 120b, and they are degenerate.} P1, P2, P4 and P6 judge the generation on the same two traces of 256 tokens; half of prose-en is made of tokens produced after the end of the message, and wiki is a raw completion that repeats itself. The judges of P1 and P4 said so; those of P2 and P6 did not raise it, and their generation numbers carry the same reserve.
+\item \textbf{The simulated hit rates exceed those of the engine} (0.74 against 0.59 on prose-en): every simulated cache gain (P1, P2, P4, P6) is an upper bound before the ABBA of the engine. The expert sizes are equal in it, the warm RAM absent.
+\item \textbf{P3 rests only on its judgements}: a single budget carries the ``holds'', a single reading text, a single online pass; the second draw, in progress elsewhere, may confirm it as well as contradict it, and this chapter does not know it.
+\item \textbf{The simulator of P4 is not validated} (T3 missed): its gains are orders of magnitude with an unknown sign of error.
+\item \textbf{P5 is measured on synthetic} Gaussian weights, on 64 rows and the sole input $H$ of gate and up; the real weights have giant columns correlated with $H$, and the Babai--optimum gap may be larger or smaller there. No claim about the quality of the text.
+\item \textbf{P6 is measured in energy}, not in KL; and its ``holds'' at prefill could hardly fail.
+\item \textbf{The proposition on the inclusive cache} (\cref{t3mim:prop:inclusif}) is set out by the writing under a hypothesis on the rule of the engine (refreshing of the RAM at each access) read in the code by the judge, not executed; it explains the equality measured by the judge, it does not replace it.
+\item \textbf{The sources of the leads}: the sorting reopened no external source; the writing reread on 2026-10-29 the records of those this chapter cites (Crossref, arXiv, USENIX, RFC), not the papers. The scouts cited by number (``life \#1'') are known here only through their reports.
+\item \textbf{The ranking of the sorting is not measured}: ``gain $\times$ novelty $\times$ feasibility'' is a judgement of order; two leads ruled out (reverse water-filling by usage, BOLA) might be worth more than P4 or P5 once put in numbers.
+\item \textbf{The figures are outside the common style}: drawn by each lead, with their own titles (among them that of \cref{fig:t3-mim-p1-blocs}, which the judge corrects), their own number formatting and a panel title that runs over; they are included as they are, and the numbers read on them have been checked against the judgements, not redrawn.
+\end{itemize}
+\end{faux}

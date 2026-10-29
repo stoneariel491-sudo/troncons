@@ -1,0 +1,199 @@
+{
+ "outil": "temoin_garde.py",
+ "date": "2026-10-16T06:35:52",
+ "exe": "~/dev/cibles/troncons-O/release/troncons.exe",
+ "exe_sha256": "523c719026a95089c222e87b517d81cbf62a254f096f0379e36b470104ce7b95",
+ "cas": {
+  "G-XO3": {
+   "commande": "generer --modele ~/dev/modeles/trc/casse/gpt-oss-20b-casse-O3.trc --vocab ~/dev/modeles/trc/gpt-oss-20b.vocab.gguf --invite ~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt -n 32 --flux --repos 0 --sans-vram --journal <journal>",
+   "code": 1,
+   "erreur": "troncons : erreur : garde de production : couche 0, expert 30 : empreinte des 11836992 octets utiles lus 17d8974e2f9ef173 au lieu de 9aa7c5fb6dbbf107 (répertoire)",
+   "erreur_journal": "garde de production : couche 0, expert 30 : empreinte des 11836992 octets utiles lus 17d8974e2f9ef173 au lieu de 9aa7c5fb6dbbf107 (répertoire)",
+   "temoin": []
+  },
+  "G-XO3s": {
+   "commande": "generer --modele ~/dev/modeles/trc/casse/gpt-oss-20b-casse-O3.trc --vocab ~/dev/modeles/trc/gpt-oss-20b.vocab.gguf --invite ~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt -n 32 --flux --repos 0 --sans-vram --journal <journal> --sans-garde",
+   "code": 0,
+   "erreur": null,
+   "erreur_journal": null,
+   "temoin": [],
+   "texte_sha256": "48f70a4561e63ec6ec6c25b7f2dfd3180429d1a1f1184191a74cea2469a73aaa",
+   "ouverture_s": 1.6410903000000001,
+   "garde": false,
+   "garde_troncons": 0,
+   "lectures_troncons": 916,
+   "garde_lignes": 0,
+   "lectures_enchassement": 739,
+   "garde_octets": 0,
+   "garde_attente_s": 0.0,
+   "garde_octets_ouverture": 0,
+   "octets_lus_processus": {
+    "lectures": 1748,
+    "octets_ecrits": 2847,
+    "octets_lus": 12332045904,
+    "octets_lus_depuis_le_depart": 12346933630
+   },
+   "octets_comptes_moteur": {
+    "chargement_residents": 1302351872,
+    "lecteur": 12313747456,
+    "ouverture_tamponnee": 13224527,
+    "total": 13629323855
+   }
+  },
+  "G-T": {
+   "commande": "generer --modele ~/dev/modeles/trc/gpt-oss-20b.trc --vocab ~/dev/modeles/trc/gpt-oss-20b.vocab.gguf --invite ~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt -n 32 --flux --repos 0 --sans-vram --journal <journal> --casser-garde troncon:5",
+   "code": 1,
+   "erreur": "troncons : erreur : garde de production : couche 0, expert 4 : empreinte des 11904336 octets utiles lus 1bcd147c92d22dd7 au lieu de ededa173b1a6e8fb (répertoire)",
+   "erreur_journal": "garde de production : couche 0, expert 4 : empreinte des 11904336 octets utiles lus 1bcd147c92d22dd7 au lieu de ededa173b1a6e8fb (répertoire)",
+   "temoin": [
+    "troncons : témoin de la garde : un bit retourné dans un flux brut de couche 0, expert 4"
+   ]
+  },
+  "G-Ts": {
+   "commande": "generer --modele ~/dev/modeles/trc/gpt-oss-20b.trc --vocab ~/dev/modeles/trc/gpt-oss-20b.vocab.gguf --invite ~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt -n 32 --flux --repos 0 --sans-vram --journal <journal> --casser-garde troncon:5 --sans-garde",
+   "code": 0,
+   "erreur": null,
+   "erreur_journal": null,
+   "temoin": [
+    "troncons : témoin de la garde : un bit retourné dans un flux brut de couche 0, expert 5"
+   ],
+   "texte_sha256": "0298579f31341edce166df6a4dd0ddf7267ac698039e172274455cba23a1d96b",
+   "ouverture_s": 1.641583,
+   "garde": false,
+   "garde_troncons": 0,
+   "lectures_troncons": 803,
+   "garde_lignes": 0,
+   "lectures_enchassement": 739,
+   "garde_octets": 0,
+   "garde_attente_s": 0.0,
+   "garde_octets_ouverture": 0,
+   "octets_lus_processus": {
+    "lectures": 1635,
+    "octets_ecrits": 2936,
+    "octets_lus": 10975123024,
+    "octets_lus_depuis_le_depart": 10989968142
+   },
+   "octets_comptes_moteur": {
+    "chargement_residents": 1302351872,
+    "lecteur": 10956824576,
+    "ouverture_tamponnee": 13224527,
+    "total": 12272400975
+   }
+  },
+  "G-L": {
+   "commande": "generer --modele ~/dev/modeles/trc/gpt-oss-20b.trc --vocab ~/dev/modeles/trc/gpt-oss-20b.vocab.gguf --invite ~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt -n 32 --flux --repos 0 --sans-vram --journal <journal> --casser-garde ligne:3",
+   "code": 1,
+   "erreur": "troncons : erreur : garde de production : ligne d'enchâssement du jeton 13169 : empreinte 655a5f3dc6c4bd74 au lieu de efa78035965c447f",
+   "erreur_journal": "garde de production : ligne d'enchâssement du jeton 13169 : empreinte 655a5f3dc6c4bd74 au lieu de efa78035965c447f",
+   "temoin": [
+    "troncons : témoin de la garde : un bit retourné dans la ligne d'enchâssement du jeton 13169"
+   ]
+  },
+  "G-Ls": {
+   "commande": "generer --modele ~/dev/modeles/trc/gpt-oss-20b.trc --vocab ~/dev/modeles/trc/gpt-oss-20b.vocab.gguf --invite ~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt -n 32 --flux --repos 0 --sans-vram --journal <journal> --casser-garde ligne:3 --sans-garde",
+   "code": 0,
+   "erreur": null,
+   "erreur_journal": null,
+   "temoin": [
+    "troncons : témoin de la garde : un bit retourné dans la ligne d'enchâssement du jeton 13169"
+   ],
+   "texte_sha256": "48f70a4561e63ec6ec6c25b7f2dfd3180429d1a1f1184191a74cea2469a73aaa",
+   "ouverture_s": 1.6290857,
+   "garde": false,
+   "garde_troncons": 0,
+   "lectures_troncons": 916,
+   "garde_lignes": 0,
+   "lectures_enchassement": 739,
+   "garde_octets": 0,
+   "garde_attente_s": 0.0,
+   "garde_octets_ouverture": 0,
+   "octets_lus_processus": {
+    "lectures": 1748,
+    "octets_ecrits": 2941,
+    "octets_lus": 12332045904,
+    "octets_lus_depuis_le_depart": 12346891022
+   },
+   "octets_comptes_moteur": {
+    "chargement_residents": 1302351872,
+    "lecteur": 12313747456,
+    "ouverture_tamponnee": 13224527,
+    "total": 13629323855
+   }
+  },
+  "G-=a": {
+   "commande": "generer --modele ~/dev/modeles/trc/gpt-oss-20b.trc --vocab ~/dev/modeles/trc/gpt-oss-20b.vocab.gguf --invite ~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt -n 32 --flux --repos 0 --sans-vram --journal <journal>",
+   "code": 0,
+   "erreur": null,
+   "erreur_journal": null,
+   "temoin": [],
+   "texte_sha256": "48f70a4561e63ec6ec6c25b7f2dfd3180429d1a1f1184191a74cea2469a73aaa",
+   "ouverture_s": 2.6522063,
+   "garde": true,
+   "garde_troncons": 920,
+   "lectures_troncons": 920,
+   "garde_lignes": 739,
+   "lectures_enchassement": 739,
+   "garde_octets": 11051566960,
+   "garde_attente_s": 0.11141290000000001,
+   "garde_octets_ouverture": 615333888,
+   "octets_lus_processus": {
+    "lectures": 1790,
+    "octets_ecrits": 2846,
+    "octets_lus": 12995470928,
+    "octets_lus_depuis_le_depart": 13010316046
+   },
+   "octets_comptes_moteur": {
+    "chargement_residents": 1302351872,
+    "lecteur": 12977172480,
+    "ouverture_tamponnee": 13224527,
+    "total": 14292748879
+   }
+  },
+  "G-=b": {
+   "commande": "generer --modele ~/dev/modeles/trc/gpt-oss-20b.trc --vocab ~/dev/modeles/trc/gpt-oss-20b.vocab.gguf --invite ~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt -n 32 --flux --repos 0 --sans-vram --journal <journal> --sans-garde",
+   "code": 0,
+   "erreur": null,
+   "erreur_journal": null,
+   "temoin": [],
+   "texte_sha256": "48f70a4561e63ec6ec6c25b7f2dfd3180429d1a1f1184191a74cea2469a73aaa",
+   "ouverture_s": 1.6270209,
+   "garde": false,
+   "garde_troncons": 0,
+   "lectures_troncons": 920,
+   "garde_lignes": 0,
+   "lectures_enchassement": 739,
+   "garde_octets": 0,
+   "garde_attente_s": 0.0,
+   "garde_octets_ouverture": 0,
+   "octets_lus_processus": {
+    "lectures": 1752,
+    "octets_ecrits": 2846,
+    "octets_lus": 12380137040,
+    "octets_lus_depuis_le_depart": 12394982158
+   },
+   "octets_comptes_moteur": {
+    "chargement_residents": 1302351872,
+    "lecteur": 12361838592,
+    "ouverture_tamponnee": 13224527,
+    "total": 13677414991
+   }
+  },
+  "G-E2": {
+   "commande": "generer --modele ~/dev/modeles/trc/casse/gpt-oss-20b-casse-E2.trc --vocab ~/dev/modeles/trc/gpt-oss-20b.vocab.gguf --invite ~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt -n 32 --flux --repos 0 --sans-vram --journal <journal>",
+   "code": 1,
+   "erreur": "troncons : erreur : garde de production : couche 2, expert 19 : empreinte des 12034224 octets utiles lus 911910e0cb82a603 au lieu de 99a132d717a2d457 (répertoire)",
+   "erreur_journal": "garde de production : couche 2, expert 19 : empreinte des 12034224 octets utiles lus 911910e0cb82a603 au lieu de 99a132d717a2d457 (répertoire)",
+   "temoin": []
+  }
+ },
+ "verdicts": {
+  "G-XO3": "tient",
+  "G-XO3s (cassure)": "tombe comme attendu",
+  "G-T": "tient",
+  "G-Ts (cassure)": "tombe comme attendu",
+  "G-L": "tient",
+  "G-Ls (cassure)": "tombe comme attendu",
+  "G-=": "tient",
+  "G-E2": "troncons : erreur : garde de production : couche 2, expert 19 : empreinte des 12034224 octets utiles lus 911910e0cb82a603 au lieu de 99a132d717a2d457 (répertoire)"
+ }
+}

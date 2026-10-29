@@ -1,0 +1,198 @@
+% Figures du chapitre « La référence exacte et le juge » (Tome II), communes aux deux langues.
+% Chargé par le chapitre lui-même (garde \ifdefined\GrapheRefRampe), comme les autres chapitres du
+% Tome II. Chaque graphe lit un CSV commité : ceux du lot R (mesures/moteur/R/), du lot O, de
+% l'épreuve J1, ou les données dérivées de memoire/outils/tome2_reference_cache.py
+% (memoire/figures/tome2/donnees/t2r-*.csv). Styles TikZ préfixés « ref ».
+\providecommand{\DonneesTomeDeux}{\Racine/figures/tome2/donnees}
+\providecommand{\CsvLotR}{\Depot/mesures/moteur/R}
+
+\tikzset{
+  refboite/.style={draw=#1!80!black, fill=#1!12, rounded corners=1.5pt, align=center,
+    font=\sffamily\scriptsize, inner sep=3pt, minimum height=0.9cm},
+  refboite/.default=Accent,
+  reflien/.style={-{Latex[length=2.2mm]}, line width=0.7pt, draw=black!65},
+  refmesure/.style={font=\sffamily\scriptsize, fill=white, inner sep=1.2pt, text=black!80},
+}
+
+% --- Les chemins de la vérité : d'où vient chaque distribution que le juge compare.
+\newcommand{\SchemaRefChemins}{%
+\begin{tikzpicture}[font=\sffamily\scriptsize, node distance=0.55cm and 1.1cm]
+  \node[refboite=Disque, text width=2.2cm] (gguf) {\textbf{GGUF}\\ gpt-oss \EF{(MXFP4 experts, Q8\_0 attention)}{(experts MXFP4, attention Q8\_0)}};
+  \node[refboite=Mant, text width=3.1cm, right=1.5cm of gguf, yshift=1.9cm] (ref) {\textbf{trc-reference} (\EF{package R}{lot R})\\ f64, \EF{exact weights;}{poids exacts ;}\\ \EF{token by token}{jeton par jeton} $\equiv$ \EF{layer by layer}{couche par couche}};
+  \node[refboite=Mant, text width=3.1cm, below=0.45cm of ref] (np) {\textbf{gptoss\_numpy.py} (\EF{trial}{épreuve})\\ numpy f64, \EF{written from OpenAI's form}{écrite depuis la forme d'OpenAI}};
+  \node[refboite=Calcul, text width=3.1cm, below=0.45cm of np] (lc) {\textbf{llama.cpp b11515}\\ \EF{GPU and CPU paths, apart by}{carte et processeur, écartés de} $G_{\text{moteurs}}$\EF{;}{ ;} \EF{rounded YaRN ramp}{rampe YaRN arrondie}};
+  \node[refboite=Vram, text width=3.1cm, below=0.45cm of lc] (tr) {\textbf{troncons}\\ \EF{coded or raw}{codé ou brut} \texttt{.trc}, \EF{CUDA kernels}{noyaux CUDA}};
+  \node[refboite=Echelle, text width=2.4cm, right=1.9cm of np, yshift=-0.75cm, minimum height=3.2cm] (juge) {\textbf{\EF{judge}{juge}}\\ \EF{\texttt{.kld} files}{fichiers \texttt{.kld}} \\ (16 \EF{bits per logit}{bits par logit})\\[3pt] KL, \EF{top-1}{premier choix}, PPL\\[3pt] \EF{two paths:}{deux chemins :}\\ llama-perplexity, \texttt{juge kl}};
+  \foreach \n in {ref, np, lc, tr} \draw[reflien] (gguf.east) -- (\n.west);
+  \foreach \n in {ref, np, lc, tr} \draw[reflien] (\n.east) -- (juge.west);
+  \draw[Signe, line width=0.8pt, {Latex}-{Latex}] ([xshift=-0.35cm]ref.south east) -- node[refmesure, right=2pt] {\EF{0.504 step}{0,504 pas}} ([xshift=-0.35cm]np.north east);
+  \draw[Signe, line width=0.8pt, {Latex}-{Latex}] ([xshift=0.35cm]lc.south west) -- node[refmesure, left=2pt] {\EF{C4: each against the truth}{C4 : chacun contre la vérité}} ([xshift=0.35cm]tr.north west);
+  \draw[Signe, line width=0.8pt, {Latex}-{Latex}] ([xshift=-1.0cm]tr.south) to[bend right=40] node[refmesure, below=2pt] {\EF{C3: coded = raw, to the bit}{C3 : codé = brut, au bit}} ([xshift=0.6cm]tr.south);
+\end{tikzpicture}}
+
+% --- L'entrée d'un fichier .kld au bit près.
+\newcommand{\SchemaRefKld}{%
+\begin{tikzpicture}[x=0.62cm, y=0.62cm, font=\sffamily\scriptsize]
+  \foreach \i/\c/\t in {0/Echelle/{\EF{step}{pas} $\Delta$ (f32)}, 2/Expo/{$\log p_{\min}$ (f32)}}{
+    \fill[\c!30, draw=\c!80!black] (\i*2,0) rectangle ++(4,1);
+    \node at (\i*2+2,0.5) {\t};
+  }
+  \foreach \i in {0,...,6}{
+    \fill[Code!25, draw=Code!80!black] (8+\i*1.2,0) rectangle ++(1.2,1);
+  }
+  \node at (8.6,0.5) {$c_0$}; \node at (9.8,0.5) {$c_1$}; \node at (11,0.5) {$c_2$};
+  \node at (12.8,0.5) {$\cdots$};
+  \node at (15.8,0.5) {$c_{n-1}$};
+  \fill[pattern=north east lines, pattern color=black!35, draw=black!50] (16.4,0) rectangle ++(1.2,1);
+  \node[below] at (17,0) {\EF{padding}{bourrage}};
+  \draw[decorate, decoration={brace, amplitude=4pt}] (0,1.15) -- (8,1.15) node[midway, above=4pt] {4 \EF{words of 16 bits}{mots de 16 bits}};
+  \draw[decorate, decoration={brace, amplitude=4pt}] (8,1.15) -- (16.4,1.15) node[midway, above=4pt] {$n = $ \num{201088} \EF{codes}{codes} u16};
+  \draw[decorate, decoration={brace, mirror, amplitude=4pt}] (0,-0.6) -- (17.6,-0.6) node[midway, below=4pt, align=center]
+    {$n_v = 2\lceil n/2\rceil + 4 = $ \num{201092} \EF{words per scored position, 255 positions per 512-token window}{mots par position notée, 255 positions par fenêtre de 512 jetons}};
+  \node[anchor=north west, text width=11cm, align=left] at (0,-2.2)
+    {$\log \hat p_i = \Delta\, c_i + \log p_{\min}$, \quad $\Delta = (\max - m')/\num{65535}$, \quad $m' = \max(\min, \max - 16)$\EF{;}{ ;} \EF{every logit under $\max - 16$ receives code 0.}{tout logit sous $\max - 16$ reçoit le code 0.}};
+\end{tikzpicture}}
+
+% --- La rampe de YaRN : rapport ω_i/θ_i sur les 32 paires, définition d'OpenAI contre llama.cpp.
+\newcommand{\GrapheRefRampe}{%
+\begin{tikzpicture}
+\begin{semilogyaxis}[memoire, width=0.92\linewidth, height=0.5\linewidth,
+  xlabel={\EF{rotation pair $i$}{paire de rotation $i$}}, ylabel={$\omega_i/\theta_i$},
+  xmin=-0.5, xmax=31.5, ymin=0.02, ymax=1.6, xtick={0,4,...,28,31},
+  legend pos=south west, legend style={font=\scriptsize}]
+  \fill[Echelle!12] (axis cs:8.5,0.02) rectangle (axis cs:17.5,1.6);
+  \addplot[SerieA, mark=*, mark size=1.6pt, line width=1.1pt] table[x=paire, y=rapport_openai, comment chars={\#}] {\CsvLotR/r1/csv/rampe-yarn.csv};
+  \addlegendentry{\EF{OpenAI, real bounds 8.093 and 17.398}{OpenAI, bornes réelles 8,093 et 17,398}}
+  \addplot[SerieB, mark=square, mark size=1.8pt, densely dashed] table[x=paire, y=rapport_llamacpp, comment chars={\#}] {\CsvLotR/r1/csv/rampe-yarn.csv};
+  \addlegendentry{\EF{llama.cpp b11515, bounds 8 and 18}{llama.cpp b11515, bornes 8 et 18}}
+  \draw[black!50, densely dotted] (axis cs:-0.5,0.03125) -- (axis cs:31.5,0.03125) node[pos=0.75, above, font=\scriptsize] {$1/s = 1/32$};
+  \node[font=\scriptsize, align=center] at (axis cs:13,1.15) {\EF{the two differ only for $9 \le i \le 17$}{elles ne diffèrent que pour $9 \le i \le 17$}};
+\end{semilogyaxis}
+\end{tikzpicture}}
+
+% --- Répartition de la KL par position (20b, 2 550 positions), échelle logarithmique.
+\newcommand{\GrapheRefRepartition}{%
+\begin{tikzpicture}
+\begin{semilogxaxis}[memoire, width=0.95\linewidth, height=0.62\linewidth,
+  xlabel={\EF{KL per position (nat); values $\le 10^{-7}$ drawn at $10^{-7}$}{KL par position (nat) ; valeurs $\le 10^{-7}$ tracées à $10^{-7}$}},
+  ylabel={\EF{share of positions below}{part des positions en dessous}},
+  xmin=8e-8, xmax=20, ymin=0, ymax=1.01,
+  legend pos=north west, legend style={font=\scriptsize}, legend cell align=left]
+  \addplot[black, line width=1.2pt] table[x=plancher, y=f] {\DonneesTomeDeux/t2r-kl-repartition.csv};
+  \addlegendentry{\EF{floor: llama.cpp GPU twice}{plancher : llama.cpp carte deux fois}}
+  \addplot[SerieC, line width=1.4pt] table[x=troncons, y=f] {\DonneesTomeDeux/t2r-kl-repartition.csv};
+  \addlegendentry{\EF{truth $\|$ troncons (KV f16)}{vérité $\|$ troncons (KV f16)}}
+  \addplot[SerieE, line width=1pt] table[x=impose, y=f] {\DonneesTomeDeux/t2r-kl-repartition.csv};
+  \addlegendentry{\EF{ramp changed, routing imposed}{rampe changée, routage imposé}}
+  \addplot[SerieD, line width=1pt] table[x=rampe, y=f] {\DonneesTomeDeux/t2r-kl-repartition.csv};
+  \addlegendentry{\EF{ramp changed, free routing}{rampe changée, routage libre}}
+  \addplot[SerieA, line width=1pt] table[x=r1, y=f] {\DonneesTomeDeux/t2r-kl-repartition.csv};
+  \addlegendentry{R1\EF{:}{ :} \EF{truth $\|$ llama.cpp GPU}{vérité $\|$ llama.cpp carte}}
+  \addplot[SerieF, line width=1pt, densely dashed] table[x=gmoteurs, y=f] {\DonneesTomeDeux/t2r-kl-repartition.csv};
+  \addlegendentry{$G_{\text{moteurs}}$\EF{:}{ :} \EF{GPU $\|$ CPU}{carte $\|$ processeur}}
+  \addplot[SerieB, line width=1pt, densely dotted] table[x=cassure, y=f] {\DonneesTomeDeux/t2r-kl-repartition.csv};
+  \addlegendentry{\EF{break: no YaRN scale}{cassure : sans échelle de YaRN}}
+\end{semilogxaxis}
+\end{tikzpicture}}
+
+% --- La bascule de routage : marge entre le 4e et le 5e logit, perturbation qui la franchit.
+\newcommand{\SchemaRefBascule}{%
+\begin{tikzpicture}[x=0.36cm, y=1.0cm, font=\sffamily\scriptsize]
+  % 16 logits triés (les 32 du 20b ne tiendraient pas lisiblement ; l'ordre seul compte).
+  \foreach \i/\h in {1/2.9, 2/2.55, 3/2.25, 4/2.0, 5/1.75, 6/1.5, 7/1.32, 8/1.2, 9/1.05, 10/0.95, 11/0.8, 12/0.7, 13/0.6, 14/0.5, 15/0.42, 16/0.3}{
+    \ifnum\i<5 \fill[Vram!55, draw=Vram!80!black] (\i*1.3-0.45,0) rectangle (\i*1.3+0.45,\h);
+    \else \fill[Code!25, draw=Code!70!black] (\i*1.3-0.45,0) rectangle (\i*1.3+0.45,\h); \fi
+  }
+  \draw[black!60] (0.3,0) -- (21.5,0);
+  \draw[Signe, densely dashed] (0.3,1.875) -- (21.5,1.875) node[above, pos=0.85, font=\sffamily\scriptsize] {\EF{top-4 threshold}{seuil du top-4}};
+  \draw[{Latex[length=1.2mm]}-{Latex[length=1.2mm]}, Signe, line width=0.7pt] (5.85,1.75) -- (5.85,2.0);
+  \node[Signe, anchor=west] at (7.1,2.3) {$m = z_{(4)} - z_{(5)}$};
+  \node[below] at (5.2*1.0,0) {$z_{(4)}$}; \node[below] at (6.5,0) {$z_{(5)}$};
+  \node[anchor=north west, text width=9.5cm, align=left] at (0.3,-0.55)
+    {\EF{If a perturbation $\delta z$ of the logits makes $|\delta z_{(4)} - \delta z_{(5)}| > m$, expert 4 leaves and expert 5 enters. The layer output jumps by $g_4\,(E_4(h) - E_5(h))$, a quantity of order 1, whatever the size of $\delta z$; the jump enters the residual, then the keys and values of every later position.}%
+        {Si une perturbation $\delta z$ des logits fait $|\delta z_{(4)} - \delta z_{(5)}| > m$, l'expert 4 sort et l'expert 5 entre. La sortie de la couche saute de $g_4\,(E_4(h) - E_5(h))$, une grandeur d'ordre 1, quelle que soit la taille de $\delta z$ ; le saut entre dans le résidu, puis dans les clés et valeurs de toutes les positions suivantes.}};
+  \node[refboite=Vram, anchor=west] at (22.5,2.2) {\EF{chosen: 4 of 32}{choisis : 4 sur 32}};
+  \node[refboite=Code, anchor=west] at (22.5,1.2) {\EF{left out}{écartés}};
+\end{tikzpicture}}
+
+% --- KL par position contre la plus petite marge du routeur (20b, R1 : rampe changée, routage libre).
+\newcommand{\GrapheRefBascules}{%
+\begin{tikzpicture}
+\begin{loglogaxis}[memoire, width=0.95\linewidth, height=0.62\linewidth,
+  xlabel={\EF{smallest router margin of the position over the 24 layers}{plus petite marge du routeur de la position sur les 24 couches}},
+  ylabel={\EF{KL of the position (nat)}{KL de la position (nat)}},
+  xmin=1e-6, xmax=0.2, ymin=8e-8, ymax=3,
+  legend pos=north east, legend style={font=\scriptsize}]
+  \addplot[only marks, mark=*, mark size=0.7pt, SerieF, opacity=0.55] table[x=marge, y=kl] {\DonneesTomeDeux/t2r-bascules-autres.csv};
+  \addlegendentry{\EF{touched only through the KV cache (1\,393)}{touchée par le seul cache KV (1\,393)}}
+  \addplot[only marks, mark=*, mark size=0.8pt, SerieB, opacity=0.7] table[x=marge, y=kl] {\DonneesTomeDeux/t2r-bascules-soi.csv};
+  \addlegendentry{\EF{switches itself (1\,157): 96.5\,\% of the KL}{bascule elle-même (1\,157) : 96,5\,\% de la KL}}
+\end{loglogaxis}
+\end{tikzpicture}}
+
+% --- L'arbre des expériences de R1 (20b, 10 fenêtres), avec la KL moyenne de chaque feuille.
+\newcommand{\SchemaRefArbre}{%
+\begin{tikzpicture}[font=\sffamily\scriptsize, level distance=1.25cm,
+  level 1/.style={sibling distance=4.6cm}, level 2/.style={sibling distance=2.35cm},
+  every node/.style={refboite=Accent, text width=2.05cm, minimum height=0.75cm},
+  edge from parent/.style={draw=black!55, -{Latex[length=1.8mm]}}]
+  \node[text width=3.6cm] {\EF{truth: f64, OpenAI ramp}{vérité : f64, rampe d'OpenAI}}
+    child {node {\EF{change the ramp only}{changer la seule rampe}}
+      child {node[refboite=SerieD] {\EF{free routing}{routage libre}\\ \textbf{0,0145}}}
+      child {node[refboite=SerieE] {\EF{routing imposed}{routage imposé}\\ \textbf{0,00168}}}}
+    child {node {\EF{add rounding only (Q8\_0, f16 KV)}{ajouter les seuls arrondis (Q8\_0, KV f16)}}
+      child {node[refboite=SerieD] {\EF{to the llama ramp ref.}{contre la réf. à rampe llama}\\ \textbf{0,029}}}
+      child {node[refboite=SerieA] {\EF{llama.cpp CPU, vs this}{llama.cpp proc., contre elle}\\ \textbf{0,0220}}}}
+    child {node {\EF{break the ref.}{casser la réf.}}
+      child {node[refboite=SerieB] {\EF{no YaRN scale}{sans échelle de YaRN}\\ \textbf{0,249}}}
+      child {node[refboite=Mant] {\EF{replay (D)}{rejouer (D)}\\ \textbf{\EF{identical to the bit}{égal au bit}}}}};
+\end{tikzpicture}}
+
+% --- Le cache KV en f16 contre f32 : KL(vérité ‖ troncons) par position, moyenne glissante de 16.
+\newcommand{\GrapheRefKv}{%
+\begin{tikzpicture}
+\begin{groupplot}[group style={group size=2 by 1, horizontal sep=1.5cm},
+  memoire, width=0.48\linewidth, height=0.46\linewidth, ymin=-0.002,
+  scaled y ticks=false, yticklabel style={/pgf/number format/fixed, /pgf/number format/precision=3},
+  legend style={font=\scriptsize}, legend pos=north west]
+\nextgroupplot[title={\EF{window 0 (positions 256 to 510)}{fenêtre 0 (positions 256 à 510)}}, xlabel={position},
+  ylabel={\EF{KL, moving mean of 16 (nat)}{KL, moyenne glissante de 16 (nat)}}, xmin=256, xmax=510, ymax=0.024]
+  \addplot[SerieB, line width=1pt] table[x=position, y=f0_120b_f16] {\DonneesTomeDeux/t2r-kv-glissant.csv};
+  \addlegendentry{120b, KV f16}
+  \addplot[SerieD, line width=0.8pt, densely dashed] table[x=position, y=f0_20b_f16] {\DonneesTomeDeux/t2r-kv-glissant.csv};
+  \addlegendentry{20b, KV f16}
+  \addplot[SerieC, line width=1.3pt] table[x=position, y=f0_120b_f32] {\DonneesTomeDeux/t2r-kv-glissant.csv};
+  \addlegendentry{120b, KV f32}
+  \addplot[SerieA, line width=0.8pt, densely dotted] table[x=position, y=f0_20b_f32] {\DonneesTomeDeux/t2r-kv-glissant.csv};
+  \addlegendentry{20b, KV f32}
+\nextgroupplot[title={\EF{120b, 708-token prompt}{120b, invite de 708 jetons}}, xlabel={position}, xmin=354, xmax=706, ymax=0.055]
+  \addplot[SerieB, line width=1pt] table[x=position, y=invite_f16] {\DonneesTomeDeux/t2r-kv-invite-glissant.csv};
+  \addlegendentry{KV f16}
+  \addplot[SerieC, line width=1.3pt] table[x=position, y=invite_f32] {\DonneesTomeDeux/t2r-kv-invite-glissant.csv};
+  \addlegendentry{KV f32}
+  \draw[black!45, densely dotted] (axis cs:512,-0.002) -- (axis cs:512,0.055) node[pos=0.93, right, font=\scriptsize] {512};
+\end{groupplot}
+\end{tikzpicture}}
+
+% --- Accord de routage par couche entre le moteur et la vérité f64 (invite de 708 jetons).
+\newcommand{\GrapheRefRoutage}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=0.92\linewidth, height=0.5\linewidth,
+  xlabel={\EF{layer}{couche}}, ylabel={\EF{routing equal to the truth}{routage égal à la vérité}},
+  xmin=-0.5, xmax=35.5, ymin=0.78, ymax=1.005, legend pos=south west, legend style={font=\scriptsize},
+  yticklabel style={/pgf/number format/fixed, /pgf/number format/precision=2}]
+  \addplot[SerieA, mark=*, mark size=1.3pt, line width=0.9pt] table[x=couche, y=accord_256_511,
+    ref garder={modele}{120b}] {\Depot/mesures/moteur/epreuve-J1/csv/routage-par-couche-invite.csv};
+  \addlegendentry{\EF{120b, positions 256 to 511}{120b, positions 256 à 511}}
+  \addplot[SerieB, mark=square*, mark size=1.3pt, line width=0.9pt] table[x=couche, y=accord_512_plus,
+    ref garder={modele}{120b}] {\Depot/mesures/moteur/epreuve-J1/csv/routage-par-couche-invite.csv};
+  \addlegendentry{\EF{120b, positions 512 and beyond}{120b, positions 512 et au-delà}}
+  \addplot[SerieC, mark=triangle*, mark size=1.5pt, line width=0.9pt] table[x=couche, y=accord_512_plus,
+    ref garder={modele}{20b}] {\Depot/mesures/moteur/epreuve-J1/csv/routage-par-couche-invite.csv};
+  \addlegendentry{\EF{20b, positions 512 and beyond}{20b, positions 512 et au-delà}}
+\end{axis}
+\end{tikzpicture}}
+
+% Filtre « ref garder » (une ligne garde le graphe d'une seule valeur d'une colonne texte).
+\pgfplotsset{ref garder/.style 2 args={x filter/.append code={%
+  \edef\tempa{\thisrow{#1}}\edef\tempb{#2}\ifx\tempa\tempb\else\def\pgfmathresult{inf}\fi}}}

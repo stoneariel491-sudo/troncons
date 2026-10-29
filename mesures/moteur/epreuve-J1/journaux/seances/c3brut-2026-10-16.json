@@ -1,0 +1,368 @@
+{
+ "seance": "c3brut-2026-10-16",
+ "ordre": [
+  "E120b"
+ ],
+ "passes": {
+  "T120": [
+   "troncons",
+   [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "mesurer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-120b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--flux"
+   ]
+  ],
+  "L120": [
+   "llama",
+   [
+    "~/dev/modeles/llama.cpp-b11515/llama-completion.exe",
+    "-m",
+    "~/dev/modeles/gguf/gpt-oss-120b-MXFP4.gguf",
+    "-f",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--temp",
+    "0",
+    "--seed",
+    "1",
+    "-no-cnv",
+    "--no-display-prompt",
+    "--perf",
+    "--ignore-eos",
+    "-c",
+    "2048",
+    "-lv",
+    "4",
+    "-t",
+    "6"
+   ]
+  ],
+  "L120t10": [
+   "llama",
+   [
+    "~/dev/modeles/llama.cpp-b11515/llama-completion.exe",
+    "-m",
+    "~/dev/modeles/gguf/gpt-oss-120b-MXFP4.gguf",
+    "-f",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--temp",
+    "0",
+    "--seed",
+    "1",
+    "-no-cnv",
+    "--no-display-prompt",
+    "--perf",
+    "--ignore-eos",
+    "-c",
+    "2048",
+    "-lv",
+    "4",
+    "-t",
+    "10"
+   ]
+  ],
+  "T20": [
+   "troncons",
+   [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "mesurer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-20b.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-20b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--flux"
+   ]
+  ],
+  "T120tiede1": [
+   "troncons",
+   [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "mesurer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-120b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "256",
+    "--flux",
+    "--ram-tiede",
+    "1"
+   ]
+  ],
+  "D120": [
+   "disque",
+   [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "disque",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--n",
+    "1500",
+    "--graine",
+    "20261016",
+    "--profondeur",
+    "4"
+   ]
+  ],
+  "E120c": [
+   "evaluer",
+   [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "evaluer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--base",
+    "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+    "--fenetres",
+    "10",
+    "--positions",
+    "512",
+    "--flux"
+   ]
+  ],
+  "E120b": [
+   "evaluer",
+   [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "evaluer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b-brut.trc",
+    "--base",
+    "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+    "--fenetres",
+    "10",
+    "--positions",
+    "512",
+    "--flux",
+    "--brut"
+   ]
+  ],
+  "W120": [
+   "commande",
+   [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "generer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-120b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "4",
+    "--flux",
+    "--temoin",
+    "--repos",
+    "0"
+   ]
+  ],
+  "XE2": [
+   "commande",
+   [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "generer",
+    "--modele",
+    "~/dev/modeles/trc/casse/gpt-oss-20b-casse-E2.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-20b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "32",
+    "--flux",
+    "--repos",
+    "0"
+   ]
+  ],
+  "XO3": [
+   "commande",
+   [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "generer",
+    "--modele",
+    "~/dev/modeles/trc/casse/gpt-oss-20b-casse-O3.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-20b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "32",
+    "--flux",
+    "--repos",
+    "0"
+   ]
+  ],
+  "XO3t": [
+   "commande",
+   [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "generer",
+    "--modele",
+    "~/dev/modeles/trc/casse/gpt-oss-20b-casse-O3.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-20b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "32",
+    "--flux",
+    "--temoin",
+    "--repos",
+    "0"
+   ]
+  ],
+  "Y20": [
+   "commande",
+   [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "generer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-20b.trc",
+    "--vocab",
+    "~/dev/modeles/trc/gpt-oss-20b.vocab.gguf",
+    "--invite",
+    "~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt",
+    "-n",
+    "32",
+    "--flux",
+    "--repos",
+    "0"
+   ]
+  ],
+  "K120": [
+   "commande",
+   [
+    "~/dev/modeles/llama.cpp-b11515/llama-perplexity.exe",
+    "-m",
+    "~/dev/modeles/gguf/gpt-oss-120b-MXFP4.gguf",
+    "-ngl",
+    "99",
+    "--cpu-moe",
+    "-c",
+    "512",
+    "-b",
+    "512",
+    "-t",
+    "6",
+    "--seed",
+    "1",
+    "--chunks",
+    "1",
+    "-f",
+    "~/dev/essais/troncons/modeles/donnees/wiki.test.raw"
+   ]
+  ]
+ },
+ "passes_faites": [
+  {
+   "passe": "00-E120b",
+   "nom": "E120b",
+   "sorte": "evaluer",
+   "commande": [
+    "~/dev/cibles/troncons-epreuve/release/troncons.exe",
+    "evaluer",
+    "--modele",
+    "~/dev/modeles/trc/gpt-oss-120b-brut.trc",
+    "--base",
+    "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+    "--fenetres",
+    "10",
+    "--positions",
+    "512",
+    "--flux",
+    "--brut",
+    "--sortie",
+    "~\\dev\\essais\\troncons\\epreuve-J1\\c3brut-2026-10-16\\00-E120b.kld",
+    "--empreintes",
+    "~\\dev\\essais\\troncons\\epreuve-J1\\c3brut-2026-10-16\\00-E120b-empreintes.csv",
+    "--journal",
+    "~\\dev\\essais\\troncons\\epreuve-J1\\c3brut-2026-10-16\\00-E120b.json"
+   ],
+   "debut": "2026-10-16T04:12:35",
+   "alimentation_avant": "2",
+   "etrangers_avant": [],
+   "dispo_repos_mo": 10690.854912,
+   "vram_repos_mio": 348,
+   "mur_s": 287.41196727752686,
+   "code_retour": 0,
+   "memoire_os": {
+    "pointe_ensemble_travail": 301547520,
+    "pointe_engagee_privee": 6843375616,
+    "fautes_de_page": 90532,
+    "ensemble_travail": 49152
+   },
+   "es_os": {
+    "lectures": 36340,
+    "octets_lus": 413996581417,
+    "octets_ecrits": 1025756932,
+    "autres_octets": 3306
+   },
+   "dispo_min_mo": 9909.399552,
+   "perte_machine_mo": 781.4553599999999,
+   "vram_pointe_mio": 6647,
+   "n_echantillons_vram": 882,
+   "alimentation_apres": "2",
+   "programme": {
+    "pas": 0,
+    "pas_s": 0.0,
+    "secondes": 285.0620899,
+    "ppl_positions_notees": 422.20558522791305,
+    "empreinte_csv_sha256": "a80f5f04f28f82ccb4f874dfea0890a18f242545bb0ffd807b0cfee97f1d9498",
+    "alimentation": {
+     "ACLineStatus": 1,
+     "BatteryFlag": 1,
+     "BatteryLifePercent": 80,
+     "secteur": true
+    },
+    "compteurs": {
+     "acces": 31102,
+     "defauts_disque": 31102,
+     "emplacements": 325,
+     "evictions": 30777,
+     "experts_decodes": 31102,
+     "experts_verifies": 0,
+     "h_vram": 0.0,
+     "lectures_enchassement": 5120,
+     "lectures_troncons": 31102,
+     "ms_copie_carte": 0.0,
+     "ms_decodage_carte": 0.0,
+     "octets_copies_cache": 412246310912,
+     "octets_disque_cache": 412246310912,
+     "octets_dma": 412246310912,
+     "octets_lus": 413973929984,
+     "octets_lus_enchassement": 41943040,
+     "octets_lus_troncons": 412246310912,
+     "pas": 0,
+     "pf_emis": 0,
+     "pf_octets": 0,
+     "pf_utiles": 0,
+     "s_attente_routeur": 0.0,
+     "s_fin_jeton": 0.0,
+     "s_lectures": 0.0,
+     "s_pas": 285.0479655,
+     "succes_ram": 0,
+     "succes_vram": 0,
+     "tiedes": 0
+    }
+   },
+   "fin": "2026-10-16T04:17:35"
+  }
+ ]
+}

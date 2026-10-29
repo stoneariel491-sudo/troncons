@@ -1,0 +1,88 @@
+% Sources du placement disque (genome/08-placement-disque.md). Consultées le 2026-10-22, User-Agent
+% troncons-recherche/1.0 ; chaque adresse a répondu 200 ce jour-là.
+
+@inproceedings{hahn2017janusd,
+  author    = {Hahn, Sangwook Shane and Lee, Sungjin and Ji, Cheng and Chang, Li-Pin and Yee, Inhyuk and Shi, Liang and Xue, Chun Jason and Kim, Jihong},
+  title     = {Improving File System Performance of Mobile Storage Systems Using a Decoupled Defragmenter},
+  booktitle = {2017 USENIX Annual Technical Conference (USENIX ATC 17)},
+  year      = {2017},
+  publisher = {USENIX Association},
+  url       = {https://www.usenix.org/conference/atc17/technical-sessions/presentation/hahn},
+  urldate   = {2026-10-22},
+  note      = {Fragmentation logique (système de fichiers) et physique (FTL) découplées sur la mémoire flash ; la perte vient surtout de la logique ; la défragmentation physique demande des copies.}
+}
+
+@inproceedings{conway2017aging,
+  author    = {Conway, Alex and Bakshi, Ainesh and Jiao, Yizheng and Zhan, Yang and Bender, Michael A. and Jannen, William and Johnson, Rob and Kuszmaul, Bradley C. and Porter, Donald E. and Yuan, Jun and Farach-Colton, Martin},
+  title     = {File Systems Fated for Senescence? Nonsense, Says Science!},
+  booktitle = {15th USENIX Conference on File and Storage Technologies (FAST 17)},
+  year      = {2017},
+  publisher = {USENIX Association},
+  url       = {https://www.usenix.org/conference/fast17/technical-sessions/presentation/conway},
+  urldate   = {2026-10-22},
+  note      = {Vieillissement des systèmes de fichiers : la disposition, pas le support, ralentit les lectures (jusqu'à un facteur 30 sur ext4 et ZFS).}
+}
+
+@inproceedings{kadekodi2018geriatrix,
+  author    = {Kadekodi, Saurabh and Nagarajan, Vaishnavh and Ganger, Gregory R. and Gibson, Garth A.},
+  title     = {Geriatrix: Aging what you see and what you don't see. A file system aging approach for modern storage systems},
+  booktitle = {2018 USENIX Annual Technical Conference (USENIX ATC 18)},
+  year      = {2018},
+  publisher = {USENIX Association},
+  url       = {https://www.usenix.org/conference/atc18/presentation/kadekodi},
+  urldate   = {2026-10-22},
+  note      = {Sur SSD, le vieillissement de l'espace libre pèse plus que sur disque mécanique (jusqu'à 75 % d'écart sur les mesures publiées).}
+}
+
+@manual{ms2018retrievalpointers,
+  author       = {{Microsoft}},
+  title        = {FSCTL\_GET\_RETRIEVAL\_POINTERS IOCTL (winioctl.h)},
+  organization = {Microsoft Learn},
+  year         = {2018},
+  date         = {2018-12-05},
+  url          = {https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_get_retrieval_pointers},
+  urldate      = {2026-10-22}
+}
+
+@manual{ms2025filebuffering,
+  author       = {{Microsoft}},
+  title        = {File Buffering},
+  organization = {Microsoft Learn},
+  year         = {2025},
+  date         = {2025-05-31},
+  url          = {https://learn.microsoft.com/en-us/windows/win32/fileio/file-buffering},
+  urldate      = {2026-10-22},
+  note         = {FILE\_FLAG\_NO\_BUFFERING : décalage, longueur et adresse alignés sur le secteur ; le cache du système n'est pas utilisé.}
+}
+
+@manual{ms2025nvme,
+  author       = {{Microsoft}},
+  title        = {Working with NVMe Drives},
+  organization = {Microsoft Learn},
+  year         = {2025},
+  date         = {2025-09-30},
+  url          = {https://learn.microsoft.com/en-us/windows/win32/fileio/working-with-nvme-devices},
+  urldate      = {2026-10-22},
+  note         = {IOCTL\_STORAGE\_QUERY\_PROPERTY, StorageDeviceProtocolSpecificProperty : page de journal SMART / santé (02h) lue depuis l'espace utilisateur.}
+}
+
+@manual{ms2018setfileinformation,
+  author       = {{Microsoft}},
+  title        = {SetFileInformationByHandle function (fileapi.h)},
+  organization = {Microsoft Learn},
+  year         = {2018},
+  date         = {2018-12-05},
+  url          = {https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-setfileinformationbyhandle},
+  urldate      = {2026-10-22},
+  note         = {FileAllocationInfo : réserver l'allocation d'un fichier avant de l'écrire.}
+}
+
+@manual{nvme2026specs,
+  author       = {{NVM Express, Inc.}},
+  title        = {NVM Express Specifications (Base Specification, SMART / Health Information log page 02h)},
+  organization = {NVM Express},
+  year         = {2026},
+  date         = {2026-08-04},
+  url          = {https://nvmexpress.org/specifications/},
+  urldate      = {2026-10-22}
+}

@@ -1,0 +1,17 @@
+# trc-cache (lot O) : le cache d'experts du moteur, ses politiques, et le simulateur qui rejoue
+# une trace de routage avec le MÊME code (ARCHITECTURE.md § 5.7).
+[package]
+name = "trc-cache"
+description = "Cache d'experts de troncons (VRAM, RAM tiède), politiques et simulateur"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+# La bibliothèque n'a aucune dépendance : le cache vit sur le chemin critique de chaque couche.
+
+[[bin]]
+# rejouer : le simulateur en ligne de commande, pour le témoin O1 contre l'étude 04.
+name = "rejouer"
+path = "src/bin/rejouer.rs"

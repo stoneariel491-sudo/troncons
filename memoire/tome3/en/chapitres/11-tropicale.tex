@@ -1,0 +1,375 @@
+% Volume~III, chapter 11: the tropical geometry of the router (English version). Translator EN2, 2026-10-29,
+% from memoire/tome3/fr/chapitres/11-tropicale.tex (writer B, as corrected); same labels, same macros, same numbers.
+% Plan and reserves: memoire/tome3/PLAN-redaction.md § 11.
+% Every number comes from a committed file read at the time of writing: genome/pistes/tropicale/garde-tropicale.md
+% (with its struck-through sentences), pour-le-memoire.md, seuil-declare.md, seuil-declare-indices.md, JUGEMENT.md (two
+% judgements, 2026-10-22 and 2026-10-27), and the logs of mesures/pistes/tropicale/. This whole folder is read-only:
+% the figures are called by their macros (genome/pistes/tropicale/figures-tropicale.tex, loaded by
+% memoire/tome3/commun/figures.tex) and their captions are written here.
+
+\chapter{The tropical geometry of the router}\label{t3tro:ch}
+
+\begin{origine}
+\textbf{At the start}, lot R of Volume~II had shown that routing flips carry most of the KL between two close computations: imposing the routing of the reference removes 88\,\% of it, and 96.5\,\% of the KL lies on the positions that flip; the router margin, the gap between its 4th and 5th logit, had a median of 0.083 over all cells and 0.0095 over those that flip. The synthesis of the round (\fichier{genome/05-synthese.md} §\,3.1) had drawn an idea of Stone's from it: a \emph{guard} that would read this margin and redo only the fragile cells in exact mode. It remained to be judged.
+\textbf{This chapter establishes} that the guard falls at the threshold declared before the reading: for 10\,\% of the cells flagged, it catches 57.1\,\% of the flips (2\,905 out of 5\,087), far from the 80\,\% required, and 80\,\% would cost 26.6\,\%. It poses the geometry that makes the margin a distance (the router is a tropical polynomial, its regions polyhedra), measures the laws of the margin (almost exponential), of the flip ($\Phi(-m/\sigma)$, plateau $\tfrac12$) and of the propagation (26.6\,\% against 3.4\,\%), proves a closed form of the guard's curve, which depends only on a dimensionless number $\kappa$, and says, with its judge, what this theorem does not explain. Two explorations, after the verdict and stated as such: the guard catches 85.2\,\% of the cascade roots; a guard that remembers the conflict gains $+1.61$ points, below the 5 declared.
+\textbf{What remains} is a routing log of the fast mode, to know its $\kappa$ and judge the guard of the roots, and the measurement of the repair: does redoing a layer in exact mode extinguish the root and its consequences?
+Sources: \fichier{genome/pistes/tropicale/garde-tropicale.md}, \fichier{pour-le-memoire.md}, \fichier{seuil-declare.md}, \fichier{seuil-declare-indices.md}, \fichier{JUGEMENT.md}; \fichier{mesures/pistes/tropicale/} (logs, figures, \fichier{indices/}, \fichier{juge/}); tools \fichier{outils/pistes/tropicale/}.
+\end{origine}
+
+\begin{enbref}
+The router of a layer gives a score to each of the 32 experts and keeps the four best. The space of its inputs is therefore cut into regions, one per quartet, and these regions are polyhedra: pieces with flat faces. An input close to a face is fragile: a slight change moves it to another quartet, and this change, a ``flip'', costs dearly in quality. The margin measures this closeness. The idea of the guard is that of a controller that watches only the borderline cases; the image is borrowed from the cingulate cortex, which monitors the conflict between two competing responses, and it is only an image. The measurement says that it watches the first layers well and the last ones badly, because one flip brings others, far from the faces, that the margin cannot see.
+\end{enbref}
+
+% =====================================================================================================
+\section{The question and the declared threshold}\label{t3tro:sec:question}
+
+The router of layer $\ell$ computes $z = W_r h + b_r$ (32 logits) and keeps the four largest. The fast mode (\cref{t3sno:ch}) replaces exact experts by compressed experts; the error it introduces moves the state $h$ and, near a face, makes the choice of the next layer flip. \emph{The guard}: in fast mode, after the fast experts of layer $\ell$, the engine reads the margin of the router of $\ell + 1$; below a threshold $\tau$, it redoes layer $\ell$ in exact mode for that position.
+
+Its cost is the share of (layer, position) cells flagged, $c(\tau)$; its gain the share of flips flagged, $b(\tau)$. \textbf{Declared threshold} (\fichier{genome/pistes/tropicale/seuil-declare.md}, commit \texttt{69260f1}, before any reading): the guard is worth building if it catches at least 80\,\% of the flips while flagging at most 10\,\% of the cells. The 10\,\% derives from the cost: an exact-expert miss on 10\,\% of the cells costs at most 10\,\% of the bytes of the exact mode. The guard runs in the fast computation and sees only its own margin; the margin that decides is that of $B$, the computation that departs from the reference $A$. The prediction, written in the same declaration: 55 to 65\,\%, hence a failure.
+
+The judge checked the order by \texttt{git log}: the threshold (\texttt{69260f1}, 2026-10-21 23:22:18, the only commit of this file) precedes the first reading tools (\texttt{4b2a8eb}, 23:23:32) and the verdict (\texttt{77d8110}, 23:25:17); git does not prove that no exploratory reading took place before, and the clock of the lead's notes is wrong by a few minutes (\fichier{JUGEMENT.md} §\,1).
+
+% =====================================================================================================
+\section{The router as a tropical polynomial}\label{t3tro:sec:tropical}
+
+Let $z(h) = W_r h + b_r \in \mathbb{R}^{32}$, $W_r = [w_1 \dots w_{32}]^\top$. For a set $S$ of $k = 4$ indices, the region
+\begin{equation}\label{t3tro:eq:region}
+P_S = \{\, h : z_i(h) \ge z_j(h),\ \forall i \in S,\ \forall j \notin S \,\}
+\end{equation}
+is an intersection of $k(32 - k) = 112$ half-spaces: a convex polyhedron, possibly empty. The $P_S$ cover the space and overlap only on their boundaries.
+
+\begin{proposition}[The top-$k$ is a tropical polynomial]\label{t3tro:prop:tropical}
+The function $F_k(h) = \max_{|S| = k} \sum_{i \in S} z_i(h)$ is a polynomial of the $(\max, +)$ semiring in the affine forms $z_i$; it is convex and piecewise affine, its pieces are the $P_S$, and its locus of non-differentiability, its tropical hypersurface, is the union of the faces $\{z_i = z_j\}$ where $i$ is at rank 4 and $j$ at rank 5.
+\end{proposition}
+\begin{proof}
+In the tropical semiring, the ``sum'' is the max and the ``product'' is $+$: $F_k$ is the tropical sum of the monomials $\bigodot_{i \in S} z_i$, hence a tropical polynomial; as a maximum of affine functions, it is convex and piecewise affine. On the interior of $P_S$, the max is attained by $S$ alone (any other set replaces an $i \in S$ by a $j \notin S$ with $z_j < z_i$), and $F_k$ is affine there with gradient $\sum_{i\in S} w_i$. Two sets attain the max at once exactly when an element of rank 4 can be exchanged for an element of rank 5 without changing the sum, that is on $\{z_{(4)} = z_{(5)}\}$.
+\end{proof}
+This is the frame of Zhang, Naitzat and Lim for ReLU networks \cite{zhang2018tropical}; the top-$k$ falls under it through the same algebra.
+
+\begin{definition}[Margin]\label{t3tro:def:marge}
+The margin of a cell is $m(h) = z_{(4)}(h) - z_{(5)}(h) \ge 0$, the gap between the 4th and the 5th logit. It is zero exactly on the tropical hypersurface.
+\end{definition}
+
+\begin{proposition}[The margin as a distance]\label{t3tro:prop:distance}
+Let $h$ be interior to $P_S$. (a) In the space of logits, the distance from $z$ to the boundary of its region is $m/\sqrt 2$. (b) In the space of states, the distance from $h$ to the boundary of $P_S$ is
+\begin{equation}\label{t3tro:eq:distance}
+d(h, \partial P_S) = \min_{i \in S,\, j \notin S} \frac{z_i(h) - z_j(h)}{\lVert w_i - w_j \rVert} \;\ge\; \frac{m(h)}{\max_{i \in S,\, j\notin S} \lVert w_i - w_j\rVert},
+\end{equation}
+and the distance to the face of the pair $(i, j)$ of ranks 4 and 5 is exactly $m/\lVert w_i - w_j \rVert$.
+\end{proposition}
+\begin{proof}
+The distance from an interior point to the boundary of a convex polyhedron is the minimum of its distances to the hyperplanes that define it: the point nearest to the boundary lies on one of them, and a redundant hyperplane, which carries no face, lies beyond the boundary. The distance from $h$ to $\{z_i = z_j\}$ is $(z_i - z_j)/\lVert w_i - w_j\rVert$, hence the equality of (b); each numerator is at least $m$, hence the bound. (a) is the same computation in the coordinates $z$, where $w_i - w_j$ becomes $e_i - e_j$, of norm $\sqrt 2$, and the smallest numerator is $m$.
+\end{proof}
+The lead's note writes that $m/\lVert w_i - w_j\rVert$, for the pair of ranks 4 and 5, bounds from below the distance to any boundary of the region. This is true of that face, and in the space of logits; in the space of states, another pair whose router vectors differ more may be closer, and the general bound is that of \eqref{t3tro:eq:distance}. The guard band $\{m < \tau\}$ is therefore, along the face of the pair $(i, j)$, a slab of thickness $\tau/\lVert w_i - w_j\rVert$ on each side, and of half-thickness $\tau/\lVert P(w_i - w_j)\rVert$ in a cut by a plane of projector $P$ (\cref{fig:t3-trop-coupe}): wide where two neighbouring experts resemble each other in the plane.
+
+\begin{figure}[tbp]
+\centering
+\FigureTropicaleCoupe
+\caption[The real polyhedra of the router of layer 12]{\textbf{The real router cuts the space of states into polyhedra; the guard band follows their faces, wider where two neighbouring experts resemble each other.} \calc~The top-4 regions of the router of layer 12 of gpt-oss-20b, in the plane of the first two right singular directions of $W_r$ ($h = a u + b v$, through the origin of the space of normalised states); in red, the band $\{m < \tau_{10}\}$. Left: 92 regions over $8 \times 8$ logits; right: the enlargement of a cluster ($0.7 \times 0.7$ logit). A two-dimensional cut of a space of 2\,880: the geometry is true in it, the areas are not probabilities, and the framing of the enlargement is a choice. \HorsStyle\sourcefig{\fichier{mesures/pistes/tropicale/figures/coupe-routeur-c12-en.png}; script \fichier{outils/pistes/tropicale/figures.py}.}}
+\label{fig:t3-trop-coupe}
+\end{figure}
+
+% =====================================================================================================
+\section{The data and the controls}\label{t3tro:sec:donnees}
+
+\paragraph{The data.} Three routing logs of lot R (commit \texttt{21453da}, SHA-256 fingerprints in the declaration), gpt-oss-20b, 24 layers $\times$ 5\,110 positions (10 windows of 511), that is 122\,640 cells: $A$ (\texttt{ref-openai-bis}), $B$ (\texttt{ref-llamacpp-bis}), $C$ (the position ramp of llama.cpp with the routing of $A$ imposed). A flip is a cell where the \emph{sets} of four experts of $A$ and $B$ differ: 5\,087. (Comparing the ordered lists would count 11\,028; the top-4 is a set, the internal order does not change the experts called.) These are the only logs of the repository that carry a margin. \textbf{No routing log of the fast mode exists}: the perturbation measured here is that of two exact computations, the position ramp of OpenAI and that of llama.cpp.
+
+\begin{table}[tbp]
+\centering\small
+\caption[The tropical guard: the controls]{The tropical guard: the controls of the instrument, each with its break \mes.}
+\label{t3tro:tab:temoins}
+\renewcommand{\arraystretch}{1.1}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.2\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.18\linewidth}>{\raggedright\arraybackslash}p{0.2\linewidth}@{}}
+\toprule
+Control & Known answer & Obtained & Break \\
+\midrule
+T1, the reading & 5\,087 flips and the 8 margin quantiles of the summary of lot R & to the last digit of f32 & one expert byte changed: 5\,088; step of 7 bytes: refused \\
+T2, the answer in advance & $A$ against $C$ (imposed routing): 0 flips & 0 & one expert changed: 1 \\
+T3, the instrument discriminates & permuted margins: $b(\tau_{10}) = 10 \pm 2\,\%$; oracle margins: $b = 100\,\%$ for $c \le 4.2\,\%$ & 10.05\,\%; 100\,\% at 4.15\,\% & (its own break) \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{mesures/pistes/tropicale/temoins.json}; \fichier{genome/pistes/tropicale/garde-tropicale.md} §\,2.}
+\end{table}
+
+T3 is its own break: the same instrument returns 10\,\% when the margin knows nothing and 100\,\% when it knows everything (\cref{t3tro:tab:temoins}). The judge redid T2 and T3 with its code, and added its own: one byte changed on a cell without a flip gives 5\,088; its permuted margins give 10.4\,\%; and a control J5, which puts 600 uncaught flips at zero margin, expects $2\,905 + 600 - 64 = 3\,441$ caught and obtains them. Its first writing expected \barre{$2\,905 + 600 = 3\,505$}: it forgot that the 600 cells entering at the top push out 600, of which 64 are flips (\fichier{JUGEMENT.md} §\,3).
+
+% =====================================================================================================
+\section{The verdict: the curve of the guard}\label{t3tro:sec:verdict}
+
+\begin{table}[tbp]
+\centering\small
+\caption[The curve of the guard]{The curve of the guard: cells and flips below the threshold $\tau$ of the margin of $B$ \mes. The judge redoes it by an explicit ranking of the 122\,640 cells, without an interpolated threshold, to the unit.}
+\label{t3tro:tab:courbe}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+$\tau$ & cells below $\tau$ & share of cells $c$ & flips below $\tau$ & share of flips $b$ \\
+\midrule
+$10^{-4}$ & 106 & 0.09\,\% & 58 & 1.1\,\% \\
+$3.16 \cdot 10^{-4}$ & 336 & 0.27\,\% & 168 & 3.3\,\% \\
+$10^{-3}$ & 995 & 0.81\,\% & 477 & 9.4\,\% \\
+$3.16 \cdot 10^{-3}$ & 3\,238 & 2.64\,\% & 1\,265 & 24.9\,\% \\
+$10^{-2}$ & 10\,089 & 8.23\,\% & 2\,654 & 52.2\,\% \\
+$\boldsymbol{\tau_{10} = 0.012410}$ & \textbf{12\,264} & \textbf{10.00\,\%} & \textbf{2\,905} & \textbf{57.1\,\%} \\
+$1.58 \cdot 10^{-2}$ & 15\,406 & 12.56\,\% & 3\,167 & 62.3\,\% \\
+$3.16 \cdot 10^{-2}$ & 28\,733 & 23.43\,\% & 3\,932 & 77.3\,\% \\
+$0.0366$ (80\,\% of the flips) & 32\,623 & 26.60\,\% & 4\,070 & 80.0\,\% \\
+$10^{-1}$ & 69\,090 & 56.34\,\% & 4\,829 & 94.9\,\% \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/pistes/tropicale/courbe-garde.csv}, \fichier{garde-resume.json}, \fichier{second-chemin.json}; judge: \fichier{mesures/pistes/tropicale/juge/juge.json}.}
+\end{table}
+
+\textbf{At the declared threshold, the guard falls}: at the decile $\tau_{10} = 0.012410$, it flags 12\,264 cells and catches 2\,905 flips out of 5\,087, 57.1\,\% (\cref{t3tro:tab:courbe,fig:t3-trop-courbe}). For 80\,\% it would need 32\,623 cells, 26.6\,\%. The prediction written beforehand (55 to 65\,\%) holds. The second path (a reading in pure Python, through the reading function of lot R, counting by loops) returns the same 2\,905 flips on the same 12\,264 cells; so does the judge, with its own code and an explicit ranking (a single tie at the boundary, without ambiguity). The threshold $\tau_{10}$ is the decile of the margins measured on the logs themselves: this favours the guard, which falls nonetheless.
+
+\begin{figure}[tbp]
+\centering
+\GrapheTropicaleCourbe
+\caption[The curve of the tropical guard]{\textbf{The guard catches 57.1\,\% of the flips for 10\,\% of the cells, far from the declared build zone; it catches 85.2\,\% of the cascade roots.} \mes~Share of flips caught against share of cells flagged ($m_B < \tau$): all flips (the verdict), the cascade roots and the flips that follow a flip (explored after the verdict), the non-deployable oracle $\min(m_A, m_B)$, and chance. Green zone: the build zone declared before the reading ($c \le 10\,\%$, $b \ge 80\,\%$). \sourcefig{\fichier{mesures/pistes/tropicale/figures/fig-courbe.csv}; script \fichier{outils/pistes/tropicale/figures.py}.}}
+\label{fig:t3-trop-courbe}
+\end{figure}
+
+\paragraph{The variants, which do not decide.} The margin of $A$ instead of $B$: 56.1\,\% (area under the ROC curve 0.862 for both). The non-deployable oracle $\min(m_A, m_B)$: 65.7\,\%, and 80\,\% for 16.9\,\% of the cells; even it misses the threshold. Only the positions scored by the judge of lot R: 53.4\,\%. A cross-check under another perturbation (the card's engine against the reference, 22 flips) catches 9 flips out of 22; it judges nothing (95\,\% interval from 21 to 64\,\%), but does not contradict \mes.
+
+\paragraph{Depth.} The guard sees the first layers well and the last ones badly (\cref{t3tro:tab:couches,fig:t3-trop-couches}). The robust scale of the perturbation of the gap, $\delta = m_A - m_B$ on the cells without a flip with a large margin ($m_B > 0.1$), rises from 0.0022 at layer 0 to 0.0059--0.0086 at layers 9 to 23. A guard tuned layer by layer ($\tau_\ell$ learnt on five windows, judged on the other five, then the reverse) gains nothing: 55.4 and 56.0\,\% against 55.9 and 58.7\,\% for the global $\tau$ on the same halves \mes.
+
+\begin{table}[tbp]
+\centering\small
+\caption[The guard by layer]{The guard by layer, at the global $\tau_{10}$ \mes. The ranges are redone by the judge.}
+\label{t3tro:tab:couches}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Layers & flip rate & $b(\tau_{10})$ & median margin at the flips & ROC area \\
+\midrule
+0 & 0.72\,\% & 100\,\% & 0.0013 & 0.991 \\
+1 to 4 & 1.3 to 1.9\,\% & 86.0 to 91.0\,\% & 0.0029 to 0.0045 & 0.956 to 0.961 \\
+5 to 7 & 2.1 to 3.1\,\% & 73.9 to 79.6\,\% & 0.0042 to 0.0060 & 0.930 to 0.957 \\
+8 to 14 & 3.3 to 5.0\,\% & 51.2 to 58.6\,\% & 0.0092 to 0.0113 & 0.851 to 0.896 \\
+15 to 23 & 4.7 to 8.1\,\% & 37.8 to 60.5\,\% & 0.0084 to 0.0199 & 0.771 to 0.864 \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/pistes/tropicale/decile-par-couche.csv}.}
+\end{table}
+
+\begin{figure}[tbp]
+\centering
+\GrapheTropicaleCouches
+\caption[The guard by layer]{\textbf{The guard sees the first layers and loses the last ones, as the perturbation grows.} \mes~Share of flips caught at the global $\tau_{10}$, by layer: all, roots, flips that follow a flip; dashes (right axis): the robust scale of the perturbation $\delta$. Horizontal line: 80\,\%. \sourcefig{\fichier{mesures/pistes/tropicale/figures/fig-par-couche.csv}; script \fichier{outils/pistes/tropicale/figures.py}.}}
+\label{fig:t3-trop-couches}
+\end{figure}
+
+% =====================================================================================================
+\section{Why it falls}\label{t3tro:sec:pourquoi}
+
+\subsection{The law of the margin: almost exponential}\label{t3tro:sec:loi-marge}
+
+\begin{lemme}[Rényi representation]\label{t3tro:lem:renyi}
+If $X_1, \dots, X_n$ are independent exponentials of rate $\lambda$, sorted in decreasing order $X_{(1)} \ge \dots \ge X_{(n)}$, the spacings $D_k = X_{(k)} - X_{(k+1)}$, $k = 1, \dots, n$, with $X_{(n+1)} = 0$, are independent and $D_k$ follows an exponential law of rate $k\lambda$.
+\end{lemme}
+\begin{proof}
+Sort the same variables in increasing order, $Y_1 \le \dots \le Y_n$ (that is $Y_j = X_{(n+1-j)}$), and set $Y_0 = 0$, that is $X_{(n+1)} = 0$. The minimum of $n$ independent exponentials of rate $\lambda$ follows the exponential law of rate $n\lambda$, since $P(Y_1 > y) = \prod_i P(X_i > y) = e^{-n\lambda y}$. Given $Y_1 = y$ and the index of the variable that attains it, the $n - 1$ others are independent and conditioned by $X_i > y$; by the memorylessness of the exponential law, their excesses $X_i - y$ are exponential of rate $\lambda$, independent of one another, and their law depends neither on $y$ nor on the index. The spacing $Y_2 - Y_1$, the minimum of these $n - 1$ excesses, therefore follows the exponential law of rate $(n-1)\lambda$ and is independent of $Y_1$. Starting again from $Y_2$, then from $Y_3$, and so on, one obtains that the $Y_{j+1} - Y_j$ ($j = 0, \dots, n-1$) are independent, of rate $(n - j)\lambda$. Now $Y_{j+1} - Y_j = X_{(n-j)} - X_{(n-j+1)} = D_{n-j}$: with $k = n - j$, $D_k$ follows the exponential law of rate $k\lambda$, and the $D_k$ are independent.
+\end{proof}
+This is Rényi's theorem \cite{renyi1953ordre} (record checked by the lead on 2026-10-22, article not reread); the proof above, by memorylessness, does not depend on the article. For a parent law of density $f$ and hazard rate $\eta(x) = f(x)/(1 - F(x))$, the transformation $x \mapsto -\ln(1 - F(x))$ makes the variables exponential of rate 1 and, near the top of the sample, it is locally linear with slope $\eta(x_{(k)})$; hence $D_k \approx \mathrm{Exp}\bigl(k\,\eta(x_{(k)})\bigr)$. The margin $m = D_4$ is therefore, to first order, exponential: finite non-zero density at zero, $f_m(0) \approx 1/\E[m]$, and $P(m < \tau) \approx \tau/\E[m]$ for small $\tau$ \calc. The 32 logits are neither independent nor identically distributed; the measurement says that the conclusion holds nonetheless.
+
+Measured at each layer \mes~(\fichier{mesures/pistes/tropicale/loi-marge-par-couche.csv}): the gamma fit gives a shape of 0.91 to 1.09 (1 would be the exponential); the Kolmogorov-Smirnov distance to the exponential of the same mean is 0.006 to 0.042, against 0.09 to 0.18 to the half-normal and 0.06 to 0.08 to the log-normal; the slope of $\log P(m < \tau)$ against $\log\tau$ on $[10^{-4}; 10^{-2}]$ is 0.90 to 1.20; the density below $10^{-3}$ (5.5 to 17.6) follows $1/\E[m]$ (5.2 to 16.3). The deep layers have tighter margins (\cref{fig:t3-trop-survie}).
+
+\begin{figure}[tbp]
+\centering
+\GrapheTropicaleSurvie
+\caption[The law of the margin]{\textbf{The survival of the margin is a straight line on a logarithmic scale: the margin is almost exponential, as the spacing of order statistics predicts.} \mes~$P(m > x)$ for four layers (0, 8, 16, 23); dashes: the exponential law of the same mean. \sourcefig{\fichier{mesures/pistes/tropicale/figures/fig-survie.csv}; script \fichier{outils/pistes/tropicale/figures.py}.}}
+\label{fig:t3-trop-survie}
+\end{figure}
+
+\paragraph{From one layer to the next.} For the same position, the Spearman correlation between $m_\ell$ and $m_{\ell+1}$ ranges from 0.002 to 0.125; pooled over the 23 pairs, 0.058, above the 99.9th percentile of 999 permutations (0.023): real and tiny \mes. A tight margin at one layer says almost nothing about the next; each layer draws its margin afresh. Direct consequence: as a prefetch priority for the next layer, the margin gives a ROC area of 0.567, below the declared bar of 0.60; for the next token, 0.627: useful by the bar, but weakly (the next token keeps on average 2.0 experts out of 4, 1.89 in the lowest margin decile, 2.17 in the highest, against 0.5 by chance).
+
+\subsection{The flip law}\label{t3tro:sec:loi-bascule}
+
+\begin{proposition}[Flip law]\label{t3tro:prop:bascule}
+Let $m_B$ be the margin of the computation that guards and $\delta$ the perturbation, between $A$ and $B$, of the gap between the experts at ranks 4 and 5 of $B$. The cell flips as soon as the gap of $A$ goes below zero, $m_B + \delta < 0$. If $\delta$ is independent of $m_B$, with symmetric law $G$,
+\begin{equation}\label{t3tro:eq:bascule}
+P(\text{flip} \mid m_B = m) = G(-m), \qquad \lim_{m \to 0} P = G(0) = \tfrac12 .
+\end{equation}
+\end{proposition}
+\begin{proof}
+$P(m + \delta < 0) = P(\delta < -m) = G(-m)$, and $G(0) = \tfrac12$ by symmetry.
+\end{proof}
+For a Gaussian perturbation, $\Phi(-m/\sigma)$. The declaration had written \barre{$2\Phi(-m/\sigma)$}, which would be 1 at zero, as if the flip were certain on the face; the derivation gives $\Phi$, and the data decide: below $m = 10^{-4}$, 58 flips out of 106 cells ($0.55 \pm 0.05$), and the likelihood of $\Phi$ beats that of $2\Phi$ at all 24 layers \mes~(\fichier{loi-bascule-sigma.csv}). This is a lower bound on the real probability: pairs other than (4, 5) can cross, but they need a perturbation larger than $m$. The judge notes it: the form changed after the reading; the theorem that follows and the extrapolation rest on it, and remain models. The Gaussian form is wrong in the tail: $\delta$ has an excess kurtosis of 3.5 (layer 0) to 134 (layer 7). The Gaussian model predicts 7.8\,\% of flips (measured 4.15\,\%); the empirical form of $\delta$, rescaled, 3.6\,\% \calc~(\cref{fig:t3-trop-loi-bascule}).
+
+\begin{figure}[tbp]
+\centering
+\GrapheTropicaleLoiBascule
+\caption[The flip law]{\textbf{The flip probability tends to $\tfrac12$ as the margin tends to zero: the law is $\Phi(-m/\sigma)$, not $2\Phi$.} \mes\,\calc~$P(\text{flip} \mid m_B)$ measured by margin classes, three groups of layers; solid line: the model with empirical $\delta$, $P(\delta < -m)$; dotted: the Gaussian $\Phi(-m/\hat\sigma)$. \sourcefig{\fichier{mesures/pistes/tropicale/figures/fig-loi-bascule.csv}; script \fichier{outils/pistes/tropicale/figures.py}.}}
+\label{fig:t3-trop-loi-bascule}
+\end{figure}
+
+\subsection{Propagation: one flip calls for others}\label{t3tro:sec:propagation}
+
+Given a flip at $(\ell, p)$, the same position flips at $\ell + 1$ in \textbf{26.6\,\%} of cases (4\,672 pairs), against \textbf{3.4\,\%} without a flip at $\ell$ \mes~(\fichier{propagation.csv}; the judge: 26.65 and 3.37\,\%). The gap grows with the margin of the next layer (\cref{t3tro:tab:propagation}).
+
+\begin{table}[tbp]
+\centering\small
+\caption[The propagation of flips]{Propagation: probability of a flip at $\ell + 1$, according to the margin at $\ell + 1$, after a flip at $\ell$ or without \mes. In parentheses, the number of pairs.}
+\label{t3tro:tab:propagation}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Margin at $\ell + 1$ & after a flip & no flip before & ratio \\
+\midrule
+$< 10^{-3}$ & 61.8\,\% (34) & 47.5\,\% (930) & 1.3 \\
+$10^{-3}$ to $10^{-2}$ & 57.1\,\% (380) & 23.1\,\% (8\,403) & 2.5 \\
+$10^{-2}$ to $3 \cdot 10^{-2}$ & 47.2\,\% (755) & 5.4\,\% (15\,896) & 8.7 \\
+$3 \cdot 10^{-2}$ to $0.1$ & 27.0\,\% (1\,716) & 1.3\,\% (38\,415) & 21 \\
+$> 0.1$ & 10.5\,\% (1\,787) & 0.14\,\% (49\,214) & 75 \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/pistes/tropicale/propagation.csv}.}
+\end{table}
+
+After a flip, the hidden state has changed experts: the perturbation is no longer a rounding, it is the difference between two experts (33 to 84\,\% of the output energy, \fichier{05-synthese.md} §\,2.2). The local $\kappa$ becomes large, and the next flip falls at a wide margin that the guard does not flag. This is the main cause of the fall with depth: the secondary flips are 59\,\% of the flips (3\,006 out of 5\,087), with a median margin of 0.0194 against 0.0037 for the roots. The ratio $\times 7.9$ (and $\times 75$ at wide margin) is an association; the intervention of lot R (imposed routing, 88\,\% of the KL removed) points the same way without proving it for the cascades.
+
+\subsection{The guard number: a closed form}\label{t3tro:sec:theoreme}
+
+\begin{hypothese}[The homogeneous model]\label{t3tro:hyp:homogene}
+The margin $M$ follows an exponential law of rate $\lambda$; the perturbation $\delta$ follows $\Normale(0, \sigma^2)$, independent of $M$; the cell flips if $\delta < -M$; the guard flags $M < \tau$. Write $\kappa = \lambda\sigma = \sigma/\E[M]$, the \emph{guard number}, $t = \tau/\sigma$, and $\Phi$ and $\varphi$ for the normal distribution function and density.
+\end{hypothese}
+
+\begin{lemme}\label{t3tro:lem:decalage}
+For $\kappa > 0$ and $u \ge 0$: $e^{-\kappa u}\varphi(u) = e^{\kappa^2/2}\varphi(u + \kappa)$.
+\end{lemme}
+\begin{proof}
+$-\kappa u - u^2/2 = -(u + \kappa)^2/2 + \kappa^2/2$.
+\end{proof}
+
+\begin{lemme}\label{t3tro:lem:integrale}
+$\displaystyle\int_0^T \lambda e^{-\lambda m}\,\Phi(-m/\sigma)\,\dd m = \tfrac12 - e^{-\lambda T}\Phi(-T/\sigma) - e^{\kappa^2/2}\bigl[\Phi(T/\sigma + \kappa) - \Phi(\kappa)\bigr]$.
+\end{lemme}
+\begin{proof}
+By parts, with $U = \Phi(-m/\sigma)$, $\dd V = \lambda e^{-\lambda m}\,\dd m$, $V = -e^{-\lambda m}$, $\dd U = -\varphi(m/\sigma)/\sigma\,\dd m$:
+\[
+\int_0^T = \bigl[-e^{-\lambda m}\Phi(-m/\sigma)\bigr]_0^T - \int_0^T e^{-\lambda m}\,\frac{\varphi(m/\sigma)}{\sigma}\,\dd m = \tfrac12 - e^{-\lambda T}\Phi(-T/\sigma) - \int_0^{T/\sigma} e^{-\kappa u}\varphi(u)\,\dd u ,
+\]
+and by \cref{t3tro:lem:decalage} the last integral is $e^{\kappa^2/2}\int_0^{T/\sigma}\varphi(u + \kappa)\,\dd u = e^{\kappa^2/2}\bigl[\Phi(T/\sigma + \kappa) - \Phi(\kappa)\bigr]$.
+\end{proof}
+
+\begin{theoreme}[The guard number]\label{t3tro:thm:garde}
+Under \cref{t3tro:hyp:homogene}, the share of flagged cells is $c = 1 - e^{-\lambda\tau}$, the flip rate is
+\begin{equation}\label{t3tro:eq:pb}
+P(B) = \tfrac12 - e^{\kappa^2/2}\,\Phi(-\kappa),
+\end{equation}
+and the share of flagged flips is
+\begin{equation}\label{t3tro:eq:b}
+b = \frac{\tfrac12 - e^{-\lambda\tau}\Phi(-t) - e^{\kappa^2/2}\bigl(\Phi(t + \kappa) - \Phi(\kappa)\bigr)}{\tfrac12 - e^{\kappa^2/2}\,\Phi(-\kappa)}, \qquad \lambda\tau = -\ln(1 - c),\quad t = \lambda\tau/\kappa .
+\end{equation}
+The curve $(c, b)$ depends only on $\kappa$.
+\end{theoreme}
+\begin{proof}
+$c = P(M < \tau) = 1 - e^{-\lambda\tau}$. $P(B)$ is \cref{t3tro:lem:integrale} as $T \to \infty$: the terms in $e^{-\lambda T}$ vanish, $\Phi(T/\sigma + \kappa) \to 1$, hence $\tfrac12 - e^{\kappa^2/2}(1 - \Phi(\kappa)) = \tfrac12 - e^{\kappa^2/2}\Phi(-\kappa)$. $b = P(M < \tau, B)/P(B)$ is \cref{t3tro:lem:integrale} at $T = \tau$ divided by $P(B)$. Finally $\lambda\tau = -\ln(1 - c)$ and $t = \tau/\sigma = \lambda\tau/\kappa$ depend only on $(c, \kappa)$.
+\end{proof}
+The limits can be read on \eqref{t3tro:eq:b}: $\kappa \to 0$ gives $b \to 1$ (the flips concentrate at $m = 0$); $\kappa \to \infty$ gives $b \to c$ (the margin no longer knows anything), control T3 seen by the theory. Verification \calc~(\fichier{mesures/pistes/tropicale/theoreme.json}): a numerical quadrature (tolerances $10^{-13}$) against the closed form on 18 pairs $\kappa \in \{0.01; 0.05; 0.1; 0.3; 1; 3\}$, $c \in \{1; 10; 30\,\%\}$: maximal gap \barre{$1.3 \cdot 10^{-14}$} $3.7 \cdot 10^{-15}$; the first figure came from the naive writing $e^{\kappa^2/2}\Phi(-\kappa)$, which loses digits as $\kappa$ grows, since rewritten through the logarithm of the normal tail. An example: $P(B)$ at $\kappa = 0.2$ is $\tfrac12 - e^{0.02} \times 0.42074 = 0.07076$, 0.0707601917665 by the closed form against 0.0707601917664 by the quadrature.
+
+The 80\,/\,10 threshold resolves to $\kappa^\ast = 0.1079$, where $P(B) = 4.03\,\%$ \calc~(\cref{fig:t3-trop-kappa}); the judge, by a Simpson quadrature without the closed form, gives again $b = 79.993\,\%$ and $P(B) = 4.0294\,\%$ at $\kappa = 0.1079$.
+
+\begin{figure}[tbp]
+\centering
+\GrapheTropicaleKappa
+\caption[The theorem of the guard number]{\textbf{In the homogeneous model, a single quantity, $\kappa = \sigma/\E[m]$, decides every margin guard: the guard holds 80\,/\,10 if and only if $\kappa \le 0.108$.} \calc~$b$ at $c = 10\,\%$ and flip rate $P(B)$ against $\kappa$, by the closed form \eqref{t3tro:eq:b}; green zone: the build zone. The model is homogeneous (one margin law, one $\sigma$); the real guard mixes 24 layers with $\kappa_\ell$ from 0.016 to 0.48, and this theorem explains only about one point of the 23 that are missing (text). \sourcefig{\fichier{mesures/pistes/tropicale/theoreme-kappa.csv}; script \fichier{outils/pistes/tropicale/theoreme.py}.}}
+\label{fig:t3-trop-kappa}
+\end{figure}
+
+\paragraph{The corollary, and what the judge made of it.} Since $b$ decreases and $P(B)$ increases with $\kappa$, the lead had drawn from it: \barre{``a margin guard can hold 80\,/\,10 only if the fast computation flips fewer than about 4\,\% of the cells''}. The judge (\fichier{JUGEMENT.md} §\,4.1) makes it a property of the homogeneous model alone, by a constructed counter-example: 2 layers out of 24 with tight margins (mean $10^{-4}$, $\sigma = 10^{-3}$) and 22 with wide margins (mean 0.1, $\sigma = 0.004$), guard with a global threshold: $P(B) = 5.26\,\%$ and yet $b = 85.9\,\%$ for 10\,\% of the cells \calc~(\fichier{mesures/pistes/tropicale/juge/juge-modele.json}). The sentence \barre{``a heavier tail of $\delta$ only lowers this ceiling''} is true only in the single case computed: the order ``heavier'' is not defined there.
+
+\paragraph{The theorem does not explain the failure.} The deliverable set side by side ``at most 4.0\,\% of flips are needed'' and ``the two ramps make 4.15\,\%'', which reads as an explanation. At the measured rate ($5\,087/122\,640 = 4.148\,\%$), the homogeneous model gives $\kappa = 0.1113$ and $b = 78.8\,\%$; the measurement says 57.1\,\%. The guard number accounts for about 1 point of the 23 that are missing. The rest comes from the heterogeneity of the layers (the real guard applies a global threshold to 24 layers whose mean margin ranges from 0.061 to 0.193 and whose $\kappa_\ell$ ranges from 0.016 to 0.48) and from the cascades. Layer by layer, the closed form follows the measurement of $b$ at layers 0 to 9 to within 0.1 and underestimates it by 0.02 to 0.17 deeper, where the fitted $\sigma$ absorbs the secondary flips \mes~(\fichier{theoreme-par-couche.csv}). The guard number is a fine closed form; it is not the reason for the failure.
+
+\subsection{The extrapolation to the fast mode (model)}\label{t3tro:sec:extrapolation}
+
+The fast mode probably perturbs more than the two ramps: with 32 experts out of 768 replaced, its KL is already 0.036, against 0.0145 for the two ramps, and it rises with the number of experts replaced (0.0636 with 128). The perturbation is multiplied by $s$ while keeping the margins, $P(\text{flip} \mid m) = G(-m/s)$, with two $G$: the Gaussian with fitted $\sigma_\ell$, and the empirical law of $\delta$ per layer (\cref{t3tro:tab:extrapolation,fig:t3-trop-extrapolation}). At $s = 1$, the two models bracket the measurement (49.0 and 62.1\,\% against 57.1\,\%); for the roots, the empirical model is right on (1\,956 roots predicted against 2\,081 counted, $b$ 85.3 against 85.2\,\%). The roots go below 80\,\% from $s \approx 1.3$ (linear interpolation between $s = 1$ and 1.5; a commit message said \barre{1.4}). These are extrapolations, to be read as such.
+
+\begin{table}[tbp]
+\centering\small
+\caption[The extrapolation of the guard]{The extrapolation: $b(\tau_{10})$ predicted when the perturbation of the gap is multiplied by $s$ \calc~(model).}
+\label{t3tro:tab:extrapolation}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+$s$ & all, Gaussian $\delta$ & all, empirical $\delta$ & roots, empirical $\delta$ \\
+\midrule
+0.5 & 71.4\,\% & 74.5\,\% & 93.8\,\% \\
+\textbf{1} (measured: 57.1\,\%; roots 85.2\,\%) & 49.0\,\% & 62.1\,\% & 85.3\,\% \\
+1.5 & 38.4\,\% & 54.9\,\% & 77.2\,\% \\
+2 & 32.4\,\% & 49.8\,\% & 69.9\,\% \\
+3 & 25.9\,\% & 42.5\,\% & 58.7\,\% \\
+5 & 20.2\,\% & 34.2\,\% & 45.1\,\% \\
+10 & 15.5\,\% & 25.3\,\% & 30.8\,\% \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/pistes/tropicale/extrapolation-garde.csv}, \fichier{cascades.json}.}
+\end{table}
+
+\begin{figure}[tbp]
+\centering
+\GrapheTropicaleExtrapolation
+\caption[The extrapolation of the guard (model)]{\textbf{If the fast mode perturbs more than the two ramps, the guard catches even less, and the guard of the roots goes below 80\,\% around $s \approx 1.3$.} \calc~Model, not measurement: $b(\tau_{10})$ predicted against the perturbation factor $s$ (roots and all, empirical $\delta$; all, Gaussian $\delta$); black points: the two values measured at $s = 1$. \sourcefig{\fichier{mesures/pistes/tropicale/figures/fig-extrapolation.csv}; script \fichier{outils/pistes/tropicale/figures.py}.}}
+\label{fig:t3-trop-extrapolation}
+\end{figure}
+
+% =====================================================================================================
+\section{After the verdict: two explorations}\label{t3tro:sec:explorations}
+
+\subsection{The guard of the roots}\label{t3tro:sec:racines}
+
+This reading was chosen \emph{after} seeing the propagation; it does not change the verdict. It nevertheless has no parameter fitted on the flips: $\tau_{10}$ is a quantile of the margins alone, and the root (the first flip of the position, all layers together) depends on no threshold. 2\,081 positions out of 5\,110 (40.7\,\%) have at least one flip; the guard flags their root in \textbf{85.2\,\%} of cases (1\,773), the secondary flips in 37.7\,\% (1\,132 out of 3\,006); second path and judge equal to the unit \mes~(\fichier{cascades.json}, \fichier{second-chemin-racines.json}). By layer, the roots are caught from 68\,\% (layer 20) to 100\,\% (layer 0), above 80\,\% at 17 layers out of 24.
+
+If repairing a root extinguished its consequences, it is the root that would have to be caught. Two things are missing, which no log provides. \emph{The repair}: in these logs the perturbation comes from the position ramp, in the attention, and redoing a layer in exact mode would change nothing there; in fast mode, redoing layer $\ell$ removes the error of the experts of $\ell$, not that of the earlier layers nor that of the KV cache of past positions. \emph{The $\kappa$ of the fast mode.} The definition ``first flip of the position'' also ignores propagation through the KV cache: a root may be the consequence of a flip at an earlier position.
+
+\paragraph{The measurement that would judge (G2, then G3).} Two logs in the format of lot R, the exact engine and the engine in fast mode, each with its own margin (8 bytes per cell, 981\,128 bytes per pass; the \texttt{routeur\_topk} kernel already sorts, the margin is one more subtraction). Threshold to be declared before the pass: the guard of the roots is worth building if, at the $\tau_{10}$ of the margins of the fast mode, it flags at least 80\,\% of the roots for at most 10\,\% of the cells, and $P(B)$ of the fast mode is measured to locate its $\kappa$. The lead's prediction, ``it falls if $P(B)$ exceeds about 5\,\%'', is that of the homogeneous model, which the judge's counter-example can refute. Only if G2 passes, G3, the repair: at each flagged root, redo the previous layer in exact mode, and judge the paired KL against the fast mode without a guard.
+
+\subsection{The memory of conflict: a multi-cue guard}\label{t3tro:sec:indices}
+
+\paragraph{Where the idea comes from.} The anterior cingulate cortex monitors the conflict between competing responses and accumulates its trace from one trial to the next \cite{botvinick2001conflict}; under high conflict, the mediofrontal cortex raises the decision threshold \cite{cavanagh2011subthalamic} (records checked by the lead on 2026-10-26, articles not reread). The guard does half of this mechanism: it reads the instantaneous conflict, the margin. The measurement asks whether the other half, the memory of conflict, sorts the flips better. It is an analogy that proposes a measurement; it proves nothing.
+
+\paragraph{The protocol} (\fichier{genome/pistes/tropicale/seuil-declare-indices.md}, commit \texttt{50bf472}, written before any log and unchanged since). Five cues drawn from the margin of $B$ alone: $f_1 = \ln m$; $f_2$ = $\ln$ of the smallest margin of the lower layers, same position (the conflict already seen in depth); $f_3$ = $\ln$ margin of the previous position, same layer; $f_4$ = share of cells (layers $\le \ell$, last eight positions) below 0.01241 (the conflict accumulated over time); $f_5$ = the depth. A logistic regression, ten folds (one test window each), and a guard that flags in each test window the cells with the highest score. Threshold: useful if the gain over the margin alone is at least 5 points, with a 95\,\% interval that excludes 0 and a positive gain in 8 windows out of 10. Written prediction: $+1$ to $+6$ points, and 80\,\% out of reach.
+
+\paragraph{Two derivations.} \emph{The fit.} For standardised cues $z_i$ (with a leading 1) and labels $y_i \in \{0, 1\}$, one minimises
+\begin{equation}\label{t3tro:eq:logistique}
+J(w) = -\sum_i \bigl[y_i \ln p_i + (1 - y_i)\ln(1 - p_i)\bigr] + \frac{\lambda}{2}\lVert w_{1:}\rVert^2, \qquad p_i = \sigma(z_i^\top w),
+\end{equation}
+with $\lambda = 1$ and the intercept not penalised. The gradient is $g = Z^\top(p - y) + \Lambda w$, the Hessian $H = Z^\top \operatorname{diag}(p(1-p))\,Z + \Lambda$, positive definite for $\lambda > 0$ outside the intercept; the Newton step is $w \leftarrow w - H^{-1}g$, stopped when $\max|\Delta w| < 10^{-9}$. The guard's score is the logit $z_i^\top w$, monotone in $p_i$: the ranking does not depend on the function $\sigma$. \emph{The fixed cost.} In each test window ($24 \times 511 = 12\,264$ cells), the guard flags exactly $K = \lfloor 0.10 \times 12\,264\rfloor = 1\,226$ cells; the share caught is $b = \sum_w (\text{flips flagged in } w)/5\,087$. Each model costs the same and differs only by its sorting.
+
+\begin{table}[tbp]
+\centering\small
+\caption[The multi-cue guard]{The multi-cue guard: flips caught for 10\,\% of the cells of each test window \mes. CI: 10\,000 draws of the ten windows (seed 20261026). Redone to the unit by the judge.}
+\label{t3tro:tab:indices}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Model & caught & gain (points) & 95\,\% CI & positive windows \\
+\midrule
+M0, the margin alone & 56.99\,\% (2\,899) & --- & --- & --- \\
+M1, $f_1$ alone & 56.99\,\% & 0 & --- & --- \\
+M2, depth ($f_1$, $f_5$, $f_1 f_5$) & 57.26\,\% & $+0.28$ & $-0.74$ to $+1.17$ & 6/10 \\
+\textbf{M3, all the cues} & \textbf{58.60\,\%} (2\,981) & $\mathbf{+1.61}$ & $+0.99$ to $+2.34$ & 9/10 \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/pistes/tropicale/indices/indices-resume.json}; judge: \fichier{mesures/pistes/tropicale/juge/juge-indices.json}.}
+\end{table}
+
+\paragraph{Verdict at the declared threshold: not useful} (\cref{t3tro:tab:indices}). The gain is real (the interval excludes 0, 9 windows out of 10) but below 5 points, and the guard remains very far from 80\,\%. The second path recounts the written scores in pure Python, equal to the unit in all ten folds, and another class of model (probabilities by classes, without regression) returns 59.05\,\% ($+2.06$). The judge redoes the fit itself from the declaration alone, and finds 2\,981 and the interval to the thousandth; it notes that the lead's second path tested the counting, not the fit. Robustness: with $K = 1\,227$, $+1.612$; without penalty, $+1.59$ \mes.
+
+\paragraph{Where the gain comes from.} The ablations, exploratory and read after the verdict, put the whole gain on $f_2$, the conflict already seen lower down at the same position: $f_1, f_5 + f_2$ returns $+1.65$ (CI $+0.77$ to $+2.60$); with $f_3$ or $f_4$ alone, $+0.33$ and $+0.45$, with intervals that contain 0; M3 without $f_2$, $+0.43$ \mes~(\fichier{indices/complements.json}). The analogy therefore half holds: the memory of conflict along the \emph{depth} helps a little; that along \emph{time} brings \barre{nothing} no detectable gain: the judge corrects the wording, because the intervals of $f_3$ and $f_4$ rise to $+1.25$ and $+1.43$ points, and a contribution of that order is not excluded.
+
+\paragraph{The controls, and three wrong expectations.} The identity M1 $=$ M0 holds fold by fold; $f_2, f_3, f_4$ permuted within each layer bring the gain back to $+0.33$ (the judge: $+0.35$). Three declared expectations were wrong, and the lead stated two of them. (1) The break of M1 by shuffled labels was to return $10 \pm 2\,\%$; it returns \barre{50.6\,\%}: a model with a single input sorts the cells by $\pm f_1$ whatever the fit, only the sign of the coefficient changes; the right break permutes the test inputs (9.97\,\%). (2) The oracle ``flip verified at $(\ell - 1, p)$'' was to gain more than 15 points; it gains 10.99, because it concerns only 3.8\,\% of the cells and 24.5\,\% of the flips. (3) The judge adds the third: M3 on shuffled labels, declared at $10 \pm 2\,\%$ and published at 11.6\,\%, returns $15.9\,\%$ on average over twenty seeds (standard deviation 4.8, from 5.3 to 24.5\,\%), and only 3 seeds out of 20 fall within the expectation: the 11.6\,\% was a favourable draw. The control falls ($58.6 \to 16 \pm 5\,\%$), but not to the expectation. None of these expectations touches the verdict.
+
+\paragraph{A sentence to strike through.} The lead wrote that even an oracle brings only about 11 points to a guard that judges cell by cell: \barre{``a ceiling of about 11 points even with an oracle''}. The judge corrects it: the cell-by-cell oracle of the first verdict (zero margin at the flips) catches 100\,\% for 4.2\,\% of the cells; what the oracle of 10.99 points measures is that the strict vertical cascade explains only a quarter of the flips.
+
+% =====================================================================================================
+\section{What could be wrong}\label{t3tro:sec:faux}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{The perturbation is not that of the fast mode.} Everything is measured on the gap between two exact computations (two position ramps, in the attention). The verdict carries over to the fast mode through the theorem and through the extrapolation, which are models; a fast mode whose error were concentrated in the layers where the guard sees well (0 to 4) would do better, and the judge's counter-example shows that a favourable heterogeneity suffices.
+\item \textbf{The theorem rests on a form chosen after the reading} ($\Phi$ instead of the declared $2\Phi$) and on a Gaussian perturbation, wrong in the tail (kurtosis up to 134). It is labelled a model and must remain one; it explains only about one point of the failure.
+\item \textbf{The roots are a reading chosen afterwards}: 85.2\,\% is not a verdict, and the definition ignores propagation through the KV cache.
+\item \textbf{The causality of the cascades} is not proved by intervention: the ratio $\times 7.9$ is an association.
+\item \textbf{A single text}: ten windows of wikitext; the intervals give the variation between windows of one text, not between texts. $\tau_{10}$ is the decile of the same sample, which favours the guard.
+\item \textbf{Rényi's law and the two cortex records} are cited after their checked records, without rereading the articles; Rényi's law is proved here without the article (\cref{t3tro:lem:renyi}), but only for independent exponential variables of the same rate, which the 32 logits are not; the measurement stands on its own, the analogy proves nothing.
+\item \textbf{The cut of the router} passes through the origin of the space of normalised states, not through real states; its areas are not frequencies, and it is a PNG figure outside the common style.
+\item \textbf{\Cref{t3tro:prop:distance}} corrects a sentence of the lead's note by an argument of the writing (the distance to the boundary of a convex polyhedron is the minimum of the distances to its hyperplanes); no figure depends on it.
+\item \textbf{What the judge did not redo}: the laws of the margin, the correlation between layers, the prefetch, the extrapolation, the figures, the cross-check K3 d1, and the ablations of the cues. They decide nothing, but are not tested by a second look.
+\end{itemize}
+\end{faux}

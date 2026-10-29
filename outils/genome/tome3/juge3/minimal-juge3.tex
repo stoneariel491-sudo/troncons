@@ -1,0 +1,46 @@
+% Juge de la troisième passe : document minimal écrit de zéro pour la cause A (thmtools sous LaTeX 2026-06-01).
+% Variantes, par une macro posée sur la ligne de commande (deux passes chacune, depuis memoire/essai/juge3/minimal/) :
+%   lualatex -jobname=nu       "\input{minimal-juge3}"                                   sans correctif
+%   lualatex -jobname=corr     "\def\CORR{1}\input{minimal-juge3}"                       correctif A du préambule
+%   lualatex -jobname=crochet  "\def\SANSCROCHET{1}\input{minimal-juge3}"                sans correctif, crochet retiré
+%   lualatex -jobname=amsseul  "\def\AMSSEUL{1}\input{minimal-juge3}"                    amsthm seul (témoin)
+%   lualatex -jobname=faux     "\def\CORR{1}\def\FAUX{1}\input{minimal-juge3}"           deux vrais défauts : doivent tomber
+%   lualatex -jobname=trace    "\def\TRACE{1}\input{minimal-juge3}"                      trace de l'appel
+% Les lignes du correctif sont tirées du préambule commité par extraire_correctifs.py, pas retapées.
+\documentclass{scrbook}
+\ifdefined\SANSCROCHET \RemoveFromHook{package/amsthm/after}[firstaid/aliascounter]\fi
+\usepackage{amsthm}
+\usepackage{hyperref}
+\usepackage[french, nameinlink, noabbrev]{cleveref}
+\ifdefined\AMSSEUL
+  \newtheorem{theoreme}{Théorème}[chapter]
+  \newtheorem{proposition}[theoreme]{Proposition}
+  \newtheorem{corollaire}[theoreme]{Corollaire}
+  \newtheorem{remarque}{Remarque}[chapter]
+\else
+  \usepackage{thmtools}
+  \ifdefined\CORR \input{correctif-a-pose}\fi
+  \declaretheorem[numberwithin=chapter, name=Théorème]{theoreme}
+  \ifdefined\TRACE \tracingmacros=2 \tracingonline=0 \fi
+  \declaretheorem[sibling=theoreme, name=Proposition]{proposition}
+  \ifdefined\TRACE \tracingmacros=0 \fi
+  \declaretheorem[sibling=theoreme, name=Corollaire]{corollaire}
+  \declaretheorem[numberwithin=chapter, name=Remarque]{remarque}
+  \ifdefined\FAUX \newcounteralias{corollaire}{section}\newcounteralias{orphelin}{inexistant}\fi
+  \ifdefined\CORR \input{correctif-a-remise}\fi
+\fi
+\crefname{theoreme}{théorème}{théorèmes}
+\crefname{proposition}{proposition}{propositions}
+\crefname{corollaire}{corollaire}{corollaires}
+\crefname{remarque}{remarque}{remarques}
+\begin{document}
+\chapter{Premier}
+\begin{proposition}\label{p1}a\end{proposition}
+\begin{theoreme}\label{t1}b\end{theoreme}
+\begin{remarque}\label{r1}c\end{remarque}
+\begin{corollaire}\label{c1}d\end{corollaire}
+\chapter{Second}
+\begin{corollaire}\label{c2}e\end{corollaire}
+\begin{theoreme}\label{t2}f\end{theoreme}
+RENVOIS \ref{p1} \ref{t1} \ref{r1} \ref{c1} \ref{c2} \ref{t2} ; \cref{p1} ; \cref{t1} ; \cref{r1} ; \cref{c1} ; \cref{c2} ; \cref{t2} FIN
+\end{document}

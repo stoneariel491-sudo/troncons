@@ -1,0 +1,47 @@
+{
+ "commande": [
+  "~/dev/cibles/troncons-O/avant-7b288a6/troncons.exe",
+  "evaluer",
+  "--modele",
+  "~/dev/modeles/trc/gpt-oss-120b-brut.trc",
+  "--base",
+  "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+  "--fenetres",
+  "10",
+  "--positions",
+  "512",
+  "--flux",
+  "--brut",
+  "--sortie",
+  "~\\dev\\essais\\troncons\\lot-O\\ronde\\g1\\ancien.kld",
+  "--empreintes",
+  "~\\dev\\essais\\troncons\\lot-O\\ronde\\g1\\ancien-empreintes.csv",
+  "--journal",
+  "~\\dev\\essais\\troncons\\lot-O\\ronde\\g1\\ancien.json"
+ ],
+ "pid": 27060,
+ "depart_apres_charge_s": 60.0,
+ "mur_s": 338.0,
+ "code": 0,
+ "fige_arrete": false,
+ "battements": 0,
+ "fenetres_finies": 10,
+ "erreur": null,
+ "dernieres_lignes": [
+  "troncons evaluer : fenêtre 6/10 (207 s)",
+  "troncons evaluer : fenêtre 7/10 (238 s)",
+  "troncons evaluer : fenêtre 8/10 (271 s)",
+  "troncons evaluer : fenêtre 9/10 (302 s)",
+  "troncons evaluer : fenêtre 10/10 (335 s)",
+  "troncons evaluer : 0 pas en 335 s (0.00 pas/s), h = 0.000, PPL des positions notées 422.206"
+ ],
+ "compteurs": {
+  "flux_conflits_evites": null,
+  "garde_troncons": null,
+  "lectures_troncons": 31102,
+  "garde_attente_s": null
+ },
+ "ppl": 422.20558522791305,
+ "kld_sha256": "5b212fe9ac9aac934cdb4fe2d50932b03e88c0704e5569715153351832bcd7be",
+ "kld_egal_lot_O": true
+}

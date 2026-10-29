@@ -1,0 +1,458 @@
+\chapter{Extreme quantization}\label{ch:quant}
+
+\begin{origine}
+\textbf{At the start}, the literature announced \enquote{nearly lossless} 2-bit quantizations on older families (Llama 2), with CUDA kernels, and no measurement existed on the machine's models or under Vulkan.
+\textbf{This chapter establishes} four things: the Shannon bound and each coder's distance to it, redone by a program written here; the first portable trellis decoder (Vulkan and DirectX~12), measured on the RTX 4060; the real ladder of llama.cpp quantizations on Qwen3.5 4B and 9B, at equal bytes read; and a rule for splitting bits by memory stage, proven, then corrected here with the throughputs measured in \cref{ch:machine}.
+\textbf{What remains} is a rotation-free trellis coder decoded under Vulkan, a nested code tied to placement, and a BF16 baseline instead of Q4\_K\_M.
+Source: \fichier{fondations/02-quantification.md}, \fichier{02-quantification-derivations.md}, \fichier{fondations/journaux/02-quantification/}.
+\end{origine}
+
+\section{The lever}\label{sec:quant-levier}
+
+For a dense model of $N$ parameters stored at $b$ bits per weight, metadata included, a decoded token reads every weight once: $B = N b / 8$ bytes, plus the KV cache and activations, negligible for a short context. \Cref{thm:toit} then gives \cref{eq:toit-dense}, $\text{tokens/s} \le 8W/(Nb)$: \textbf{halving $b$ doubles the ceiling, at any stage}. For a mixture of experts, $N$ becomes the number of active parameters per token. \Cref{tab:quant-plafonds} quantifies this lever with the throughputs measured on the machine.
+
+\begin{table}[ht]
+\centering\small
+\caption[Ceilings versus bits per weight]{Tokens-per-second ceiling, weights read entirely from the named stage, no cache, $\text{tokens/s} = 8W/(Nb)$ \calc~on the measured throughputs (VRAM 251.3; PCIe 12.2; disk 2.82\,GB/s).}
+\label{tab:quant-plafonds}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Model (parameters read), stage & $b=16$ & $b=4.5$ (Q4\_K) & $b=2.06$ (IQ2\_XXS) & $b=1.56$ (IQ1\_S) \\
+\midrule
+9\,G dense, VRAM & 14.0 & 49.9 & 108.9 & 143.8 \\
+9\,G dense, PCIe & 0.68 & 2.42 & 5.29 & 6.98 \\
+9\,G dense, disk & 0.16 & 0.56 & 1.22 & 1.61 \\
+70\,G dense, disk & 0.020 & 0.072 & 0.156 & 0.206 \\
+MoE with 3\,G active, PCIe & 2.03 & 7.23 & 15.8 & 20.8 \\
+MoE with 3\,G active, disk & 0.47 & 1.67 & 3.65 & 4.81 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Reading: outside VRAM, only mixtures of experts become interactive, and quantization multiplies the ceiling by $16/b$. No other lever of this thesis has that slope without a throughput counterpart; that is its reason for being. The counterpart is elsewhere: quality.
+
+\section{The formats, bit by bit}\label{sec:formats}
+
+A quantization format is a bit layout and a reconstruction rule. The diagrams that follow are read from the IEEE 754 standard~\cite{ieee754}, the OCP MX specification~\cite{ocpmx2023,mx2023} and the llama.cpp code~\cite{llamacpp} (\texttt{ggml/src/ggml-common.h} and \texttt{ggml-quants.c}, commit \texttt{843e7dc}); the \texttt{static\_assert}s of the code give each block's size in bytes and serve as the control for each row of \cref{tab:bits-formats}.
+
+\begin{figure}[ht]
+\centering
+\SchemaFlottants
+\caption[Floating-point formats, bit by bit]{Floating-point formats, bit by bit: FP16 and BF16 (16 bits), FP8 as E4M3 and E5M2~\cite{micikevicius2022fp8}, FP4 as E2M1, and the E8M0 scale of the MX formats (exponent only). BF16 keeps the FP32 exponent and sacrifices the mantissa~\cite{kalamkar2019bf16}; E8M0 encodes only a power of two.}
+\label{fig:flottants}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\SchemaMXFP
+\caption[The MXFP4 block]{The MXFP4 block: 32 weights share an E8M0 exponent; each weight is a 4-bit E2M1 code. It is the native format of the gpt-oss experts, the first target of this thesis.}
+\label{fig:mxfp4}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\SchemaQquatreK
+\caption[The Q4\_K super-block]{The llama.cpp Q4\_K super-block: 256 weights in 144 bytes. Two fp16 scales ($d$, $d_{\min}$) multiply eight 6-bit scales and eight 6-bit minimums, packed into 12 bytes according to the lower diagram (function \texttt{get\_scale\_min\_k4}).}
+\label{fig:q4k}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\SchemaIQdeux
+\caption[The IQ2\_XXS super-block]{The llama.cpp IQ2\_XXS super-block: 256 weights in 66 bytes. A group of 32 weights fits in 64 bits: four indices into a grid of 256 eight-dimensional vectors drawn from the E8 lattice, four 7-bit sign indices (the 8th sign is fixed by parity), a 4-bit sub-scale.}
+\label{fig:iq2xxs}
+\end{figure}
+
+\begin{table}[ht]
+\centering\small
+\caption[Bits per weight, format by format]{Bit accounting, format by format \calc~(layouts read in \texttt{ggml-common.h}; control: the \texttt{static\_assert}s).}
+\label{tab:bits-formats}
+\begin{tabularx}{\linewidth}{@{}lXrr@{}}
+\toprule
+Format & Block & block bits & bits/weight \\
+\midrule
+Q2\_K & 256 weights: 2-bit codes (512), 16 bytes of 4+4-bit scales and mins (128), fp16 $d$ and $d_{\min}$ (32) & 672 & \textbf{2.625} \\
+Q4\_K & 256: 4-bit codes (1\,024), 12 bytes of 6-bit scales (96), $d$, $d_{\min}$ (32) & 1\,152 & \textbf{4.5} \\
+Q6\_K & 256: 4 low bits (1\,024) + 2 high bits (512), 16 int8 scales (128), $d$ (16) & 1\,680 & \textbf{6.5625} \\
+IQ2\_XXS & 8 groups of 32: 4 8-bit indices, 4 $\times$ 7 sign bits, 4-bit scale; fp16 $d$ & 528 & \textbf{2.0625} \\
+IQ3\_XXS & 256: 8-bit index per 4 weights (512); per 32 weights, signs and scale (256); $d$ (16) & 784 & \textbf{3.0625} \\
+IQ1\_S & 256: 8 low index bits per 8 weights (256); per 32 weights, high bits, scale, shift (128); $d$ (16) & 400 & \textbf{1.5625} \\
+TQ1\_0 & 256: 240 trits at 5 per byte, 16 trits at 4 per byte; $d$ (16) & 432 & \textbf{1.6875} \\
+MXFP4 & 32: E2M1 codes (128); E8M0 exponent (8) & 136 & \textbf{4.25} \\
+NVFP4 & 64: E2M1 codes (256); 4 UE4M3 scales, one per 16 (32) & 288 & \textbf{4.5} \\
+Trellis, free state & sequence of $T$ weights, $k$ bits per weight, $L$ state bits & $Tk + L - k$ & $k + \frac{L-k}{T}$ \\
+Tail-biting trellis & tile of 256 weights read circularly & $256k$ & $k$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{The bit read per token is not the bit of the type.} An \enquote{IQ2\_XXS} file mixes types: we measure it tensor by tensor (\texttt{quant-gguf-bits.py}, control: the end of the last tensor equals the end of the file). The \enquote{IQ2\_XXS} of Qwen3.5-9B reads 2.757\,GB per token, i.e.\ 2.76 bits per weight: the output stays in Q5\_K (699\,MB, 25\,\% of the bytes read), 32 matrices in Q4\_K (472\,MB), and the matrices truly in IQ2\_XXS amount to only 1\,516\,MB \mes. \textbf{At 2 bits, the output head becomes the largest item} of a small model with a large vocabulary: 29\,\% of the bytes read per token in the 4B \enquote{IQ2\_XXS}, whose embedding table, tied to the output (248\,320 $\times$ 2\,560), is reread in full at every token.
+
+\section{The Gaussian source and its bound}\label{sec:shannon}
+
+\paragraph{Why the Gaussian.} The methods closest to the bound today (QuIP\#~\cite{quipsharp2024}, QTIP~\cite{qtip2024}, HIGGS~\cite{higgs2024}, QuaRot~\cite{quarot2024}) multiply each weight matrix, left and right, by a Hadamard transform with random signs, $W' = H_g \operatorname{diag}(s) W \operatorname{diag}(s') H_d$: after this rotation, the weights of a row are nearly independent Gaussians and outliers disappear. Quantization becomes a Gaussian source coding problem. HIGGS moreover links this error to quality: for small errors, the perplexity increase is approximately a layer-by-layer weighted sum of the relative squared errors (\enquote{linearity theorem}) \litt. Each gain in squared error thus translates roughly linearly into a quality gain.
+
+\begin{theoreme}[Shannon, memoryless Gaussian source~\cite{shannon1959,cover2006}]\label{thm:shannon}
+For an i.i.d.\ source $X \sim \Normale(0, \sigma^2)$ and squared-error distortion, the rate--distortion function is $R(D) = \tfrac12 \log_2(\sigma^2/D)$ for $0 < D \le \sigma^2$; equivalently, the smallest mean squared error achievable at a rate of $R$ bits per sample is
+\begin{equation}\label{eq:shannon}
+D(R) = \sigma^2\, 2^{-2R}.
+\end{equation}
+\end{theoreme}
+
+\begin{proof}
+The source coding theorem with a fidelity criterion~\cite{shannon1959} states that the smallest rate achievable by long codes at average distortion $D$ is $R(D) = \min I(X; \hat X)$, the minimum running over conditional laws $p(\hat x \mid x)$ with $\E(X - \hat X)^2 \le D$. It remains to compute this minimum.
+
+\emph{Lower bound.} For any admissible law,
+\begin{align*}
+I(X; \hat X) &= h(X) - h(X \mid \hat X) = h(X) - h(X - \hat X \mid \hat X) \\
+&\ge h(X) - h(X - \hat X) \ge \tfrac12 \log_2(2\pi e \sigma^2) - \tfrac12 \log_2\bigl(2\pi e\, \E(X-\hat X)^2\bigr) \ge \tfrac12 \log_2 \frac{\sigma^2}{D}.
+\end{align*}
+The second equality holds because, given $\hat X$, $X$ and $X - \hat X$ determine each other by translation; the first inequality because conditioning reduces entropy; the second because, for a given second moment, the normal law maximizes differential entropy.
+
+\emph{Achievability.} Let $\hat X \sim \Normale(0, \sigma^2 - D)$ and $Z \sim \Normale(0, D)$ be independent, and $X = \hat X + Z$ (the \enquote{backward} test channel). Then $X \sim \Normale(0,\sigma^2)$, $\E(X - \hat X)^2 = D$ and $I(X;\hat X) = h(X) - h(Z) = \tfrac12\log_2(\sigma^2/D)$: all inequalities are equalities. Hence $R(D) = \tfrac12\log_2(\sigma^2/D)$, and inverting, $D(R) = \sigma^2 2^{-2R}$.
+\end{proof}
+
+At $R = 2$, $D = 0.0625\,\sigma^2$. The bound says what no coder can beat; it does not say how to reach it. To compare coders, we measure their distance to it in bits.
+
+\begin{definition}[Distance in bits to the bound]\label{def:distance}
+A quantizer $q$ reaching error $D_q$ at rate $R$ is
+\[
+\Delta(q) \;=\; R - R(D_q) \;=\; R + \tfrac12 \log_2 \frac{D_q}{\sigma^2}
+\]
+bits away from the bound: the rate an optimal code would save at equal quality.
+\end{definition}
+
+\begin{lemme}[An error ratio in bits]\label{lem:rapport-bits}
+Two quantizers with the same slope $D \propto 2^{-2R}$ around the operating point, with errors $D_1 > D_2$ at the same rate, are $\tfrac12 \log_2(D_1/D_2)$ bit apart at equal quality.
+\end{lemme}
+
+\begin{proof}
+The first must gain $\delta$ bits to reach $D_2$: $D_1 2^{-2\delta} = D_2$, i.e.\ $\delta = \tfrac12 \log_2(D_1/D_2)$.
+\end{proof}
+
+\section{The optimal scalar quantizer}\label{sec:lloyd}
+
+The Lloyd--Max quantizer~\cite{lloyd1982,max1960} is the best scalar quantizer with $M = 2^R$ levels $y_1 < \dots < y_M$ and thresholds $t_j$. Its two necessary optimality conditions are:
+\begin{enumerate}
+\item nearest neighbour: $t_j = (y_j + y_{j+1})/2$;
+\item centroid: $y_j = \E[X \mid t_{j-1} < X \le t_j] = \dfrac{\varphi(t_{j-1}) - \varphi(t_j)}{\Phi(t_j) - \Phi(t_{j-1})}$ for $X \sim \Normale(0,1)$, where $\varphi$ and $\Phi$ are the normal density and distribution function.
+\end{enumerate}
+They are iterated to the fixed point on the exact density (\texttt{quant-mse-gaussien.py}). The error then has a closed form,
+\begin{equation}\label{eq:lloyd-mse}
+D = 1 - \sum_j y_j^2 \,\bigl[\Phi(t_j) - \Phi(t_{j-1})\bigr],
+\end{equation}
+because $\E[X^2] = 1$ and the error is orthogonal to the reconstruction at the centroid. We find 0.36338 at 1 bit (levels $\pm\sqrt{2/\pi} = \pm 0.79788$), \textbf{0.117482 at 2 bits} (levels $\pm 0.45278$ and $\pm 1.51042$), 0.034548 at 3 bits: Max's (1960) values \calc.
+
+\begin{remarque}[Why the bench was redone]
+The Panter--Dite formula~\cite{panter1951} for the high-resolution optimal scalar quantizer, $D \approx \tfrac{\sqrt3\,\pi}{2}\sigma^2 2^{-2R} = 2.72\,\sigma^2 2^{-2R}$, would give 0.170 at $R=2$ instead of 0.1175: at 2 bits we are not in high resolution, and only computed or measured errors count (\cref{fig:mse}).
+\end{remarque}
+
+\section{The theoretical bench, redone here}\label{sec:banc-mse}
+
+\paragraph{The control.} Lloyd--Max computed analytically against Monte Carlo on $2^{20}$ samples, threshold declared before running: 4 standard errors. The control holds at 1, 2 and 3 bits. \textbf{It was at first too weak}: the first fault (a single level shifted by 0.05) did not make it fail (+0.0008 error at 1 bit, below the threshold), because nearest-neighbour assignment reallocates the samples and absorbs the shift. Strengthened fault (all levels shifted by 0.1): it fails at 1 and 2 bits. Both logs are kept.
+
+\begin{table}[ht]
+\centering\small
+\caption[Squared error at 2 bits on the Gaussian source]{Mean squared error at about 2 bits on $\Normale(0,1)$, Monte Carlo standard error in parentheses; distance $\Delta$ to the bound (\cref{def:distance}).}
+\label{tab:mse}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Quantizer & bits/weight & MSE \mes & published \litt & $\Delta$ \calc \\
+\midrule
+Lloyd--Max scalar & 2 & 0.1175 (0.0002) & 0.118 & 0.455 \\
+VQ dim.~8, random Gaussian codebook of $2^{16}$ words & 2 & 0.0935 (0.0004) & --- & 0.291 \\
+VQ dim.~8, codebook computed IQn\_KT-style & 2 & 0.0928 (0.0004) & --- & 0.285 \\
+QuIP\# E8P (E8 lattice) & 2 & not redone & 0.089 & --- \\
+\textbf{llama.cpp IQ2\_XXS} & 2.0625 & \textbf{0.1070 (0.0005)} & --- & 0.450 \\
+Shift-register trellis $L=16$, random table & 2.0034 & 0.0680 (0.0007) & 0.068 & 0.064 \\
+Trellis $L=16$, \enquote{3INST} code (QTIP) & 2.0034 & 0.0687 (0.0007) & 0.069 & 0.070 \\
+Trellis $L=16$, \enquote{mul1} code (EXL3) & 2.0034 & 0.0682 (0.0007) & --- & 0.066 \\
+Shannon bound & 2 & 0.0625 \calc & 0.063 & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[ht]
+\centering
+\GrapheMSE
+\caption[Distortion versus rate on the Gaussian source]{Distortion versus rate on the $\Normale(0,1)$ source \mes, with the Shannon bound (\cref{thm:shannon}) and the Panter--Dite high-resolution formula. The shift-register trellis closes 90\,\% of the gap between the optimal scalar quantizer and the bound at 2 bits, the 8-dimensional VQ closes 44\,\%; IQ2\_XXS equals the optimal scalar quantizer at its rate.}
+\label{fig:mse}
+\sourcefig{\fichier{fondations/journaux/02-quantification/csv/fig-q1-*.csv} (logs \fichier{mse-gaussien-passe1-partielle.log}, \fichier{mse-treillis-2b.json}, \fichier{mse-iq2xxs.json}).}
+\end{figure}
+
+Three results (\cref{tab:mse,fig:mse}):
+\begin{itemize}
+\item \textbf{The three trellis codes reproduce QTIP's table 1 within the standard error}, by a program written from the mathematical definition, without their code. The trellis closes $(0.1175 - 0.068)/(0.1175 - 0.0625) = 90\,\%$ of the gap between the scalar quantizer and the bound; the 8-dimensional VQ closes 44\,\% \calc. At 1 bit (24 sequences of 4\,096 weights), the trellis reaches 0.2631 against 0.3634 for Lloyd--Max and 0.25 for the bound: it closes 88\,\% of the gap.
+\item \textbf{IQ2\_XXS, measured on the same source, is exactly the optimal scalar quantizer at its rate}: 0.107 at 2.0625 bits, when Lloyd--Max brought to that rate gives $0.1175 \times 2^{-0.125} = 0.108$ \calc. The coder was written from the format (256-vector grid read in \texttt{ggml-common.h}, sign parity, 4-bit sub-scales), optimal for a given scale; its control, a grid $\{0.45278 ; 1.51042\}^8$ without parity, gives back Lloyd--Max (0.1173 $\pm$ 0.0009) and fails when broken. On a Gaussian source, i.e.\ after rotation, the E8 grid of IQ2\_XXS brings nothing; it was chosen on real, unrotated weights, where it wins. The parity constraint costs as much as the bit it saves.
+\item \textbf{The \enquote{trellis} of ik\_llama.cpp is not one}: read in its code, each group of 8 weights is decoded from an independent 16-bit seed, found by clustered nearest neighbour. Measured: the same error as an 8-dimensional VQ with a random codebook (0.0928 against 0.0935). A true shift-register trellis would have 27\,\% less error at the same rate.
+\end{itemize}
+The distances of \cref{tab:mse} use the real rate, priming bits included (2.0034 bits for the trellis); with the nominal 2-bit rate, the random-table trellis is 0.061 bit away, the figure of the original study.
+
+\section{The shift-register trellis}\label{sec:treillis}
+
+\begin{figure}[ht]
+\centering
+\SchemaTreillis
+\caption[The shift-register trellis and its computed decoder]{The shift-register trellis ($L = 16$, $k = 2$) and its computed \enquote{mul1} decoder. The state is a 16-bit window of the coded stream; each weight shifts 2 bits into it; the reconstructed value is a computed function of the window.}
+\label{fig:treillis}
+\end{figure}
+
+\paragraph{The code.} The state at time $t$ is an $L$-bit window $s_t$ of the coded stream; each weight shifts in $k$ new bits: $s_{t+1} = ((s_t \ll k) \mid u_t) \bmod 2^L$, with $u_t \in \{0, \dots, 2^k - 1\}$. The reconstruction is $\hat w_t = f(s_{t+1})$, where $f : \{0,1\}^L \to \mathbb R$ is a table (random Gaussian) or a computed function. It is trellis-coded quantization~\cite{marcellin1990} with a \enquote{shift-register} trellis: since $f$ depends only on $L$ bits, the table of $2^{16}$ values can be computed instead of read, for example by EXL3's \enquote{mul1} code (\cref{fig:treillis}). The coder searches the minimum-distortion stream with the Viterbi algorithm~\cite{viterbi1967}.
+
+\begin{lemme}[The predecessors of a state]\label{lem:predecesseurs}
+The predecessors of a state $s'$ are exactly the $2^k$ states $s = (s' \gg k) \mid (h \ll (L-k))$, $h \in \{0, \dots, 2^k - 1\}$.
+\end{lemme}
+
+\begin{proof}
+The transition $s' = ((s \ll k) \mid u) \bmod 2^L$ fixes the $L - k$ low bits of $s$, which become the $L-k$ high bits of $s'$, and leaves its $k$ high bits free, lost in the shift. Conversely, any $s$ of this form leads to $s'$ with $u = s' \bmod 2^k$.
+\end{proof}
+
+\begin{corollaire}[Vectorized Viterbi]\label{cor:viterbi}
+The cumulative cost $J_{t+1}(s') = \min_h J_t\bigl(s(h, s')\bigr) + (w_{t+1} - f(s'))^2$ is computed by reshaping the vector $J_t$ of size $2^L$ into a $(2^k, 2^{L-k})$ matrix and taking the minimum along the $h$ axis: $O(2^L)$ operations per weight.
+\end{corollaire}
+
+\begin{proof}
+By \cref{lem:predecesseurs}, the predecessors of $s'$ depend only on $s' \gg k$, and, in index order, they occupy column $s' \gg k$ of the $(2^k, 2^{L-k})$ matrix whose row is $h$. The minimum of each column serves the $2^k$ states $s'$ sharing the same value of $s' \gg k$, hence the repetition.
+\end{proof}
+
+\Cref{lst:viterbi} is the implementation of this corollary in the bench, in numpy; it takes six lines.
+
+\lstinputlisting[language=Python, caption={[The vectorized Viterbi of the shift-register trellis]The \enquote{mul1} code and the vectorized Viterbi of the shift-register trellis, as they run in the bench (\cref{cor:viterbi}); comments in French, as in the repository.}, label=lst:viterbi]{\Racine/listings/viterbi-treillis.py}
+
+\paragraph{The exact rate.} With a free initial state, a sequence of $T$ weights costs $(Tk + L - k)/T$ bits per weight: 2.0034 bits for $T = 4\,096$, $k = 2$, $L = 16$. With QTIP's and EXL3's \enquote{tail-biting}, one imposes $s_T = s_0$ (the tile is read circularly) and the cost is exactly $k$ bits. CurveTQ~\cite{curvetq2026} measures that tail-biting on blocks of 64 costs, at the same useful rate, +4.10 perplexity against a stored initial state (0.22 bit per weight) \litt.
+
+\section{The cost of decoding on the card}\label{sec:cout-decodage}
+
+\subsection{In CUDA}
+
+The \texttt{quant-gemv-treillis.cu} bench (CUDA 13.1.2, \texttt{-arch=sm\_89}), written from scratch, performs a $16\,384 \times 16\,384$ matrix--vector product (268 million weights, well beyond the 32\,MiB L2 cache) in four formats. The two 2-bit kernels share layout and traversal: their gap is the cost of decoding the trellis. Control: 64 rows recomputed on the CPU, relative error declared below $10^{-3}$; it holds for all four formats and, broken (code constant altered on the CPU side only), fails on the trellis and only on it.
+
+\begin{table}[ht]
+\centering\small
+\caption[GEMV in CUDA, four formats]{$16\,384 \times 16\,384$ product in CUDA on the RTX 4060, ABBA pairs with a clean reference \mes.}
+\label{tab:gemv-cuda}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Format & weight bytes & time (ms) & equivalent GB/s & speed-up / FP16 \\
+\midrule
+FP16 & 512\,MiB & 2.17 -- 2.25 & 238 -- 247 & 1 \\
+scalar 4 bits & 128\,MiB & 0.567 -- 0.580 & 231 -- 237 & 3.8 \\
+scalar 2 bits & 64\,MiB & 0.317 -- 0.319 & 211 -- 212 & 6.9 \\
+mul1 trellis 2 bits & 64\,MiB & 0.430 -- 0.433 & 155 -- 156 & 5.1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The trellis is compute-bound, not memory-bound (\cref{tab:gemv-cuda}): about ten integer operations per weight cap it at 624 billion weights per second in this naive kernel; it costs 36\,\% more time than the 2-bit scalar and remains 1.33 times faster than 4-bit.
+
+\subsection{In Vulkan and DirectX 12: the first portable trellis measured}
+
+The \texttt{quant-vulkan-gemv} bench (Rust, wgpu 30.0.1, WGSL shaders written from scratch, translated by Naga to SPIR-V for Vulkan and to HLSL for DirectX~12) redoes the same measurement, same matrix, same tile, same control. The trellis is decoded in two ways: a hand-written byte sum, or \texttt{dot4U8Packed}, the WGSL equivalent of \texttt{dp4a}. Three passes were needed and are kept: the first indexed a local array with a loop variable (2-bit fell below 4-bit); the second reread the whole activation vector for every row (1\,GiB of L2 traffic for 64\,MiB of weights); the third does four rows per group of 32 lanes and reads the activations once for all four. A fourth pass adds a 16-bit window extraction without \texttt{select} (\cref{lst:mul1}).
+
+\begin{figure}[ht]
+\centering
+\GrapheGEMVQuant
+\caption[Decoding the trellis in Vulkan and DirectX 12]{$16\,384 \times 16\,384$ matrix--vector product on the RTX 4060, equivalent GB/s of weights, medians of passes 3 and 4 \mes. With \texttt{dot4U8Packed} and select-free extraction (v2), the 2-bit trellis runs as fast as the 4-bit scalar while reading half the bytes.}
+\label{fig:gemv-quant}
+\sourcefig{\fichier{fondations/journaux/02-quantification/csv/fig-q2-*.csv} (logs \fichier{vulkan-gemv-3.json}, \fichier{vulkan-gemv-4.json}, \fichier{dx12-gemv-3.json}).}
+\end{figure}
+
+\lstinputlisting[language=WGSL, caption={[The mul1 decoder in WGSL]The shift-register trellis decoder in the WGSL shader of the GEMV: extraction of four 16-bit windows straddling two words, then the \enquote{mul1} code through \texttt{dot4U8Packed}; comments in French, as in the repository.}, label=lst:mul1]{\Racine/listings/treillis-mul1.wgsl}
+
+What these measurements say (\cref{fig:gemv-quant}):
+\begin{itemize}
+\item \textbf{A shift-register trellis decodes in a portable shader}, inside the product, with no intermediate matrix: 124\,GB/s equivalent in Vulkan, 68 in DirectX~12. To our knowledge, no such measurement is published.
+\item \texttt{dot4U8Packed} is worth a factor of 1.6 in Vulkan (native integer instruction) and nothing in DirectX~12 (where Naga seems to emulate it): \textbf{Vulkan is the API to target}.
+\item Decoding costs when the weights are in VRAM: the 2-bit trellis stays 1.7 times slower than the 2-bit scalar and as slow as the 4-bit scalar. \textbf{Outside VRAM, this cost disappears}: at 124\,GB/s, the decoder is ten times faster than the measured PCIe link (12.2\,GB/s) and 44 times faster than the disk. In the troncons regime, decoding is free and only bits count.
+\end{itemize}
+
+\subsection{A multiplication-free trellis is not faster}
+
+XOR-Trellis~\cite{xortrellis2026} announces a decoder at about 14 XOR gates per value, without publishing its masks. The question asked here: does a computed code made only of parities, written from scratch, keep the error of QTIP's and EXL3's codes, and does it decode faster? The code: 16-bit state $s$, index $j = \sum_{q=0}^{3} \mathrm{parity}(s \mathbin{\&} m_q)\, 2^q$, a linear function of $s$ over $\mathrm{GF}(2)$, value taken from the palette of the 16 Gaussian quantiles. If the four masks have rank 4, each index is reached by $2^{12}$ states and the law of the emitted values is uniform over the palette.
+
+Result \mes: \textbf{error 0.0712 $\pm$ 0.0009} at 2.0034 bits (masks \texttt{0xdfea, 0x30b1, 0xb566, 0x753c}), against 0.0682 for mul1 on the same sequences, i.e.\ $\tfrac12\log_2(0.0712/0.0682) = 0.031$ bit of loss (\cref{lem:rapport-bits}). The control runs mul1 through the same machinery and finds \emph{exactly} 0.068236 (same generator consumed in the same order). But in Vulkan, this decoder runs at 52\,GB/s equivalent against 119 to 121 for mul1: four bit counts per value cost more than an integer multiplication and a \texttt{dot4}, which are native instructions of the card. The table-free variant (uniform palette) runs at the same speed: it is not the table that costs, it is the counts. \textbf{On an RTX 4060, mul1 remains the best code to decode}; the advantage of XOR-Trellis is for a dedicated circuit.
+
+\section{The llama.cpp ladder, measured on Qwen3.5}\label{sec:echelle}
+
+\paragraph{Protocol.} llama.cpp b11515, the machine's Q4\_K\_M as baseline (bias declared at the end of the chapter); importance matrix on 128 chunks of 512 tokens of wikitext-2 \enquote{train}; quantization to each type with llama.cpp's default mix; real bits read in the file; perplexity and Kullback--Leibler divergence against the baseline logits on 40 chunks of 512 tokens of wikitext-2 \enquote{test}. The importance matrix $I_j = \sum_t x_{t,j}^2$ accumulates the square of each input column on the calibration text; quantization then minimizes $\sum_j I_j (w_j - q_j)^2$, the diagonal approximation of the Hessian $X^\top X$ used by GPTQ and QuIP\#.
+
+\begin{table}[ht]
+\centering\small
+\caption[The llama.cpp ladder on Qwen3.5-4B and 9B]{The llama.cpp ladder on Qwen3.5-4B and 9B; $\pm$: llama-perplexity standard error over the 40 chunks \mes.}
+\label{tab:echelle}
+\begin{tabular}{@{}llrrrrr@{}}
+\toprule
+Model & type & bits/weight & GB read/token & PPL & KLD & same 1st token \\
+\midrule
+4B & Q4\_K\_M (base) & 5.193 & 2.730 & 8.723 $\pm$ 0.229 & 0 & 100\,\% \\
+4B & IQ4\_XS & 4.762 & 2.503 & 8.908 $\pm$ 0.236 & 0.030 & 91.9\,\% \\
+4B & IQ3\_XXS & 3.602 & 1.894 & 9.777 $\pm$ 0.259 & 0.148 & 82.1\,\% \\
+4B & Q2\_K & 3.623 & 1.905 & 10.957 $\pm$ 0.300 & 0.254 & 77.4\,\% \\
+4B & IQ2\_M & 3.292 & 1.731 & 10.956 $\pm$ 0.293 & 0.269 & 76.4\,\% \\
+4B & IQ2\_XXS & 2.905 & 1.527 & 15.493 $\pm$ 0.437 & 0.608 & 65.8\,\% \\
+4B & IQ1\_S & 2.565 & 1.348 & 48.027 $\pm$ 1.467 & 1.780 & 44.7\,\% \\
+\midrule
+9B & Q4\_K\_M (base) & 5.066 & 5.097 & 7.174 $\pm$ 0.178 & 0 & 100\,\% \\
+9B & IQ3\_XXS & 3.509 & 3.490 & 7.913 $\pm$ 0.198 & 0.113 & 85.0\,\% \\
+9B & IQ2\_M & 3.213 & 3.159 & 8.612 $\pm$ 0.217 & 0.206 & 80.2\,\% \\
+9B & IQ2\_XXS & 2.761 & 2.757 & 10.605 $\pm$ 0.271 & 0.425 & 72.3\,\% \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{fondations/journaux/02-quantification/csv/echelle.csv}, logs \fichier{echelle-4B/}, \fichier{echelle-9B/}.}
+\end{table}
+
+\begin{figure}[ht]
+\centering
+\GrapheEchelle
+\caption[Perplexity versus bytes read per token, Qwen3.5 4B and 9B]{Perplexity versus bytes read per token, Qwen3.5-4B and 9B under llama.cpp \mes. Bars: $\pm$ one standard error. Below about 3.14\,GB read per token, the 4B wins; above, the compressed 9B dominates the whole front of the 4B.}
+\label{fig:echelle}
+\sourcefig{\fichier{fondations/journaux/02-quantification/csv/fig-q3-4B.csv}, \fichier{fig-q3-9B.csv}.}
+\end{figure}
+
+What the ladder says (\cref{tab:echelle,fig:echelle}):
+\begin{itemize}
+\item \textbf{At equal bytes, the i-quant beats the K-quant by 11\,\%}: IQ3\_XXS 9.777 against Q2\_K 10.957 for 1.89--1.91\,GB read per token (llama.cpp's \enquote{Q2\_K} is in fact at 3.6 bits per weight: its sensitive matrices go up to Q3\_K and Q4\_K).
+\item \textbf{IQ1\_S is unusable on an ordinary 4B} (perplexity multiplied by 5.5); 1.56 bits only suits models trained for it.
+\item \textbf{The 4B at 4 bits beats the 9B at 2 bits by 22\,\% in perplexity, within 1\,\% of bytes} (2.730 against 2.757\,GB; 8.723 against 10.605); the two-standard-error intervals, $[8.27 ; 9.18]$ and $[10.06 ; 11.15]$, are disjoint. With today's best portable 2-bit format, shrinking beats compressing for Qwen3.5.
+\item \textbf{The crossing happens near 3.2 bits per weight, not at 2}. By linear interpolation of the 9B front between IQ2\_XXS and IQ2\_M, it reaches 8.723 at $2.757 + \frac{10.605 - 8.723}{10.605 - 8.612} \times 0.402 = 3.137$\,GB, i.e.\ $3.137 \times 8 / 7.94 = 3.16$ bits per weight read \calc. Beyond it, the compressed 9B is better than all of the measured 4B.
+\end{itemize}
+
+\paragraph{In VRAM, bytes saved only half turn into speed.} The retained speed pass (quiet machine, \texttt{-lm none}, 128 tokens $\times$ 5, ABBA, reference noise 0.1 to 2.8\,\% against a 5\,\% threshold) gives \cref{fig:vitesse-quant}. From Q4\_K\_M to IQ2\_XXS, bytes read are divided by 1.79 (4B) and 1.85 (9B), speed multiplied by only 1.34 and 1.49: the share of the 256\,GB/s ceiling falls from 74--84\,\% to 55--68\,\%. Decoding the i-quants (grids in shared memory) and the fixed cost per token take the rest. Outside VRAM, the ratio reverses: at the link's throughput, i-quant decoding (at least 142\,GB/s effective, measured) runs ten times faster than the link, and only bytes count.
+
+\begin{figure}[ht]
+\centering
+\GrapheVitesseQuant
+\caption[Decoding speed versus bytes read per token]{Decoding speed under llama.cpp (CUDA, batch 1, all in VRAM) versus bytes read per token \mes. The dotted curve is the ceiling of \cref{thm:toit} at 256\,GB/s: the most compact formats drift away from it, because their decoding is paid for in VRAM.}
+\label{fig:vitesse-quant}
+\sourcefig{\fichier{fondations/journaux/02-quantification/csv/fig-q6-vitesse-*.csv} (logs \fichier{vitesse-4B-3.json}, \fichier{vitesse-9B-3.json}).}
+\end{figure}
+
+\section{At equal bytes read: today's best trade-off}\label{sec:iso-octets}
+
+We compare at equal bytes read, since that is what each token pays. The only published set where all methods and all sizes come from the same program is QTIP's table on Llama 2 (\cref{fig:iso-octets}).
+
+\begin{figure}[ht]
+\centering
+\GrapheIsoOctets
+\caption[At equal bytes: Llama 2 in trellis codes]{At equal bytes read, Llama 2 quantized with QTIP trellis codes \litt~\calc. A 13B at 2 bits (3.3\,GB, 5.11) equals a 7B at 4 bits (3.4\,GB, 5.17); a 70B at 2 bits (17\,GB, 3.70) beats a 13B in FP16 (26\,GB, 4.57).}
+\label{fig:iso-octets}
+\sourcefig{\fichier{fondations/journaux/02-quantification/csv/fig-q4-llama2-*.csv} (QTIP, table 5).}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\GrapheMMLU
+\caption[At equal bytes: Qwen3 on MMLU]{At equal bytes read, Qwen3 on MMLU: Tetra's Leech-lattice code at about 2.7 bits per parameter against AWQ 4-bit and FP16 \litt~\calc. Qwen3-8B Tetra (2.76\,GB) beats Qwen3-4B AWQ (2.67\,GB), 69.6 against 68.1.}
+\label{fig:mmlu}
+\sourcefig{\fichier{fondations/journaux/02-quantification/csv/fig-q4-qwen3-mmlu-*.csv} (Tetra, table 3).}
+\end{figure}
+
+\begin{itemize}
+\item \textbf{With a trellis and fine-tuning, a model twice as large at 2 bits equals or beats the half-size model at 4 bits}, on Llama 2 \litt. With scalar quantization (EfficientQAT~\cite{efficientqat2024}), it is the opposite: the crossing depends on the method as much as on size.
+\item \textbf{On a heavily trained family (Qwen3), with the codes of September 2026, the crossing happens from 8B} on MMLU~\cite{tetra2026} (\cref{fig:mmlu}). The authors write that this comparison was chosen after the measurement.
+\item \textbf{With llama.cpp's i-quants, the crossing does not happen at 9B} (\cref{sec:echelle}).
+\end{itemize}
+
+\paragraph{From what size do 2 bits become acceptable?} Delegated answer of 2026-10-15, reversible: \enquote{acceptable} means the model of size $2N$ at $b/2$ bits is at least as good as the model of size $N$ at $b \approx 4$ bits, at equal bytes read; it is the only criterion that says whether compressing beats shrinking. The relative loss of \enquote{IQ2\_XXS} against the baseline of the same size is $\ell(4.21\,\mathrm{G}) = 0.777$ and $\ell(8.95\,\mathrm{G}) = 0.479$ \mes. A power law through these two points gives $\ell(N) = 0.479\,(N/8.95)^{\alpha}$ with $\alpha = \ln(0.479/0.777)/\ln(8.95/4.21) = -0.640$ \calc. It falls below the quality gap of a doubling of size, 22\,\% between 4B and 9B, near $N = 8.95 \cdot (0.22/0.479)^{1/\alpha} \approx 30$ billion parameters, and below 10\,\% near 100 billion. \textbf{With IQ2\_XXS on Qwen3.5, the threshold lies beyond 30B; with a second-generation code, Qwen3 crosses it at 8B: the coder moves the threshold by a factor of 4 to 10.} Only two points carry this law: it is an order of magnitude.
+
+\section{Splitting bits by stage}\label{sec:partage-bits}
+
+The published tools (dynamic HIGGS, EXL3's recipes, llama.cpp's \texttt{--tensor-type}) minimize the error under a \emph{storage} budget. In troncons, a byte read in VRAM and a byte brought across the link do not have the same price.
+
+\begin{hypothese}[Linearity, Shannon slope, given placement]\label{hyp:partage}
+(H1) The quality loss is $\sum_i c_i\, \varepsilon_i$, where $\varepsilon_i$ is the relative error of matrix $i$ and $c_i \ge 0$ its sensitivity (HIGGS linearity theorem). (H2) $\varepsilon_i = \kappa\, 2^{-2b_i}$ (\cref{thm:shannon}, up to a constant per coder). (H3) Matrix $i$, of $n_i$ weights, is served by a stage of fixed throughput $W_i$. (H4) The transfer time per token $\sum_i n_i b_i / (8 W_i)$ does not exceed a budget $T$.
+\end{hypothese}
+
+\begin{proposition}[Optimal bits per matrix]\label{prop:partage}
+Under \cref{hyp:partage}, the problem $\min_b \sum_i c_i \kappa 2^{-2b_i}$ subject to $\sum_i n_i b_i / W_i \le 8T$ has solution
+\begin{equation}\label{eq:partage}
+b_i^\star = \tfrac12 \log_2\!\left(\frac{2 \ln 2 \;\kappa\, c_i \, W_i}{\lambda\, n_i}\right),
+\end{equation}
+where $\lambda > 0$ is set by the active constraint.
+\end{proposition}
+
+\begin{proof}
+The Lagrangian $\mathcal L = \sum_i c_i \kappa 2^{-2b_i} + \lambda(\sum_i n_i b_i/W_i - 8T)$ is convex in $b$: a sum of decreasing exponentials and a linear term. The first-order condition $\partial\mathcal L/\partial b_i = -2\ln 2\, c_i\kappa\, 2^{-2b_i} + \lambda n_i / W_i = 0$ gives $2^{-2b_i} = \lambda n_i / (2\ln2\, c_i \kappa W_i)$, hence the formula. Convexity makes it the global minimum; the constraint is active at the optimum, since the loss strictly decreases in each $b_i$.
+\end{proof}
+
+\begin{corollaire}[The bits-per-stage rule]\label{cor:regle-bits}
+Two matrices with the same sensitivity density $c_i/n_i$, one served by a stage of throughput $W_1$, the other by a stage $W_2$, receive
+\begin{equation}\label{eq:regle-bits}
+b_1^\star - b_2^\star = \tfrac12 \log_2 \frac{W_1}{W_2}
+\end{equation}
+bits of difference. With the throughputs measured in \cref{ch:machine}: \textbf{2.18 bits} between VRAM and the PCIe link ($\tfrac12\log_2(251.3/12.2)$), \textbf{3.24 bits} between VRAM and disk ($\tfrac12\log_2(251.3/2.82)$), 1.06 bits between link and disk \calc.
+\end{corollaire}
+
+\begin{proof}
+Take the ratio of the two instances of \cref{eq:partage}: $\lambda$, $\kappa$ and $c_i/n_i$ cancel.
+\end{proof}
+
+\noindent The original study had quantified this rule with a link at 7\,GB/s: \barre{a VRAM-resident matrix receives $\tfrac12\log_2(256/7) \approx 2.6$ more bits than a matrix read over PCIe}. That throughput was a loaded state of the machine; at rest, the link delivers 12.2\,GB/s (\cref{sec:pcie}), and the gap drops to 2.18 bits. Weights read from disk, for their part, deserve 3.24 bits fewer than residents: residents at 4 to 5 bits, the disk stream around 1 to 2 bits.
+
+\begin{proposition}[Frequency decides placement, sensitivity decides bits]\label{prop:frequence}
+Add a usage probability $p_i$ per token (experts of an MoE; $p_i = 1$ for a dense model): time becomes $\sum_i p_i n_i b_i/W_i$ and loss $\sum_i p_i c_i \kappa 2^{-2b_i}$. Then (a) $b_i^\star$ is given by \cref{eq:partage} and does not depend on $p_i$; (b) the gain of making matrix $i$ resident is proportional to $p_i$ and is, when $W_V \gg W_P$, about $\lambda\, p_i\, n_i\, (\tfrac{1}{2\ln 2} + b^\star_{i,P})/W_P$.
+\end{proposition}
+
+\begin{proof}
+(a) In the first-order condition, $p_i$ multiplies both terms and cancels. (b) At the optimum, $c_i \kappa 2^{-2b^\star} = \lambda n_i / (2 \ln 2\, W)$; the contribution of the matrix to the Lagrangian is thus $\Lambda_i(W) = p_i\bigl(c_i\kappa 2^{-2b^\star} + \lambda n_i b^\star/W\bigr) = \lambda\, p_i\, n_i\,(\tfrac{1}{2\ln 2} + b_i^\star(W))/W$, and the residency gain is $\Lambda_i(W_P) - \Lambda_i(W_V)$, dominated by the first term when $W_V \gg W_P$.
+\end{proof}
+
+Hence the VRAM filling rule: \textbf{sort by usage frequency first, sensitivity second}. To our knowledge, no published tool poses this joint (bits, stage) problem; Q-Palette~\cite{qpalette2025} poses it at fixed placement with a profiled latency cost.
+
+\paragraph{The nested code.} ApexQuant~\cite{apexquant2026} requantizes the residual after a fresh random rotation, pass after pass; every prefix of the passes is a valid model, and the \enquote{price of elasticity} is a constant distance to the bound per pass: 0.45 bit for a scalar quantizer, 0.10 bit for a trellis \litt. In troncons, this gives a single file for both stages: a streamed matrix reads only its pass 1 (about 2 bits), a resident matrix reads passes 1 and 2 (about 4 bits), and when the residency window moves, nothing is requantized. Cost \calc: about 0.10 bit on the residents, i.e.\ 2.5\,\% of VRAM bytes; gain over two separate copies (2 + 4 bits): 1.9 bits per weight of disk, 32\,\% of storage. It is the rule of \cref{cor:regle-bits} made dynamic; no published engine reads precision prefixes according to the memory stage.
+
+\section{The techniques, in one table}\label{sec:techniques-quant}
+
+\begin{table}[ht]
+\centering\scriptsize
+\caption[Extreme quantization techniques]{Extreme quantization techniques, state at 2026-10-15. Losses: WikiText-2 perplexity, FP16 $\to$ quantized \litt.}
+\label{tab:techniques-quant}
+\begin{tabularx}{\linewidth}{@{}l>{\raggedright}p{2.0cm}X>{\raggedright}p{1.7cm}l@{}}
+\toprule
+Technique & bits/weight & Published loss (examples) & Vulkan & Licence \\
+\midrule
+K-quants (llama.cpp) & 2.625--6.5625 & Q2\_K: +3.52 on Llama 3 8B & \textbf{yes} & MIT \\
+i-quants + imatrix & 1.5625--4.25 & IQ2\_XXS: 7B 5.12$\to$7.07; 70B 3.12$\to$4.08 & \textbf{yes} & MIT \\
+EfficientQAT~\cite{efficientqat2024} & $\approx$ 2.25 & L2-7B 5.47$\to$6.86; L3-70B 2.85$\to$6.08 & no & MIT \\
+HIGGS~\cite{higgs2024} & 2--4.25 & L3.1-8B 5.607$\to$6.388 at 3.25 bits & no & Apache-2.0 \\
+QuIP\#~\cite{quipsharp2024} & 2, 3, 4 & 70B 3.12$\to$3.91 at 2 bits & no & GPL-3.0 \\
+AQLM~\cite{aqlm2024} + PV-tuning~\cite{pvtuning2024} & 1.0--2.3 & L2-7B 5.12$\to$5.84; L3-70B 2.59$\to$4.57 & no & Apache-2.0 \\
+VPTQ~\cite{vptq2024} & 1.375--4 & L2-70B 2.07 bits: 3.93 & no & MIT \\
+QTIP~\cite{qtip2024} & 2, 3, 4 & 2 bits: 7B 5.86; 70B 3.70 & no & GPL-3.0 \\
+CurveTQ~\cite{curvetq2026} & 2.29 all-in & Qwen3-4B 9.72$\to$11.50; Qwen3-32B 6.17$\to$6.90 & no (CUDA) & --- \\
+XOR-Trellis~\cite{xortrellis2026} & $\approx$ 2 & L3.1-8B 5.84$\to$8.00 (QTIP 8.48) & not published & --- \\
+Tetra~\cite{tetra2026} & 2.148 read & MMLU Qwen3-8B 69.6 (FP16 75.1) & no (CUDA) & Apache-2.0 \\
+GSQ~\cite{gsq2026} & 2.13 / 3.13 & projectable to Q2\_K / Q3\_K\_M & \textbf{yes if projected} & Apache-2.0 \\
+ApexQuant~\cite{apexquant2026} & $P \times b$, prefixes & every prefix valid & not published & undeclared \\
+EXL3 & 1--8 & repository curves & \textbf{no} (CUDA) & MIT \\
+IQn\_KT (ik\_llama.cpp) & 1.75--4.0 & error $\approx$ random VQ 8 \mes & no & MIT \\
+BitNet b1.58~\cite{bitnet2024} & 1.58 & native, on par with full models (2B4T) & via TQ1\_0 & MIT \\
+MXFP4 / NVFP4~\cite{nvfp4pretrain2025} & 4.25 / 4.5 & native NVFP4 \enquote{comparable to FP8} & storage yes & --- \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{What is missing in the world}
+
+\begin{enumerate}
+\item \textbf{No trellis decoder (QTIP, EXL3 class) in Vulkan or DirectX~12}, apart from this chapter's. At stake \calc: at 2 bits, trellis 0.068 against 0.093 for an 8-dimensional VQ and 0.107 for IQ2\_XXS, i.e.\ 0.23 to 0.33 bit per weight at equal quality (\cref{lem:rapport-bits}); without fine-tuning, the published perplexity gain is smaller (QTIP 3INST 6.82 against IQ2\_XXS 7.07 on Llama 2 7B). CurveTQ shows that a rotation-free trellis, with curvature in the Viterbi metric and an initial state stored per block, beats QTIP: the decoder to write is thus simpler than the one measured here, and the code to port is mul1 with \texttt{dot4U8Packed}.
+\item \textbf{Nobody allocates bits according to transfer cost} (\cref{prop:partage}); it is a direct contribution for troncons.
+\item \textbf{No nested code is tied to placement.}
+\item \textbf{No published equal-bytes frontier for heavily trained families below 3 bits with portable kernels}; \cref{fig:echelle} gives a first point for Qwen3.5.
+\item \textbf{Quantizing a large model on the machine}: QTIP and PV-tuning require days of datacenter GPUs; a trellis quantizer working matrix by matrix from disk, on the card, in Vulkan, does not exist.
+\item \textbf{The best 2-bit format decodable in Vulkan is still a poorly filled K-quant}: GSQ raises a Qwen3-8B Q2\_K from 50.03 to 56.28 on average without changing the format \litt.
+\end{enumerate}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{The card and the processor were shared}: quantization times are upper bounds; quality measurements do not depend on it.
+\item \textbf{The baselines are Q4\_K\_M, not BF16}: requantization adds the Q4\_K\_M error, estimated at about 10\,\% of the loss at 2 bits, which makes the low-rate results pessimistic by as much. The KL divergence is measured against the Q4\_K\_M.
+\item \textbf{The importance matrix is computed on the same domain as the test} (optimistic bias for the i-quants).
+\item \textbf{20\,480 evaluation tokens}; the absolute perplexity is not comparable to published numbers at context 4096.
+\item \textbf{Literature numbers come from different programs}; only comparisons inside one paper or inside our ladder are clean.
+\item \textbf{The error on a Gaussian is not model quality}; the step to perplexity relies on a linearity theorem valid for small errors, which 2 bits no longer are.
+\item \textbf{The bits-per-stage rule} assumes additive errors and the Shannon slope: it gives the direction and the order of magnitude, not the value.
+\item \textbf{The October 2026 front is not reproduced}; CurveTQ, Tetra, XOR-Trellis and ApexQuant are less than six weeks old.
+\item \textbf{The extrapolation to 30B} rests on two points.
+\end{itemize}
+\end{faux}

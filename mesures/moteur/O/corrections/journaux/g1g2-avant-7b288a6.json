@@ -1,0 +1,90 @@
+{
+ "outil": "temoin_sortie.py",
+ "date": "2026-10-16T06:22:44",
+ "exe": "~/dev/cibles/troncons-O/avant-7b288a6/troncons.exe",
+ "cas": [
+  {
+   "cas": "absent",
+   "commande": "~/dev/cibles/troncons-O/avant-7b288a6/troncons.exe generer --modele ~/dev/modeles/trc/n-existe-pas.trc --vocab ~/dev/modeles/trc/gpt-oss-20b.vocab.gguf --invite ~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt -n 4 --repos 0",
+   "pid": 14240,
+   "sortie_processus_s": 1.306,
+   "mur_s": 90.007,
+   "tuyaux_fermes_s": {
+    "sortie": 92.79054780000297,
+    "erreur": 92.7907572999975
+   },
+   "tue_a_s": null,
+   "bloque_au_dela_de_s": 90.0,
+   "code": 1,
+   "erreur_dernieres_lignes": [
+    "print_info: EOG token             = 200012 '<|call|>'",
+    "print_info: max token length      = 256",
+    "llama_model_load: vocab only - skipping tensors",
+    "troncons : erreur : ouverture de ~/dev/modeles/trc/n-existe-pas.trc: lecture ou écriture : Le fichier spécifié est introuvable. (os error 2): Le fichier spécifié est introuvable. (os error 2)"
+   ],
+   "orphelins_smi": [
+    {
+     "pid": 39632,
+     "ligne": "\"nvidia-smi\" --query-gpu=memory.used --format=csv,noheader,nounits -lms 250"
+    }
+   ]
+  },
+  {
+   "cas": "corrompu",
+   "commande": "~/dev/cibles/troncons-O/avant-7b288a6/troncons.exe generer --modele ~/dev/modeles/trc/casse/gpt-oss-20b-casse-E2.trc --vocab ~/dev/modeles/trc/gpt-oss-20b.vocab.gguf --invite ~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt -n 32 --flux --repos 0",
+   "pid": 13528,
+   "sortie_processus_s": 4.752,
+   "mur_s": 90.017,
+   "tuyaux_fermes_s": {
+    "sortie": 92.85141959998873,
+    "erreur": 92.85147139999026
+   },
+   "tue_a_s": null,
+   "bloque_au_dela_de_s": 90.0,
+   "code": 1,
+   "erreur_dernieres_lignes": [
+    "print_info: EOG token             = 200012 '<|call|>'",
+    "print_info: max token length      = 256",
+    "llama_model_load: vocab only - skipping tensors",
+    "troncons : erreur : couche 2, expert 19 : décodage faux (32 voies hors de L, 0 erreurs de format, 1 pointeurs de tuile faux)"
+   ],
+   "orphelins_smi": [
+    {
+     "pid": 20812,
+     "ligne": "\"nvidia-smi\" --query-gpu=memory.used --format=csv,noheader,nounits -lms 250"
+    }
+   ]
+  },
+  {
+   "cas": "tue",
+   "commande": "~/dev/cibles/troncons-O/avant-7b288a6/troncons.exe generer --modele ~/dev/modeles/trc/gpt-oss-20b.trc --vocab ~/dev/modeles/trc/gpt-oss-20b.vocab.gguf --invite ~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt -n 256 --repos 0",
+   "pid": 41360,
+   "sortie_processus_s": 4.865,
+   "mur_s": 90.004,
+   "tuyaux_fermes_s": {
+    "sortie": 92.90565149999748,
+    "erreur": 92.90581369999563
+   },
+   "tue_a_s": 4.736038799994276,
+   "bloque_au_dela_de_s": 90.0,
+   "code": 1,
+   "erreur_dernieres_lignes": [
+    "print_info: EOG token             = 200002 '<|return|>'",
+    "print_info: EOG token             = 200012 '<|call|>'",
+    "print_info: max token length      = 256",
+    "llama_model_load: vocab only - skipping tensors"
+   ],
+   "orphelins_smi": [
+    {
+     "pid": 19884,
+     "ligne": "\"nvidia-smi\" --query-gpu=memory.used --format=csv,noheader,nounits -lms 250"
+    }
+   ]
+  }
+ ],
+ "verdicts": {
+  "absent": "tombe",
+  "corrompu": "tombe",
+  "tue": "tombe"
+ }
+}

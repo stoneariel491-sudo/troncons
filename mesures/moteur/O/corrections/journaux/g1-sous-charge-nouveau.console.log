@@ -1,0 +1,47 @@
+{
+ "commande": [
+  "~/dev/cibles/troncons-O/ronde/troncons.exe",
+  "evaluer",
+  "--modele",
+  "~/dev/modeles/trc/gpt-oss-120b-brut.trc",
+  "--base",
+  "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+  "--fenetres",
+  "10",
+  "--positions",
+  "512",
+  "--flux",
+  "--brut",
+  "--sortie",
+  "~\\dev\\essais\\troncons\\lot-O\\ronde\\g1\\nouveau.kld",
+  "--empreintes",
+  "~\\dev\\essais\\troncons\\lot-O\\ronde\\g1\\nouveau-empreintes.csv",
+  "--journal",
+  "~\\dev\\essais\\troncons\\lot-O\\ronde\\g1\\nouveau.json"
+ ],
+ "pid": 32460,
+ "depart_apres_charge_s": 60.0,
+ "mur_s": 361.0,
+ "code": 0,
+ "fige_arrete": false,
+ "battements": 360,
+ "fenetres_finies": 10,
+ "erreur": null,
+ "dernieres_lignes": [
+  "troncons : préremplissage par flux, couche 33/36 (25.0 s ; 30870 lectures de tronçons ; 0 conflits d'arrivée évités)",
+  "troncons : préremplissage par flux, couche 34/36 (25.6 s ; 30946 lectures de tronçons ; 0 conflits d'arrivée évités)",
+  "troncons : préremplissage par flux, couche 35/36 (26.3 s ; 31023 lectures de tronçons ; 0 conflits d'arrivée évités)",
+  "troncons : préremplissage par flux, couche 36/36 (27.0 s ; 31102 lectures de tronçons ; 0 conflits d'arrivée évités)",
+  "troncons evaluer : fenêtre 10/10 (358 s)",
+  "troncons evaluer : 0 pas en 358 s (0.00 pas/s), h = 0.000, PPL des positions notées 422.206"
+ ],
+ "compteurs": {
+  "flux_conflits_evites": 0,
+  "garde_troncons": 31102,
+  "lectures_troncons": 31102,
+  "garde_attente_s": 4.377399500000004
+ },
+ "ppl": 422.20558522791305,
+ "kld_sha256": "5b212fe9ac9aac934cdb4fe2d50932b03e88c0704e5569715153351832bcd7be",
+ "kld_egal_lot_O": true
+}

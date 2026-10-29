@@ -1,0 +1,461 @@
+% Tome~III, chapitre 8 : un codon synonyme dans le format, lot A, v1.2 (version française). Rédacteur C,
+% 2026-10-29. Plan, dérivations à poser et réserves : memoire/tome3/PLAN-redaction.md § 08.
+% Chaque nombre vient d'un fichier commité, lu au moment d'écrire :
+%   genome/06-codon-v1-2.md (§ 8 corrigé le 2026-10-27) ; genome/construction-codon-pour-le-memoire.md ;
+%   genome/JUGEMENT-placement.md §§ 0, 5.3, 5.6, 5.7, 12 (le motif croisé) ; genome/JUGEMENT-construction.md
+%   §§ 0, 1, 2, 4, 6, 8, 9 ; mesures/genome/construction/codon/ (tailles.json, tailles-par-tenseur.csv,
+%   j1-s2-passes.csv, j1-s2-verdicts.json) ; memoire/figures/tome3/donnees/codon-nombres.tex et
+%   juge-nombres.tex (nombres des légendes jugées, tirés des mêmes fichiers).
+% RÉSERVE R1, tenue partout : le ×1,44 du J1 vient du format v1.2 par le motif de ses requêtes de lecture,
+% propre à ce disque ; jamais « l'état du fichier », jamais ses 3,3 % d'octets.
+% Les légendes renvoient par \cref à fig:t3-syno-variantes (chapitre 9) : renvoi hors de ce chapitre.
+
+\chapter{Un codon synonyme dans le format (lot A, v1.2)}\label{t3cod:ch}
+
+\begin{origine}
+\textbf{Au départ}, le moteur du Tome~II lisait le format \texttt{.trc} v1.0 (un niveau, flux CODES\_CTX à table par voie) ; les deux fichiers de la machine étaient en v1.0, \num{11157405696} octets pour gpt-oss-20b et \num{57730662400} pour gpt-oss-120b. L'équipe du codage prédictif avait mesuré, par des flux rANS réels décodés, que fondre le demi-octet 8 ($-0$) dans le demi-octet 0 fait passer le 120b de 3,8549 à 3,7292 bits par poids d'expert et le 20b de 3,8509 à 3,7230 (\cref{t3pre:ch}). La synthèse avait démontré que la GEMV du moteur rend les mêmes bits sur les deux codes (\cref{t3syn:prop:a1}).
+\textbf{Ce chapitre établit} le gain exact du fondu, démontré puis vérifié tenseur par tenseur sur 180 tenseurs ; que tous les lecteurs de codes du projet lisent le code 8 comme 0 ; le format v1.2 au bit près et le lemme qui en garantit l'invariant ; les deux fichiers recodés, exacts en valeur expert par expert, \num{1800486912} octets de moins sur le 120b ; des logits identiques au bit ; et le jalon J1 refait sur le 120b, $\times 1{,}454$ en génération, avec ce qui l'explique sur ce disque : le motif des requêtes de lecture que le format impose.
+\textbf{Il reste} à isoler la variable exacte du motif, que personne n'a encore trouvée, et à remesurer le gain sur tout autre disque.
+Sources : \fichier{genome/06-codon-v1-2.md}, \fichier{genome/construction-codon-pour-le-memoire.md}, \fichier{genome/JUGEMENT-construction.md}, \fichier{genome/JUGEMENT-placement.md} ; mesures sous \fichier{mesures/genome/construction/codon/}, \fichier{mesures/genome/construction/juge/}, \fichier{mesures/disque/placement/juge/seance/}.
+\end{origine}
+
+\begin{enbref}
+Dans le code génétique, plusieurs codons de trois lettres donnent le même acide aminé : GGU, GGC, GGA et GGG donnent tous la glycine. Ces codons sont dits synonymes, et la cellule lit l'un comme l'autre \parencite{genome-crick1968,genome-pe-crick1966wobble}. L'image n'est qu'une analogie, mais elle tombe juste ici. Un poids de gpt-oss tient sur 4 bits : un bit de signe et trois bits de grandeur, seize codes pour quinze valeurs, parce que $+0$ et $-0$ sont deux codes du même zéro. Le quantificateur d'origine a gardé le signe des valeurs arrondies à zéro ; ce signe est une pièce de monnaie parfaitement juste, et aucun calcul ne le lit. Le stocker coûte pourtant presque un bit par zéro, et un poids sur huit est un zéro. Le lot A le retire : le codeur réécrit chaque $-0$ en $+0$ avant le codage entropique. Le gain se prédit exactement (deux fois la part des $-0$) et se vérifie à deux dix-millièmes de bit près sur chaque tenseur. Les logits ne changent pas d'un bit, et la preuve en est écrite sur le noyau réel. Le fichier du 120b perd \SI{1.80}{\Go}, et, sur cette machine, le moteur va 1,45 fois plus vite. Ce dernier chiffre n'est pas celui que les octets prédisaient (3,4\,\% au plus) : il vient de la façon dont le nouveau format découpe ses lectures sur ce disque, et ne vaut que pour lui.
+\end{enbref}
+
+% =============================================================================================================
+\section{Seize codes pour quinze valeurs}\label{t3cod:sec:codes}
+
+\paragraph{Le code E2M1.} MXFP4 range les poids par blocs de 32 qui partagent une échelle E8M0, $2^{e - 127}$ ; chaque poids est un code de 4 bits au format E2M1 : un bit de signe, deux bits d'exposant, un bit de mantisse \parencite{ocpmx2023,rouhani2023microscaling}. Ses huit grandeurs sont $0$, $0{,}5$, $1$, $1{,}5$, $2$, $3$, $4$, $6$. llama.cpp et le moteur les \emph{doublent}, $K = (0, 1, 2, 3, 4, 6, 8, 12)$, et passent le facteur 2 dans l'échelle, $2^{e - 128}$. Pour un code $c \in \{0, \dots, 15\}$, de bits $c_3 c_2 c_1 c_0$,
+\begin{equation}\label{t3cod:eq:valeur}
+v(c) = (-1)^{c_3}\, K[c \mathbin{\&} 7].
+\end{equation}
+L'application $v$ est injective sauf sur $\{0, 8\}$ : $v(0) = +0$ et $v(8) = -0$, deux codes pour une seule valeur, puisque $-0 = +0$ en IEEE~754 \parencite{ieee754}. Seize codes, quinze valeurs.
+
+\paragraph{La pièce du signe.} Le quantificateur de gpt-oss garde le signe d'une valeur arrondie à zéro. Sur les 72 tenseurs d'experts de gpt-oss-20b (\num{19110297600} poids), le code $+0$ a la part 6,3920\,\% et le code $-0$ la part 6,3929\,\% : le signe d'un zéro a une entropie de 0,9999999967 bit \mes~(\fichier{mesures/genome/etat-de-l-art/journaux/zero-compte-20b.json}). L'entropie des codes vaut 3,8638 bits, celle des valeurs 3,7360, et la différence, 0,1278 bit par poids, est ce que coûte un signe que rien ne lit. La \cref{fig:t3-codon-roue} montre les seize codes sur la droite repliée des valeurs : avant, deux rayons pour le zéro ; après, un seul, qui porte les deux parts.
+
+\begin{figure}[tbp]
+\centering
+\GrapheCodonRoue
+\LegendeFigure{CodonRoue}
+\label{fig:t3-codon-roue}
+\end{figure}
+
+% =============================================================================================================
+\section{Le gain exact du fondu}\label{t3cod:sec:gain}
+
+\begin{proposition}[L'entropie d'un code à synonyme]\label{t3cod:prop:gain}
+Soit $C$ le code de 4 bits d'un poids, $V = v(C)$ sa valeur et $S = C_3$ son bit de signe. Alors
+\begin{equation}\label{t3cod:eq:gain}
+H(C) = H(V) + \Prob(V = 0)\, H(S \mid V = 0).
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+$V$ est une fonction de $C$, donc $H(V \mid C) = 0$ et $H(C, V) = H(C)$. Par la règle de chaîne \parencite{cover2006}, $H(C, V) = H(V) + H(C \mid V)$. Sachant $V = v \ne 0$, $C$ est déterminé, puisque $v$ est injective hors de 0 : $H(C \mid V = v) = 0$. Sachant $V = 0$, $C \in \{0, 8\}$, et $C$ est déterminé par $S$ : $H(C \mid V = 0) = H(S \mid V = 0)$. D'où $H(C \mid V) = \sum_v \Prob(V = v)\, H(C \mid V = v) = \Prob(V = 0)\, H(S \mid V = 0)$, et $H(C) = H(V) + \Prob(V = 0)\,H(S \mid V = 0)$.
+\end{proof}
+
+\begin{corollaire}[Le gain attendu par poids]\label{t3cod:cor:gain}
+Fondre 8 dans 0 remplace $C$ par $C' = \gamma(C)$, avec $\gamma(8) = 0$ et $\gamma$ l'identité ailleurs ; $C'$ est en bijection avec $V$, donc $H(C') = H(V)$. Le gain d'entropie est $\Prob(V = 0)\,H(S \mid V = 0)$ bit par poids. Quand le signe d'un zéro est une pièce juste, $H(S \mid V = 0) = 1$, les $-0$ sont la moitié des zéros, et
+\begin{equation}\label{t3cod:eq:deux-fois}
+\text{gain} = \Prob(V = 0) = 2 \times \text{(part des } {-0}\text{)}.
+\end{equation}
+Le résultat vaut conditionnellement à tout contexte $X$ connu du décodeur (classe d'échelle $\kappa$, octet voisin) : on remplace partout $H(\cdot)$ par $H(\cdot \mid X)$, et la démonstration ne change pas.
+\end{corollaire}
+
+\begin{remarque}[L'alphabet octet]\label{t3cod:rem:octet}
+Le flux CODES\_CTX ne code pas des demi-octets mais des octets, deux codes à la fois, avec une table par classe d'échelle. La même démonstration, appliquée à l'octet $O = (C_{\text{bas}}, C_{\text{haut}})$ et à sa valeur $(V_{\text{bas}}, V_{\text{haut}})$, donne un gain de $\Prob(V_{\text{bas}} = 0)\,H(S_{\text{bas}} \mid \cdot) + \Prob(V_{\text{haut}} = 0)\,H(S_{\text{haut}} \mid \cdot)$ bits par octet si les signes des zéros sont indépendants de tout le reste, soit $\Prob(V = 0)$ bit par poids. Le fondu retire de l'alphabet les octets dont un demi-octet vaut 8 : 16 octets de demi-octet fort 8, 16 de demi-octet faible 8, dont un commun (\texttt{0x88}), soit $16 + 16 - 1 = 31$ octets ; il en reste $256 - 31 = 225$ \calc.
+\end{remarque}
+
+\paragraph{Le chiffre attendu, et le chiffre mesuré.} Le codeur du lot A a fondu \num{1221698587} demi-octets 8 sur le 20b (6,393\,\% des poids d'experts) et \num{7199491948} sur le 120b (6,279\,\%) ; la vérification, qui canonise les tranches du GGUF par son propre chemin, compte les mêmes nombres à l'unité \mes~(\fichier{tailles.json}). Le corollaire prédit donc \calc
+\[
+2 \times 0{,}0639288 = 0{,}12786 \text{ bit (20b)}, \qquad 2 \times 0{,}0627889 = 0{,}12558 \text{ bit (120b)},
+\]
+et le gain mesuré sur les tronçons codés vaut 0,12791 et 0,12562 bit (\cref{t3cod:sec:fichiers}). L'écart, quatre à cinq cent-millièmes de bit, est une miette d'arrondi des tables : 225 symboles au lieu de 256 à normaliser sur \num{4096} fentes.
+
+\begin{figure}[tbp]
+\centering
+\GrapheCodonTheoreme
+\LegendeFigure{CodonTheoreme}
+\label{fig:t3-codon-theoreme}
+\end{figure}
+
+\paragraph{Tenseur par tenseur.} La \cref{fig:t3-codon-theoreme} refait la comparaison sur chacun des 180 tenseurs d'experts des deux modèles (72 du 20b, 108 du 120b). L'écart entre le gain mesuré et deux fois la part des $-0$ reste entre $-0{,}00017$ et $+0{,}00016$ bit, en moyenne $+0{,}00005$ \calc~sur \mes~(\fichier{tailles-par-tenseur.csv}). C'est un résultat plus fort qu'il n'y paraît : si le signe d'un zéro était prédit par la classe d'échelle ou par l'octet voisin, que le codeur connaît, le gain mesuré serait plus petit que $\Prob(V = 0)$ (le corollaire conditionnel donnerait $\Prob(V = 0)\,H(S \mid V = 0, X) < \Prob(V = 0)$). Les 180 points sur la diagonale disent que, dans chaque tenseur, le signe d'un zéro est une pièce juste que rien ne prédit, et que le codeur rANS \parencite{duda2013ans,giesen2014interleaved} en récupère le bit entier.
+
+\paragraph{Où sont les zéros.} Le gain va de 0,115 bit (120b, couche 26, up) à 0,239 bit (120b, couche 0, up, où 11,9\,\% des poids sont des $-0$, donc environ 24\,\% des zéros) ; la couche 0 est partout la plus riche en zéros (20b : 0,196 bit en gate et en up), puis la couche 1 ; les moyennes par matrice (gate, up, down) sont égales à 0,002 bit près \mes. La couche 0 est aussi celle où l'état caché porte des canaux aberrants et où le contexte de colonne rendait ses 0,14 bit (\cref{t3syn:sec:colonnes}). Une explication les relie, qui n'est pas testée : une échelle de bloc tirée vers le haut par une colonne géante écrase vers zéro les autres poids du bloc.
+
+\begin{figure}[tbp]
+\centering
+\GrapheCodonOctets
+\LegendeFigure{CodonOctets}
+\label{fig:t3-codon-octets}
+\end{figure}
+
+\paragraph{Ce que le fondu fait aux tables.} La \cref{fig:t3-codon-octets} montre une table CODES\_CTX (120b, couche 18, up, $\kappa = 1$) en grille $16 \times 16$, avant et après : la ligne et la colonne 8 s'éteignent, et leur masse passe sur la ligne et la colonne 0. Sur les 540 tables CODES\_CTX des couches 0, $L/2$ et $L - 1$ des deux modèles, un second lecteur, écrit depuis la seule spécification (\fichier{tables\_octets.py}), trouve : en v1.0, 540 tables sur 540 donnaient une fente aux octets portant un 8, pour une masse de 412 à \num{1039} fentes sur \num{4096} (13\,\% en moyenne) ; en v1.2, aucune \mes~(\fichier{tables-octets.json}). Ces 13\,\% de fentes rendues aux autres octets sont, en bits, le gain du corollaire.
+
+% =============================================================================================================
+\section{Qui lit le code 8, et pourquoi les bits ne changent pas}\label{t3cod:sec:lecteurs}
+
+Le fondu n'est sans perte que si \emph{chaque} lecteur de codes donne au code 8 la valeur 0. Le lot A a relevé tous les lecteurs du dépôt (recherche de \texttt{e2m1}, \texttt{kvalues}, \texttt{\& 8}, \texttt{\& 7} dans \fichier{moteur/}).
+
+\begin{table}[ht]
+\centering\small
+\caption[Les lecteurs du code 8]{Les lecteurs de codes et la valeur qu'ils donnent au code 8.}
+\label{t3cod:tab:lecteurs}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.2\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.18\linewidth}>{\raggedright\arraybackslash}p{0.2\linewidth}@{}}
+\toprule
+Lecteur & Où & Code 8 & Statut \\
+\midrule
+ggml (llama.cpp b11515) & \texttt{ggml-common.h}, l. 1124 à 1129 : \texttt{kvalues\_fp4} (int8) $0, 1, 2, 3, 4, 6, 8, 12, 0, -1, \dots, -12$ & 0 (entier) & lu à la source le 2026-10-17, licence MIT \litt \\
+GEMV du moteur & \texttt{trc-noyaux/noyaux/gemv.cuh}, \texttt{valeur\_e2m1x2} (l. 33) & $-0$ (f32) & seul lecteur des valeurs dans les noyaux \\
+décodeur CUDA & \texttt{decodeur.cuh} & ne lit pas les valeurs & indifférent \\
+référence f64 & \texttt{trc-reference/src/poids.rs}, \texttt{K\_MXFP4[8]} (l. 24) & $-0$ (f64) & lit le GGUF, pas le \texttt{.trc} \\
+bancs et témoins & \texttt{banc\_k.cu} l. 1049, \texttt{tests/carte.rs} l. 379 & $-0$ & témoins seulement \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{genome/06-codon-v1-2.md} § 1 ; ggml : \url{https://raw.githubusercontent.com/ggml-org/llama.cpp/b11515/ggml/src/ggml-common.h}, SHA-256 \texttt{0061131b}\dots, consulté le 2026-10-17.}
+\end{table}
+
+$-0$ et $+0$ ont la même valeur ; la seule question est celle des \emph{bits} d'une somme où un terme passe de $-0$ à $+0$. La \cref{t3syn:prop:a1} y répond pour la GEMV, en trois temps : une grille ($v$ entier, $x$ binaire32, donc toute somme exacte est un multiple de $2^{-149}$ et ne s'arrondit pas à zéro si elle n'est pas nulle) ; l'accumulateur, parti de $+0$, ne vaut jamais $-0$ ; un pas sur un code nul laisse donc l'accumulateur inchangé dans les deux calculs. La \cref{fig:t3-codon-accumulateur} en dessine la machine à états, et sa mesure.
+
+\begin{figure}[tbp]
+\centering
+\GrapheCodonAccumulateur
+\LegendeFigure{CodonAccumulateur}
+\label{fig:t3-codon-accumulateur}
+\end{figure}
+
+\paragraph{La mesure sur la carte.} \fichier{trc-noyaux/tests/carte.rs::gemv_lit_le_code_8_comme_0} prend un expert synthétique aux dimensions de gpt-oss (trois matrices $2880 \times 2880$, soit $3 \times 2880 = 8640$ lignes de sortie) dont le signe est tiré pour toute grandeur, la grandeur 0 comprise : il porte \num{2486216} demi-octets 8. On le compare à sa copie canonisée, avec des $x$ quelconques : mantisses pleines, exposants de $2^{-10}$ à $2^{10}$, un $x$ sur 97 à $+0$ et un sur 97 à $-0$ (le cas qui exerce le pas (2) de la démonstration), sommes non exactes en f32. Résultat : \textbf{8\,640 lignes, 0 différente au bit}. Cassure : un code 0 de la copie, en face d'un $x$ non nul, mis à 1, et la ligne 0 diffère \mes~(\fichier{essais-espace-2026-10-17-a.log}).
+
+\paragraph{La référence f64.} \texttt{trc-reference/tests/code\_8.rs} prend une matrice MXFP4 de $64 \times 2880$ (un tiers des grandeurs à 0, signe tiré) et sa copie canonisée : chaque poids déquantifié est égal en valeur, et les sorties de \texttt{Matrice::produit} (huit accumulateurs partis de $+0$, FMA, réduction en arbre fixe) sont égales au bit sur 5 vecteurs, zéros des deux signes compris ; la cassure (un code 0 changé en 1) change la sortie \mes. La référence lit le GGUF, elle n'est pas touchée par le format ; ce témoin établit seulement qu'elle aussi donne au code 8 la valeur de ggml.
+
+\begin{corollaire}[La référence f64]\label{t3cod:cor:f64}
+Dans la référence f64, chaque accumulateur part de $+0$ et avance par $\mathrm{acc} \leftarrow \mathrm{RN}(d \cdot x + \mathrm{acc})$, avec $d = K[c] \cdot 2^{e-128}$ le poids déquantifié. Si aucune somme exacte non nulle $d\cdot x + \mathrm{acc}$ ne s'arrondit à zéro, la récurrence de la \cref{t3syn:prop:a1} s'applique en binaire64 : l'accumulateur ne vaut jamais $-0$, un pas sur un poids $\pm 0$ le laisse inchangé, et la réduction finale additionne des accumulateurs égaux au bit.
+\end{corollaire}
+
+\begin{proof}
+Les pas (1), (2) et (3) de la démonstration de la \cref{t3syn:prop:a1} n'utilisent la grille que pour établir qu'une somme exacte non nulle ne s'arrondit pas à zéro ; c'est ici l'hypothèse. Le reste est la même récurrence.
+\end{proof}
+
+L'hypothèse du corollaire n'est pas gratuite, et c'est une précision que ce chapitre ajoute à la note du lot A \calc. Dans la GEMV, l'échelle reste hors de l'accumulation et les grandeurs sont entières : la grille $2^{-149}\mathbb{Z}$ tient toujours. Dans la référence, l'échelle est déjà dans $d$ ; un produit $d\cdot x$ plus petit que la moitié du plus petit sous-normal ($2^{-1075}$) s'arrondirait à un zéro signé, et l'accumulateur pourrait valoir $-0$. Il faudrait pour cela une activation de l'ordre de $2^{-940}$ devant la plus petite échelle : rien de tel n'existe dans un modèle qui rend des logits finis, et le témoin le mesure sur ses cinq vecteurs. Mais la démonstration de la référence tient sous cette hypothèse, pas sans elle.
+
+\paragraph{La limite de la proposition.} Elle suppose les $x$ finis. Si un $x$ vaut $\pm\infty$ ou NaN, $v \cdot x$ vaut NaN pour $v = \pm 0$ dans les deux calculs, et la sortie est NaN des deux côtés ; seuls le bit de signe ou la charge d'un NaN pourraient différer, ce qui n'est pas un logit utilisable. Le moteur n'a produit aucun NaN sur les \num{10240} pas évalués par le lot A.
+
+\paragraph{L'invariant écrit.} Le lot A l'a porté dans l'architecture (§ 5.6) : tout lecteur de codes lit le code 8 comme zéro ; tout noyau neuf qui lit des codes (préremplissage par lots, GEMM) le garde, et son témoin compare un expert à sa copie canonisée.
+
+\begin{lemme}[L'invariant des tables suffit]\label{t3cod:lem:tables}
+Si la table d'un contexte donne $f[s] = 0$ à un symbole $s$, aucun flux, juste ou corrompu, ne fait produire $s$ au décodeur normatif.
+\end{lemme}
+
+\begin{proof}
+Le décodeur lit la fente $i = x \bmod 4096$ de son état et rend le symbole qui la porte. Par construction de la LUT, la fente $i$ porte le symbole $s$ tel que $c[s] \le i < c[s] + f[s]$, avec $c$ les fréquences cumulées. Si $f[s] = 0$, l'intervalle $[c[s], c[s])$ est vide, et aucune fente ne porte $s$. L'état $x$, quel qu'il soit, et donc quels que soient les mots lus, ne désigne qu'une fente.
+\end{proof}
+
+La LUT compacte de la carte et la LUT normative du processeur sont construites depuis les mêmes fréquences, lues dans la même section TABLES ; le lemme vaut pour les deux. Il a une conséquence d'ingénierie : pour garantir qu'aucun flux v1.2 ne produit un demi-octet 8, il suffit de vérifier les tables à l'ouverture, une fois, et non chaque symbole décodé. Le contrôle coûte, pour le 120b, $36 \text{ couches} \times 3 \text{ matrices} \times 3 \text{ contextes} \times 31 \text{ octets} = \num{10044}$ lectures \calc.
+
+% =============================================================================================================
+\section{Le format \texttt{.trc} v1.2 au bit près}\label{t3cod:sec:format}
+
+La décision est écrite dans l'architecture (§ 4.16), parce que toute modification du format passe par ce document. La consigne parlait de « v1.1 » pour les fichiers actuels : ils sont en v1.0, et la v1.1 (deux niveaux, la base de B et son complément) est réservée et n'est écrite par aucun codeur. Toutes les comparaisons opposent donc v1.2 à v1.0 ; le lecteur accepte 1.0, 1.1 (en-tête) et 1.2.
+
+\begin{table}[ht]
+\centering\small
+\caption[Ce qui change de la v1.0 à la v1.2]{Ce qui change de la v1.0 à la v1.2, et rien d'autre.}
+\label{t3cod:tab:format}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.22\linewidth}l>{\raggedright\arraybackslash}p{0.2\linewidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+Où & Décalage & v1.0 & v1.2 \\
+\midrule
+en-tête, version mineure & 10 (u16) & 0 & \textbf{2} \\
+en-tête, drapeaux & 12 (u32) & bit 0 (aligné) ; bit 1 (niveaux) ; bit 2 (brut) & + \textbf{bit 3 CANONIQUE} \\
+répertoire, chaque entrée & 56 (u64) & réservé, 0 & \textbf{\texttt{empreinte\_canonique}} : empreinte64 de l'expert canonique \\
+tables CODES\_CTX & --- & 256 fréquences & les mêmes, bâties sur les codes canoniques ; fréquence 0 aux 31 octets qui portent un 8, vérifiée à l'ouverture \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{decisions/ARCHITECTURE.md} § 4.16 ; \fichier{genome/06-codon-v1-2.md} § 2.}
+\end{table}
+
+\begin{figure}[tbp]
+\centering
+\SchemaCodonFormat
+\LegendeFigure{CodonFormat}
+\label{fig:t3-codon-format}
+\end{figure}
+
+La \cref{fig:t3-codon-format} montre ces quatre champs à leur place dans le fichier, au décalage près ; le reste du fichier ne change pas.
+
+\paragraph{L'expert canonique et ses deux empreintes.} L'expert canonique est la suite d'octets de l'expert d'origine (pour $j = 0, 1, 2$, les $R \cdot B$ blocs de 17 octets $[e, \texttt{qs}]$ dans l'ordre $\beta$, puis les biais) où chaque demi-octet 8 des \texttt{qs} est remplacé par 0 ; les échelles et les biais ne changent pas. Le répertoire garde deux empreintes par expert : l'empreinte d'origine (décalage 24), celle des octets du GGUF, qui garde la preuve de la provenance ; et l'empreinte canonique (décalage 56), celle de ce que le décodeur doit rendre. Un fichier v1.2 n'est plus égal au GGUF au bit ; il l'est \emph{en valeur}, et le vérificateur doit comparer en valeur, pas seulement en octets (\cref{t3cod:sec:fichiers}).
+
+\paragraph{Les refus.} \texttt{trc-format} refuse, chaque refus avec son témoin et sa cassure dans \fichier{tests/aller_retour.rs} : le bit 3 sous une version mineure inférieure à 2 ; le bit 3 sur un fichier brut (le chemin de référence des témoins C3 et C12 garde les octets du GGUF tels quels) ou à deux niveaux (la v1.2 ne définit pas la forme canonique de BASE\_CTX et COMPL\_CTX) ; une empreinte canonique non nulle sans le bit 3 ; une table CODES\_CTX d'un fichier canonique qui donne une fente à un octet portant un 8 ; le bit 4 (le COLONNES du cahier) et toute version 1.3 ou plus.
+
+\paragraph{Ce qui ne change pas.} La sérialisation des flux, le décodage normatif, les noyaux du décodeur, la taille des tables ($3 \times 512$ octets par matrice), le format des parties. \emph{Un flux v1.2 est un flux v1.0 dont l'alphabet effectif a 225 octets au lieu de 256.} C'est pourquoi le décodeur de la carte et la GEMV n'ont pas une ligne de changée, et pourquoi le risque du lot tient dans le codeur, le vérificateur et le témoin du moteur. Le codon synonyme se porte dans un format par les tables, pas par le décodeur : c'est la leçon d'ingénierie du lot, et elle repose sur le \cref{t3cod:lem:tables}.
+
+\subsection{Pourquoi la colonne reste dehors}\label{t3cod:sec:colonne}
+
+Le cahier proposait d'ajouter le contexte de colonne d'entrée (\cref{t3syn:sec:codes-col}), « s'il tient dans le format sans risque ». Le lot A l'a laissé dehors (réponse par délégation du 2026-10-17, réversible ; raison en une ligne : le gain ne paie pas le risque).
+
+\begin{figure}[tbp]
+\centering
+\GrapheCodonColonne
+\LegendeFigure{CodonColonne}
+\label{fig:t3-codon-colonne}
+\end{figure}
+
+\paragraph{Le chiffre.} Sur les 12 tenseurs mesurés du 20b, seules gate et up de la couche 0 passent le seuil de 0,015 bit par poids, avec $-0{,}1416$ et $-0{,}1231$ bit ; les couches 8 et 23 rendent de 0,005 à 0,010 bit, la couche 16 rien (\cref{fig:t3-codon-colonne}, panneau a). Les barres négatives du panneau sont surtout le coût du passage de l'alphabet octet à l'alphabet demi-octet, de 0,0029 à 0,0050 bit. Rapporté au modèle entier, où chaque matrice d'une couche compte \num{265420800} poids et le 20b $24 \times 3 \times \num{265420800} = \num{19110297600}$ poids d'experts \calc :
+\[
+\frac{(0{,}1416 + 0{,}1231) \times \num{265420800}}{\num{19110297600}} = 0{,}0037 \text{ bit par poids}, \qquad \frac{0{,}2647 \times \num{265420800}}{8} \approx 8{,}78 \text{ Mo},
+\]
+soit 0,08\,\% des 11,2 Go du fichier, contre 0,128 bit pour le zéro (panneau b). Le prix, de l'autre côté : une sorte de flux neuve (géométrie 2, douze contextes par symbole), un noyau de décodage neuf avec sa LUT compacte, un montage de LUT neuf dans l'ordonnanceur, un second décodeur indépendant à étendre, et un décodage 2,5 fois plus cher sur les matrices concernées (\cref{t3syn:sec:lot-a}). Le panneau (c) redonne l'axe sans perte de la frontière commune, que la \cref{fig:t3-synth-frontiere} ne porte plus : 3,8434, puis 3,7064 avec le zéro, puis 3,6844 avec la colonne, en moyenne sur les 12 tenseurs. Ces 12 tenseurs comptent 3 tenseurs de la couche 0 sur 12, contre 3 sur 72 dans le modèle : c'est pourquoi la colonne y gagne 0,0220 bit en moyenne, contre 0,0037 sur le modèle entier. Une phrase de la première version de la légende disait que la colonne n'était « pas un fichier codé » : elle était fausse (le gain vient d'un codec réel, des flux rANS codés et décodés exactement) ; le juge l'a relevée (GN2) et la légende jugée est corrigée.
+
+Les trois autres réponses par délégation du lot, réversibles : le drapeau CANONIQUE est refusé sur un fichier brut (le brut est le chemin de référence des témoins et doit garder les octets du GGUF) ; \texttt{-{}-canonique} n'est pas l'option par défaut du codeur (sans elle, il écrit la v1.0 octet pour octet, ce qui garde le témoin d'identité) ; les fichiers neufs s'appellent \texttt{<modèle>-v12.trc}, à côté des v1.0, sans rien effacer.
+
+% =============================================================================================================
+\section{Ce qui a été écrit, et ses témoins}\label{t3cod:sec:code}
+
+% Le langage des listings du Tome~III (le Tome~II définit le sien dans ses figures, que ce tome ne charge pas).
+\lstdefinelanguage{t3Rust}{morekeywords={as,const,else,fn,for,if,in,let,mut,pub,return,u8,u64,usize},
+  sensitive=true, morecomment=[l]{//}, morestring=[b]"}
+
+\begin{table}[ht]
+\centering\small
+\caption[Les fichiers du lot A]{Les fichiers du lot A, et ce qui y change. Le décodeur CUDA et la GEMV ne changent pas.}
+\label{t3cod:tab:fichiers}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.34\linewidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+Fichier & Ce qui change \\
+\midrule
+\fichier{decisions/ARCHITECTURE.md} & § 4.15 (la v1.2 dans la liste), § 4.16 (la décision), § 5.6 (l'invariant du code 8) \\
+\fichier{trc-format/src/lib.rs} & version 2, \texttt{DRAPEAU\_CANONIQUE = 8} ; canonisation d'un demi-octet et d'un octet ; refus du bit 3 ; \texttt{empreinte\_canonique} ; vérification des tables à l'ouverture \\
+\fichier{trc-format/tests/aller\_retour.rs} & aller-retour v1.2 ; sept refus nommés, deux acceptations témoins \\
+\fichier{trc-codec/src/lib.rs}, \fichier{tests/rans.rs} & \texttt{canoniser\_qs} (rend le nombre de $-0$ fondus) ; le codage et le décodage sont ceux de la v1.0 \\
+\fichier{trc-codeur} (\texttt{coder}, \texttt{verifier}, \texttt{main}) & option \texttt{-{}-canonique} ; deux empreintes par expert ; vérification en valeur par un second chemin ; cassure \texttt{-{}-casser-8} \\
+\fichier{trc-ordo/src/lib.rs}, \fichier{banc-chemin} & mode témoin contre l'empreinte canonique (boucle de pas et préremplissage par flux) \\
+\fichier{trc-noyaux/tests/carte.rs}, \fichier{trc-reference/tests/code\_8.rs} & la \cref{t3syn:prop:a1} sur la carte ; la référence et le code 8 \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{genome/06-codon-v1-2.md} § 3.}
+\end{table}
+
+Le fondu lui-même tient en trois fonctions, citées telles qu'elles sont commitées (\cref{t3cod:lst:fondu}) : un demi-octet 8 devient 0, un octet est canonisé demi-octet par demi-octet, et le codeur canonise les \texttt{qs} d'une matrice en comptant les $-0$ qu'il fond, le nombre que vérifie ensuite le témoin. Rien d'autre du codage ne change.
+
+\begin{lstlisting}[language=t3Rust, literate={é}{{\'e}}1 {−}{{$-$}}1, caption={[Le fondu $-0 \to +0$ dans le code]Le fondu $-0 \to +0$ dans le code : \fichier{moteur/crates/trc-format/src/lib.rs}, lignes 67 à 77, puis \fichier{moteur/crates/trc-codec/src/lib.rs}, lignes 317 à 327 (extraits au bit, vérifiés par comparaison ligne à ligne).}, label={t3cod:lst:fondu}]
+/// Le demi-octet canonique : 8 (−0) devient 0 (+0) ; tout autre est inchangé.
+#[inline]
+pub const fn canoniser_demi(c: u8) -> u8 {
+    if c == 8 { 0 } else { c }
+}
+
+/// L'octet canonique : ses deux demi-octets canonisés.
+#[inline]
+pub const fn canoniser_octet(o: u8) -> u8 {
+    canoniser_demi(o & 15) | (canoniser_demi(o >> 4) << 4)
+}
+
+/// Canonise des `qs` en place : chaque demi-octet 8 (−0) devient 0 (+0). Rend le nombre de
+/// demi-octets changés.
+pub fn canoniser_qs(qs: &mut [u8]) -> u64 {
+    let mut n = 0u64;
+    for q in qs.iter_mut() {
+        let c = canoniser_octet(*q);
+        n += ((*q & 15) == 8) as u64 + ((*q >> 4) == 8) as u64;
+        *q = c;
+    }
+    n
+}
+\end{lstlisting}
+
+\paragraph{Les essais.} \texttt{cargo test -{}-offline -{}-workspace}, sous le verrou de la carte : 82 essais, 0 échec \mes~(\fichier{essais-espace-2026-10-17-a.log}). Chaque témoin neuf tombe quand on le casse (\fichier{mesures/genome/construction/codon/tests-casses.txt}) : le contrôle des tables canoniques retiré fait échouer \fichier{cassures_v12_refusees} ; le contrôle « empreinte canonique nulle sans drapeau » retiré, de même ; le bit 3 accepté sous la v1.1 fait échouer deux essais ; \fichier{canoniser_qs} rendue sans effet fait échouer \fichier{matrice_canonique_se_reconstruit_et_gagne}.
+
+\paragraph{Le codeur modifié écrit toujours la v1.0 au bit.} Le 20b recodé sans \texttt{-{}-canonique} par le codeur modifié a la SHA-256 \texttt{e8bd6ae1}\dots{} \parencite{fips180-4}, celle de \texttt{gpt-oss-20b.trc} relevée par le lot F le 2026-10-15, par un chemin indépendant (\texttt{Get-FileHash}) \mes~(\fichier{journaux/recoder.log}).
+
+% =============================================================================================================
+\section{Les deux fichiers recodés}\label{t3cod:sec:fichiers}
+
+Codeur : \texttt{trc-codeur coder \dots{} -{}-canonique -{}-fils 6}, la SHA-256 du GGUF recalculée par le codeur et égale à l'attendue ; 361 s pour le 20b, \num{1395} s pour le 120b. Les fichiers v1.0 restent en place ; les v1.2 sont neufs, \texttt{gpt-oss-20b-v12.trc} (SHA-256 \texttt{ef1cf740}\dots) et \texttt{gpt-oss-120b-v12.trc} (\texttt{97c292ae}\dots).
+
+\paragraph{C1 en valeur.} 768 experts sur 768 et \num{4608} sur \num{4608} sont exacts, chacun des huit contrôles à zéro faute : empreinte de la partie, décodage, octets contre le GGUF canonisé par un second chemin, empreinte du décodé contre la canonique, empreinte des tranches brutes contre l'origine, empreinte des tranches canonisées contre la canonique, aucun 8, égalité en valeur \mes~(\fichier{journaux/verifier-\{20b,120b\}-v12.json} ; 274 et 781 s). Deux cassures sur le 20b : \texttt{-{}-casser 5 7} (un bit de la première médiane retourné) rend faux exactement l'expert (5, 7) ; \texttt{-{}-casser-8 11 3} (un demi-octet 0 du décodé changé en 8) rend faux exactement l'expert (11, 3), avec les contrôles « octets », « empreinte du décodé » et « aucun 8 » tombés, et le contrôle « valeur » \emph{tenu}. L'instrument distingue l'égalité des octets de l'égalité des valeurs, et c'est exactement ce que la v1.2 change.
+
+\begin{table}[ht]
+\centering\small
+\caption[Ce que le fondu rend sur le disque]{Ce que le fondu rend sur le disque \mes.}
+\label{t3cod:tab:tailles}
+\begin{tabular}{@{}lll@{}}
+\toprule
+& gpt-oss-20b & gpt-oss-120b \\
+\midrule
+poids d'experts & \num{19110297600} & \num{114661785600} \\
+bits par poids, flux, v1.0 $\to$ v1.2 & 3,85057 $\to$ 3,72266 & 3,85456 $\to$ 3,72892 \\
+octets de tronçons, v1.0 & \num{9226493952} & \num{55416086528} \\
+octets de tronçons, v1.2 & \num{8920932352} & \num{53615599616} \\
+\textbf{gain par poids d'expert} (A-C2 : $\ge 0{,}12$) & \textbf{0,12791 bit} & \textbf{0,12562 bit} \\
+octets en moins & \num{305561600} & \num{1800486912} \\
+rapport des tronçons v1.2 / v1.0 & 0,96688 & 0,96751 \\
+fichier \texttt{.trc}, v1.0 & \num{11157405696} & \num{57730662400} \\
+fichier \texttt{.trc}, v1.2 & \num{10851844096} & \num{55930175488} \\
+plus grand tronçon, v1.0 $\to$ v1.2 & \num{12144640} $\to$ \num{11755520} & \num{12251136} $\to$ \num{11878400} \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/genome/construction/codon/tailles.json}, \fichier{tailles-par-tenseur.csv} (\fichier{outils/genome/construction/codon/analyse\_codon.py tailles} ; témoin : la somme par tenseur égale le total du journal, et un octet ajouté le fait tomber).}
+\end{table}
+
+\paragraph{Les calculs, posés.} Le gain par poids d'expert est la différence des octets de tronçons, en bits, divisée par le nombre de poids d'experts \calc :
+\begin{align*}
+\text{20b} :&\quad \frac{(\num{9226493952} - \num{8920932352}) \times 8}{\num{19110297600}} = \frac{\num{2444492800}}{\num{19110297600}} = 0{,}12791 \text{ bit},\\
+\text{120b} :&\quad \frac{(\num{55416086528} - \num{53615599616}) \times 8}{\num{114661785600}} = \frac{\num{14403895296}}{\num{114661785600}} = 0{,}12562 \text{ bit}.
+\end{align*}
+A-C2, déclaré à 0,12 bit, tient sur les deux. Le cahier attendait $\approx$ 10,85 Go et $\approx$ 55,93 Go : les fichiers font \num{10851844096} et \num{55930175488} octets. L'équipe du codage prédictif avait mesuré 0,1280 et 0,1257 bit sur des flux par tenseur entier ; découpés par expert dans le format, on mesure 0,12791 et 0,12562, l'écart (moins de 0,0001 bit) étant celui des tuiles partielles et de l'alignement. Le toit de vitesse que les octets permettent, à disque limitant, vaut $1/0{,}96751 - 1 = 3{,}36\,\%$ sur le 120b et $1/0{,}96688 - 1 = 3{,}43\,\%$ sur le 20b \calc ; c'est le « 3,4\,\% » du cahier.
+
+\paragraph{Les logits au bit (A-C1).} \texttt{troncons evaluer -{}-flux}, 10 fenêtres de 512 jetons, l'empreinte de 64 bits des logits f32 de chacun des \num{5120} pas.
+
+\begin{table}[ht]
+\centering\small
+\caption[A-C1 : les logits au bit]{A-C1 : les logits de la v1.2 contre ceux de la v1.0 \mes.}
+\label{t3cod:tab:logits}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.3\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+& gpt-oss-20b & gpt-oss-120b \\
+\midrule
+témoin du programme : v1.0 d'aujourd'hui contre le CSV du 2026-10-15 & \num{5120} / \num{5120} égales & --- (voir la ligne suivante) \\
+\textbf{v1.2 contre v1.0} & \textbf{5\,120 / 5\,120 égales} & \textbf{5\,120 / 5\,120 égales} au CSV du 2026-10-15 \\
+\texttt{.kld} & égaux octet pour octet & égaux octet pour octet à celui du 2026-10-15 \\
+PPL des positions notées & 461,978 & 422,206 \\
+cassure (médiane faussée, couche 0, expert 30) & 512 lignes sur 512 différentes & --- \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{genome/06-codon-v1-2.md} § 7 ; \fichier{outils/genome/construction/codon/pilote\_codon.py}, phases \texttt{c1-20b}, \texttt{c1-120b}.}
+\end{table}
+
+Sur le 120b, la comparaison est plus forte que demandée : la v1.2, évaluée par le préremplissage par flux avec le programme du 17 octobre, rend au bit les logits que la v1.0 rendait par la boucle de pas avec le programme du 15. Le format, le programme et le chemin d'évaluation ont changé ; aucun bit des logits. Une découverte en chemin : la première passe de la cassure a été refusée en 8 s, avant tout logit, par la garde de production du moteur (« couche 0, expert 30 : empreinte des \num{11234960} octets utiles lus \dots{} au lieu de \dots ») ; c'est un témoin de la garde, gardé, et la cassure des logits a été refaite \texttt{-{}-sans-garde}, déclaration ajoutée au pilote avant la seconde passe. Une cassure doit traverser toutes les gardes en amont de l'instrument qu'elle éprouve.
+
+\subsection{Le codon par le décodeur du juge}
+
+Le juge de la construction (\cref{t3jug:ch}) n'avait rien construit. Il a écrit son propre décodeur depuis la seule description du format, et un lecteur GGUF propre, sans ouvrir le code du lot \mes~(\fichier{genome/JUGEMENT-construction.md} § 2).
+
+\begin{figure}[tbp]
+\centering
+\GrapheJconsCodon
+\LegendeFigure{JconsCodon}
+\label{fig:t3-jcons-codon}
+\end{figure}
+
+\begin{itemize}
+\item \textbf{J-T0, les quatre fichiers entiers} : 0 faute de structure ; les huit tailles du \cref{t3cod:tab:tailles} redonnées à l'octet ; 0 table CODES\_CTX sur 540 en v1.2 avec une fente pour un 8 (540 sur 540 en v1.0).
+\item \textbf{J-T1, 96 experts tirés} (32 du 20b, 64 du 120b, tirage commité avant tout décodage) : 96 sur 96 tiennent les huit contrôles ; le témoin v1.0, 40 sur 40 ; les demi-octets qui changent entre le décodé v1.0 et le décodé v1.2 sont exactement les $-0$ du GGUF, ni un de plus ni un de moins (par exemple \num{1746601} changés pour \num{1746601} $-0$ dans l'expert 109 de la couche 19 du 120b) ; trois cassures tombent. La part des $-0$ dans l'échantillon, $6{,}42 \pm 0{,}11\,\%$ (20b) et $6{,}33 \pm 0{,}10\,\%$ (120b), est à 0,3 et 0,5 écart-type de celle des fichiers ; la plus haute, 11,68\,\%, est à la couche 0 du 120b (\cref{fig:t3-jcons-codon}).
+\item \textbf{J-C1, sur dix fenêtres que personne n'avait vues} : 0 empreinte de logits différente sur \num{5120} sur le 20b, 0 sur \num{5120} sur le 120b ; \texttt{.kld} égaux ; cassure (le signe du biais de la rangée 0 de gate retourné pour les 32 experts de la couche 0) : 512 sur 512 différentes dès la position 0. La \cref{t3syn:prop:a1} est vraie du moteur réel, sur un texte neuf.
+\end{itemize}
+
+Ce que l'échantillon ne couvre pas, le juge l'écrit : la probabilité qu'un défaut touchant au moins 5\,\% des experts échappe à 32 tirages vaut $0{,}95^{32} \approx 19\,\%$, à 64 tirages $0{,}95^{64} \approx 3{,}7\,\%$ \calc. Le vérificateur du lot A a couvert 100\,\% des experts par ses deux chemins ; le tirage juge ce vérificateur, il ne le remplace pas.
+
+% =============================================================================================================
+\section{Le jalon J1 refait sur le 120b}\label{t3cod:sec:j1}
+
+\paragraph{Le protocole.} Huit processus neufs, A B B A A B B A, A $=$ \texttt{gpt-oss-120b.trc} (v1.0 d'origine, écrit le 15 octobre), B $=$ \fichier{gpt-oss-120b-v12.trc} ; \fichier{mesurer --flux --emplacements 326}, l'invite wiki-3000, 256 jetons gloutons ; sur secteur, aucun llama.cpp avant chaque passe, verrou de la carte. Le nombre d'emplacements du cache est fixé à 326, celui du J1 : il se calcule sinon à l'ouverture depuis la VRAM libre et la taille des tampons d'arrivée ($12 \times$ le plus grand tronçon), et un emplacement de plus changerait le cache, donc les octets lus, et mêlerait deux effets. Critères, déclarés avant (commit \texttt{a50c380}) : A-C3, pas de régression si $r \ge 1 - 2\sigma$, gain annoncé seulement si $r - 1 > 2\sigma$, $\sigma$ l'écart-type relatif des quatre passes v1.0 ; jetons égaux ; rapport des octets publié (prédit 0,967) ; mémoire de pointe $|B - A| \le 2 \times \text{bruit} + 0{,}5$ Mo.
+
+\paragraph{La séance s1, sous charge.} Le 17 octobre, de 10 h 24 à 10 h 50, pendant que d'autres équipes lisaient le disque : médianes 1,558 et 1,732 jetons/s, $r = 1{,}112$, mais $\sigma = 21{,}6\,\%$ (les passes 5 à 7 sont toutes lentes, quel que soit le fichier). Pas de régression ; gain non annoncé ($0{,}11 < 2\sigma = 0{,}43$). Dans les quatre premières passes, calmes, la v1.2 allait 1,4 à 1,7 fois plus vite : 3,3\,\% d'octets en moins ne peuvent pas rendre 40\,\%. Le lot a cherché un témoin qui juge le format seul : une copie neuve du v1.0, puis le v1.0 recodé par le même codeur le même jour que la v1.2, au même contenu au bit (SHA-256 égale à celle du v1.0 d'origine). Les deux se sont révélés confondus par leur propre fragmentation, relevée par \texttt{fsutil file queryextents} \parencite{ms2018retrievalpointers} : 289\,545 fragments pour la copie, 47\,745 dans l'échantillon pour le v1.0 recodé, contre 65 au v1.0 d'origine et 233 à la v1.2.
+
+\paragraph{La séance s2, sur une machine calme.} Déclarée avant ses passes (commit \texttt{71905dd}) ; nuit du 21 au 22 octobre ; aucune des 22 passes sous charge.
+
+\begin{table}[ht]
+\centering\small
+\caption[Le J1 du 120b, séance s2]{Le J1 du 120b, séance s2, en ABBA \mes. A $=$ v1.0 d'origine, B $=$ v1.2.}
+\label{t3cod:tab:j1}
+\begin{tabular}{@{}lllllllll@{}}
+\toprule
+passe & 1 A & 2 B & 3 B & 4 A & 5 A & 6 B & 7 B & 8 A \\
+\midrule
+jetons/s & 1,981 & 2,873 & 2,892 & 1,994 & 2,006 & 2,897 & 2,887 & 1,776 \\
+débit vu par le moteur (Go/s) & 1,81 & 2,63 & 2,66 & 1,82 & 1,83 & 2,67 & 2,65 & 1,61 \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/genome/construction/codon/j1-s2-passes.csv}, \fichier{j1-s2-verdicts.json}.}
+\end{table}
+
+\begin{figure}[tbp]
+\centering
+\GrapheCodonJalon
+\LegendeFigure{CodonJalon}
+\label{fig:t3-codon-jalon}
+\end{figure}
+
+\begin{itemize}
+\item \textbf{Jetons} : les 256 identifiants égaux dans les huit passes, texte \texttt{e4c6dbac}\dots, celui de s1 et de toutes les passes du 120b des 15 et 16 octobre ; 59,08 défauts par jeton, taux de succès du cache 0,5897, 326 emplacements dans toutes les passes. Le format ne change ni le routage ni le cache.
+\item \textbf{Octets} de tronçons par jeton, déterministes : $\num{686756916}/\num{710118798} = 0{,}9671$, pour une prédiction de 0,967 ; le rapport des tronçons du fichier entier vaut 0,9675, et les experts que ce texte appelle sont un peu plus riches en zéros que la moyenne.
+\item \textbf{Vitesse} : médianes 1,988 (v1.0) et 2,890 (v1.2) jetons/s, $r = 2{,}890/1{,}988 = 1{,}454$ \calc, $\sigma = 5{,}6\,\%$ ; rapports appariés 1,450, 1,451, 1,444 et 1,626. Au seuil déclaré : pas de régression, et \textbf{gain annoncé} ($r - 1 = 0{,}454 > 2\sigma = 0{,}113$).
+\item \textbf{Mémoire de pointe} : médianes 388,67 et 382,21 Mo, $-6{,}45$ Mo (s1 : $-6{,}41$). \num{4472832} octets s'expliquent par les 12 tampons d'arrivée épinglés, dimensionnés sur le plus grand tronçon : $12 \times (\num{12251136} - \num{11878400}) = \num{4472832}$ \calc ; le reste, $\approx 1{,}9$ Mo, n'est pas expliqué. Le seuil tient au sens littéral seulement parce que la première passe de la séance (468,4 Mo) fait un bruit de 79,8 Mo ; sans elle, les passes v1.0 vont de 388,60 à 388,70 Mo et l'écart est net.
+\end{itemize}
+
+La \cref{fig:t3-codon-jalon} le montre en deux panneaux : les huit passes dans l'ordre du temps, et, à droite, les octets contre la vitesse. Si la quantité d'octets seule comptait, la v1.2 serait au losange creux, à 3,4\,\% au plus. Elle est à 45\,\%.
+
+\subsection{D'où vient le gain : le motif des requêtes de lecture}\label{t3cod:sec:motif}
+
+\paragraph{L'étage disque seul.} Dans la même séance s2, \texttt{troncons disque -{}-n 1500}, sans calcul, A B C C B A, lit A (v1.0 d'origine, 65 fragments) à 1,742 et 1,741 Go/s, B (v1.2, 233 fragments) à 2,254 et 2,391, et C (le v1.0 recodé, égal à A au bit) à 1,356 et 1,331 \mes~(\fichier{disque-s2.json}). Le J1 refait avec C contre B donne $r = 1{,}595$, $\sigma = 4{,}2\,\%$.
+
+\paragraph{La première lecture, et sa barre.} Le lot A en avait tiré une conclusion prudente, que le juge de la construction avait reproduite, et qui est fausse dans son attribution :
+\begin{quote}
+\barre{Ce gain n'est pas attribuable au format. Deux fichiers au même contenu au bit (A et C) se lisent à 1,74 et 1,34 Go/s à l'étage disque, et rendent 1,99 et 1,81 jetons/s : la disposition physique d'un fichier sur ce NVMe déplace la vitesse de 30\,\% sans toucher un octet du contenu. [\dots] La part du format, elle, est bornée par le rapport des octets lus : au plus +3,4\,\% à disque limitant.}
+\end{quote}
+Ce qui a changé, le 2026-10-27 : le juge du placement disque (\fichier{genome/JUGEMENT-placement.md}) a lu \emph{un même fichier} avec les frontières de requête de l'autre format, sans rien réécrire. La borne de 3,4\,\% ne vaut que pour les octets ; elle ne borne pas l'effet du motif. L'écart entre A et C, lui, a une autre cause : la fragmentation extrême de C. Les \fichier{06-codon-v1-2.md} § 8, la note du lot pour le mémoire et le jugement de la construction (§§ 0 et 6) portent la même correction ; \barre{une ligne du tableau du § 8 de ce jugement garde l'ancienne attribution sans barre}, et ce chapitre suit la correction (\cref{t3cod:sec:faux}). Depuis le 2026-10-29, cette ligne est barrée elle aussi, avec ce qui a changé (\fichier{genome/JUGEMENT-construction.md} §\,8).
+
+\begin{table}[ht]
+\centering\small
+\caption[Le motif croisé]{Le motif croisé (gpt-oss-20b, étage disque seul, séance J-bis du juge du placement, 26 octobre) : le même fichier lu avec les frontières de requête de l'autre format, Go/s \mes.}
+\label{t3cod:tab:motif}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Cas & Passes & Médiane \\
+\midrule
+A20, motif natif (v1.0) & 1,792 ; 1,793 ; 1,813 ; 1,809 & 1,801 \\
+A20, motif de B20 & 2,509 ; 2,493 ; 2,483 ; 2,564 & 2,501 \\
+B20, motif natif (v1.2) & 2,511 ; 2,487 ; 2,556 ; 2,545 & 2,528 \\
+B20, motif de A20 & 1,811 ; 1,829 ; 1,805 ; 1,774 & 1,808 \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/disque/placement/juge/seance/Jb3-*} ; \fichier{genome/JUGEMENT-placement.md} § 5.3.}
+\end{table}
+
+\paragraph{Ce que montre le motif croisé.} Aux seuils déclarés avant ($e_{\text{soi}} \le 3{,}2\,\%$, $S_j = 11{,}8\,\%$), A20 lu au motif de B20 va $\times 1{,}389$ plus vite que lu au sien, et B20 lu au motif de A20 va $\times 0{,}715$ : \emph{la lenteur suit le motif}, pas le fichier. B20, le fichier v1.2, lu avec les frontières de la v1.0, va comme A20 (1,808 contre 1,801). Deux expériences de plus le précisent. J9 : A20 lu avec des requêtes raccourcies de 3,5\,\% va $\times 1{,}421$, B20 avec des requêtes allongées de 3,5\,\% $\times 0{,}713$ ; le pas de la fenêtre de destination ne décide pas. J10 et J11 : couper chaque tronçon v1.0 en deux requêtes de 6 Mo, mêmes octets, ne le rend pas rapide, il le ralentit ($\times 0{,}851$ à huit lectures en vol, $\times 0{,}882$ à quatre) : \emph{la longueur seule n'est pas la variable}. Ce qui sépare les motifs lents des rapides, dans les huit cas du juge, est descriptif : sont lentes les requêtes qui finissent exactement à une fin de tronçon v1.0, ou qui débordent de 3,5\,\% une fin de tronçon v1.2 ; sont rapides celles qui s'arrêtent avant. Cette description n'est pas un mécanisme ; la variable exacte n'est pas isolée.
+
+\begin{figure}[tbp]
+\centering
+\GrapheCodonJalonBis
+\LegendeFigure{CodonJalonBis}
+\label{fig:t3-codon-jalon-bis}
+\end{figure}
+
+\paragraph{La cascade, dans une séance à trois fichiers.} Le juge de la construction a mis les trois fichiers du 120b dans un seul plan équilibré, A B R R B A A B R R B A, A $=$ v1.0 d'origine, B $=$ v1.2, R $=$ le compagnon rapide frontière ; aucune des 36 passes sous charge \mes~(\fichier{genome/JUGEMENT-construction.md} § 6.2). B contre A : médianes 2,889 et 2,004 jetons/s, $r(B/A) = 1{,}442$, $\sigma = 5{,}8\,\%$ ; le J1 du lot A (1,454) se reproduit. L'étage disque seul, dans la même séance, lit B 1,37 fois plus vite que A. Le panneau (b) de la \cref{fig:t3-codon-jalon-bis} partage ce rapport en deux facteurs \calc :
+\[
+r(B/A) = \underbrace{\frac{1}{0{,}9671}}_{\text{octets : } 1{,}034} \times \underbrace{\frac{1{,}442}{1{,}034}}_{\text{reste : } 1{,}394}.
+\]
+Le premier facteur est un toit : ce que les octets en moins rendraient si le disque limitait seul. Le second est un reste, donc une borne basse de l'effet du motif. Le compagnon rapide ajoute $\times 1{,}284$ contre la v1.2 ; c'est l'affaire du \cref{t3sno:ch}, et sa qualité n'est mesurée que contre le moteur exact du 120b, un proxy.
+
+\paragraph{Le v1.0 recodé.} L'encart du panneau (a) règle le cas de C : A120 et C120 ont le même contenu au bit et le même répertoire (même SHA-256, même motif) ; C120 est plus lent à cause de ses \num{267473} extents, contre 65 pour A120. Sur ses 800 tronçons d'un seul extent, il se lit $\times 1{,}26$ plus vite que sur \num{1200} de ses tronçons tirés au hasard, et comme A120 sur les mêmes tronçons (0,980 au rapport des moyennes) \mes~(\fichier{genome/JUGEMENT-placement.md} §§ 5.9 et 5.10). Les deux causes sont donc séparées : la fragmentation explique A contre C ; le motif explique A contre B.
+
+\paragraph{Ce que le J1 dit, en une phrase.} \textbf{Sur ce portable, le format v1.2 rend le moteur environ 45\,\% plus rapide sur le 120b, par le motif de ses requêtes de lecture et non par ses 3,3\,\% d'octets ; ce gain ne se transporte pas à un autre disque sans y être remesuré.} Ce que le lot avait proposé pour l'amplification de 1,33 (étage disque) à 1,45 (moteur) reste une hypothèse : la carte, qui attend plus le disque, tournerait à des horloges plus basses ; les temps de carte mesurés par événements (copie 91 à 99 ms par jeton contre 66 à 68 ; décodage 61 à 67 ms contre 42 à 44) varient bien plus que les octets.
+
+% =============================================================================================================
+\section{Ce qui reste}\label{t3cod:sec:reste}
+
+\begin{itemize}
+\item \textbf{Isoler la variable du motif}, à l'étage disque, par des motifs déclarés avant : chaque tronçon v1.0 lu en une requête de $0{,}965\,l$ puis une requête de la fin ; raccourci par le début ; le motif de B20 décalé de 64 Kio ; les mêmes sur A120 et C120 (\fichier{genome/JUGEMENT-placement.md} § 12). Un levier de lecture ne se mesure de bout en bout qu'une fois trouvé. Le témoin « décisif » que proposait le lot A (deux copies neuves écrites le même jour, environ 113 Go libres) n'est plus nécessaire : le motif croisé, un même fichier lu aux deux motifs, en tient lieu sans rien réécrire.
+\item \textbf{Remesurer} le gain de vitesse sur tout autre disque : le chiffre de ce chapitre est celui de ce NVMe, derrière ce pilote, sous ce chiffrement.
+\item \textbf{Un second décodeur indépendant} : le cahier demandait d'étendre à la v1.2 le décodeur de l'épreuve J1 du Tome~II ; le juge de la construction a écrit le sien depuis la seule description du format, et il lit la v1.2. Ce chapitre le tient pour le second chemin (décision du rédacteur, réversible) ; le décodeur de l'épreuve, lui, n'est pas étendu.
+\item \textbf{Décider} si les v1.2 remplacent les v1.0 comme fichiers par défaut du moteur : c'est un choix de produit, laissé à Stone ; aucun fichier n'a été effacé, et 57,7 + 11,2 Go restent occupés par les v1.0.
+\end{itemize}
+
+% =============================================================================================================
+\section{Ce qui pourrait être faux}\label{t3cod:sec:faux}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{La \cref{t3syn:prop:a1} suppose des $x$ finis} et le noyau tel qu'il est au commit \texttt{000cef9} : grandeurs doublées entières, échelle hors de l'accumulation, départ à $+0$. Un noyau futur qui lirait les codes autrement (une table où l'entrée 8 vaudrait autre chose que $\pm 0$, une GEMM partant d'un accumulateur $-0$, une échelle dans l'accumulation) pourrait casser l'égalité ; le témoin à reprendre est \fichier{gemv_lit_le_code_8_comme_0}.
+\item \textbf{Le \cref{t3cod:cor:f64}} tient sous une hypothèse de non-sous-dépassement que ni le lot ni la note ne disaient ; elle est sans danger pour des activations de modèle, mais elle n'est pas démontrée pour toute entrée, seulement mesurée sur cinq vecteurs.
+\item \textbf{Le gain est celui de gpt-oss.} Il vaut deux fois la part des $-0$ ; un modèle MXFP4 quantifié par un outil qui écrit toujours $+0$ n'a rien à gagner (la v1.2 lui coûte zéro octet) ; un modèle où le signe d'un zéro serait prévisible rendrait moins. Les 180 tenseurs disent que ce n'est pas le cas ici.
+\item \textbf{Les emplacements égaux du J1} isolent le format, pas le produit : avec le nombre d'emplacements par défaut, le plus grand tronçon plus court de \num{372736} octets libère $12 \times \num{372736} = \num{4472832}$ octets de VRAM, moins d'un emplacement (\num{13254144} octets) ; le défaut ne change donc probablement pas, mais ce n'est pas mesuré.
+\item \textbf{L'attribution du gain de vitesse} repose sur le motif croisé du juge du placement, mesuré à l'étage disque sur le 20b ; sur le 120b, la cascade du juge de la construction ne donne qu'une borne basse de l'effet du motif (le reste après le toit des octets). La variable exacte du motif n'est pas isolée, et son mécanisme (pile de stockage, contrôleur, repli hors de la SLC) n'est pas observable d'ici.
+\item \textbf{Une ligne du tableau « ce qui tient » du jugement de la construction} (§ 8) \barre{écrit encore « pour les fichiers, pas pour le format », sans barre, alors que ses §§ 0 et 6 sont corrigés} ; corrigé le 2026-10-29 : elle est barrée, avec ce qui a changé ; ce chapitre suit la correction, d'après \fichier{genome/JUGEMENT-placement.md} § 12 point 3.
+\item \textbf{Une séance par mesure de vitesse.} Les rapports valent pour l'état de ces fichiers ces jours-là ; le motif croisé a été mesuré quatre jours après la séance principale du juge, après une réoptimisation du disque, et le rapport B20/A20 n'a pas bougé (1,398 et 1,362 le 22 ; 1,404 et 1,406 le 26), ce qui rassure sans prouver.
+\item \textbf{Le reste de la mémoire} ($\approx 1{,}9$ Mo sur 6,45) n'est pas expliqué ; l'hypothèse (d'autres tampons dimensionnés sur le plus grand tronçon) n'est pas vérifiée.
+\item \textbf{Le contexte de colonne} est laissé dehors sur un chiffre mesuré sur 12 tenseurs de 4 couches du 20b ; sur le 120b et les autres couches, son gain n'est pas mesuré.
+\item \textbf{L'analogie du codon} est une analogie : un codon synonyme du code génétique n'est pas toujours neutre (usage préférentiel des codons, vitesse de traduction) ; ici, le signe d'un zéro l'est exactement, par la \cref{t3syn:prop:a1}.
+\end{itemize}
+\end{faux}

@@ -1,0 +1,24 @@
+% Graphes du chapitre « Architecture et structure du programme » (Tome II).
+% Données : memoire/figures/donnees/tome2/caisses.csv (memoire/outils/tome2_format.py, qui compte
+% les lignes des fichiers .rs, .cu et .cuh de chaque membre de moteur/).
+% Nom propre à ce fichier : \DonneesTomeDeux désigne figures/tome2/donnees dans cache.tex et
+% reference.tex, et le premier \providecommand chargé gagnait (intégrateur du Tome II).
+\providecommand{\DonneesTdArch}{\Donnees/tome2}
+
+% Lignes de chaque crate et de chaque binaire : code, témoins, outils (barres empilées).
+\providecommand{\TdArchGrapheLignes}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, xbar stacked, bar width=7pt, width=0.86\linewidth, height=0.62\linewidth,
+  xlabel={\EF{lines (.rs, .cu, .cuh)}{lignes (.rs, .cu, .cuh)}}, xmin=0, xmax=4700,
+  ytick={0,...,13}, y dir=reverse, ymin=-0.6, ymax=13.6,
+  yticklabels from table={\DonneesTdArch/caisses.csv}{nom},
+  yticklabel style={font=\ttfamily\scriptsize}, major y grid style={draw=none},
+  legend style={at={(0.98,0.03)}, anchor=south east, font=\scriptsize}]
+\addplot[fill=SerieA!60, draw=SerieA] table[x=code, y expr=\coordindex] {\DonneesTdArch/caisses.csv};
+\addlegendentry{\EF{code}{code}}
+\addplot[fill=SerieC!55, draw=SerieC] table[x=temoins, y expr=\coordindex] {\DonneesTdArch/caisses.csv};
+\addlegendentry{\EF{tests (witnesses)}{témoins (tests)}}
+\addplot[fill=SerieD!55, draw=SerieD] table[x=outils, y expr=\coordindex] {\DonneesTdArch/caisses.csv};
+\addlegendentry{\EF{tools (benches, examples)}{outils (bancs, exemples)}}
+\end{axis}
+\end{tikzpicture}}

@@ -1,0 +1,9 @@
+# Le .bbl de chaque langue est une pièce du paquet arXiv (arXiv lit le .bbl et ne lance pas bibtex) : il est
+# commité, malgré la règle *.bbl de memoire/.gitignore.
+!en/troncons-article.bbl
+!fr/troncons-article.bbl
+# Intermédiaires : le dossier arxiv/ (son contenu est dans arxiv-<langue>.tar.gz) et les PDF de figures avant leur
+# copie en <langue>/troncons-figures.pdf.
+en/arxiv/
+fr/arxiv/
+figures/*.pdf

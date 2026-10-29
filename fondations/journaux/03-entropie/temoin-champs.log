@@ -1,0 +1,18 @@
+== 4B
+Q6_K  token_embd.weight              écart max 0.000e+00  OK
+Q4_K  blk.0.attn_gate.weight         écart max 0.000e+00  OK
+Q5_K  blk.0.attn_qkv.weight          écart max 0.000e+00  OK
+Q8_0  blk.0.ssm_alpha.weight         écart max 0.000e+00  OK
+TÉMOIN TENU (0 échec(s))
+== 9B
+Q6_K  output.weight                  écart max 0.000e+00  OK
+Q4_K  token_embd.weight              écart max 0.000e+00  OK
+Q5_K  blk.0.attn_qkv.weight          écart max 0.000e+00  OK
+Q8_0  blk.0.ssm_alpha.weight         écart max 0.000e+00  OK
+TÉMOIN TENU (0 échec(s))
+== 4B --casser (doit tomber)
+Q6_K  token_embd.weight              écart max 0.000e+00  OK
+Q4_K  blk.0.attn_gate.weight         écart max 3.055e-01  ÉCHEC
+Q5_K  blk.0.attn_qkv.weight          écart max 0.000e+00  OK
+Q8_0  blk.0.ssm_alpha.weight         écart max 0.000e+00  OK
+TÉMOIN TOMBÉ (1 échec(s))

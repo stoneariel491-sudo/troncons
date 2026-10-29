@@ -1,0 +1,13 @@
+[package]
+name = "trc-noyaux"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+description = "Les noyaux CUDA du moteur (décodeur rANS à table par voie, GEMV MXFP4, puis la passe avant), compilés par nvcc à la construction, embarqués dans le binaire, et leurs enveloppes Rust (couture N, ARCHITECTURE.md § 5.6)."
+build = "build.rs"
+
+# Dépendance : trc-cuda (lot E, couture C, § 5.5), le seul chemin vers le pilote.
+# Aucune dépendance externe : la couture D (§ 2.4) n'est pas touchée.
+[dependencies]
+trc-cuda = { path = "../trc-cuda" }

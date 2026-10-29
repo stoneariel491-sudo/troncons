@@ -1,0 +1,73 @@
+% Schéma du chapitre « État de l'art » : chronologie des travaux cités, par famille.
+% Chaque date est celle de l'entrée BibTeX citée (première version publique ; mois compté
+% en douzièmes d'année) ; une date sans mois est placée au milieu de son année.
+
+% \Evt{année décimale}{ordonnée de la famille}{décalage vertical}{étiquette}{couleur}
+\newcommand{\Evt}[5]{%
+  \pgfmathsetmacro{\xe}{(#1-2022.4)*3.0}%
+  \fill[#5] (\xe,#2) circle (2.1pt);
+  \draw[#5!70, line width=0.4pt] (\xe,#2) -- (\xe,#2+#3);
+  \node[font=\sffamily\tiny, text=#5!80!black, fill=white, inner sep=1pt,
+    anchor={\ifdim#3pt>0pt south\else north\fi}] at (\xe,#2+#3) {#4};
+}
+
+\newcommand{\SchemaChronologie}{%
+\begin{tikzpicture}
+  % Axe des années.
+  \foreach \a in {2023,2024,2025,2026}{
+    \pgfmathsetmacro{\xa}{(\a-2022.4)*3.0}
+    \draw[black!15] (\xa,-0.5) -- (\xa,7.9);
+    \node[font=\sffamily\scriptsize, black!60] at (\xa,-0.75) {\a};
+  }
+  % Familles.
+  \foreach \y/\nom/\c in {7/{\EF{loading, offloading}{chargement, déchargement}}/Disque,
+                          5/{\EF{extreme quantisation}{quantification extrême}}/Index,
+                          3/{\EF{lossless coding}{codage sans perte}}/Expo,
+                          1/{\EF{speculation}{spéculation}}/Mant}{
+    \draw[\c!50, line width=0.8pt] (0,\y) -- (14.0,\y);
+    \node[anchor=east, font=\sffamily\scriptsize\bfseries, text=\c!80!black, align=right] at (-0.15,\y) {\nom};
+  }
+  % Chargement.
+  \Evt{2022.69}{7}{0.45}{ZeRO-Inference}{Disque}
+  \Evt{2023.20}{7}{-0.45}{FlexGen}{Disque}
+  \Evt{2023.95}{7}{0.45}{\EF{LLM in a flash}{LLM in a flash}}{Disque}
+  \Evt{2023.96}{7}{-0.45}{PowerInfer}{Disque}
+  \Evt{2024.0}{7}{0.9}{Mixtral-offloading}{Disque}
+  \Evt{2025.79}{7}{0.45}{KTransformers}{Disque}
+  \Evt{2026.51}{7}{-0.45}{llama.cpp \#25294}{Disque}
+  \Evt{2026.71}{7}{0.45}{SSD-LLaMA}{Disque}
+  % Quantification.
+  \Evt{2023.5}{5}{0.45}{OCP MX}{Index}
+  \Evt{2024.03}{5}{-0.45}{AQLM}{Index}
+  \Evt{2024.10}{5}{0.45}{QuIP\#}{Index}
+  \Evt{2024.16}{5}{-0.9}{BitNet b1.58}{Index}
+  \Evt{2024.25}{5}{0.9}{QuaRot}{Index}
+  \Evt{2024.46}{5}{-0.45}{QTIP}{Index}
+  \Evt{2026.77}{5}{0.45}{CurveTQ}{Index}
+  % Sans perte.
+  \Evt{2024.85}{3}{0.45}{ZipNN}{Expo}
+  \Evt{2025.29}{3}{-0.45}{DFloat11}{Expo}
+  \Evt{2026.08}{3}{0.45}{EntQuant}{Expo}
+  \Evt{2026.21}{3}{-0.45}{ZipServ}{Expo}
+  \Evt{2026.21}{3}{0.95}{DirectStorage 1.4}{Expo}
+  % Spéculation.
+  \Evt{2022.92}{1}{0.45}{\EF{speculative decoding}{décodage spéculatif}}{Mant}
+  \Evt{2023.37}{1}{-0.45}{SpecInfer}{Mant}
+  \Evt{2024.42}{1}{0.45}{SpecExec}{Mant}
+  \Evt{2025.17}{1}{-0.45}{EAGLE-3}{Mant}
+  \Evt{2025.72}{1}{0.45}{SubSpec}{Mant}
+  % Aujourd'hui.
+  \pgfmathsetmacro{\xt}{(2026.79-2022.4)*3.0}
+  \draw[Signe, line width=0.9pt, densely dashed] (\xt,-0.5) -- (\xt,7.9)
+    node[above, font=\sffamily\scriptsize\bfseries, Signe] {\EF{troncons, 15 Oct.\ 2026}{troncons, 15 oct.\ 2026}};
+  % Les racines, antérieures à l'axe.
+  \node[draw=black!30, fill=Fond, rounded corners=1.5pt, anchor=north west, text width=13.6cm,
+    font=\sffamily\scriptsize, align=left] at (0,-1.1)
+    {\textbf{\EF{Roots, before the axis}{Les racines, avant l'axe}} :
+     1966 \EF{optimal replacement}{remplacement optimal} (Belady) ;
+     1968 \EF{working set}{ensemble de travail} (Denning) ;
+     2008 \EF{sparse virtual textures}{textures virtuelles creuses} (GDC) ;
+     2009 roofline (Williams, Waterman, Patterson) ;
+     2013 ANS (Duda) ;
+     2014 \EF{interleaved entropy coders}{codeurs entropiques entrelacés} (Giesen).};
+\end{tikzpicture}}

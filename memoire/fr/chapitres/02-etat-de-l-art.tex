@@ -1,0 +1,126 @@
+\chapter{État de l'art}\label{ch:etat}
+
+\begin{origine}
+Ce chapitre rassemble, au 15 octobre 2026, ce que le monde sait faire pour exécuter un modèle plus grand que la mémoire. Chaque famille est lue à sa source primaire (article, dépôt officiel au commit nommé, notes de version) et jugée par la même règle : les octets qu'un jeton doit lire, divisés par le débit de l'étage qui les sert. Les détails, les mesures et les chiffres complets sont dans les chapitres de la deuxième partie ; on dit ici ce qui existe, ce que chaque famille gagne, ce qu'elle coûte, et ce qui manque pour la machine de Stone.
+\end{origine}
+
+\begin{figure}[ht]
+\centering
+\resizebox{\linewidth}{!}{\SchemaChronologie}
+\caption[Chronologie des travaux, par famille]{Les travaux cités dans ce chapitre, par famille et par date de première version publique (date de l'entrée bibliographique). Quatre familles mûrissent en même temps depuis 2023 ; aucune ne vise un portable Windows de 16\,Go qui lit ses poids sur un disque chiffré. Les racines théoriques sont bien plus anciennes.}
+\label{fig:chronologie}
+\sourcefig{\fichier{memoire/sources/*.bib} (dates), \fichier{memoire/figures/schemas/etat.tex}.}
+\end{figure}
+
+\section{Le mur de la mémoire, au lot de un}\label{sec:mur}
+
+Un jeton de décodage, au lot de un, multiplie chaque matrice de poids par un seul vecteur : chaque poids est lu une fois et sert à deux opérations. L'intensité arithmétique, environ deux opérations par poids lu, est très en dessous de ce que la carte sait calculer par octet (environ 50 opérations par octet de VRAM sur la RTX~4060, \cref{sec:carte}) : le décodage est borné par la mémoire. C'est la lecture classique du modèle du toit (\emph{roofline}) de Williams, Waterman et Patterson~\cite{williams2009roofline}, qui borne la performance par le minimum du calcul et du produit intensité $\times$ débit. Ce mémoire en étend l'idée à une hiérarchie d'étages (disque, RAM, lien, VRAM) traversés à chaque jeton (\cref{thm:toit}) : quand le modèle ne tient pas dans la VRAM, l'étage qui borne n'est plus la VRAM mais le lien ou le disque, 20 à 90 fois plus lents.
+
+\section{La fenêtre de travail : une idée de 1968}\label{sec:etat-fenetre}
+
+L'image de Stone, « une ai occupe de l'espace uniquement lorsque active », a un nom en informatique depuis plus d'un demi-siècle. Denning~\cite{denning1968workingset} définit l'\emph{ensemble de travail} d'un programme à l'instant $t$ comme l'ensemble des pages qu'il a référencées dans la fenêtre $(t - \tau, t]$,
+\[
+W(t, \tau) = \{\, \text{pages référencées entre } t - \tau \text{ et } t \,\},
+\]
+et pose que la mémoire à donner à un programme est celle de son ensemble de travail, le reste pouvant dormir sur le disque. Belady~\cite{belady1966} avait montré deux ans plus tôt quelle politique de remplacement est optimale quand on connaît l'avenir : évincer la page dont le prochain usage est le plus lointain. Ces deux résultats bornent tout ce que le \cref{ch:chargement} mesure : l'exécution à fenêtre bornée de la \cref{def:fenetre} est la propriété d'ensemble de travail appliquée aux poids, avec une fenêtre dont la taille ne dépend pas du modèle ; et l'optimum de Belady est le plafond de tout cache d'experts.
+
+Les moteurs de jeux vidéo ont fait de cette idée une technique de rendu. Les textures virtuelles creuses~\cite{barrett2008svt} découpent une texture immense en tuiles, n'envoient à la carte que les tuiles nécessaires à l'image en cours, et traduisent dans le shader l'adresse virtuelle en adresse physique, à la manière d'une table des pages ; DirectStorage~\cite{directstorage14} déplace la lecture et la décompression de ces données vers la carte. C'est exactement le « chunk » de Minecraft que Stone a en tête, et le \cref{tab:analogie} pose la correspondance terme à terme.
+
+\begin{table}[ht]
+\centering\small
+\caption[Trois façons de n'occuper que ce qui sert]{Trois façons de n'occuper de la mémoire que pour ce qui sert : la mémoire virtuelle, les textures virtuelles des moteurs de jeux, et troncons. La dernière ligne est la différence qui compte.}
+\label{tab:analogie}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright}p{2.1cm}>{\raggedright}X>{\raggedright}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+ & mémoire virtuelle & textures virtuelles & troncons \\
+\midrule
+unité & la page & la tuile de texture & le tronçon : une matrice d'expert, 4,4\,Mo dans gpt-oss-120b \\
+qui demande & le processeur, à l'accès & le shader, en rendant l'image & le routeur de chaque couche, à chaque jeton \\
+ce qui prédit & la localité temporelle & la caméra, qui bouge peu d'une image à l'autre & la réutilisation des experts entre jetons voisins ($\rho$, \cref{ch:formulation}) \\
+le cache & la RAM & une texture physique en VRAM & la VRAM, puis la RAM épinglée \\
+la compression & aucune & décompression sur la carte & rANS décodé sur la carte (\cref{ch:entropie}) \\
+le défaut & le programme attend la page & une tuile plus grossière s'affiche en attendant & le jeton attend l'expert : un calcul faux n'est pas permis \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+La dernière ligne est la différence de fond. Un moteur de jeu peut afficher une tuile floue le temps que la bonne arrive : l'œil pardonne. Un modèle de langue ne peut pas calculer avec un expert approché sans changer sa sortie. L'équivalent le plus proche de la tuile grossière est un code progressif dont la couche de base sert tout de suite et dont le complément corrige ensuite au bit près : c'est le raffinement exact de la \cref{prop:raffinement}, et le chapitre qui le porte (\cref{ch:avenir}) chiffre ce qu'il coûte.
+
+\section{Faire tourner un modèle plus gros que la mémoire}\label{sec:etat-dechargement}
+
+\paragraph{Le déchargement des poids.} La première génération charge les couches à la demande : AirLLM~\cite{airllm2026} lit une couche, la calcule, la libère, et résout la mémoire de pointe sans rien faire pour le débit ; DeepSpeed ZeRO-Inference~\cite{zeroinference2022} et FlexGen~\cite{flexgen2023} amortissent la lecture sur de grands lots, au prix de latences de milliers de secondes. llama.cpp~\cite{llamacpp} projette le fichier en mémoire et partage les couches entre la carte et le processeur ; c'est la base de comparaison du projet.
+
+\paragraph{La parcimonie des activations.} Deja Vu~\cite{dejavu2023}, PowerInfer~\cite{powerinfer2024,powerinfer2_2024} et LLM in a flash~\cite{llminflash2024} ne lisent que les neurones actifs d'un jeton, prédits par de petits réseaux ; ils obtiennent des facteurs de 2 à 25 sur des modèles à ReLU, dont la majorité des neurones sont nuls. Les modèles récents utilisent SwiGLU, et la parcimonie y est faible (\cref{ch:sparsite}).
+
+\paragraph{Les mélanges d'experts.} Un MoE n'active qu'une petite part de ses paramètres par jeton (3 à 10\,\% pour les modèles de 2026, \cref{fig:moe-inventaire}), ce qui en fait la cible naturelle : seuls les experts choisis doivent être lus. Mixtral-offloading~\cite{mixtraloffload2023} garde un cache LRU d'experts en VRAM et précharge par le routeur de la couche suivante ; ProMoE~\cite{promoe2024}, HOBBIT~\cite{hobbit2024}, ExpertFlow~\cite{expertflow2024}, SeqMoE~\cite{seqmoe2026} et Edge0~\cite{edge0_2026} prédisent mieux ; Fiddler~\cite{fiddler2025} et KTransformers~\cite{ktransformers2025} calculent les experts là où ils sont. Depuis 2026, des moteurs lisent les experts sur le disque avec un cache explicite : la demande \#25294 de llama.cpp~\cite{llamapr25294}, moe-stream~\cite{moestream2026} et SSD-LLaMA~\cite{ssdllama2026}, ce dernier compressant les experts dans la boucle de lecture. Le \cref{ch:chargement} les juge.
+
+\section{La quantification extrême}\label{sec:etat-quant}
+
+La quantification réduit $b$, les bits par poids, et multiplie le plafond par $16/b$. Quatre générations se superposent (\cref{ch:quant}) :
+\begin{itemize}
+\item \textbf{les scalaires par groupes} : les K-quants de llama.cpp, GPTQ, EfficientQAT~\cite{efficientqat2024}, HIGGS~\cite{higgs2024} ; simples à décoder, ils perdent beaucoup sous 3 bits ;
+\item \textbf{les codes vectoriels} : les i-quants de llama.cpp (grilles tirées du réseau E8), QuIP\#~\cite{quipsharp2024}, AQLM~\cite{aqlm2024} et PV-tuning~\cite{pvtuning2024}, VPTQ~\cite{vptq2024} ;
+\item \textbf{les codes en treillis} : QTIP~\cite{qtip2024} et sa version simplifiée EXL3, et depuis l'automne 2026 CurveTQ~\cite{curvetq2026} (sans rotation), XOR-Trellis~\cite{xortrellis2026}, Tetra~\cite{tetra2026} (réseau de Leech) ; à 2 bits sur la source gaussienne, ils ferment 90\,\% de l'écart entre le scalaire optimal et la borne de Shannon ;
+\item \textbf{les modèles nés en bas débit} : BitNet~\cite{bitnet2024}, ParetoQ~\cite{paretoq2025}, et les formats MXFP4 et NVFP4~\cite{ocpmx2023,nvfp4pretrain2025} dans lesquels gpt-oss, Kimi K2.6 et K3, DeepSeek V4 publient leurs poids.
+\end{itemize}
+Les rotations (QuaRot~\cite{quarot2024}, SpinQuant~\cite{spinquant2024}) rendent la source gaussienne et servent de brique aux codes des deux générations suivantes. Le constat qui pèse pour ce mémoire : \textbf{les meilleurs codes ne se décodent qu'en CUDA}, et le meilleur 2 bits décodable sous Vulkan (IQ2\_XXS) vaut, sur la source gaussienne, exactement le scalaire optimal.
+
+\section{La compression sans perte}\label{sec:etat-sans-perte}
+
+Après quantification, il reste de la redondance : les codes ne sont pas uniformes et les échelles des blocs sont très prévisibles. Les travaux récents l'exploitent par codage entropique. DFloat11~\cite{zhang2025dfloat11} code par Huffman l'exposant des poids BF16 et réduit le modèle à environ 70\,\% de sa taille sans perte ; ZipNN~\cite{hershcovitch2024zipnn}, Huff-LLM~\cite{yubeaton2025huffllm}, ECF8~\cite{yang2025ecf8}, ZipServ~\cite{zipserv2026} et les travaux qui approchent la borne de Shannon~\cite{shannonbound2026} suivent la même voie sur d'autres formats ; EntroLLM~\cite{entrollm2025}, EntroPack~\cite{entropack2026}, EntQuant~\cite{putzky2026entquant}, WaterSIC~\cite{lifar2026watersic} et vram-compression~\cite{nuri2026vramcompression} combinent quantification et codage entropique, ce dernier avec un noyau CUDA qui fond le décodage rANS au produit matrice-vecteur.
+
+Côté décodeurs, le codage par systèmes numériques asymétriques (ANS)~\cite{duda2013ans} et son entrelacement~\cite{giesen2014interleaved} ont donné des décodeurs massivement parallèles sur carte graphique~\cite{weissenberger2019multians,lin2023recoil}, des bibliothèques (nvCOMP~\cite{nvcomp2026}, DietGPU~\cite{dietgpu}) et, sous Windows, la décompression GDeflate et Zstandard~\cite{zstd} sur la carte par DirectStorage~\cite{directstorage14}. L'étude d'entropie du projet (\cref{ch:entropie}) mesure sur les modèles de la machine un plafond sans perte de 5,3\,\% pour les K-quants et un taux réel de 1,1026 pour les experts MXFP4 de gpt-oss-120b (9,3\,\% d'octets en moins, décodés exactement), dont l'essentiel tient aux échelles, que personne ne code ; et un décodeur rANS à 70\,Go/s de codes produits sous Vulkan, 82 sous CUDA. Elle montre aussi, par un calcul exact, pourquoi les entropies de « 0,6 à 1 bit » publiées pour int4 ne s'appliquent pas aux formats par petits groupes. La leçon d'ensemble est sûre : \textbf{après une bonne quantification, la compression sans perte vaut quelques pour cent} ; le levier de compression est la représentation, et le sans-perte se joue sur les métadonnées.
+
+\section{La spéculation}\label{sec:etat-spec}
+
+Le décodage spéculatif~\cite{leviathan2023,chen2023spec} fait proposer plusieurs jetons par un brouillon bon marché et les vérifie en une passe de la cible, sans perte. Ses variantes changent de brouillon (petit modèle, têtes Medusa~\cite{medusa2024}, couche EAGLE~\cite{eagle2_2024,eagle3_2025}, module MTP natif~\cite{gloeckle2024,deepseekv3_2024}, diffusion par blocs DFlash~\cite{dflash2026}, n-grammes~\cite{lookahead2024}) ou de forme (arbres de SpecInfer~\cite{specinfer2023}, Sequoia~\cite{sequoia2024}, SpecExec~\cite{specexec2024}). Deux travaux visent le régime déchargé : SpecExec, qui vérifie des arbres de milliers de nœuds quand les poids passent par le lien, et SubSpec~\cite{subspec2025}, qui loge en VRAM une copie basse précision de la cible comme brouillon. Pour les MoE, Cascade~\cite{cascade2025} montre que la spéculation peut ralentir, et MoE-Spec~\cite{moespec2026}, AcceptMoE~\cite{acceptmoe2026}, EcoSpec~\cite{ecospec2026} bornent l'ensemble d'experts de la vérification.
+
+\section{Ce que chaque famille change dans le toit}\label{sec:etat-leviers}
+
+Toutes ces familles se lisent dans la même inégalité, $\text{jetons/s} \le \min_i W_i / O_i$ (\cref{thm:toit}), multipliée par $\mathcal E$, le nombre de jetons produits par lecture des poids. Le \cref{tab:etat-leviers} dit quel terme chacune déplace, et à quelle condition ; c'est cette lecture commune qui permet, au \cref{ch:formulation}, de les combiner au lieu de les juxtaposer.
+
+\begin{table}[ht]
+\centering\small
+\caption[Ce que chaque famille change dans l'inégalité du toit]{Ce que chaque famille de techniques change dans $\mathcal E \cdot \min_i W_i/O_i$, et la condition sous laquelle le gain est réel. $b$ : bits par poids ; $r$ : taux sans perte ; $h$ : succès du cache ; $\alpha$ : taux d'acceptation.}
+\label{tab:etat-leviers}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright}p{2.7cm}>{\raggedright}p{3.4cm}>{\raggedright\arraybackslash}X@{}}
+\toprule
+famille & terme déplacé & condition, et ce qui la mesure ici \\
+\midrule
+quantification & tous les $O_i$, d'un facteur $16/b$ & la qualité tient (perplexité, divergence KL, \cref{ch:quant}) et le noyau suit le débit de la VRAM \\
+codage sans perte & les $O_i$ des étages en amont du décodeur, d'un facteur $r$ & le décodeur dépasse $r$ fois le débit de l'étage soulagé (\cref{cor:ent-gain}) \\
+décompression sur la carte & l'étage qui porte les octets compressés & au-delà de $r^\star$, seule la carte peut décompresser sans devenir le goulot (\cref{sec:toit}) \\
+cache et préchargement & déplace $h B_e$ vers un étage plus rapide & la localité du routage existe ($h$ mesuré, \cref{ch:chargement}) \\
+placement & $f_V, f_R, f_D$ & la VRAM et la RAM libres, mesurées après le système \\
+sparsité des activations & $O_i$, d'un facteur de densité & le modèle a des activations creuses (ReLU) ; faible sous SwiGLU (\cref{ch:sparsite}) \\
+spéculation & multiplie par $\mathcal E(\alpha, k)$ & la passe de vérification lit à peine plus que celle d'un jeton ; pour un MoE, $\alpha > 1 - \rho$ (\cref{prop:spec-rho}) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Positionnement}\label{sec:positionnement}
+
+\begin{table}[ht]
+\centering\small
+\caption[Ce que les systèmes existants couvrent du problème de troncons]{Ce que les systèmes existants couvrent du problème de troncons, d'après leur publication et leur code \litt. « Disque » : poids lus sur le disque à chaque jeton ; « 16\,Go » : publié ou mesuré avec moins de RAM que le modèle ; « carte décode » : décompression sur la carte des octets venus du lien.}
+\label{tab:positionnement}
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+Système & Windows & sans CUDA & disque & 16\,Go & carte décode & treillis \\
+\midrule
+llama.cpp (\texttt{mmap}, \texttt{-ncmoe}) & oui & oui (Vulkan) & par mmap & oui & non & non \\
+llama.cpp \#25294 & non & non & oui & non (128\,Go) & non & non \\
+moe-stream & oui & processeur seul & oui & oui & non & non \\
+SSD-LLaMA & non & non & oui & 16--32\,Go & après transfert & non \\
+KTransformers & non & non & non & non & non & non \\
+PowerInfer, LLM in a flash & partiel & non & oui (flash) & oui & non & non \\
+SpecExec, SubSpec & non & non & non (RAM) & non & non & non \\
+EXL3, QTIP & non & non & non & --- & oui (en VRAM) & oui \\
+DirectStorage 1.4 & oui & oui & oui & --- & oui (textures) & non \\
+\midrule
+\textbf{troncons (visé)} & \textbf{oui} & \textbf{oui} & \textbf{oui} & \textbf{oui} & \textbf{oui} & \textbf{oui} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Le \cref{tab:positionnement} dit la forme du trou. Chaque brique existe quelque part : la lecture des experts sur le disque (Linux), la décompression sur la carte (pour des textures, ou depuis la VRAM), les codes proches de la borne (en CUDA), la spéculation en régime déchargé (avec 128\,Go de RAM). \textbf{Personne ne les a réunies sur un portable Windows de 16\,Go sans boîte à outils CUDA}, et les chapitres qui suivent montrent, chiffres mesurés à l'appui, que cet assemblage n'est pas une juxtaposition : les leviers se multiplient (la quantification fabrique le brouillon de la spéculation, la compression agit deux fois sur un cache d'experts) ou s'annulent (la spéculation et les experts fins, la sparsité et la vérification).

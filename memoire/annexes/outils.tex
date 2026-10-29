@@ -1,0 +1,116 @@
+% Engendré par memoire/outils/annexes.py : ne pas modifier à la main.
+% 96 outils
+\begingroup\small
+\begin{longtable}{@{}p{0.43\linewidth}p{0.53\linewidth}@{}}
+\toprule
+\EF{Tool}{Outil} & \EF{Its own description (first line, quoted)}{Sa propre description (première ligne, citée)} \\
+\midrule
+\endhead
+\multicolumn{2}{@{}l}{\textsf{\bfseries\EF{01 machine}{01 machine}}} \\
+\fichier{outils/banc/Cargo.toml} & {\footnotesize Dépendances : toutes déjà dans le cache cargo de la machine (construction --offline). windows-sys : MIT OU Apache-2.0. wgpu : MIT OU Apache-2.0. pollster : MIT OU Apache-2.0. bytemuck …} \\
+\fichier{outils/banc/aes_xts.py} & {\footnotesize Débit du déchiffrement XTS-AES sur le processeur, par l'API CNG de Windows (bcrypt.dll), de 1 à N fils : le coût logiciel de BitLocker, mesuré par un second chemin.} \\
+\fichier{outils/banc/analyse_carte.py} & {\footnotesize Lecture du journal du banc carte : tableaux par opération, taille et interface (Vulkan, DX12), série ABBA vulkan, dx12, dx12, vulkan …} \\
+\fichier{outils/banc/analyse_disque.py} & {\footnotesize Lecture du journal du banc disque : tableaux bloc x profondeur (moyenne des passages A et B, bruit ABBA), comparaison IOCP / IoRing selon la règle déclarée, second chemin (compteur du …} \\
+\fichier{outils/banc/analyse_thermique.py} & {\footnotesize Analyse d'une passe thermique (pilote\_thermique.py) : débit de la GEMV par fenêtre de 5 s et relevé nvidia-smi par seconde.} \\
+\fichier{outils/banc/csv_disque.py} & {\footnotesize Extrait du journal du balayage disque (disque-balayage.jsonl) un CSV pour les figures du mémoire …} \\
+\fichier{outils/banc/pilote_carte.py} & {\footnotesize Pilote du banc carte : chaque passe de carte.exe encadrée par un relevé nvidia-smi (utilisation, VRAM occupée, horloges, température, puissance) ; témoins --fausser …} \\
+\fichier{outils/banc/pilote_disque.py} & {\footnotesize Pilote du banc disque : témoins, balayage bloc × profondeur de file en ordre ABBA, comparaison IOCP / IoRing, second chemin par le compteur cumulé du système (CIM).} \\
+\fichier{outils/banc/pilote_llama.py} & {\footnotesize Base de comparaison : llama.cpp b11515 (CUDA 12.4) et Qwen3.5-9B Q4\_K\_M, en VRAM puis avec une partie des couches sur le processeur, en projection de fichier (mmap) ou en lecture directe. …} \\
+\fichier{outils/banc/pilote_thermique.py} & {\footnotesize Thermique sur 5 minutes : GEMV q4b en boucle (carte.exe thermique) et relevé nvidia-smi chaque seconde (température, horloges, puissance, raisons de bridage). …} \\
+\fichier{outils/banc/src/bin/carte.rs} & {\footnotesize Banc de la carte graphique par wgpu (Vulkan ou DirectX 12), sans boîte à outils CUDA.} \\
+\fichier{outils/banc/src/bin/disque.rs} & {\footnotesize Banc du disque : lecture NVMe sans tampon (FILE\_FLAG\_NO\_BUFFERING), séquentielle et aléatoire, par port de complétion (IOCP) ou par IoRing, à profondeur de file fixée.} \\
+\fichier{outils/banc/src/bin/memoire.rs} & {\footnotesize Banc de la RAM : débit de lecture, d'écriture et de copie, de 1 à N fils, et latence d'un accès dépendant (chasse de pointeurs sur un cycle aléatoire).} \\
+\fichier{outils/banc/src/lib.rs} & {\footnotesize Pièces communes du banc : motif de données vérifiable, statistiques, arguments.} \\
+\fichier{outils/banc/suite_secteur.py} & {\footnotesize La suite « sur secteur » : les mesures que la batterie fausse, relancées dès que la machine est branchée.} \\
+\fichier{outils/banc/toit.py} & {\footnotesize Le toit (roofline) de troncons : plafond de jetons par seconde selon l'étage d'où viennent les poids, et facteur de compression qui rend la lecture disque aussi rapide que la PCIe.} \\
+\multicolumn{2}{@{}l}{\textsf{\bfseries\EF{02 quantization}{02 quantification}}} \\
+\fichier{outils/quant-bib.py} & {\footnotesize Sources de l'étude 02 en BibTeX (biblatex) pour le mémoire : memoire/sources/quantification.bib.} \\
+\fichier{outils/quant-csv-memoire.py} & {\footnotesize Données de l'étude 02 (quantification) en CSV, pour les figures pgfplots du mémoire.} \\
+\fichier{outils/quant-echelle.sh} & {\footnotesize Échelle de quantification llama.cpp sur un modèle : imatrix, requantification vers chaque type, bits par poids réels, divergence KL et perplexité contre la base.} \\
+\fichier{outils/quant-gemv-treillis.cu} & {\footnotesize Coût du décodage dans le noyau : produit matrice-vecteur (lot de 1) sur la RTX 4060, poids stockés en FP16, en scalaire 2 bits, en scalaire 4 bits, et en treillis à décalage 2 bits (code …} \\
+\fichier{outils/quant-gguf-bits.py} & {\footnotesize Bits par poids réels d'un fichier GGUF, métadonnées comprises, et octets lus par jeton.} \\
+\fichier{outils/quant-mse-gaussien.py} & {\footnotesize Erreur quadratique de quantificateurs à 1, 2 et 3 bits par poids sur une source gaussienne i.i.d. …} \\
+\fichier{outils/quant-mse-iq2xxs.py} & {\footnotesize Place d'IQ2\_XXS (llama.cpp) sur le banc gaussien du § 2 de fondations/02-quantification.md.} \\
+\fichier{outils/quant-mse-xor.py} & {\footnotesize Treillis à décalage à code linéaire par parités (sans multiplication), sur source N(0,1).} \\
+\fichier{outils/quant-resume-echelle.py} & {\footnotesize Résumé d'une échelle de quantification produite par quant-echelle.sh.} \\
+\fichier{outils/quant-vitesse.py} & {\footnotesize Vitesse de décodage (lot de 1) de fichiers GGUF quantifiés et débit effectif des poids.} \\
+\fichier{outils/quant-vulkan-gemv/Cargo.toml} & {\footnotesize Dépendances (mêmes versions que outils/banc, déjà dans le cache cargo) : wgpu : MIT OU Apache-2.0. pollster : MIT OU Apache-2.0.} \\
+\fichier{outils/quant-vulkan-gemv/src/main.rs} & {\footnotesize Coût du décodage dans un shader de calcul portable (wgpu : Vulkan ou DirectX 12) : produit matrice-vecteur 16 384 × 16 384, poids en scalaire 2 bits, en treillis à décalage 2 bits (code …} \\
+\multicolumn{2}{@{}l}{\textsf{\bfseries\EF{03 entropy}{03 entropie}}} \\
+\fichier{outils/03-entropie/attendre_calme.sh} & {\footnotesize Lance une commande seulement quand la machine est calme, trois relevés de suite à 10 s d'écart. mode « processeur » : charge du processeur sous 20 \% et aucun processus llama-*. …} \\
+\fichier{outils/03-entropie/champs_k.py} & {\footnotesize Découpe des blocs quantifiés ggml en leurs champs, écrite de zéro.} \\
+\fichier{outils/03-entropie/cuda/construire.bat} & {\footnotesize Construit rans\_v4.exe (second chemin du decodeur) et dispersion.exe (reassemblage des flux de classe), CUDA, sm\_89, hors du depot. …} \\
+\fichier{outils/03-entropie/cuda/dispersion.cu} & {\footnotesize Coût de la passe de réassemblage des codes MXFP4 répartis en trois flux de classe (§1.6 de 03-entropie.md) : chaque bloc de 16 octets revient à sa place depuis le flux de sa classe. …} \\
+\fichier{outils/03-entropie/cuda/rans_v4.cu} & {\footnotesize Second chemin pour le débit du décodeur rANS v4 : le même algorithme que decoder\_v4 de decodeur.wgsl, écrit en CUDA (intrinsèques de warp …} \\
+\fichier{outils/03-entropie/debits_cpu.py} & {\footnotesize Débits de décompression sur le processeur : zstd et lz4 contre une recopie mémoire.} \\
+\fichier{outils/03-entropie/flux_octets.py} & {\footnotesize Ce qu'un codeur d'octets d'ordre 0 (le décodeur v4) peut prendre à chaque type K, si l'on sépare le bloc en flux d'octets de même nature (le « byte grouping » de ZipNN, appliqué aux champs …} \\
+\fichier{outils/03-entropie/gguf_lecture.py} & {\footnotesize Lecteur GGUF minimal, écrit de zéro pour troncons.} \\
+\fichier{outils/03-entropie/mesure_entropie.py} & {\footnotesize Entropie réelle des poids quantifiés d'un GGUF, champ par champ.} \\
+\fichier{outils/03-entropie/mxfp4_contexte.py} & {\footnotesize Entropie des échelles E8M0 des tenseurs MXFP4, avec et sans contexte.} \\
+\fichier{outils/03-entropie/passes_carte.sh} & {\footnotesize Passes de carte de l'étude 03, chacune dans sa propre fenêtre calme (attendre\_calme.sh). 1. banc\_gemv sur les codes MXFP4 réels de gpt-oss-20b : brut, fondu, décodage, deux passes ; 2. …} \\
+\fichier{outils/03-entropie/passes_secteur.sh} & {\footnotesize Passes de carte de l'étude 03, machine sur secteur (relevé à 08:33 le 2026-10-15 : Win32\_Battery = 2, horloges 2 250 / 8 101 MHz), chacune dans sa fenêtre calme.} \\
+\fichier{outils/03-entropie/proportions_classes.py} & {\footnotesize Proportions des trois classes d'échelle (e < médiane de ligne, e = médiane, e > médiane) sur tous les tenseurs MXFP4 d'un GGUF …} \\
+\fichier{outils/03-entropie/rans/Cargo.toml} & {\footnotesize Dépendances, toutes dans le cache cargo de la machine (construction --offline) : wgpu 30.0.1 : MIT OU Apache-2.0. pollster : MIT OU Apache-2.0. bytemuck : Zlib OU Apache-2.0 OU MIT. rayon …} \\
+\fichier{outils/03-entropie/rans/src/bin/banc_gemv.rs} & {\footnotesize Banc de la question clé : décoder le flux entropique DANS le produit matrice-vecteur, ou JUSTE AVANT, quand les poids résident en VRAM.} \\
+\fichier{outils/03-entropie/rans/src/bin/banc_rans.rs} & {\footnotesize Banc du rANS entrelacé sur les codes Q4\_K d'un GGUF.} \\
+\fichier{outils/03-entropie/rans/src/bin/micro_cpu.rs} & {\footnotesize Micro-banc du décodeur processeur sur données synthétiques (distribution des codes Q4\_K mesurée), pour séparer le coût du code de la contention de la machine.} \\
+\fichier{outils/03-entropie/rans/src/bin/taux_mxfp4.rs} & {\footnotesize Taux réel d'un codage MXFP4 par champs, sur tous les tenseurs MXFP4 d'un GGUF.} \\
+\fichier{outils/03-entropie/rans/src/bin/vider_flux.rs} & {\footnotesize Écrit sur le disque un lot codé par le rANS v4 (alphabet octet), pour qu'un second décodeur, écrit dans un autre langage (CUDA, outils/03-entropie/cuda/rans\_v4.cu), le décode et soit …} \\
+\fichier{outils/03-entropie/rans/src/decodeur.wgsl} & {\footnotesize Décodeur rANS entrelacé par sous-groupe (format décrit dans lib.rs). Un sous-groupe de 32 invocations décode une tuile …} \\
+\fichier{outils/03-entropie/rans/src/gemv.wgsl} & {\footnotesize Produit matrice-vecteur (lot 1) sur des poids MXFP4, avec et sans décodage rANS fondu.} \\
+\fichier{outils/03-entropie/rans/src/lib.rs} & {\footnotesize rANS entrelacé par sous-groupe pour les codes 4 bits des blocs Q4\_K.} \\
+\fichier{outils/03-entropie/rd_proxy.py} & {\footnotesize Au-delà du sans-perte : à erreur égale, combien de bits gagne une quantification taillée pour un codeur entropique (ECSQ), face à une quantification à débit fixe ?} \\
+\fichier{outils/03-entropie/resume_entropie.py} & {\footnotesize Résumé des journaux de mesure\_entropie.py : par type, par rôle, et pour le modèle.} \\
+\fichier{outils/03-entropie/temoin_champs.py} & {\footnotesize Témoin : notre découpe des champs reconstruit exactement les poids que la bibliothèque gguf (llama.cpp, licence MIT, second chemin indépendant) déquantifie.} \\
+\fichier{outils/03-entropie/vers_csv.py} & {\footnotesize Tire des journaux de l'étude 03 les CSV des figures du mémoire.} \\
+\multicolumn{2}{@{}l}{\textsf{\bfseries\EF{04 loading}{04 chargement}}} \\
+\fichier{outils/chargement_juge.py} & {\footnotesize Le juge physique du chargement : octets lus par jeton, étage par étage, divisés par le débit de chaque étage. Décodage, un jeton à la fois (lot 1), modèle MoE ou dense.} \\
+\fichier{outils/chargement_localite.py} & {\footnotesize Localité des experts d'un jeton au suivant, et ce qu'un cache en tire.} \\
+\fichier{outils/chargement_pcie.py} & {\footnotesize Mesure des étages RAM -> PCIe -> VRAM de la machine, sans boîte à outils CUDA.} \\
+\multicolumn{2}{@{}l}{\textsf{\bfseries\EF{05 sparsity}{05 sparsité}}} \\
+\fichier{outils/05-sparsite/amortissement.py} & {\footnotesize Amortissement d'une lecture de poids sur plusieurs jetons : le calcul de l'étude 05, avec son témoin par simulation.} \\
+\fichier{outils/05-sparsite/gguf_f16.py} & {\footnotesize Lecteur GGUF réduit au nécessaire de l'étude 05 : métadonnées et tenseurs F32 / F16 en tableaux numpy (memmap, sans copie).} \\
+\fichier{outils/05-sparsite/llama_numpy.py} & {\footnotesize Passe avant d'un modèle d'architecture « llama » (GGUF F16), en numpy pur, avec un crochet sur l'entrée de chaque projection linéaire.} \\
+\fichier{outils/05-sparsite/mesures_sparsite.py} & {\footnotesize Mesures de sparsité des activations sur la passe avant numpy (étude 05).} \\
+\fichier{outils/05-sparsite/resume_cn.py} & {\footnotesize Résumé des séries ABBA de llama-bench (pp n, -n 0) : temps d'une passe de n jetons, médiane des séries, bruit, et verdict contre le seuil déclaré.} \\
+\fichier{outils/05-sparsite/temoin_passe_avant.py} & {\footnotesize Témoin de la passe avant numpy : sa perplexité doit retrouver celle de llama-perplexity (b11515) sur les mêmes jetons, fenêtre 512, 16 fenêtres.} \\
+\fichier{outils/sparsite-inventaire-gguf.py} & {\footnotesize Inventaire d'un fichier GGUF, sans dépendance : métadonnées scalaires et octets par famille de tenseurs.} \\
+\multicolumn{2}{@{}l}{\textsf{\bfseries\EF{06 models}{06 modèles}}} \\
+\fichier{outils/creer-disque-modeles.ps1} & {\footnotesize creer-disque-modeles.ps1 -- cree le disque D: "Modeles", non chiffre, pour les poids des modeles.} \\
+\fichier{outils/inventaire_modeles.py} & {\footnotesize Inventaire des modèles lourds : paramètres totaux et actifs, lus dans les en-têtes safetensors.} \\
+\fichier{outils/modeles-base.py} & {\footnotesize Banc de la base de comparaison : llama.cpp tel quel (mmap), sur un texte réel fixé, en glouton.} \\
+\fichier{outils/modeles-fichiers-a-telecharger.py} & {\footnotesize Liste exacte des fichiers à demander : nom, taille, empreinte SHA-256 (champ LFS de l'API).} \\
+\fichier{outils/modeles-gguf-entete-distant.py} & {\footnotesize Octets lus par jeton d'un fichier GGUF précis, lus dans son en-tête à distance (requêtes Range).} \\
+\fichier{outils/modeles-gguf-tailles.py} & {\footnotesize Tailles réelles des quantifications GGUF publiées, lues dans l'arbre des dépôts Hugging Face.} \\
+\fichier{outils/modeles-juge.sh} & {\footnotesize Juge de qualité léger, identique pour tous les modèles et tous les moteurs. Usage : modeles-juge.sh <modèle.gguf> <étiquette> <dossier-sortie> [base-logits.kld] Sans 4e argument …} \\
+\fichier{outils/modeles-octets-par-jeton.py} & {\footnotesize Octets lus par jeton et plafonds physiques, pour chaque modèle de l'inventaire.} \\
+\fichier{outils/modeles-plafonds-fichiers.py} & {\footnotesize Plafonds physiques par jeton pour les fichiers GGUF exacts candidats au téléchargement.} \\
+\fichier{outils/modeles-temoin-disque.py} & {\footnotesize Témoin du compteur de disque de modeles-base.py (PDH, PhysicalDisk(\_Total) / Disk Read Bytes/sec).} \\
+\fichier{outils/modeles-temoin-inventaire.py} & {\footnotesize Témoin de l'inventaire : nos comptes de paramètres contre ceux que les éditeurs publient.} \\
+\fichier{outils/modeles_physique.py} & {\footnotesize Plafonds physiques de la machine de Stone et modèle de coût par jeton (calculé, jamais mesuré).} \\
+\multicolumn{2}{@{}l}{\textsf{\bfseries\EF{07 synthesis}{07 synthèse}}} \\
+\fichier{outils/07-synthese/inventaire_gptoss.py} & {\footnotesize Inventaire local des fichiers gpt-oss MXFP4, par lecture de leur en-tête GGUF.} \\
+\fichier{outils/07-synthese/plafonds.py} & {\footnotesize L'équation du jeton, appliquée aux architectures candidates de troncons.} \\
+\fichier{outils/07-synthese/raffinement_mxfp4.py} & {\footnotesize Raffinement exact d'un format MXFP4 natif : ce que coûte et ce que vaut une couche de base.} \\
+\multicolumn{2}{@{}l}{\textsf{\bfseries\EF{decisions}{décisions}}} \\
+\fichier{outils/arbitre/decoupe/Cargo.toml} & {\footnotesize Une seule dépendance, déjà dans le cache cargo de la machine (construction --offline) : rayon 1.12.0 : MIT OU Apache-2.0. …} \\
+\fichier{outils/arbitre/decoupe/src/main.rs} & {\footnotesize Mesure F1 de l'arbitre (decisions/ARCHITECTURE.md) : ce que coûte, en octets réels, la découpe d'un code MXFP4 en base + complément, contre le flux unique de l'architecture A.} \\
+\fichier{outils/arbitre/verif_plafonds.py} & {\footnotesize Second chemin de l'arbitre : les plafonds de A, A0, B1 et B3 refaits par des formules écrites ici.} \\
+\fichier{outils/arbitre/vers_csv.py} & {\footnotesize Données des figures du mémoire tirées des journaux de l'arbitre (rien n'est recalculé ici).} \\
+\fichier{outils/decisions/partisan_a.py} & {\footnotesize Les chiffres du partisan de l'architecture A (« l'exactitude et l'ingénierie d'abord »).} \\
+\fichier{outils/decisions/partisan_b.py} & {\footnotesize Les chiffres du partisan de B (« la contribution d'abord ») : ce que B gagne vraiment quand on compte le trafic des compléments, et ce que vaut une base lisible par llama.cpp.} \\
+\multicolumn{2}{@{}l}{\textsf{\bfseries\EF{gpt-oss measurements}{mesures gpt-oss}}} \\
+\fichier{outils/gptoss-routage/construire.bat} & {\footnotesize Construit traceur.exe contre les DLL officielles de llama.cpp b11515 (binaires CUDA 12.4). en-têtes : sources officielles du même commit (3d65c90d0, licence MIT), dossier SRC …} \\
+\fichier{outils/gptoss-routage/faire_def.py} & {\footnotesize Tire un fichier .def (bibliothèque d'importation) de la sortie de « dumpbin /exports ».} \\
+\fichier{outils/gptoss-routage/tracer.sh} & {\footnotesize Relève les traces de routage de gpt-oss (20b ou 120b) sur le corpus en quatre genres, puis sur l'invite fixée de la base (étude 06) avec la même génération gloutonne que la base, pour le …} \\
+\fichier{outils/gptoss-routage/traceur.cpp} & {\footnotesize traceur.cpp : relève, jeton par jeton et couche par couche, les experts choisis par le routeur d'un modèle MoE (écrit pour gpt-oss) en faisant tourner llama.cpp b11515 tel quel.} \\
+\fichier{outils/gptoss_base_resume.py} & {\footnotesize Résumé d'une série de la base (passes.csv de gptoss\_base\_serie.py) : moyenne, bruit, décision.} \\
+\fichier{outils/gptoss_base_serie.py} & {\footnotesize Séries alternées de la base llama.cpp b11515 sur gpt-oss (protocole de fondations/06-modeles.md § 7).} \\
+\fichier{outils/gptoss_comparer_traces.py} & {\footnotesize Compare deux traces de routage du même texte : part des choix (jeton, couche) identiques.} \\
+\fichier{outils/gptoss_corpus.py} & {\footnotesize Corpus de texte réel pour relever le routage des experts de gpt-oss : quatre genres.} \\
+\fichier{outils/gptoss_figures.py} & {\footnotesize Données et figures pgfplots du mémoire pour les mesures sur gpt-oss (localité et base).} \\
+\fichier{outils/gptoss_localite.py} & {\footnotesize Localité des experts de gpt-oss sur traces réelles, et plafond de jetons/s qui en découle.} \\
+\fichier{outils/gptoss_octets.py} & {\footnotesize Octets par expert et octets toujours lus de gpt-oss, lus dans l'en-tête des fichiers GGUF locaux.} \\
+\bottomrule
+\end{longtable}
+\endgroup

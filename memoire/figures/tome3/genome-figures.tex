@@ -1,0 +1,136 @@
+% Figures du chapitre 3 du Tome III (le génome des poids : le brin lu par codons ; genome/genome.md,
+% genome/genome-pour-le-memoire.md, figures 1 et 3). Gardé par \ifdefined\GrapheGenGauss.
+% Données : \Racine/figures/tome3/donnees/genome-*.csv, écrites par memoire/outils/tome3_genome.py depuis
+% mesures/genome/genome/. Chaque nombre d'une légende ou d'une annotation se lit dans genome-nombres.csv
+% par \genNombre{cle}. Styles préfixés « gen ». Pour chaque figure <Nom> : \Graphe<Nom>, et par la
+% convention du Tome III (legende-tome3.tex) \Titre<Nom>, \Legende<Nom>, \Source<Nom> ; le chapitre écrit
+% \LegendeFigure{<Nom>}.
+%
+% Second flux (2026-10-27) : le brin a sa couleur dans tout le tome (CouleurBrin, palette-tome3.tex ; D7 du
+% juge ronde) ; la base frontière en losange gris foncé ; le témoin à l'encre ; titres de panneau ;
+% corps plancher \scriptsize ; M1, M2, D9 du juge ronde ; D5, D6 du juge de design.
+
+\ifdefined\GrapheGenGauss\else
+\input{\Racine/figures/tome3/legende-tome3}
+\newcommand{\GenDonnees}{\Racine/figures/tome3/donnees}
+
+% --- Les nombres des légendes, lus dans le CSV au chargement -----------------------------------------
+\pgfplotstableread[col sep=comma]{\GenDonnees/genome-nombres.csv}\genTableNombres
+\pgfplotstableforeachcolumnelement{cle}\of\genTableNombres\as\genCle{%
+  \pgfplotstablegetelem{\pgfplotstablerow}{valeur}\of\genTableNombres
+  \expandafter\xdef\csname genN@\genCle\endcsname{\pgfplotsretval}}
+\newcommand{\genVal}[1]{\ifcsname genN@#1\endcsname\csname genN@#1\endcsname\else
+  \PackageError{genome-figures}{nombre inconnu : #1}{}0\fi}
+\NewDocumentCommand{\genNombre}{O{}m}{\pgfmathprintnumber[#1]{\genVal{#2}}}
+\NewDocumentCommand{\genEntier}{m}{\pgfmathprintnumber[fixed, precision=0]{\genVal{#1}}}
+\NewDocumentCommand{\genPct}{O{1}m}{\pgfmathparse{100*\genVal{#2}}\pgfmathprintnumber[fixed, fixed zerofill, precision=#1]{\pgfmathresult}\EF{\%}{\,\%}}
+
+\pgfplotsset{
+  % Le brin, aux deux longueurs de fenêtre : creux et trait plein à l = 12, plein et tirets à l = 16.
+  gen l12/.style={CouleurBrin, mark=*, mark size=1.9pt, line width=0.8pt, solid,
+    mark options={solid, fill=white, line width=0.7pt}},
+  gen l16/.style={CouleurBrin, mark=*, mark size=1.9pt, line width=0.8pt, dash pattern=on 3pt off 1.5pt,
+    mark options={solid, fill=CouleurBrin}},
+  gen shannon/.style={Encre, line width=0.9pt},
+}
+
+% =====================================================================================================
+% III-3.4. Le brin lu par codons sur une gaussienne i.i.d., contre la borne de Shannon.
+\newcommand{\GrapheGenGauss}{%
+\begin{tikzpicture}
+\begin{axis}[t3 graphe, name=genhaut, scale only axis, width=0.47\linewidth, height=5.0cm,
+  xmin=0.85, xmax=4.15, xtick={1,2,3,4}, xticklabels={}, ymode=log, ymin=0.003, ymax=0.4, minor tick length=0pt,
+  ylabel={\EF{relative MSE}{erreur quadratique relative}},
+  title={(a) \EF{error against rate}{erreur contre débit}},
+  legend style={at={(0.98,0.97)}, anchor=north east}]
+\addplot[gen shannon, domain=0.85:4.15, samples=60] {2^(-2*x)};
+\addlegendentry{\EF{Shannon bound $D(R) = 2^{-2R}$}{borne de Shannon $D(R) = 2^{-2R}$}}
+\addplot[gen l12] table[x=debit, y=erreur] {\GenDonnees/genome-gauss-l12.csv};
+\addlegendentry{\EF{strand, window $l = 12$}{brin, fenêtre $l = 12$}}
+\addplot[gen l16] table[x=debit, y=erreur] {\GenDonnees/genome-gauss-l16.csv};
+\addlegendentry{\EF{strand, window $l = 16$}{brin, fenêtre $l = 16$}}
+\end{axis}
+\begin{axis}[t3 graphe, at={(genhaut.south west)}, anchor=north west, yshift=-0.35cm, scale only axis,
+  width=0.47\linewidth, height=3.1cm, xmin=0.85, xmax=4.15, xtick={1,2,3,4},
+  xlabel={\EF{rate (bits per weight)}{débit (bits par poids)}},
+  ymin=0, ymax=2.6, ytick={0,0.5,1,1.5}, t3 decimales y=1,
+  ylabel={\EF{gap (dB)}{écart (dB)}}, clip=false]
+\addplot[gen shannon, line width=0.6pt, domain=0.85:4.15, samples=2] {0};
+\addplot[gen l12] table[x=debit, y=ecart_db] {\GenDonnees/genome-gauss-l12.csv};
+\addplot[gen l16] table[x=debit, y=ecart_db] {\GenDonnees/genome-gauss-l16.csv};
+% Les formes (k_b, v), écrites en haut du panneau, au-dessus de toutes les courbes : aucune ne touche une courbe
+% (D9 du juge ronde). Troisième passe (DN22 du juge de design) : à l'horizontale, en deux rangs alternés.
+\addplot[only marks, mark=none, visualization depends on={value \thisrow{kb} \as \genkb},
+  visualization depends on={value \thisrow{v} \as \genv},
+  nodes near coords={$(\genkb,\genv)$},
+  nodes near coords style={t3 etiquette, text=black!60, anchor=base, inner sep=0.8pt}]
+  table[x=debit, y expr={mod(\coordindex,2)==0 ? 1.78 : 2.14}] {\GenDonnees/genome-gauss-l12.csv};
+\end{axis}
+% --- À droite : la fenêtre, à 2 bits ---------------------------------------------------------------
+\begin{axis}[t3 graphe, at={(genhaut.north east)}, anchor=north west, xshift=1.6cm, scale only axis,
+  width=0.30\linewidth, height=8.45cm, xmin=7, xmax=17, xtick={8,10,12,14,16},
+  ymin=0, ymax=1.65, ytick={0,0.25,...,1.5}, t3 decimales y=2,
+  xlabel={\EF{window length $l$ (bits)}{longueur de fenêtre $l$ (bits)}},
+  ylabel={\EF{gap to Shannon at 2 bits (dB)}{écart à Shannon à 2 bits (dB)}},
+  title={(b) \EF{window length}{longueur de fenêtre}}, clip=false]
+\addplot[CouleurBrin, mark=square*, mark size=2.2pt, line width=0.9pt, mark options={solid}]
+  table[x=l, y=ecart_db] {\GenDonnees/genome-gauss-fenetre.csv};
+% Le témoin T1 : même réglage, plus de rangées ; un anneau à l'encre autour de son point, et sa valeur.
+\addplot[only marks, mark=o, mark size=4.2pt, mark options={solid, draw=Encre, line width=0.8pt}]
+  coordinates {(12.0,\genVal{g-t1-db})};
+\draw[t3 rappel] (axis cs:12.0,\genVal{g-t1-db}) ++(4pt,4pt) -- (axis cs:13.2,1.08);
+\node[t3 etiquette, anchor=south west, align=left] at (axis cs:13.2,1.08)
+  {\EF{control T1}{témoin T1}\\(\genEntier{g-t1-rangees} \EF{rows}{rangées})};
+\end{axis}
+\end{tikzpicture}}
+\Titre{GenGauss}{The strand read by codons, on a true Gaussian}{Le brin lu par codons, sur une gaussienne vraie}
+\Legende{GenGauss}{\mes}
+  {On a true Gaussian, the strand read by codons stays less than two decibels from Shannon's bound, and the window length buys most of the gap.}
+  {Sur une gaussienne vraie, le brin lu par codons reste à moins de deux décibels de la borne de Shannon, et la longueur de fenêtre achète l'essentiel de l'écart.}
+  {A strand of bits is read through a sliding window of $l$ bits; a hashed mixer turns each window into an index in a table of $2^q$ values (here $q = \genEntier{g-q}$, Gaussian quantiles, no Lloyd pass); Viterbi chooses the bits. The source is i.i.d.\ Gaussian, rows of \genEntier{g-longueur} values: \genEntier{g-l12-rangees} rows at $l = 12$; at $l = 16$, \genEntier{g-l16-rangees} rows (\genEntier{g-l16-valeurs} values), except the shape $(\genEntier{g-l16-exc0-kb}, \genEntier{g-l16-exc0-v})$, measured on \genEntier{g-l16-exc0-rangees}. The reference is Shannon's distortion--rate function $D(R) = 2^{-2R}$, which no code of finite length reaches. (a) The seven shapes (bits $k_b$ advanced per step, values $v$ emitted, written at the top of the lower panel), from 1 to 4 bits; the gap stays between $\genNombre[fixed, precision=2]{g-l12-db-min}$ and $\genNombre[fixed, precision=2]{g-l12-db-max}$\,dB at $l = 12$ (hollow, solid line) and between $\genNombre[fixed, precision=2]{g-l16-db-min}$ and $\genNombre[fixed, precision=2]{g-l16-db-max}$\,dB at $l = 16$ (filled, dashed). (b) At 2 bits, the window length buys most of the gap ($l = 8$: $\genNombre[fixed, fixed zerofill, precision=4]{g-fen-8}$; $l = 16$: $\genNombre[fixed, fixed zerofill, precision=4]{g-fen-16}$, against the bound $\genNombre[fixed, precision=4]{g-shannon-2}$). At $l = 12$ the cheap mixer gives $\genNombre[fixed, precision=4]{g-var-court}$ against $\genNombre[fixed, fixed zerofill, precision=4]{g-fen-12}$ for the strong one, three Lloyd passes $\genNombre[fixed, precision=4]{g-var-lloyd3}$, $q = 6$ and $q = 10$ give $\genNombre[fixed, precision=4]{g-var-q6}$ and $\genNombre[fixed, precision=4]{g-var-q10}$ (not drawn: they sit on the point $l = 12$); the control T1, same setting on \genEntier{g-t1-rangees} rows, gives $\genNombre[fixed, precision=4]{g-t1}$ (ink ring). What the figure does not show: real weights (next figures), where the rotation must first make the rows Gaussian; nor the decoding cost.}
+  {Un brin de bits est lu par une fenêtre glissante de $l$ bits ; un mélangeur haché fait de chaque fenêtre un indice dans une table de $2^q$ valeurs (ici $q = \genEntier{g-q}$, quantiles de la gaussienne, sans passe de Lloyd) ; Viterbi choisit les bits. La source est gaussienne i.i.d., en rangées de \genEntier{g-longueur} valeurs : \genEntier{g-l12-rangees} rangées pour $l = 12$ ; pour $l = 16$, \genEntier{g-l16-rangees} rangées (\genEntier{g-l16-valeurs} valeurs), sauf la forme $(\genEntier{g-l16-exc0-kb}, \genEntier{g-l16-exc0-v})$, mesurée sur \genEntier{g-l16-exc0-rangees}. La référence est la fonction distorsion-débit de Shannon $D(R) = 2^{-2R}$, qu'aucun code de longueur finie n'atteint. (a) Les sept formes (bits $k_b$ avancés par pas, valeurs $v$ émises, écrites en haut du panneau du bas), de 1 à 4 bits ; l'écart reste entre $\genNombre[fixed, precision=2]{g-l12-db-min}$ et $\genNombre[fixed, precision=2]{g-l12-db-max}$\,dB pour $l = 12$ (creux, trait plein) et entre $\genNombre[fixed, precision=2]{g-l16-db-min}$ et $\genNombre[fixed, precision=2]{g-l16-db-max}$\,dB pour $l = 16$ (pleins, tirets). (b) À 2 bits, la longueur de fenêtre achète l'essentiel de l'écart ($l = 8$ : $\genNombre[fixed, fixed zerofill, precision=4]{g-fen-8}$ ; $l = 16$ : $\genNombre[fixed, fixed zerofill, precision=4]{g-fen-16}$, contre la borne $\genNombre[fixed, precision=4]{g-shannon-2}$). À $l = 12$, le mélangeur bon marché rend $\genNombre[fixed, precision=4]{g-var-court}$ contre $\genNombre[fixed, fixed zerofill, precision=4]{g-fen-12}$ pour le fort, trois passes de Lloyd $\genNombre[fixed, precision=4]{g-var-lloyd3}$, $q = 6$ et $q = 10$ rendent $\genNombre[fixed, precision=4]{g-var-q6}$ et $\genNombre[fixed, precision=4]{g-var-q10}$ (non tracés : ils tombent sur le point $l = 12$) ; le témoin T1, même réglage sur \genEntier{g-t1-rangees} rangées, rend $\genNombre[fixed, precision=4]{g-t1}$ (anneau à l'encre). Ce que la figure ne montre pas : les poids réels (figures suivantes), où la rotation doit d'abord rendre les rangées gaussiennes ; ni le coût du décodage.}
+\Source{GenGauss}{\fichier{mesures/genome/genome/gauss-balayage.jsonl}, \fichier{gauss-T1.json}\Pv{} \EF{script}{script} \fichier{memoire/outils/tome3_genome.py}.}
+
+% =====================================================================================================
+% III-3.6. Débit-distorsion par tenseur : le brin brut, le brin tourné, le point de la base.
+\newcommand{\GenPanneau}[2]{% #1 couche, #2 rôle
+\nextgroupplot[title={\EF{layer}{couche} #1 \textperiodcentered\ #2}]
+\addplot[CouleurBrin!45, line width=0.7pt, dash pattern=on 2.5pt off 1.5pt] table[x=bits, y expr=100*\thisrow{erreur}] {\GenDonnees/genome-courbes-brut-#1-#2.csv};
+\addplot[CouleurBrin, line width=1.0pt] table[x=bits, y expr=100*\thisrow{erreur}] {\GenDonnees/genome-courbes-tourne-#1-#2.csv};
+\draw[-{Stealth[length=1.8mm]}, Encre, line width=0.7pt, shorten <=3.5pt]
+  (axis cs:\genVal{v-#1-#2-bits},100*\genVal{v-#1-#2-err}) -- (axis cs:\genVal{v-#1-#2-tourne},100*\genVal{v-#1-#2-err});
+\addplot[only marks, t3 frontiere point] coordinates {(\genVal{v-#1-#2-bits},100*\genVal{v-#1-#2-err})};
+% La valeur au-dessus du milieu de la flèche, pas sur sa pointe (troisième passe, DN6 du juge de design).
+\node[t3 etiquette, anchor=south] at ($(axis cs:\genVal{v-#1-#2-tourne},100*\genVal{v-#1-#2-err})!0.5!(axis cs:\genVal{v-#1-#2-bits},100*\genVal{v-#1-#2-err})$) [yshift=1.5pt]
+  {$-\genNombre[fixed, fixed zerofill, precision=2]{v-#1-#2-gain}$};}
+\newcommand{\GrapheGenCourbes}{%
+\begin{tikzpicture}
+\begin{groupplot}[t3 graphe, group style={group size=3 by 4, horizontal sep=0.35cm, vertical sep=0.95cm,
+    xticklabels at=edge bottom, yticklabels at=edge left, xlabels at=edge bottom, ylabels at=edge left},
+  width=0.385\linewidth, height=4.3cm, xmin=1.98, xmax=3.05, ymode=log, ymin=1.4, ymax=15, minor tick length=0pt,
+  % le corps d'abord : t3 decimales laisse le chemin des clés dans /pgf/number format
+  xticklabel style={font=\scriptsize}, ytick={2,3,5,10}, yticklabels={2,3,5,10}, xtick={2.0,2.25,2.5,2.75},
+  t3 decimales x=2,
+  title style={font=\sffamily\footnotesize\bfseries, text depth=0.25ex, yshift=-2pt},
+  xlabel={\EF{bits per weight}{bits par poids}},
+  ylabel={\EF{relative error (\%)}{erreur relative (\%)}}, ylabel style={font=\footnotesize}]
+\GenPanneau{0}{gate}\GenPanneau{0}{up}\GenPanneau{0}{down}
+\GenPanneau{8}{gate}\GenPanneau{8}{up}\GenPanneau{8}{down}
+\GenPanneau{16}{gate}\GenPanneau{16}{up}\GenPanneau{16}{down}
+\GenPanneau{23}{gate}\GenPanneau{23}{up}\GenPanneau{23}{down}
+\end{groupplot}
+\node[t3 sans cesure, draw=black!25, fill=white, rounded corners=1pt, inner sep=3pt, font=\sffamily\scriptsize, anchor=south]
+  at ($(group c2r1.north)+(0,0.75cm)$) {%
+  \tikz[baseline=-0.6ex]\draw[CouleurBrin!45, line width=0.9pt, dash pattern=on 2.5pt off 1.5pt] (0,0) -- (0.5,0);~\EF{strand, raw}{brin brut}\quad
+  \tikz[baseline=-0.6ex]\draw[CouleurBrin, line width=1.2pt] (0,0) -- (0.5,0);~\EF{strand, rotated (Hadamard by 64)}{brin tourné (Hadamard par 64)}\quad
+  \tikz[baseline=-0.6ex]\node[diamond, fill=CouleurFrontiereMarque, inner sep=1.6pt] {};~\EF{frontier base}{base frontière}\quad
+  \tikz[baseline=-0.6ex]\draw[-{Stealth[length=1.6mm]}, Encre, line width=0.7pt] (0,0) -- (0.5,0);~\EF{bits saved at equal error}{bits gagnés à erreur égale}};
+\end{tikzpicture}}
+\Titre{GenCourbes}{Rate--distortion of the strand, tensor by tensor}{Débit-distorsion du brin, tenseur par tenseur}
+\Legende{GenCourbes}{\mes}
+  {The rotated strand beats the base in weight error, tensor by tensor.}
+  {Le brin tourné bat la base en erreur de poids, tenseur par tenseur.}
+  {Twelve expert tensors of gpt-oss-20b (layers 0, 8, 16, 23; gate, up, down), window $l = 12$, each measured on the sample of the W criterion: experts \genEntier{c-expert-0}, \genEntier{c-expert-1}, \genEntier{c-expert-2} and \genEntier{c-expert-3}, \genEntier{c-rangees} rows per tensor, not the whole tensor. Each curve sweeps the bit allocation between rows (Lagrangian, \genEntier{c-formes} shapes) and gives the relative quadratic weight error $\sum (w - \hat w)^2 / \sum w^2$, the same quantity as in the previous figure, against the full rate of the strand (strand, window, shape index, $\sigma$, tables, scales, alignment: everything counted). Dashed light brown: the strand on raw rows; solid brown: after the Hadamard rotation by blocks of 64, which makes the rows Gaussian. The grey diamond is the frontier base (real rANS rate, its error on the same sample); the arrow, the bits the rotated strand saves at the same error: $\genNombre[fixed, fixed zerofill, precision=2]{v-gain-min}$ to $\genNombre[fixed, fixed zerofill, precision=2]{v-gain-max}$ bit, $\genNombre[fixed, precision=3]{v-gain-moyen}$ on average over the \genEntier{v-tenseurs} tensors. In layer 8, down, the raw strand never reaches the base's error (\genEntier{v-brut-manquants} missing point). What the figure does not show: the output error of the experts and the KL, where this gain does not hold (weighting, exceptions and $S^{*}$: \cref{t3syn:ch}); the weight error is not a judge.}
+  {Douze tenseurs d'experts de gpt-oss-20b (couches 0, 8, 16, 23 ; gate, up, down), fenêtre $l = 12$, chacun mesuré sur l'échantillon du critère W : experts \genEntier{c-expert-0}, \genEntier{c-expert-1}, \genEntier{c-expert-2} et \genEntier{c-expert-3}, \genEntier{c-rangees} rangées par tenseur, et non le tenseur entier. Chaque courbe balaie la répartition des bits entre rangées (lagrangien, \genEntier{c-formes} formes) et donne l'erreur quadratique relative des poids $\sum (w - \hat w)^2 / \sum w^2$, la même grandeur qu'à la figure précédente, contre le débit complet du brin (brin, fenêtre, indice de forme, $\sigma$, tables, échelles, alignement : tout compté). En tirets brun clair, le brin sur les rangées brutes ; en brun plein, après la rotation de Hadamard par morceaux de 64, qui rend les rangées gaussiennes. Le losange gris est la base frontière (débit rANS réel, son erreur sur le même échantillon) ; la flèche, les bits que le brin tourné économise à erreur égale : $\genNombre[fixed, fixed zerofill, precision=2]{v-gain-min}$ à $\genNombre[fixed, fixed zerofill, precision=2]{v-gain-max}$ bit, $\genNombre[fixed, precision=3]{v-gain-moyen}$ en moyenne sur les \genEntier{v-tenseurs} tenseurs. À la couche 8, down, le brin brut n'atteint jamais l'erreur de la base (\genEntier{v-brut-manquants} point manquant). Ce que la figure ne montre pas : l'erreur de sortie des experts et la KL, où ce gain ne tient pas (pondération, exceptions et $S^{*}$ : \cref{t3syn:ch}) ; l'erreur de poids n'est pas un juge.}
+\Source{GenCourbes}{\fichier{mesures/genome/genome/csv/courbes-tourne-l12.csv}, \fichier{courbes-brut-l12.csv}, \fichier{verdict-par-tenseur.csv}, \fichier{mesures/genome/genome/codons-tourne-l12.json}\Pv{} \EF{script}{script} \fichier{memoire/outils/tome3_genome.py}.}
+\fi

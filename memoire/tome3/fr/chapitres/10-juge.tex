@@ -1,0 +1,435 @@
+% Tome~III, chapitre 10 : le juge de la construction (version française). Rédacteur D, 2026-10-29.
+% Chiffres : genome/JUGEMENT-construction.md (avec ses corrections du 2026-10-27), genome/construction-juge-pour-
+% le-memoire.md, genome/JUGEMENT-placement.md (R1), mesures/genome/construction/juge/ (seuils déclarés avant :
+% 00-seuils-declares.md, commit 1f5fe0f ; journaux J-T0, J-T1, fenetres-*, logits/, kl/, vitesse/ ; figures/),
+% et les nombres des figures (memoire/figures/tome3/donnees/juge-nombres.tex, écrit par un script commité).
+% Plan et réserves : memoire/tome3/PLAN-redaction.md § 10.
+
+\chapter{Le juge de la construction}\label{t3jug:ch}
+
+\begin{origine}
+\textbf{Au départ}, deux lots qui se disent finis, et des chiffres produits par leurs seuls auteurs, sur les fenêtres où leurs mécanismes ont été mis au point. Le lot A publie un format \texttt{.trc} v1.2 sans perte (le signe d'un zéro fondu, \SI{1.80}{\Go} de moins sur le 120b), des logits identiques au bit sur R1, et un J1 du 120b 1,45 fois plus rapide en v1.2, qu'il n'attribuait pas lui-même au format (\cref{t3cod:ch}) ; le juge du placement l'a depuis attribué au format v1.2, par le motif de ses requêtes de lecture, propre à ce disque (la réserve R1, \cref{t3cod:sec:motif} et \cref{t3jug:sec:r1}). Le lot B publie le génome synonyme sur les 768 experts du 20b, la règle B2 qui retient $\lambda = 0$ de justesse, un mode rapide dans le moteur et deux gains de vitesse, $\times 1{,}24$ et $\times 2{,}00$ (\cref{t3sno:ch}). Le SOCLE exige que le travail soit relu par un juge qui ne l'a pas fait.
+\textbf{Ce chapitre établit}, par les chemins propres d'un juge (un décodeur du format écrit depuis sa seule description, un lecteur GGUF à lui, une KL calculée par son code, dix fenêtres de texte que les lots n'ont jamais vues, une séance de vitesse à trois fichiers), ce qui tient, ce qui tombe, et ce qui est vrai mais mal attribué ; et il pose en entier les cinq dérivations sur lesquelles reposent ses verdicts.
+\textbf{Il reste} la décision de la politique mixte des défauts, un autre corpus, et la variable exacte du motif de lecture qui fait la vitesse de ce disque (\cref{t3jug:sec:reste}).
+Sources : \fichier{genome/JUGEMENT-construction.md}, \fichier{genome/construction-juge-pour-le-memoire.md}, \fichier{genome/JUGEMENT-placement.md}, \fichier{mesures/genome/construction/juge/} (seuils : \fichier{00-seuils-declares.md}) et \fichier{outils/genome/construction/juge/}.
+\end{origine}
+
+\begin{enbref}
+Un juge refait. Il ne relit pas les calculs des autres : il en fait d'autres, par des chemins qui ne partagent avec ceux des lots que ce qu'ils doivent partager, la description du format et les fichiers jugés. Celui de la construction n'a écrit ni la décision du format v1.2, ni le codeur, ni le compagnon rapide, ni le moteur. Il a déclaré ses seuils le 22 octobre 2026 vers 4 h, quand aucun de ses outils n'avait encore lu un octet d'un modèle. Son verdict tient en deux phrases. La construction livre ce qu'elle promettait \emph{en octets et en qualité} : le codon synonyme du zéro est sans perte et exact au bit sur deux modèles et sur un texte neuf ; le génome synonyme $\lambda = 0$ bat la frontière et $\lambda = 1$ sur ce texte neuf, plus nettement que sur le texte où il avait été choisi. Elle ne livre pas le gain de vitesse annoncé pour le mode rapide : les deux rapports publiés se redonnent, mais ils mesuraient surtout la manière dont ce disque lit l'ancien format. Ce chapitre montre comment le juge le sépare, et pourquoi on peut le croire.
+\end{enbref}
+
+\section{Ce que le juge a refait, et par quel chemin}\label{t3jug:sec:chemins}
+
+\paragraph{Ses outils.} Tout est sous \fichier{outils/genome/construction/juge/} ; le moteur, \texttt{juge} et \texttt{genome-capture} sont construits par lui depuis \texttt{main} (commit \texttt{f136e27}) dans sa propre cible. Son décodeur du format (\texttt{decodeur\_juge.py}, Python et numpy) lit l'en-tête, MÉTA, RÉSIDENTS, TABLES, RÉPERTOIRE et les parties de tronçon depuis la seule spécification (\fichier{decisions/ARCHITECTURE.md}, §§ 4.2 à 4.12 et 4.16), et le GGUF par son propre lecteur (v3 : paires, informations des tenseurs, alignement). Il n'a ouvert ni les crates du format, ni le codec, ni le décodeur de l'épreuve J1, ni les outils du lot A avant de l'écrire. Une seule erreur au premier lancement, dans son lecteur de MÉTA : \texttt{self.p += self.u64()} perd les 8 octets de la longueur, parce que Python lit \texttt{self.p} avant d'appeler \texttt{u64}. Corrigée et dite dans le commit \texttt{f136e27}, elle ne touchait que le contrôle de MÉTA, pas le décodage.
+
+\paragraph{Ses verdicts}, chiffre par chiffre (\cref{t3jug:tab:chemins}).
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[Ce que le juge a refait, et par quel chemin]{Ce que le juge de la construction a refait, par quel chemin, et son verdict \mes. Les attributions barrées le sont dans le jugement lui-même.}
+\label{t3jug:tab:chemins}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.28\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.24\linewidth}>{\raggedright\arraybackslash}p{0.13\linewidth}@{}}
+\toprule
+Chiffre publié & Chemin du juge & Résultat & Verdict \\
+\midrule
+tailles des \texttt{.trc} v1.2, gain \num{0.12791} et \num{0.12562} bit & son lecteur du format, fichiers entiers & redonnées à l'octet & tient \\
+C1 en valeur, $768 + \num{4608}$ experts & son décodeur, 96 experts tirés et 40 témoins v1.0 & 96/96, 40/40 ; trois cassures tombent & tient \\
+aucune table v1.2 avec une fente pour un 8 & son lecteur des tables & 0 sur 540 (540 sur 540 en v1.0) & tient \\
+logits au bit, 20b et 120b & dix fenêtres \emph{neuves}, son script, une cassure neuve & 0/\num{5120} et 0/\num{5120} ; cassure 512/512 & tient \\
+J1 : 2,89 contre 1,99 jetons/s, $r = 1{,}454$ & séance à trois fichiers & 2,889 contre 2,004, $r = 1{,}442$ & tient ; attribution corrigée (R1) \\
+KL de R1 ; B2 $-\num{0.0204} \pm \num{0.0097}$ & sa KL sur les fichiers du lot B & redonnées & tient \\
+B2 : $\lambda = 0$ meilleure (\num{2.09}\,$\sigma$) & fenêtres neuves, moteur & $-\num{0.0303} \pm \num{0.0084}$, \num{3.6}\,$\sigma$ & tient, renforcé \\
+$\lambda = 0$ meilleure que la frontière & fenêtres neuves, référence substituée & $-\num{0.1565} \pm \num{0.0334}$, \num{4.7}\,$\sigma$ & tient \\
+S3-K : moteur rapide = référence substituée & fenêtres neuves & \num{0.0037} ; \SI{97.8}{\percent} & tient \\
+« la queue baisse aussi », $\lambda = 0$ contre $\lambda = 1$ & fenêtres neuves & 99\textsuperscript{e} $-\SI{5}{\percent}$ ; 99,9\textsuperscript{e} $+\SI{6}{\percent}$ & barré (M2) \\
+« la queue baisse aussi », contre la frontière & fenêtres neuves, référence substituée & 99\textsuperscript{e} $-\SI{26}{\percent}$, 99,9\textsuperscript{e} $-\SI{18}{\percent}$ & tient \\
+20b $\times 1{,}24$, gain du mode rapide & séance à trois fichiers & $r(R/A) = \num{1.220}$ ; $r(R/B) = \num{0.942}$ & barré (G2) \\
+120b $\times 2{,}00$, gain du mode rapide & séance à trois fichiers & $r(R/A) = \num{1.851}$ ; $r(R/B) = \num{1.284}$ & barré (G1) \\
+cause du $\times 1{,}24$ : le cache de fichiers & lecture de \texttt{trc-es}, étage disque & lectures sans tampon ; disque R/A \num{1.39} & barré (G2) \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{genome/JUGEMENT-construction.md}, §§ 1 et 8.}
+\end{table}
+
+\section{Le \texttt{.trc} v1.2 par le décodeur du juge}\label{t3jug:sec:jt}
+
+\subsection{Le décodage rANS vectorisé est le décodage normatif}\label{t3jug:sec:vectorise}
+
+Un flux rANS du format est découpé en tuiles indépendantes de 32 voies \parencite{duda2013ans,giesen2014interleaved}. Le décodage normatif (spécification § 4.9.2) parcourt les macro-pas $m$ d'une tuile, puis ses sous-pas $k$, puis ses voies $l = 0, \dots, 31$ \emph{dans l'ordre}. En Python, une matrice de codes de $\num{2880} \times \num{2880}$ poids demanderait \num{4147200} pas séquentiels ; le juge les fait en \num{1024} itérations (256 macro-pas $\times$ 4 sous-pas), sur un tableau de $T \times 32$ états à la fois. Il faut alors prouver que cette forme est le décodage normatif.
+
+\paragraph{La notation.} Une tuile a 32 voies d'états $x_l \in [L, 2^{32})$ et un pointeur $p$ dans le tableau partagé \texttt{mots}. Un pas de la voie $l$ calcule, avec la table $c$ du contexte de son mot : $\text{fente} = x_l \bmod M$ ; $s = \mathrm{sym}_c(\text{fente})$ ; $y_l = f_c(s)\,\lfloor x_l / M\rfloor + \text{fente} - \mathrm{cum}_c(s)$ ; si $y_l < L$, $x_l \leftarrow 2^{16} y_l + \texttt{mots}[p]$ et $p \leftarrow p + 1$, sinon $x_l \leftarrow y_l$. Le format fixe $M = 2^{12}$ et $L = 2^{16}$ (Tome~II, chapitre du format).
+
+\begin{lemme}[J1 : les voies sont indépendantes à un sous-pas]\label{t3jug:lem:j1}
+Au sous-pas $(m, k)$, $y_l$ ne dépend que de $x_l$ et de la table du contexte du mot $32m + l$.
+\end{lemme}
+\begin{proof}
+Les seules entrées du calcul de $y_l$ sont $x_l$, la fente (fonction de $x_l$) et la table ; aucune autre voie n'y entre, et le pointeur $p$ n'intervient qu'après, dans la renormalisation.
+\end{proof}
+
+\begin{proposition}[J2 : l'attribution des mots est une somme préfixe]\label{t3jug:prop:j2}
+Soit $r_l = [y_l < L]$ et $R_l = \sum_{l' \le l} r_{l'}$. Le traitement séquentiel $l = 0, \dots, 31$ donne à toute voie $l$ telle que $r_l = 1$ le mot $\texttt{mots}[p_0 + R_l - 1]$, où $p_0$ est le pointeur au début du sous-pas, et laisse le pointeur à $p_0 + R_{31}$.
+\end{proposition}
+\begin{proof}
+Par récurrence sur $l$. Avant la voie $l$, le pointeur vaut $p_0 + R_{l-1}$ (avec $R_{-1} = 0$) : chacune des voies précédentes qui a renouvelé l'a avancé d'une unité. Si $r_l = 1$, la voie lit $\texttt{mots}[p_0 + R_{l-1}] = \texttt{mots}[p_0 + R_l - 1]$ et porte le pointeur à $p_0 + R_l$ ; sinon il reste à $p_0 + R_{l-1} = p_0 + R_l$. Au terme, il vaut $p_0 + R_{31}$.
+\end{proof}
+
+\begin{remarque}[Un seul mot par voie et par sous-pas]
+La proposition suppose qu'une voie qui renouvelle ne lit qu'un mot. C'est vrai : avant le pas, $x_l \ge L = 2^{16}$, donc $y_l \ge \lfloor x_l / 2^{12}\rfloor \ge 2^{4}$ puisque $f_c(s) \ge 1$ et $\text{fente} - \mathrm{cum}_c(s) \ge 0$ ; si $y_l < L$, le nouvel état $2^{16} y_l + w \ge 2^{20} \ge L$. Le Tome~II pose le même argument dans le lemme du décodeur vectorisé de l'épreuve J1.
+\end{remarque}
+
+Par le lemme J1, tous les $y_l$ d'un sous-pas se calculent avant toute écriture ; par la proposition J2, les nouveaux états aussi, par la somme préfixe \texttt{cumsum(renouvelle)} sur l'axe des voies. Les tuiles étant indépendantes (chacune part de son début et de ses 32 états), le décodeur traite les $T \times 32$ voies de toutes les tuiles d'un flux à chaque sous-pas. La fin de tuile (toute voie revenue sur $L$) se contrôle à la fin. Une matrice de codes se décode ainsi en \SI{0.5}{\second} environ, un expert entier en \SIrange{1.8}{2.1}{\second}, contrôles compris \mes.
+
+\subsection{J-T0 : les quatre fichiers entiers}\label{t3jug:sec:jt0}
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[J-T0 : les quatre fichiers, par le lecteur du juge]{J-T0 : les quatre fichiers \texttt{.trc}, lus en entier par le lecteur du juge \mes. Fautes de structure : en-tête, empreintes de l'en-tête, de MÉTA, de la table des RÉSIDENTS, de TABLES et du RÉPERTOIRE, entrées, taille déclarée égale à la taille sur le disque.}
+\label{t3jug:tab:jt0}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+& 20b v1.0 & 20b v1.2 & 120b v1.0 & 120b v1.2 \\
+\midrule
+fautes de structure & 0 & 0 & 0 & 0 \\
+fichier (octets) & \num{11157405696} & \textbf{\num{10851844096}} & \num{57730662400} & \textbf{\num{55930175488}} \\
+parties de tronçon, alignées & \num{9226493952} & \textbf{\num{8920932352}} & \num{55416086528} & \textbf{\num{53615599616}} \\
+octets utiles des tronçons & \num{9224936032} & \num{8919387648} & \num{55406705152} & \num{53606030768} \\
+plus grand tronçon & \num{12144640} & \num{11755520} & \num{12251136} & \num{11878400} \\
+tables CODES\_CTX avec une fente pour un 8 & 216 sur 216 & \textbf{0 sur 216} & 324 sur 324 & \textbf{0 sur 324} \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/genome/construction/juge/J-T0-fichiers.json}.}
+\end{table}
+
+Le gain sur les parties alignées vaut \num{0.12791} bit par poids d'expert sur le 20b et \num{0.12562} sur le 120b ; le seuil A-C2 du lot A ($\ge \num{0.12}$, repris tel quel) tient sur les deux \mes. Le calcul, pour le 20b : $8 \times (\num{9226493952} - \num{8920932352}) = 8 \times \num{305561600}$ bits, divisés par les $24 \times 32 \times 3 \times \num{2880}^2 = \num{19110297600}$ poids d'experts, font \num{0.12791} \calc. Les huit tailles du lot A sont redonnées à l'octet, et ses 540 tables aussi (540 sur 540 en v1.0, 0 en v1.2). L'empreinte de la table des RÉSIDENTS se trouve à la fin exacte de la zone de données, sans bourrage : la description (« après la zone de données ») se lit ainsi, et le fichier y obéit.
+
+\subsection{J-T1 : 96 experts tirés, décodés par le juge}\label{t3jug:sec:jt1}
+
+Le tirage est écrit et commité avant tout décodage (\fichier{tirage-experts.json}, commit \texttt{93a88a5}) : 32 experts du 20b puis 64 du 120b, sans remise, \texttt{Generator(PCG64(20261022))}. Pour chacun, dans le v1.2, huit contrôles : (a) chaque voie de chaque tuile finit sur $L$ ; (b) les blocs reconstruits $[e, qs]$ égaux octet pour octet aux blocs du GGUF canonisés par le code du juge (demi-octet 8 $\to$ 0) ; (c) les biais égaux au bit ; (d) chaque poids égal \emph{en valeur} au poids du GGUF non canonisé ; (e) l'empreinte de l'expert canonique reconstruit égale à \texttt{empreinte\_canonique} ; (f) l'empreinte des blocs du GGUF tels quels égale à \texttt{empreinte\_origine} ; (g) l'empreinte de la partie égale à celle du répertoire ; (h) aucun demi-octet 8.
+
+\begin{itemize}
+\item \textbf{96 experts sur 96 tiennent les huit contrôles} \mes.
+\item \textbf{Le témoin} (réponse connue d'avance) : les 32 experts du 20b et les 8 premiers tirés du 120b, décodés dans le \emph{v1.0}, rendent le GGUF tel quel (40 sur 40) ; et pour chacun, les demi-octets qui changent entre le décodé v1.0 et le décodé v1.2 sont exactement les $-0$ du GGUF (L19 E109 du 120b : \num{1746601} changés, \num{1746601} $-0$) \mes.
+\item \textbf{Les cassures}, toutes tombent : un mot du flux CODES\_CTX changé (voies hors de $L$, octets, valeurs et empreinte canonique faux) ; la canonisation retirée du lecteur du GGUF (octets et empreinte canonique du côté GGUF faux ; l'empreinte du décodé, qui ne lit pas le GGUF, tient : le juge l'avait annoncée tombante, il le dit) ; un bit du premier biais de la matrice 2 (biais, empreinte de la partie et empreinte canonique faux) \mes.
+\item La part des $-0$ dans l'échantillon, $\num{6.42} \pm \SI{0.11}{\percent}$ (20b) et $\num{6.33} \pm \SI{0.10}{\percent}$ (120b), contre \SI{6.393}{\percent} et \SI{6.279}{\percent} sur les fichiers : à \num{0.3} et \num{0.5} écart-type.
+\end{itemize}
+La figure de ces décodages (\cref{fig:t3-jcons-codon}) est au chapitre du codon, avec qui elle forme le verdict du lot A.
+
+\subsection{Ce que le témoin v1.0 \texorpdfstring{$\to$}{->} v1.2 prouve}\label{t3jug:sec:temoin}
+
+Soit $D_0(x)$ et $D_2(x)$ les demi-octets décodés de l'expert $x$ dans le v1.0 et le v1.2, $G(x)$ ceux du GGUF, et $\kappa(g) = g$ si $g \ne 8$, $0$ sinon (le code 8 est le $-0$ d'E2M1). Le témoin mesure $D_0(x) = G(x)$, et le contrôle (b) mesure $D_2(x) = \kappa(G(x))$. Alors
+\[
+\{ i : D_0(x)_i \ne D_2(x)_i \} = \{ i : G(x)_i \ne \kappa(G(x)_i) \} = \{ i : G(x)_i = 8 \} :
+\]
+l'ensemble des demi-octets changés est \emph{exactement} celui des $-0$, ce que le journal vérifie expert par expert. C'est la forme mesurée de la phrase « la v1.2 ne change que le signe des zéros », et, avec (d), de « la v1.2 est sans perte en valeur ».
+
+\paragraph{Verdict J-T : tient.} Le \texttt{.trc} v1.2 est exactement ce que le format décrit, et chaque expert tiré est l'expert du GGUF au bit près, au signe des zéros près.
+
+\section{Les fenêtres neuves, et les experts qu'elles appellent}\label{t3jug:sec:fenetres}
+
+\paragraph{Le tirage.} Les lots évaluaient sur R1, les dix premières fenêtres de 512 jetons de wiki.test (jetons 0 à \num{5119}) \parencite{merity2016wikitext}, et calibraient le génome synonyme sur les fenêtres 10 à 21 (jetons \num{5120} à \num{11263}). Le juge écarte les \num{120000} premiers octets de \texttt{wiki.test.raw} (SHA-256 \texttt{173c87a5}…\texttt{dd08}), qui comptent \num{27680} jetons : ils couvrent R1, la calibration, et deux fois autant de marge \mes. Il tire au-delà dix débuts de ligne de paragraphe (graine $\num{20261022} + 1$), à plus de \num{12000} octets les uns des autres : aux octets \num{767283}, \num{511976}, \num{615155}, \num{854814}, \num{1148495}, \num{1228294}, \num{1098980}, \num{1240966}, \num{421030} et \num{358205}. Chaque extrait (\numrange{9.0}{10.4} Ko) passe par \texttt{llama-perplexity} (processeur seul, options de la base, une fenêtre), et les dix fichiers sont fondus en un seul \texttt{base-juge-20b.kld}. Sa taille se vérifie au calcul : $20 + 4 \times \num{5120} + \num{2550} \times \num{402184} = \num{1025589700}$ octets, la taille de R1 ; chaque fenêtre est égale à sa source octet pour octet, et une fenêtre décalée ne l'égale pas (cassure) \mes\,\calc. Le format de \texttt{llama-perplexity} se fond par simple concaténation des jetons puis des entrées : tous les outils du projet lisent le fichier fondu sans changement.
+
+\paragraph{La référence.} La référence f64 de ces fenêtres (\texttt{juge reference --yarn openai}, l'appel de R1) a pris \SI{2168}{\second} et routé \num{755} experts distincts (R1 : 734). KL(llama.cpp processeur $\Vert$ référence f64) y vaut \num{0.0339} (R1 : \num{0.0255}) : des fenêtres un peu plus difficiles, rien d'anormal \mes.
+
+\paragraph{Les experts vus.} \Cref{fig:t3-jcons-experts} dresse la carte : chaque case de la grille $24 \times 32$ du 20b, colorée selon les fenêtres qui lui ont routé des jetons sous la référence exacte. 732 experts sont routés par les deux jeux, 2 par R1 seul, 23 par les fenêtres neuves seules (\num{465} appels sur \num{490560}), et 11 par aucun ; $732 + 2 + 23 + 11 = 768$ \mes\,\calc. Le lot B en comptait de 36 à 39 non routés sur R1 sous substitution ; les fenêtres neuves en jugent une partie (la passe f64 substituée $\lambda = 0$ y charge 756 experts).
+
+\begin{figure}[tbp]
+\centering
+\GrapheJconsExperts
+\LegendeFigure{JconsExperts}
+\label{fig:t3-jcons-experts}
+\end{figure}
+
+\paragraph{Ce que la carte dit, et ce qu'elle ne dit pas.} Les 11 cases barrées ne sont pas des experts « non vérifiés » : leur décodage l'est en valeur, comme celui des 757 autres (critère C1 du lot A, 768 experts sur 768, \cref{t3cod:ch}). Il leur manque une KL, pas une mesure : aucune mesure de KL de la construction ne les a appelés, sous le routage de la référence. Un changement confiné à ces 11 experts ne bougerait aucune KL des \crefrange{t3cod:ch}{t3jug:ch} mesurée avec ce routage ; mais une variante dont le routage bascule pourrait les appeler. La première légende de la figure disait plus que cela ; le second juge des figures l'a fait réécrire.
+
+\section{J-C1 : les logits au bit sur les fenêtres neuves}\label{t3jug:sec:jc1}
+
+\texttt{troncons evaluer --flux --empreintes}, dix fenêtres neuves, moteur construit par le juge ; comparaison par son script, pas par celui du lot A. Seuil repris du lot A (proposition A1, critère A-C1) : 0 empreinte de logits différente sur \num{5120} pas par modèle, et les \texttt{.kld} de sortie égaux octet pour octet (SHA-256).
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[J-C1 : les logits au bit sur les fenêtres neuves]{J-C1 : le v1.2 contre le v1.0, logits sur dix fenêtres neuves \mes.}
+\label{t3jug:tab:jc1}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.27\linewidth}>{\raggedright\arraybackslash}p{0.22\linewidth}@{}}
+\toprule
+& 20b & 120b \\
+\midrule
+v1.2 contre v1.0 : empreintes de logits différentes & \textbf{0 sur \num{5120}} & \textbf{0 sur \num{5120}} \\
+\texttt{.kld} de sortie & égaux (\texttt{1aff1a6a}…\texttt{29ef}) & égaux (\texttt{709367e7}…\texttt{8a73}) \\
+témoin : le v1.2 évalué deux fois & CSV identiques (\texttt{fc427e9f}…\texttt{469b}) & --- \\
+cassure : le signe du biais de la rangée 0 de gate retourné pour les 32 experts de la couche 0, \texttt{--sans-garde}, fenêtre 0 & \textbf{512 sur 512 différentes}, dès la position 0 ; 73 premiers choix changés & --- \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{mesures/genome/construction/juge/logits/comparer-*.json}, \fichier{logits/evaluer-*.\{csv,json,log\}}.}
+\end{table}
+
+\paragraph{Verdict J-C1 : tient}, sur deux modèles et sur un texte que personne n'avait vu. La proposition A1 du lot A (\cref{t3cod:ch}) est vraie du moteur réel. La cassure a été choisie pour toucher chaque position (chaque position route quatre experts de la couche 0 parmi 32, et tous ont leur biais retourné) ; la copie cassée est effacée après.
+
+\section{J-K : la KL du génome synonyme hors de R1}\label{t3jug:sec:kl}
+
+\subsection{La KL du juge, et son témoin}\label{t3jug:sec:kljuge}
+
+Par position notée, le juge calcule
+\[
+\mathrm{KL}(P \Vert Q) = \sum_{i \,:\, \log p_i > -16} p_i\,(\log p_i - \log q_i),
+\]
+$P$ et $Q$ décodés de leur codage sur 16 bits, sans renormalisation : c'est la convention du lot R (Tome~II, la référence et le juge), où un fichier contre lui-même rend 0 \parencite{kullback1951}. \textbf{Témoin} : sur une paire publiée par le lot B (R1, $\lambda = 0$), sa KL vaut \num{0.131752831} contre \num{0.131752832} pour \texttt{juge kl} ($1{,}1 \cdot 10^{-8}$ relatif, seuil $10^{-6}$) ; \textbf{cassure} : $Q$ décalé d'une position, \num{1.634} \mes. R1 recalculé par son code depuis les fichiers du lot B : frontière \num{0.26399}, $\lambda = 1$ \num{0.15216}, $\lambda = 0$ \num{0.13175} ; appariées $-\num{0.11183} \pm \num{0.02962}$, $-\num{0.02040} \pm \num{0.00974}$ ($\bar d + 2\sigma = -\num{0.00092}$), $-\num{0.13224} \pm \num{0.02343}$ : les chiffres du lot B sont redonnés à quatre chiffres et plus \mes.
+
+Sur les fenêtres neuves, deux chemins : le \emph{moteur} (\texttt{troncons evaluer --flux --rapide} sur les compagnons, le produit tel qu'il est servi) et la \emph{référence f64 substituée} (\texttt{genome-capture kl --sub}, le chemin des lots). La vérité est la référence f64 des fenêtres neuves.
+
+\subsection{Les nombres}\label{t3jug:sec:klnombres}
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[J-K : la KL sur les fenêtres neuves]{J-K : la KL contre la référence f64 sur dix fenêtres neuves (\num{2550} positions), les 768 experts substitués \mes. Perplexité de la référence : \num{392.5}.}
+\label{t3jug:tab:jk}
+\begin{tabular}{@{}lccccccc@{}}
+\toprule
+Fenêtres neuves & KL & $\sigma$ naïf & $\sigma$ fenêtres & médiane & 99,9\textsuperscript{e} c. & premier choix & perplexité \\
+\midrule
+moteur exact, v1.2 & \num{0.00437} & \num{0.0008} & \num{0.0021} & \num{0.00003} & \num{0.557} & \SI{98.0}{\percent} & \num{394.0} \\
+$\lambda = 0$, moteur rapide & \textbf{\num{0.1448}} & \num{0.0060} & \num{0.0164} & \num{0.0608} & \num{3.61} & \textbf{\SI{71.7}{\percent}} & \num{402.1} \\
+$\lambda = 0$, f64 substituée & \num{0.1446} & \num{0.0059} & \num{0.0165} & \num{0.0617} & \num{3.51} & \SI{71.3}{\percent} & \num{399.5} \\
+$\lambda = 1$, moteur rapide & \num{0.1751} & \num{0.0062} & \num{0.0186} & \num{0.0755} & \num{3.40} & \SI{67.6}{\percent} & \num{453.7} \\
+frontière, f64 substituée & \num{0.3011} & \num{0.0074} & \num{0.0415} & \num{0.1917} & \num{4.30} & \SI{51.5}{\percent} & \num{239.8} \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/genome/construction/juge/kl/kl-neuf-*.json} ; $\lambda = 1$ par la référence substituée : non passé (\cref{t3jug:sec:faux}).}
+\end{table}
+
+\paragraph{Les verdicts déclarés.}
+\begin{itemize}
+\item \textbf{J-K2, B2 refait hors de R1} (la règle du lot B, reprise telle quelle) : par le moteur, $\bar d = \mathrm{KL}_{\lambda=0} - \mathrm{KL}_{\lambda=1} = -\num{0.0303}$, $\sigma$ par fenêtres \num{0.0084}, $\bar d + 2\sigma = -\num{0.0136} < 0$ (\num{3.62}\,$\sigma$, contre \num{2.09} sur R1) ; neuf fenêtres sur dix (la fenêtre 0 contre, $+\num{0.016}$) ; $\lambda = 0$ a moins de KL sur \num{1858} positions sur \num{2550} ; premier choix $+\num{4.1} \pm \num{1.1}$ points. La prédiction du juge (« égales ») est démentie.
+\item \textbf{J-K1, $\lambda = 0$ contre la frontière}, par la référence substituée : $-\num{0.1565} \pm \num{0.0334}$ (\num{4.7}\,$\sigma$), les dix fenêtres, \num{2297} positions sur \num{2550}, premier choix $+\num{19.8} \pm \num{3.2}$ points ; rapport $\lambda = 0$ sur frontière \num{0.480} (R1 : \num{0.499}). Tient, comme prédit.
+\item \textbf{J-K3, le moteur rapide contre la f64 substituée} (seuils S3-K du lot B) : \num{0.0037} $\le$ \num{0.011} et \SI{97.8}{\percent} $\ge$ \SI{95}{\percent}, tient ; les deux chemins rendent la même KL contre la vérité, \num{0.1448} et \num{0.1446}, différence appariée $+\num{0.0002} \pm \num{0.0006}$.
+\item \textbf{J-K4, le mode exact} : KL \num{0.00437}, premier choix \SI{98.0}{\percent} (R1 : \num{0.00368} et \SI{97.2}{\percent}) ; llama.cpp sur le processeur y fait \num{0.0339}. La forme de C4 tient contre llama.cpp processeur ; contre llama.cpp sur la carte, le comparant exact de C4, non mesuré ici.
+\end{itemize}
+
+\paragraph{Un seul chemin pour $\lambda = 1$.} La référence substituée $\lambda = 1$ n'a pas été passée sur les fenêtres neuves (le temps : de 47 à \SI{52}{\minute} par passe sous la charge de la machine, et le flux du placement disque attendait le calme pour sa séance). B2 y est donc jugé par le moteur seul. Le juge le justifie par deux accords mesurés : les deux chemins rendent la même KL pour $\lambda = 0$ à \num{0.0002} près sur ces fenêtres, et pour $\lambda = 1$ sur R1 (\num{0.1522} par les deux, lot B). Mélanger les chemins dans une différence appariée ($\lambda = 1$ moteur contre frontière f64 : $-\num{0.1260} \pm \num{0.0366}$) n'est publié qu'à titre indicatif ; c'est le panneau aux losanges creux de \cref{fig:t3-syno-foret}.
+
+\paragraph{Ce que les fenêtres neuves disent de plus.} \emph{Le niveau} : $\lambda = 0$ fait \num{0.1448} sur les fenêtres neuves et \num{0.1318} sur R1 ; le moteur exact \num{0.0044} et \num{0.0037} ; la référence llama.cpp \num{0.0339} et \num{0.0255}. Ces fenêtres sont plus difficiles pour tout le monde, de 10 à \SI{33}{\percent} ; le génome synonyme ne s'y dégrade pas plus que le reste \calc. \emph{La queue} et \emph{la perplexité} : deux phrases du lot B tombent, barrées au \cref{t3sno:ch} (constats M2 et M3). \emph{Les experts} : les fenêtres neuves font jouer 23 experts que R1 n'avait jamais routés ; leur part des appels est petite (\SI{0.1}{\percent}), et la KL de $\lambda = 0$ les inclut.
+
+\subsection{L'incertitude d'une KL moyenne : par positions ou par fenêtres}\label{t3jug:sec:sigma}
+
+Les 255 positions notées d'une fenêtre partagent leur passé, donc leurs bascules de routage : elles ne sont pas indépendantes. Deux écarts-types de la moyenne s'opposent :
+\[
+\sigma_f = \frac{s(\bar K_1, \dots, \bar K_{10})}{\sqrt{10}},
+\qquad
+\sigma_n = \frac{s(K_1, \dots, K_{\num{2550}})}{\sqrt{\num{2550}}},
+\]
+le premier sur les dix moyennes de fenêtre, le second sur les positions comme si elles étaient indépendantes. Leur rapport définit l'\emph{effet de plan} et le nombre de positions efficaces :
+\[
+\mathrm{deff} = \left(\frac{\sigma_f}{\sigma_n}\right)^2,\qquad n_{\text{eff}} = \frac{n}{\mathrm{deff}} .
+\]
+
+\begin{proposition}[L'effet de plan d'un échantillon en grappes]\label{t3jug:prop:deff}
+Soit $n$ grappes (les fenêtres) de $m$ positions, chaque position de variance $s^2$, deux positions d'une même grappe de corrélation $\rho$, et deux positions de grappes différentes indépendantes. Alors la variance de la moyenne générale vaut $\dfrac{s^2}{nm}\,\bigl(1 + (m - 1)\rho\bigr)$, et $\mathrm{deff} = 1 + (m - 1)\rho$.
+\end{proposition}
+\begin{proof}
+La moyenne d'une grappe, $\bar K_g = \frac1m \sum_{i} K_{gi}$, a pour variance $\frac{1}{m^2}\bigl(m s^2 + m(m-1)\rho s^2\bigr) = \frac{s^2}{m}\bigl(1 + (m-1)\rho\bigr)$ : $m$ variances et $m(m-1)$ covariances. Les grappes étant indépendantes, la moyenne des $n$ moyennes a $n$ fois moins de variance. La variance naïve, qui ignore les covariances, vaut $s^2/(nm)$ ; le quotient est $1 + (m-1)\rho$.
+\end{proof}
+
+\paragraph{Sur R1, frontière.} $\sigma_f = \num{0.0376}$, $\sigma_n = \num{0.0066}$ : $\mathrm{deff} \approx 32$ et $n_{\text{eff}} \approx 79$ \calc. Une fenêtre de 255 positions vaut donc environ huit positions indépendantes ($255/32$), et par la proposition, la corrélation moyenne de deux positions d'une même fenêtre est $\rho \approx (32 - 1)/254 \approx \num{0.12}$ \calc. \Cref{fig:t3-jcons-fenetres} montre d'où elle vient : certaines fenêtres sont plus difficiles que d'autres pour toutes les variantes à la fois (la frontière va de \num{0.136} à \num{0.459} d'une fenêtre de R1 à l'autre), et le mode exact reste loin au-dessous de toutes (de \num{0.0002} à \num{0.0219}).
+
+\begin{figure}[tbp]
+\centering
+\GrapheJconsFenetres
+\LegendeFigure{JconsFenetres}
+\label{fig:t3-jcons-fenetres}
+\end{figure}
+
+\paragraph{Pour une différence appariée}, l'effet de plan est bien plus petit, parce que l'appariement retire la difficulté propre à chaque fenêtre, commune aux deux variantes : pour $\lambda = 0$ contre $\lambda = 1$ sur R1, $\sigma_f = \num{0.00974}$ et $\sigma_n = \num{0.00385}$, $\mathrm{deff} \approx \num{6.4}$ \calc\ (\fichier{mesures/genome/construction/synonyme/kl/B2-synonyme-l1-contre-l0-768.json}). C'est pourquoi les lots ont raison de juger par des différences appariées, et pourquoi une KL absolue publiée avec $\sigma_n$ paraît de trois à six fois plus précise qu'elle n'est (constat M1). La recette du juge : publier une KL absolue avec son $\sigma$ par fenêtres.
+
+\subsection{Refaire un résultat à deux écarts-types}\label{t3jug:sec:refaire}
+
+Pourquoi le juge prédisait-il « égales » ? Soit une différence appariée mesurée à $z = \bar d/\sigma$ écarts-types, et supposons que la vraie différence vaille exactement $\bar d$, et que la seconde série de dix fenêtres ait le même $\sigma$. L'estimateur neuf suit à peu près $\mathcal{N}(\bar d, \sigma^2)$ ; avec $\bar d = -z\sigma$, la probabilité qu'il passe à nouveau le seuil $\bar d' + 2\sigma < 0$ vaut
+\[
+P\bigl(\bar d' < -2\sigma\bigr) = \Phi\!\left(\frac{-2\sigma + z\sigma}{\sigma}\right) = \Phi(z - 2).
+\]
+Pour $z = \num{2.09}$, $\Phi(\num{0.09}) \approx \num{0.54}$ \calc : à peine plus d'une chance sur deux. Et si la vraie différence est plus petite que $\bar d$, ce qui est probable pour un résultat retenu \emph{parce qu'il} passait le seuil, la probabilité baisse. La prédiction suivait ce calcul ; la mesure l'a démentie, $z = \num{3.62}$ sur les fenêtres neuves. Le juge n'a pas changé sa prédiction après coup : elle était déclarée, et la mesure a décidé.
+
+\section{J-V : la vitesse, et ce qu'elle sépare}\label{t3jug:sec:vitesse}
+
+\subsection{Le piège}\label{t3jug:sec:piege}
+
+Les deux lots ont chacun comparé un fichier neuf à un fichier ancien : le lot A le v1.2, écrit le 17 octobre, au v1.0 d'origine, écrit le 15 ; le lot B ses compagnons, écrits le 17 et le 22, au même v1.0 d'origine. Le lot A a vu le piège et l'a dit : deux v1.0 identiques au bit se lisaient à \num{1.74} et \SI{1.34}{\Go\per\second}. Le lot B ne l'a pas vu. Si deux fichiers du même modèle se lisent à des vitesses différentes pour une raison qui n'est pas leur mécanisme, un rapport de vitesses entre eux ne mesure pas le mécanisme.
+
+\subsection{La séance à trois fichiers}\label{t3jug:sec:plan}
+
+Le juge met les trois fichiers de chaque modèle dans une seule séance : A le v1.0 d'origine, B le v1.2 (même écrivain que les compagnons, écrit comme eux après le 15), R le compagnon rapide, dans l'ordre
+\[
+\text{A B R R B A A B R R B A} .
+\]
+
+\begin{proposition}[Le plan équilibre une dérive linéaire]\label{t3jug:prop:plan}
+Si la vitesse d'une passe de rang $i$ du fichier X vaut $v_X\,(1 + a + b\,i)$, le rapport des moyennes des quatre passes de deux fichiers vaut $v_X / v_Y$, sans terme de dérive. Une dérive quadratique, elle, n'est pas équilibrée.
+\end{proposition}
+\begin{proof}
+Les rangs sont A $\{1, 6, 7, 12\}$, B $\{2, 5, 8, 11\}$, R $\{3, 4, 9, 10\}$ ; leurs sommes valent toutes 26, leurs moyennes $\bar\imath = \num{6.5}$. La moyenne des quatre passes de X vaut $v_X\,(1 + a + b\,\bar\imath) = v_X\,(1 + a + 6{,}5\,b)$, le même facteur pour les trois fichiers, qui disparaît du rapport. Les sommes des carrés des rangs valent $1 + 36 + 49 + 144 = 230$, $4 + 25 + 64 + 121 = 214$ et $9 + 16 + 81 + 100 = 206$ : un terme en $c\,i^2$ laisserait un biais.
+\end{proof}
+La règle lit des \emph{médianes} de quatre passes, c'est-à-dire la moyenne des deux du milieu. Sous une dérive monotone qui domine le bruit, les passes du milieu sont celles des rangs 6 et 7 pour A, 5 et 8 pour B, 4 et 9 pour R, dont la moyenne vaut encore \num{6.5} : la médiane est équilibrée dans ce cas aussi \calc.
+
+\paragraph{La décomposition.} Avec trois fichiers d'une même séance,
+\[
+r(R/A) = r(R/B) \cdot r(B/A) .
+\]
+$r(B/A)$ mesure ce que le lot A a mesuré, $r(R/A)$ ce que le lot B a mesuré, et $r(R/B)$ ce que vaut le mode rapide contre un fichier exact que l'étage disque lit à la même vitesse. Le toit qu'un format plus petit peut rendre, disque limitant, est le rapport des octets lus par pas ($o_A / o_B = 1/\num{0.9671} = \num{1.034}$ pour la v1.2) ; tout $r(B/A)$ au-delà vient d'ailleurs que des octets. L'étage disque seul (\texttt{troncons disque --n 1500}, l'instrument du lot A) passe d'abord, A B R R B A, et dit lequel des facteurs n'est pas le mécanisme.
+
+\paragraph{Le seuil.} Avec $\sigma = \max(\sigma_A, \sigma_B, \sigma_R)$, écarts-types relatifs des quatre passes, un gain publié $g$ est un gain du mode rapide si $r(R/B) \ge g\,(1 - 2\sigma)$ ; $(1 - 2\sigma)$ est la borne basse d'un rapport de médianes à deux écarts-types de son bruit. Les conditions : secteur à chaque passe ; relevé des autres flux avant et après chaque passe (plus de \SI{5}{\percent} d'un cœur ou plus de \SI{8}{\Mo} lus en \SI{3}{\second} : « sous charge », la passe ne conclut pas) ; départ sur deux relevés vides à une minute d'écart ; verrou tenu. \textbf{Aucune des 36 passes n'a été sous charge} \mes.
+
+\subsection{Le 120b}\label{t3jug:sec:v120}
+
+Réglages du J1 pour les trois fichiers : \texttt{mesurer --flux --emplacements 326}, invite wiki-3000, 256 jetons.
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[J-V : la séance à trois fichiers du 120b]{J-V, le 120b : la séance à trois fichiers \mes.}
+\label{t3jug:tab:v120}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+& A, v1.0 d'origine & B, v1.2 & R, rapide frontière \\
+\midrule
+génération, jetons/s & \num{1.995} · \num{1.785} · \num{2.013} · \num{2.019} & \num{2.892} · \num{2.886} · \num{2.900} · \num{2.868} & \num{3.712} · \num{3.709} · \num{3.698} · \num{3.719} \\
+médiane ; $\sigma$ relatif & \textbf{\num{2.004}} ; \SI{5.8}{\percent} & \textbf{\num{2.889}} ; \SI{0.5}{\percent} & \textbf{\num{3.711}} ; \SI{0.2}{\percent} \\
+octets de tronçons par pas & \SI{710.1}{\Mo} & \SI{686.8}{\Mo} ($\times\,\num{0.9671}$) & \SI{468.5}{\Mo} \\
+débit par octet en génération & \SI{1.42}{\Go\per\second} & \SI{1.98}{\Go\per\second} & \SI{1.74}{\Go\per\second} \\
+succès en VRAM & \num{0.590} & \num{0.590} & \num{0.607} \\
+texte (256 jetons) & \texttt{e4c6dbac}… & \texttt{e4c6dbac}… (le même) & \texttt{2cf1d474}… (celui du lot B) \\
+mémoire de pointe & \SI{388.7}{\Mo} & \SI{382.3}{\Mo} & \SI{342.4}{\Mo} \\
+\textbf{étage disque seul} (2 passes) & \textbf{\num{1.772} · \num{1.744}} Go/s & \textbf{\num{2.394} · \num{2.422}} & \textbf{\num{2.324} · \num{2.279}} \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/genome/construction/juge/vitesse/seance-120b.\{json,log\}}, \fichier{vitesse/analyse-120b.json}, \fichier{figures/vitesse-passes.csv}, \fichier{figures/disque-passes.csv}.}
+\end{table}
+
+\begin{itemize}
+\item \textbf{J-V1 (A-C3 du lot A, repris)} : $r(B/A) = \num{1.442}$, $\sigma = \SI{5.8}{\percent}$ : pas de régression, gain annoncé ; le lot A publiait \num{1.454}. Le J1 se reproduit ; les octets ne baissent que de \SI{3.3}{\percent} (toit $+\SI{3.4}{\percent}$), et l'étage disque lit B \num{1.37} fois plus vite que A.
+\item \textbf{J-V2} : $r(R/B) = \num{1.284}$ ; seuil $2{,}00 \times (1 - 2\sigma) = \num{1.769}$, avec $\sigma = \num{0.05764}$ (arrondi à 5,8\,\% dans le jugement ; \fichier{mesures/genome/construction/juge/vitesse/analyse-120b.json}) : \textbf{le $\times 2{,}00$ n'est pas un gain du mode rapide.} Contre un fichier exact lu à la même vitesse par l'étage disque, le mode rapide frontière rend $\times 1{,}28$ en génération, pour un toit des octets de $686{,}8/468{,}5 = \times 1{,}47$ \calc. La prédiction du juge ($\times 1{,}38$) était trop haute : le débit par octet du compagnon (\SI{1.74}{\Go\per\second}) reste sous celui du v1.2 (\num{1.98}), des lectures plus courtes (\SI{8.3}{\Mo} au lieu de \num{11.9} par tronçon) [hyp. pour la cause].
+\item \textbf{D'où vient le reste du $\times 2{,}00$} : $r(R/A) = \num{1.851}$ ici (le lot B mesurait 2,00 avec d'autres réglages). Le lot B décomposait son rapport en $\times 1{,}524$ d'octets et un $\times 1{,}31$ de débit par octet « que les compteurs ne séparent pas » (\cref{t3sno:prop:b3}). L'étage disque seul rend R/A $= \num{1.309}$ : ce $\times 1{,}31$ est \barre{l'état du fichier A} le motif de lecture v1.0 du fichier A (corrigé le 27 octobre, réserve R1), pas le mode.
+\end{itemize}
+
+\subsection{Le 20b}\label{t3jug:sec:v20}
+
+Réglages de la séance s2 du lot B : \texttt{mesurer}, emplacements par défaut, 256 jetons.
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[J-V : la séance à trois fichiers du 20b]{J-V, le 20b : la séance à trois fichiers \mes.}
+\label{t3jug:tab:v20}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+& A, v1.0 d'origine & B, v1.2 & R, rapide $\lambda = 0$ \\
+\midrule
+génération, médiane ; $\sigma$ & \textbf{\num{9.395}} ; \SI{0.4}{\percent} & \textbf{\num{12.175}} ; \SI{0.2}{\percent} & \textbf{\num{11.466}} ; \SI{0.6}{\percent} \\
+préremplissage (708 jetons) & \SI{10.9}{\jps} & \SI{13.7}{\jps} & \SI{16.9}{\jps} \\
+octets de tronçons par pas & \SI{116.4}{\Mo} & \SI{112.5}{\Mo} & \SI{115.1}{\Mo} \\
+succès en VRAM & \num{0.899} & \num{0.899} & \num{0.856} \\
+débit par octet en génération & \SI{1.09}{\Go\per\second} & \SI{1.37}{\Go\per\second} & \SI{1.32}{\Go\per\second} \\
+texte & \texttt{1b14e44a}… & \texttt{1b14e44a}… (le même) & \texttt{18be41e4}… (celui du lot B) \\
+\textbf{étage disque seul} & \textbf{\num{1.786} · \num{1.775}} Go/s & \textbf{\num{2.461} · \num{2.443}} & \textbf{\num{2.475} · \num{2.472}} \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/genome/construction/juge/vitesse/seance-20b.\{json,log\}}, \fichier{vitesse/analyse-20b.json}.}
+\end{table}
+
+\begin{itemize}
+\item $r(R/A) = \num{1.220}$ : la mesure du lot B (\num{1.241}) se reproduit à \SI{1.7}{\percent} près.
+\item \textbf{J-V3} : $r(R/B) = \num{0.942}$ ; seuil $1{,}241 \times (1 - 2 \times 0{,}0056) = \num{1.227}$ : \textbf{le $\times 1{,}24$ n'est pas un gain du mode rapide.} Contre le v1.2, le mode rapide $\lambda = 0$ génère \SI{6}{\percent} moins vite : il lit autant d'octets par pas (toit $\times 0{,}98$), parce que son routage, avec perte, manque plus souvent la VRAM. Il ne gagne qu'au préremplissage ($\times 1{,}23$), où le texte est imposé.
+\item \textbf{La cause avancée par le lot B est impossible} : le moteur lit chaque tronçon sans tampon (\texttt{trc-es}, \texttt{FILE\_FLAG\_NO\_BUFFERING | FILE\_FLAG\_OVERLAPPED}), et le flux du placement a mesuré que le disque lit \numrange{1.0000}{1.0057} fois les octets demandés. La prédiction déclarée du juge le tenait déjà pour faux « par construction » ; la séance l'a jugé. L'étage disque lit R \num{1.39} fois plus vite que A, B \num{1.38} fois.
+\item $r(B/A) = \num{1.296}$ sur le 20b : la v1.2 va aussi \SI{30}{\percent} plus vite que son v1.0, pour \SI{3.4}{\percent} d'octets en moins ; même cause, l'étage disque.
+\end{itemize}
+
+\subsection{Ce qui fait l'étage disque : la réserve R1}\label{t3jug:sec:r1}
+
+Le juge de la construction avait d'abord attribué l'écart de l'étage disque à l'état physique des fichiers, après une lecture du flux du placement disque : \barre{c'est l'état des fichiers, pas le format (+3,4 \% au plus)}. Le juge du placement a fait tomber cette lecture le 27 octobre (\fichier{genome/JUGEMENT-placement.md}, §§ 0, 5.3, 5.6, 5.7), et le jugement de la construction porte la correction à chaque endroit, barres comprises. Sur ce disque (NVMe derrière Intel RST VMD, sous BitLocker), l'écart entre v1.0 et v1.2 suit \emph{le motif des requêtes de lecture que le format impose} : un même fichier lu avec les frontières de l'autre format change de vitesse, et la variable exacte du motif n'est pas isolée (\cref{t3cod:sec:motif}).
+
+Ce que cela fixe, pour tout le tome :
+\begin{itemize}
+\item \textbf{Le $\times 1{,}44$ du J1 est un gain du format v1.2}, par le motif de ses requêtes de lecture, \emph{propre à ce disque} ; il ne vient ni de ses \SI{3.3}{\percent} d'octets en moins, ni de « l'état du fichier ». Il ne se transporte pas à un autre disque sans y être remesuré.
+\item \textbf{Les verdicts du mode rapide gardent leur sens} : B et R ont tous deux un motif rapide (environ 11,6 et \SI{8.3}{\Mo} par requête), A le motif lent du v1.0 (environ \SI{12.0}{\Mo}) ; $r(R/B)$ compare deux motifs rapides. Partout où le jugement écrivait « à fichier d'âge comparable » et « l'état du fichier A », on lit « à motif de lecture comparable » et « le motif v1.0 du fichier A ».
+\item \textbf{Le levier qui marche aujourd'hui} est de recoder les fichiers v1.0 en v1.2 ($\times 1{,}30$ à $\times 1{,}44$ entre deux fichiers du même modèle). Le chapitre du codon le développe (\cref{t3cod:ch}) ; le placement disque est l'objet d'un chapitre du Tome~II, « L'étage disque », par décision du juge du placement.
+\end{itemize}
+
+\section{La lecture : ce qui est faux, trop beau, ou mal attribué}\label{t3jug:sec:lecture}
+
+Le juge a lu les deux livrables phrase à phrase contre leurs journaux, et cherché, pour chaque chiffre de leurs « En bref », le fichier commité qui le porte. Deux constats sont \emph{graves} : ils changent ce que le projet ferait ensuite. Les autres sont mineurs : ils ne renversent aucune conclusion, mais ils rendent un chiffre plus beau qu'il n'est.
+
+\paragraph{G1, le « 120b $\times 2{,}00$ » du mode rapide.} Bien mesuré, faux comme gain du mode : le fichier exact de la comparaison est le v1.0 du 15 octobre, que l'étage disque lit 1,31 fois moins vite que le compagnon à octets égaux par lecture ; contre le v1.2, le mode rapide rend $\times 1{,}28$. Le lot B avait isolé ce $\times 1{,}31$ et l'avait laissé « non mesuré » ; il est mesuré. \emph{Ce que cela change} : le cahier construisait la politique mixte des défauts sur ce gain ; $\times 1{,}28$ pour une KL de \num{0.14} n'est pas $\times 2{,}00$ pour la même KL.
+
+\paragraph{G2, le « 20b $\times 1{,}24$ ».} Même mesure juste, même attribution fausse, et ici le mode rapide ne gagne rien en génération. Le lot B disposait des deux faits pour le voir : le moteur lisait presque les mêmes octets par pas, et la première passe B, juste après l'écriture du compagnon et une passe A, était deux fois plus lente que les suivantes (\num{5.46} contre \num{11.8} jetons/s), ce qu'aucun cache de lecture n'explique. \emph{Ce que cela change} : sur le 20b, le mode rapide est un mode de préremplissage, pas de génération.
+
+\paragraph{Les mineurs.} M1 : les $\pm$ des KL absolues du lot B sont naïfs, trois à six fois trop étroits (\cref{t3jug:sec:sigma}) ; les verdicts appariés, eux, sont justes. M2 : « la queue baisse aussi » avec $\lambda = 0$ ne se reproduit pas contre $\lambda = 1$, et se reproduit contre la frontière. M3 : le sens de la perplexité de $\lambda = 0$ s'inverse hors de R1. M4 : la règle de vitesse du lot B ne regardait que le bruit des passes A ; avec $\sigma = \max(\sigma_A, \sigma_B)$ ($\sigma_B = \SI{31}{\percent}$), le gain n'aurait pas été annoncé. M5 : « le gain ne fond pas, il grandit » comparait deux variantes ; à variante égale, la phrase reste vraie.
+
+\paragraph{Ce que le juge a vérifié de plus, et qui tient.} Le gain par tenseur du lot A vaut deux fois la part des $-0$ à $\num{-0.000167}$ … $\num{0.000161}$ bit près sur les 180 tenseurs (parts \SI{6.393}{\percent} et \SI{6.279}{\percent}, recalculées) ; les huit passes de la séance s2 du lot A redonnent \num{1.988} et \num{2.890} jetons/s et $r = \num{1.454}$ ; les seize passes de s2 du lot B redonnent \num{9.54}, \num{11.84}, \num{1.98} et \num{3.97} jetons/s et leurs octets par pas ; la correction barrée de la synthèse (la KL \num{0.0262} est celle de $\lambda = 0$) est juste ; aucune ligne d'attribution ni adresse électronique dans les documents des deux lots.
+
+\section{Ce qui tient selon le juge, et ce qui est barré}\label{t3jug:sec:bilan}
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[Ce qui tient selon le juge de la construction]{Ce qui tient selon le juge de la construction, et par quel chemin il l'a refait \mes.}
+\label{t3jug:tab:tient}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.06\linewidth}>{\raggedright\arraybackslash}p{0.36\linewidth}@{}}
+\toprule
+Chiffre & Lot & Chemin du juge \\
+\midrule
+\texttt{.trc} v1.2 : \num{10851844096} et \num{55930175488} octets, $-\num{1800486912}$ octets ; \num{0.12791} et \num{0.12562} bit par poids & A & son lecteur du format, fichiers entiers \\
+chaque expert v1.2 est l'expert du GGUF au signe des zéros près ; aucun 8 ; trois empreintes & A & son décodeur, 96 experts tirés ; témoin v1.0 40 sur 40 \\
+aucune table v1.2 ne peut produire un 8 (0 sur 540) & A & son lecteur des tables \\
+logits identiques au bit, v1.2 contre v1.0, sur les deux modèles & A & dix fenêtres neuves ; cassure 512 sur 512 \\
+J1 du 120b : v1.2 1,44 fois plus rapide que le v1.0 d'origine, \barre{pour les fichiers, pas pour le format} par le format, au motif de ses requêtes, sur ce disque (réserve R1) & A & séance à trois fichiers : \num{1.442} \\
+$\lambda = 0$ bat $\lambda = 1$ (B2) & B & fenêtres neuves, moteur : $-\num{0.0303} \pm \num{0.0084}$ (\num{3.6}\,$\sigma$) \\
+le moteur sert le mode rapide aussi fidèlement que la f64 substituée & B & fenêtres neuves : \num{0.0037} ; \SI{97.8}{\percent} \\
+le mode exact est inchangé, et proche de la f64 & A, B & fenêtres neuves : \num{0.0044} ; \SI{98.0}{\percent} \\
+R1 : \num{0.2640}, \num{0.1522}, \num{0.1318} ; appariées $-\num{0.1118}$, $-\num{0.0204}$, $-\num{0.1322}$ & B & sa KL sur leurs fichiers \\
+$\lambda = 0$ meilleure que la frontière, et sa queue plus basse & B & fenêtres neuves, f64 substituée : $-\num{0.1565} \pm \num{0.0334}$ (\num{4.7}\,$\sigma$) ; 99\textsuperscript{e} $-\SI{26}{\percent}$, 99,9\textsuperscript{e} $-\SI{18}{\percent}$ \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{genome/JUGEMENT-construction.md}, § 8, avec la correction du 27 octobre (§ 6.1).}
+\end{table}
+
+\paragraph{Ce qui est barré}, chaque fois là où il était publié (le juge a porté ses barres dans le livrable 07 et dans sa note pour le mémoire, sans rien retirer : \emph{réponse par délégation du 2026-10-22, réversible}) :
+\begin{itemize}
+\item \barre{120b $\times 2{,}00$ (gain du mode rapide)} $\to$ $\times 1{,}28$ contre un fichier exact lu à la même vitesse par l'étage disque ; le $\times 2{,}00$ reste vrai comme comparaison de deux fichiers.
+\item \barre{20b $\times 1{,}24$ (gain du mode rapide)} $\to$ $\times 0{,}94$ en génération contre le v1.2 ; $\times 1{,}23$ au préremplissage.
+\item \barre{cause : le cache de fichiers du système} $\to$ impossible (lectures sans tampon) ; cause mesurée : l'étage disque, \barre{l'état physique du fichier exact} le motif de lecture v1.0 (R1).
+\item \barre{avec $\lambda = 0$, la queue baisse aussi au centile 99,9, contre $\lambda = 1$} $\to$ non reproduit hors de R1 ; pas une grandeur mesurable à \num{2550} positions.
+\item \barre{$\lambda = 0$ déforme la distribution dans une direction privilégiée} $\to$ le sens de la perplexité s'inverse sur d'autres fenêtres.
+\item Les $\pm$ des KL absolues ne sont pas barrés : ils sont \emph{requalifiés}, naïfs.
+\end{itemize}
+
+\section{Ce que la méthode du juge apprend}\label{t3jug:sec:recettes}
+
+\begin{itemize}
+\item \textbf{Une séance à trois fichiers sépare le format, le mode et le fichier} : $r(R/A) = r(R/B)\cdot r(B/A)$, et l'étage disque mesuré dans la même séance dit lequel des facteurs n'est pas le mécanisme. Une heure par modèle ; elle a fait tomber deux chiffres.
+\item \textbf{Avant d'attribuer un gain de vitesse à un mécanisme, mesurer l'étage disque de chaque fichier dans la même séance} : une minute.
+\item \textbf{Un décodeur de juge écrit depuis la seule description, dans un autre langage, vectorisé par somme préfixe} : deux secondes par expert, juste au bit du premier coup sur le décodage.
+\item \textbf{Des fenêtres neuves tirées loin de la région déjà vue, fondues en un seul fichier} que tous les outils lisent sans changement.
+\item \textbf{Ne pas comparer un 99,9\textsuperscript{e} centile de \num{2550} positions d'une variante à l'autre} : il tient à deux ou trois positions.
+\item \textbf{Le texte d'un verrou compte} : le premier verrou du juge disait « pas une séance de vitesse », et le flux des pistes, qui cherchait le mot « vitesse », s'est mis en pause pour rien.
+\item \textbf{Arrêter une boucle bash qui lance un programme natif sous Windows ne tue pas le programme} : la passe f64 en cours a fini seule, et sa sortie complète a été gardée.
+\end{itemize}
+
+\section{Ce qui reste}\label{t3jug:sec:reste}
+
+\begin{enumerate}
+\item \textbf{La politique mixte des défauts} est à reprendre avec $r(R/B)$ : sur le 120b, $\times 1{,}28$ en génération pour une KL de \num{0.14} (proxy) ; sur le 20b, rien en génération. La simuler sur les traces avant de la construire.
+\item \textbf{Le levier de vitesse que la construction a trouvé n'est pas un mécanisme du génome} : c'est le motif des requêtes de lecture du format sur ce disque. La variable exacte reste à isoler, à l'étage disque, par des motifs déclarés avant (juge du placement, § 12).
+\item \textbf{Un autre corpus} (code, dialogue) pour la KL du génome synonyme, et la mutation synonyme du 120b.
+\item Les fichiers lourds du juge (environ \SI{13}{\Go} de \texttt{.kld} hors du dépôt) sont régénérables par les outils commités ; ils peuvent être effacés quand Stone le veut.
+\end{enumerate}
+
+\section{Ce qui pourrait être faux}\label{t3jug:sec:faux}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{Une séance par modèle, un seul matin} (le 22 octobre, de 6 h 17 à 7 h 11 pour le moteur). Les rapports $r(R/B)$ reposent sur le fait, mesuré dans la même séance, que B et R se lisent à la même vitesse à l'étage disque (R/B $= \num{0.956}$ et \num{1.009}, sous le seuil de séparation de \SI{11.8}{\percent}) ; si ce n'était plus vrai un autre jour, il faudrait refaire la séance, pas reprendre le chiffre.
+\item \textbf{Les réglages ne sont pas tous ceux du lot B} : sur le 120b, ceux du J1 pour les trois fichiers ; le $r(R/A)$ du juge (\num{1.85}) diffère de celui du lot (2,00) pour cette raison au moins. Ce qui juge l'attribution est $r(R/B)$, mesuré aux mêmes réglages pour R et B.
+\item \textbf{Les fenêtres neuves sont de wiki.test}, comme R1 et la calibration : un autre texte, pas une autre sorte de texte.
+\item \textbf{Le décodeur du juge lit la même description que les auteurs du codeur.} Un contresens partagé ne serait pas vu par la comparaison des octets décodés… sauf qu'il l'aurait été : le GGUF est lu par un lecteur sans rien du format \texttt{.trc}, et les empreintes sont des SHA-256 calculés du côté du juge \parencite{fips180-4}. Ce qui n'est pas couvert : les parties du format que ni le v1.0 ni le v1.2 n'exercent (niveaux, brut, colonnes).
+\item \textbf{96 experts sur \num{5376} (\SI{1.8}{\percent})} par le chemin du juge. La probabilité qu'un défaut touchant au moins \SI{5}{\percent} des experts d'un modèle échappe à 32 tirages vaut $0{,}95^{32} \approx \SI{19}{\percent}$ (20b), et à 64 tirages $0{,}95^{64} \approx \SI{3.75}{\percent}$ (120b) \calc{} (la source écrit 3,7\,\%, un arrondi trop bas). Le vérificateur du lot A, lui, couvre \SI{100}{\percent} des experts ; le tirage juge ce vérificateur, il ne le remplace pas.
+\item \textbf{La KL du juge partage la convention du lot R} (coupe à $\log p > -16$, sans renormalisation) : indépendante du code, pas de la convention. Les différences appariées n'en dépendent presque pas.
+\item \textbf{Les prédictions du juge se sont trompées deux fois} (B2 « égales », mesuré \num{3.6}\,$\sigma$ ; $r(R/B)$ du 120b $\approx 1{,}38$, mesuré \num{1.28}) ; elles étaient déclarées avant, et la mesure a décidé.
+\item \textbf{$\lambda = 1$ par la référence substituée n'a pas été passé} sur les fenêtres neuves ; B2 n'y est jugé que par le moteur, la frontière que par la référence substituée.
+\item \textbf{Le moteur et \texttt{genome-capture}} que le juge a fait tourner sont construits depuis le même code que ceux des lots : il juge les fichiers et les affirmations, pas un second moteur. Le second chemin des logits reste la référence f64 du lot R.
+\item \textbf{La réserve R1 elle-même} : le motif de lecture est établi sur ce disque, par le juge du placement, à l'étage disque ; la variable exacte n'est pas isolée, et une autre lecture pourrait la remplacer encore. Les verdicts de ce chapitre ne dépendent que de ce que l'étage disque mesure dans la séance, pas de son explication.
+\end{itemize}
+\end{faux}

@@ -1,0 +1,98 @@
+{
+  "outil": "temoins_des_temoins.py",
+  "debut": "2026-10-15T15:12:21",
+  "commit": "4a99d30562ed888b8bee1abdfd6ee7eaa4d273f0",
+  "cassures": [
+    {
+      "cassure": "aller_retour",
+      "test": "trc-cuda/carte::aller_retour_et_cassure",
+      "code": 101,
+      "fragment_attendu": "aller-retour de",
+      "tombe": true,
+      "extrait": [
+        "thread 'aller_retour_et_cassure' (22208) panicked at crates\\trc-cuda\\tests\\carte.rs:143:9:",
+        "assertion `left == right` failed: aller-retour de 1 octets"
+      ]
+    },
+    {
+      "cassure": "ordre",
+      "test": "trc-cuda/carte::evenements_et_ordre_entre_flux",
+      "code": 101,
+      "fragment_attendu": "le noyau ordonné doit voir l'aller entier",
+      "tombe": true,
+      "extrait": [
+        "thread 'evenements_et_ordre_entre_flux' (42260) panicked at crates\\trc-cuda\\tests\\carte.rs:204:5:",
+        "assertion `left == right` failed: le noyau ordonné doit voir l'aller entier"
+      ]
+    },
+    {
+      "cassure": "module",
+      "test": "trc-cuda/carte::module_lancement_et_memoire_projetee",
+      "code": 101,
+      "fragment_attendu": "sortie du noyau",
+      "tombe": true,
+      "extrait": [
+        "thread 'module_lancement_et_memoire_projetee' (21524) panicked at crates\\trc-cuda\\tests\\carte.rs:258:5:",
+        "assertion `left == right` failed: sortie du noyau"
+      ]
+    },
+    {
+      "cassure": "projetee",
+      "test": "trc-cuda/carte::module_lancement_et_memoire_projetee",
+      "code": 101,
+      "fragment_attendu": "mémoire projetée",
+      "tombe": true,
+      "extrait": [
+        "thread 'module_lancement_et_memoire_projetee' (29920) panicked at crates\\trc-cuda\\tests\\carte.rs:275:9:",
+        "assertion `left == right` failed: mémoire projetée, indice 0"
+      ]
+    },
+    {
+      "cassure": "lecture",
+      "test": "trc-es/lecture::lectures_alignees_profondeur_et_file",
+      "code": 101,
+      "fragment_attendu": "lecture 5",
+      "tombe": true,
+      "extrait": [
+        "thread 'lectures_alignees_profondeur_et_file' (11700) panicked at crates\\trc-es\\tests\\lecture.rs:103:9:",
+        "assertion `left == right` failed: lecture 5"
+      ]
+    },
+    {
+      "cassure": "fin",
+      "test": "trc-es/lecture::derniere_page_partielle_et_refus",
+      "code": 101,
+      "fragment_attendu": "dernière page partielle",
+      "tombe": true,
+      "extrait": [
+        "thread 'derniere_page_partielle_et_refus' (41584) panicked at crates\\trc-es\\tests\\lecture.rs:128:5:",
+        "assertion `left == right` failed: dernière page partielle"
+      ]
+    },
+    {
+      "cassure": "fils",
+      "test": "trc-es/lecture::soumission_et_recolte_concurrentes",
+      "code": 101,
+      "fragment_attendu": "assertion `left == right` failed",
+      "tombe": true,
+      "extrait": [
+        "thread 'soumission_et_recolte_concurrentes' (37428) panicked at crates\\trc-es\\tests\\lecture.rs:191:9:",
+        "assertion `left == right` failed"
+      ]
+    }
+  ],
+  "restauree": {
+    "code": 0,
+    "resultats": [
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.57s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 15.55s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+      "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+    ],
+    "tient": true
+  },
+  "toutes_tombent": true,
+  "fin": "2026-10-15T15:14:56"
+}

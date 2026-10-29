@@ -1,0 +1,668 @@
+{
+ "E_chaine": {
+  "0.5": {
+   "1": 1.5,
+   "2": 1.75,
+   "3": 1.875,
+   "4": 1.9375,
+   "6": 1.984375,
+   "8": 1.99609375,
+   "16": 1.9999847412109375,
+   "32": 1.9999999997671694,
+   "inf": 2.0
+  },
+  "0.6": {
+   "1": 1.5999999999999999,
+   "2": 1.96,
+   "3": 2.176,
+   "4": 2.3056,
+   "6": 2.430016,
+   "8": 2.4748057599999997,
+   "16": 2.4995768335138813,
+   "32": 2.499999880620083,
+   "inf": 2.5
+  },
+  "0.7": {
+   "1": 1.6999999999999997,
+   "2": 2.19,
+   "3": 2.5329999999999995,
+   "4": 2.7731,
+   "6": 3.0588189999999997,
+   "8": 3.1988213099999996,
+   "16": 3.3255789828670927,
+   "32": 3.333307563354267,
+   "inf": 3.333333333333333
+  },
+  "0.8": {
+   "1": 1.7999999999999998,
+   "2": 2.44,
+   "3": 2.9520000000000004,
+   "4": 3.3616,
+   "6": 3.9514240000000003,
+   "8": 4.32891136,
+   "16": 4.887410009315738,
+   "32": 4.99683087349943,
+   "inf": 5.000000000000001
+  },
+  "0.9": {
+   "1": 1.9,
+   "2": 2.7099999999999995,
+   "3": 3.4390000000000005,
+   "4": 4.0951,
+   "6": 5.2170309999999995,
+   "8": 6.12579511,
+   "16": 8.332281830033343,
+   "32": 9.690968456173676,
+   "inf": 10.000000000000002
+  },
+  "0.95": {
+   "1": 1.9499999999999988,
+   "2": 2.8524999999999996,
+   "3": 3.7098749999999994,
+   "4": 4.52438125,
+   "6": 6.033254078125,
+   "8": 7.395011805507812,
+   "16": 11.637593295616448,
+   "32": 16.31948179528847,
+   "inf": 19.999999999999982
+  }
+ },
+ "denses": {
+  "dense 70B Q4 (42 Go), 7 Go en VRAM, 11 Go en RAM, 24 Go lus du NVMe": {
+   "pessimiste, recouvrement": {
+    "T_passe_s": 8.0,
+    "jetons_s_sans_spec": 0.125,
+    "alpha=0.6": {
+     "jetons_s": 0.3097685888952853,
+     "k_opt": 12,
+     "jetons_par_lecture": 2.4967348264959996
+    },
+    "alpha=0.8": {
+     "jetons_s": 0.6135247295082853,
+     "k_opt": 25,
+     "jetons_par_lecture": 4.984888427254818
+    },
+    "alpha=0.9": {
+     "jetons_s": 1.2066426979405072,
+     "k_opt": 48,
+     "jetons_par_lecture": 9.942735831029779
+    },
+    "arbre_10_par_passe_jetons_s": 1.2422360248447204
+   },
+   "pessimiste, sans recouvrement": {
+    "T_passe_s": 9.759137931034482,
+    "jetons_s_sans_spec": 0.1024680670635832,
+    "alpha=0.6": {
+     "jetons_s": 0.2542758370692538,
+     "k_opt": 13,
+     "jetons_par_lecture": 2.4980408958975997
+    },
+    "alpha=0.8": {
+     "jetons_s": 0.5043827658779636,
+     "k_opt": 26,
+     "jetons_par_lecture": 4.987910741803855
+    },
+    "alpha=0.9": {
+     "jetons_s": 0.994452878131671,
+     "k_opt": 50,
+     "jetons_par_lecture": 9.95361602313412
+    },
+    "arbre_10_par_passe_jetons_s": 1.0194575782609459
+   },
+   "optimiste, recouvrement": {
+    "T_passe_s": 3.4285714285714284,
+    "jetons_s_sans_spec": 0.2916666666666667,
+    "alpha=0.6": {
+     "jetons_s": 0.716092118479393,
+     "k_opt": 11,
+     "jetons_par_lecture": 2.4945580441599997
+    },
+    "alpha=0.8": {
+     "jetons_s": 1.4046587188685693,
+     "k_opt": 22,
+     "jetons_par_lecture": 4.9704852094820655
+    },
+    "alpha=0.9": {
+     "jetons_s": 2.7192442667200645,
+     "k_opt": 40,
+     "jetons_par_lecture": 9.86697205352709
+    },
+    "arbre_10_par_passe_jetons_s": 2.874743326488707
+   },
+   "optimiste, sans recouvrement": {
+    "T_passe_s": 5.187709359605911,
+    "jetons_s_sans_spec": 0.1927633047037095,
+    "alpha=0.6": {
+     "jetons_s": 0.4758146738745619,
+     "k_opt": 11,
+     "jetons_par_lecture": 2.4945580441599997
+    },
+    "alpha=0.8": {
+     "jetons_s": 0.9384670856277558,
+     "k_opt": 24,
+     "jetons_par_lecture": 4.981110534068522
+    },
+    "alpha=0.9": {
+     "jetons_s": 1.833071954340667,
+     "k_opt": 44,
+     "jetons_par_lecture": 9.912720364319124
+    },
+    "arbre_10_par_passe_jetons_s": 1.9092315578106853
+   }
+  },
+  "dense 70B ~2,3 bits (20 Go), 7 Go VRAM, 11 Go RAM, 2 Go NVMe": {
+   "pessimiste, recouvrement": {
+    "T_passe_s": 1.7241379310344827,
+    "jetons_s_sans_spec": 0.5800000000000001,
+    "alpha=0.6": {
+     "jetons_s": 1.404573047929052,
+     "k_opt": 9,
+     "jetons_par_lecture": 2.484883456
+    },
+    "alpha=0.8": {
+     "jetons_s": 2.716865961867503,
+     "k_opt": 19,
+     "jetons_par_lecture": 4.942353924769659
+    },
+    "alpha=0.9": {
+     "jetons_s": 5.147293810950658,
+     "k_opt": 34,
+     "jetons_par_lecture": 9.749684449500677
+    },
+    "arbre_10_par_passe_jetons_s": 5.636540330417882
+   },
+   "pessimiste, sans recouvrement": {
+    "T_passe_s": 2.4258045977011493,
+    "jetons_s_sans_spec": 0.41223435760145943,
+    "alpha=0.6": {
+     "jetons_s": 1.0061093173156295,
+     "k_opt": 10,
+     "jetons_par_lecture": 2.4909300736
+    },
+    "alpha=0.8": {
+     "jetons_s": 1.9613089406537954,
+     "k_opt": 20,
+     "jetons_par_lecture": 4.953883139815727
+    },
+    "alpha=0.9": {
+     "jetons_s": 3.7603426822254185,
+     "k_opt": 37,
+     "jetons_par_lecture": 9.817519963685994
+    },
+    "arbre_10_par_passe_jetons_s": 4.039090972399546
+   },
+   "optimiste, recouvrement": {
+    "T_passe_s": 1.7241379310344827,
+    "jetons_s_sans_spec": 0.5800000000000001,
+    "alpha=0.6": {
+     "jetons_s": 1.404573047929052,
+     "k_opt": 9,
+     "jetons_par_lecture": 2.484883456
+    },
+    "alpha=0.8": {
+     "jetons_s": 2.716865961867503,
+     "k_opt": 19,
+     "jetons_par_lecture": 4.942353924769659
+    },
+    "alpha=0.9": {
+     "jetons_s": 5.147293810950658,
+     "k_opt": 34,
+     "jetons_par_lecture": 9.749684449500677
+    },
+    "arbre_10_par_passe_jetons_s": 5.636540330417882
+   },
+   "optimiste, sans recouvrement": {
+    "T_passe_s": 2.0448522167487684,
+    "jetons_s_sans_spec": 0.48903289529155275,
+    "alpha=0.6": {
+     "jetons_s": 1.1890719802019967,
+     "k_opt": 10,
+     "jetons_par_lecture": 2.4909300736
+    },
+    "alpha=0.8": {
+     "jetons_s": 2.309670680099083,
+     "k_opt": 19,
+     "jetons_par_lecture": 4.942353924769659
+    },
+    "alpha=0.9": {
+     "jetons_s": 4.403548393165863,
+     "k_opt": 36,
+     "jetons_par_lecture": 9.797244404095549
+    },
+    "arbre_10_par_passe_jetons_s": 4.773606424380667
+   }
+  },
+  "Qwen3.5-9B Q4_K_M entièrement en VRAM (5,67 Go)": {
+   "pessimiste, recouvrement": {
+    "T_passe_s": 0.02835,
+    "jetons_s_sans_spec": 35.273368606701936,
+    "alpha=0.6": {
+     "jetons_s": 51.10821382007822,
+     "k_opt": 2,
+     "jetons_par_lecture": 1.96
+    },
+    "alpha=0.8": {
+     "jetons_s": 69.52637021716649,
+     "k_opt": 4,
+     "jetons_par_lecture": 3.3616
+    },
+    "alpha=0.9": {
+     "jetons_s": 89.90257142857143,
+     "k_opt": 7,
+     "jetons_par_lecture": 5.6953279000000006
+    },
+    "arbre_10_par_passe_jetons_s": 127.63241863433312
+   },
+   "pessimiste, sans recouvrement": {
+    "T_passe_s": 0.02835,
+    "jetons_s_sans_spec": 35.273368606701936,
+    "alpha=0.6": {
+     "jetons_s": 51.10821382007822,
+     "k_opt": 2,
+     "jetons_par_lecture": 1.96
+    },
+    "alpha=0.8": {
+     "jetons_s": 69.52637021716649,
+     "k_opt": 4,
+     "jetons_par_lecture": 3.3616
+    },
+    "alpha=0.9": {
+     "jetons_s": 89.90257142857143,
+     "k_opt": 7,
+     "jetons_par_lecture": 5.6953279000000006
+    },
+    "arbre_10_par_passe_jetons_s": 127.63241863433312
+   },
+   "optimiste, recouvrement": {
+    "T_passe_s": 0.02835,
+    "jetons_s_sans_spec": 35.273368606701936,
+    "alpha=0.6": {
+     "jetons_s": 51.10821382007822,
+     "k_opt": 2,
+     "jetons_par_lecture": 1.96
+    },
+    "alpha=0.8": {
+     "jetons_s": 69.52637021716649,
+     "k_opt": 4,
+     "jetons_par_lecture": 3.3616
+    },
+    "alpha=0.9": {
+     "jetons_s": 89.90257142857143,
+     "k_opt": 7,
+     "jetons_par_lecture": 5.6953279000000006
+    },
+    "arbre_10_par_passe_jetons_s": 127.63241863433312
+   },
+   "optimiste, sans recouvrement": {
+    "T_passe_s": 0.02835,
+    "jetons_s_sans_spec": 35.273368606701936,
+    "alpha=0.6": {
+     "jetons_s": 51.10821382007822,
+     "k_opt": 2,
+     "jetons_par_lecture": 1.96
+    },
+    "alpha=0.8": {
+     "jetons_s": 69.52637021716649,
+     "k_opt": 4,
+     "jetons_par_lecture": 3.3616
+    },
+    "alpha=0.9": {
+     "jetons_s": 89.90257142857143,
+     "k_opt": 7,
+     "jetons_par_lecture": 5.6953279000000006
+    },
+    "arbre_10_par_passe_jetons_s": 127.63241863433312
+   }
+  }
+ },
+ "moe": {
+  "DeepSeek-V4-Flash Q2_K_XL (96,8 Go)": {
+   "pessimiste": {
+    "T_passe_1_s": 0.616,
+    "jetons_s_sans_spec": 1.6233766233766234,
+    "union_experts_par_couche": {
+     "1": 6.0,
+     "2": 11.859375,
+     "4": 23.16935634613037,
+     "8": 44.24176318642492,
+     "16": 80.83769195939786
+    },
+    "octets_relatifs_passe": {
+     "1": 1.0,
+     "2": 1.9765625000000002,
+     "4": 3.8615593910217285,
+     "8": 7.373627197737487,
+     "16": 13.472948659899643
+    },
+    "alpha=0.6": {
+     "jetons_s": 1.6233766233766234,
+     "k_opt": 0,
+     "gain_sur_sans_spec": 1.0
+    },
+    "alpha=0.8": {
+     "jetons_s": 1.6233766233766234,
+     "k_opt": 0,
+     "gain_sur_sans_spec": 1.0
+    },
+    "alpha=0.9": {
+     "jetons_s": 1.6233766233766234,
+     "k_opt": 0,
+     "gain_sur_sans_spec": 1.0
+    }
+   },
+   "optimiste": {
+    "T_passe_1_s": 0.264,
+    "jetons_s_sans_spec": 3.7878787878787876,
+    "union_experts_par_couche": {
+     "1": 6.0,
+     "2": 11.859375,
+     "4": 23.16935634613037,
+     "8": 44.24176318642492,
+     "16": 80.83769195939786
+    },
+    "octets_relatifs_passe": {
+     "1": 1.0,
+     "2": 1.9765625,
+     "4": 3.8615593910217285,
+     "8": 7.373627197737486,
+     "16": 13.472948659899643
+    },
+    "alpha=0.6": {
+     "jetons_s": 3.7878787878787876,
+     "k_opt": 0,
+     "gain_sur_sans_spec": 1.0
+    },
+    "alpha=0.8": {
+     "jetons_s": 3.7878787878787876,
+     "k_opt": 0,
+     "gain_sur_sans_spec": 1.0
+    },
+    "alpha=0.9": {
+     "jetons_s": 3.7878787878787876,
+     "k_opt": 0,
+     "gain_sur_sans_spec": 1.0
+    }
+   }
+  },
+  "Qwen3.8-Flash-Next Q2_K_XL (78,9 Go)": {
+   "pessimiste": {
+    "T_passe_1_s": 0.21,
+    "jetons_s_sans_spec": 4.761904761904762,
+    "union_experts_par_couche": {
+     "1": 10.0,
+     "2": 19.8046875,
+     "4": 38.84330928325653,
+     "8": 74.7397383398046,
+     "16": 138.56926479073724
+    },
+    "octets_relatifs_passe": {
+     "1": 1.0,
+     "2": 1.98046875,
+     "4": 3.8843309283256535,
+     "8": 7.473973833980461,
+     "16": 13.856926479073724
+    },
+    "alpha=0.6": {
+     "jetons_s": 4.761904761904762,
+     "k_opt": 0,
+     "gain_sur_sans_spec": 1.0
+    },
+    "alpha=0.8": {
+     "jetons_s": 4.761904761904762,
+     "k_opt": 0,
+     "gain_sur_sans_spec": 1.0
+    },
+    "alpha=0.9": {
+     "jetons_s": 4.761904761904762,
+     "k_opt": 0,
+     "gain_sur_sans_spec": 1.0
+    }
+   },
+   "optimiste": {
+    "T_passe_1_s": 0.09,
+    "jetons_s_sans_spec": 11.11111111111111,
+    "union_experts_par_couche": {
+     "1": 10.0,
+     "2": 19.8046875,
+     "4": 38.84330928325653,
+     "8": 74.7397383398046,
+     "16": 138.56926479073724
+    },
+    "octets_relatifs_passe": {
+     "1": 1.0,
+     "2": 1.9804687500000002,
+     "4": 3.884330928325653,
+     "8": 7.473973833980461,
+     "16": 13.856926479073726
+    },
+    "alpha=0.6": {
+     "jetons_s": 11.11111111111111,
+     "k_opt": 0,
+     "gain_sur_sans_spec": 0.9999999999999999
+    },
+    "alpha=0.8": {
+     "jetons_s": 11.11111111111111,
+     "k_opt": 0,
+     "gain_sur_sans_spec": 0.9999999999999999
+    },
+    "alpha=0.9": {
+     "jetons_s": 11.11111111111111,
+     "k_opt": 0,
+     "gain_sur_sans_spec": 0.9999999999999999
+    }
+   }
+  },
+  "gpt-oss-120b MXFP4 (63,4 Go)": {
+   "pessimiste": {
+    "T_passe_1_s": 0.47113333333333335,
+    "jetons_s_sans_spec": 2.1225413895570964,
+    "union_experts_par_couche": {
+     "1": 4.0,
+     "2": 7.875,
+     "4": 15.2655029296875,
+     "8": 28.710415392997675,
+     "16": 50.98108116069474
+    },
+    "octets_relatifs_passe": {
+     "1": 1.0,
+     "2": 1.96875,
+     "4": 3.8163757324218746,
+     "8": 7.177603848249418,
+     "16": 12.745270290173682
+    },
+    "alpha=0.6": {
+     "jetons_s": 2.1225413895570964,
+     "k_opt": 0,
+     "gain_sur_sans_spec": 1.0
+    },
+    "alpha=0.8": {
+     "jetons_s": 2.1225413895570964,
+     "k_opt": 0,
+     "gain_sur_sans_spec": 1.0
+    },
+    "alpha=0.9": {
+     "jetons_s": 2.1225413895570964,
+     "k_opt": 0,
+     "gain_sur_sans_spec": 1.0
+    }
+   },
+   "optimiste": {
+    "T_passe_1_s": 0.2019142857142857,
+    "jetons_s_sans_spec": 4.952596575633225,
+    "union_experts_par_couche": {
+     "1": 4.0,
+     "2": 7.875,
+     "4": 15.2655029296875,
+     "8": 28.710415392997675,
+     "16": 50.98108116069474
+    },
+    "octets_relatifs_passe": {
+     "1": 1.0,
+     "2": 1.96875,
+     "4": 3.816375732421875,
+     "8": 7.177603848249419,
+     "16": 12.745270290173686
+    },
+    "alpha=0.6": {
+     "jetons_s": 4.952596575633225,
+     "k_opt": 0,
+     "gain_sur_sans_spec": 1.0
+    },
+    "alpha=0.8": {
+     "jetons_s": 4.952596575633225,
+     "k_opt": 0,
+     "gain_sur_sans_spec": 1.0
+    },
+    "alpha=0.9": {
+     "jetons_s": 4.952596575633225,
+     "k_opt": 0,
+     "gain_sur_sans_spec": 1.0
+    }
+   }
+  },
+  "Kimi-K2.6 Q2_K_XL (340,5 Go)": {
+   "pessimiste": {
+    "T_passe_1_s": 2.231000000000004,
+    "jetons_s_sans_spec": 0.4482294935006716,
+    "union_experts_par_couche": {
+     "1": 8.000000000000014,
+     "2": 15.833333333333357,
+     "4": 31.01381655092598,
+     "8": 59.52279764077254,
+     "16": 109.81912799252335
+    },
+    "octets_relatifs_passe": {
+     "1": 1.0,
+     "2": 1.9791666666666663,
+     "4": 3.87672706886574,
+     "8": 7.440349705096554,
+     "16": 13.727390999065394
+    },
+    "alpha=0.6": {
+     "jetons_s": 0.4482294935006716,
+     "k_opt": 0,
+     "gain_sur_sans_spec": 1.0
+    },
+    "alpha=0.8": {
+     "jetons_s": 0.4482294935006716,
+     "k_opt": 0,
+     "gain_sur_sans_spec": 1.0
+    },
+    "alpha=0.9": {
+     "jetons_s": 0.4482294935006716,
+     "k_opt": 0,
+     "gain_sur_sans_spec": 1.0
+    }
+   },
+   "optimiste": {
+    "T_passe_1_s": 0.9561428571428587,
+    "jetons_s_sans_spec": 1.0458688181682336,
+    "union_experts_par_couche": {
+     "1": 8.000000000000014,
+     "2": 15.833333333333357,
+     "4": 31.01381655092598,
+     "8": 59.52279764077254,
+     "16": 109.81912799252335
+    },
+    "octets_relatifs_passe": {
+     "1": 1.0,
+     "2": 1.9791666666666663,
+     "4": 3.876727068865741,
+     "8": 7.440349705096554,
+     "16": 13.727390999065396
+    },
+    "alpha=0.6": {
+     "jetons_s": 1.0458688181682336,
+     "k_opt": 0,
+     "gain_sur_sans_spec": 0.9999999999999999
+    },
+    "alpha=0.8": {
+     "jetons_s": 1.0458688181682336,
+     "k_opt": 0,
+     "gain_sur_sans_spec": 0.9999999999999999
+    },
+    "alpha=0.9": {
+     "jetons_s": 1.0458688181682336,
+     "k_opt": 0,
+     "gain_sur_sans_spec": 0.9999999999999999
+    }
+   }
+  }
+ },
+ "substitut": {
+  "cible 14B Q4_K_M (8,5 Go) en RAM, substitut ~2,1 bits (3,9 Go) en VRAM": {
+   "T_passe_s": 1.3322884012539185,
+   "t_brouillon_s": 0.0215,
+   "jetons_s_sans_spec": 0.7505882352941177,
+   "alpha=0.75": {
+    "jetons_s": 2.4759827920683057,
+    "k_opt": 10,
+    "jetons_par_lecture": 3.831059455871582
+   },
+   "alpha=0.85": {
+    "jetons_s": 3.729576192591344,
+    "k_opt": 15,
+    "jetons_par_lecture": 6.171659425092907
+   },
+   "alpha=0.92": {
+    "jetons_s": 5.921936429155585,
+    "k_opt": 24,
+    "jetons_par_lecture": 10.945446414971316
+   },
+   "arbre_10_par_passe_jetons_s": 6.462919254029194
+  },
+  "cible 9B Q4_K_M (5,7 Go) en RAM, substitut ~2,1 bits (2,5 Go) en VRAM": {
+   "T_passe_s": 0.8934169278996865,
+   "t_brouillon_s": 0.0145,
+   "jetons_s_sans_spec": 1.119298245614035,
+   "alpha=0.75": {
+    "jetons_s": 3.689326852192524,
+    "k_opt": 10,
+    "jetons_par_lecture": 3.831059455871582
+   },
+   "alpha=0.85": {
+    "jetons_s": 5.555464382706926,
+    "k_opt": 15,
+    "jetons_par_lecture": 6.171659425092907
+   },
+   "alpha=0.92": {
+    "jetons_s": 8.816897988888847,
+    "k_opt": 24,
+    "jetons_par_lecture": 10.945446414971316
+   },
+   "arbre_10_par_passe_jetons_s": 9.630043320100828
+  }
+ },
+ "substitut_mesure": {
+  "9B": {
+   "go_cible_ram": 5.83875,
+   "T_passe_s": 0.9151645768025078,
+   "jetons_s_sans_spec": 1.0926996360522372,
+   "meilleur": {
+    "substitut": "IQ4_XS",
+    "go_substitut": 5.355,
+    "alpha": 0.919,
+    "k_opt": 19,
+    "jetons_s": 6.885783090688896
+   }
+  },
+  "14B": {
+   "go_cible_ram": 9.0825,
+   "T_passe_s": 1.42358934169279,
+   "jetons_s_sans_spec": 0.702449766033581,
+   "meilleur": {
+    "substitut": "IQ2_XXS",
+    "go_substitut": 5.0925,
+    "alpha": 0.658,
+    "k_opt": 7,
+    "jetons_s": 1.745995747658233
+   }
+  },
+  "20B": {
+   "go_cible_ram": 12.975000000000001,
+   "T_passe_s": 2.033699059561129,
+   "jetons_s_sans_spec": 0.49171483622350665,
+   "meilleur": null
+  }
+ }
+}

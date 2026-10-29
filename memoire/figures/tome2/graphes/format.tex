@@ -1,0 +1,83 @@
+% Graphes du chapitre « Le format .trc au bit près » (Tome II).
+% Chaque graphe lit un CSV commité du lot F (mesures/moteur/F/csv/, écrits par
+% mesures/moteur/F/vers_csv.py depuis les journaux de la vérification C1 et du codeur).
+% Commandes définies par \providecommand (chargement double sans erreur).
+\providecommand{\CsvLotF}{\Depot/mesures/moteur/F/csv}
+\pgfplotsset{
+  % Ne garder que les lignes où la colonne #1 vaut #2 (les autres deviennent des trous).
+  t2f garder/.style 2 args={x filter/.append code={%
+      \edef\tdTempA{\thisrow{#1}}\edef\tdTempB{#2}%
+      \ifx\tdTempA\tdTempB\else\def\pgfmathresult{inf}\fi}},
+}
+
+% Bits par poids (comptabilité de l'étude 03 : codes + δ + médianes) de chaque tenseur d'experts,
+% couche par couche, pour les deux modèles.
+\providecommand{\TdFmtGrapheTaux}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=0.95\linewidth, height=0.5\linewidth,
+  xlabel={\EF{layer}{couche}}, ylabel={\EF{bits per weight}{bits par poids}},
+  xmin=-0.7, xmax=35.7, ymin=3.78, ymax=3.895, unbounded coords=discard,
+  yticklabel style={/pgf/number format/.cd, fixed, precision=2, fixed zerofill},
+  legend columns=3, legend style={at={(0.5,1.03)}, anchor=south, font=\scriptsize}]
+\addplot[SerieA, mark=*, mark size=1.1pt, t2f garder={matrice}{gate}] table[x=couche, y=bpp_total_03] {\CsvLotF/taux-par-tenseur-120b.csv};
+\addlegendentry{120b gate}
+\addplot[SerieB, mark=square*, mark size=1.1pt, t2f garder={matrice}{up}] table[x=couche, y=bpp_total_03] {\CsvLotF/taux-par-tenseur-120b.csv};
+\addlegendentry{120b up}
+\addplot[SerieC, mark=triangle*, mark size=1.4pt, t2f garder={matrice}{down}] table[x=couche, y=bpp_total_03] {\CsvLotF/taux-par-tenseur-120b.csv};
+\addlegendentry{120b down}
+\addplot[SerieA!55, densely dashed, mark=o, mark size=1.1pt, t2f garder={matrice}{gate}] table[x=couche, y=bpp_total_03] {\CsvLotF/taux-par-tenseur-20b.csv};
+\addlegendentry{20b gate}
+\addplot[SerieB!55, densely dashed, mark=square, mark size=1.1pt, t2f garder={matrice}{up}] table[x=couche, y=bpp_total_03] {\CsvLotF/taux-par-tenseur-20b.csv};
+\addlegendentry{20b up}
+\addplot[SerieC!55, densely dashed, mark=triangle, mark size=1.4pt, t2f garder={matrice}{down}] table[x=couche, y=bpp_total_03] {\CsvLotF/taux-par-tenseur-20b.csv};
+\addlegendentry{20b down}
+\draw[black!45, dotted, line width=0.8pt] (axis cs:-0.7,3.854555) -- (axis cs:35.7,3.854555)
+  node[pos=0.25, below, font=\scriptsize, black!70, fill=white, inner sep=1pt] {\EF{120b mean 3.8546}{moyenne 120b 3,8546}};
+\end{axis}
+\end{tikzpicture}}
+
+% Taille des tronçons par couche : moyenne et étendue (min, max), deux modèles, et l'expert d'origine.
+\providecommand{\TdFmtGrapheTroncons}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=0.95\linewidth, height=0.46\linewidth,
+  xlabel={\EF{layer}{couche}}, ylabel={\EF{chunk size (MB)}{taille du tronçon (Mo)}},
+  xmin=-0.7, xmax=35.7, ymin=11.70, ymax=13.35,
+  yticklabel style={/pgf/number format/.cd, fixed, precision=1, fixed zerofill},
+  legend columns=3, legend style={at={(0.5,1.03)}, anchor=south, font=\scriptsize}]
+\addplot[SerieA, mark=*, mark size=1.1pt, error bars/.cd, y dir=both, y explicit,
+  error bar style={line width=0.5pt}]
+  table[x=couche, y expr=\thisrow{moyen_octets}/1e6,
+        y error plus expr=(\thisrow{max_octets}-\thisrow{moyen_octets})/1e6,
+        y error minus expr=(\thisrow{moyen_octets}-\thisrow{min_octets})/1e6] {\CsvLotF/troncons-par-couche-120b.csv};
+\addlegendentry{\EF{120b: mean, [min, max]}{120b : moyenne, [min, max]}}
+\addplot[SerieB, mark=o, mark size=1.1pt, xshift=1.5pt, error bars/.cd, y dir=both, y explicit,
+  error bar style={line width=0.5pt}]
+  table[x=couche, y expr=\thisrow{moyen_octets}/1e6,
+        y error plus expr=(\thisrow{max_octets}-\thisrow{moyen_octets})/1e6,
+        y error minus expr=(\thisrow{moyen_octets}-\thisrow{min_octets})/1e6] {\CsvLotF/troncons-par-couche-20b.csv};
+\addlegendentry{\EF{20b: mean, [min, max]}{20b : moyenne, [min, max]}}
+\addplot[black!60, dashed, no marks] table[x=couche, y expr=\thisrow{origine_octets}/1e6] {\CsvLotF/troncons-par-couche-120b.csv};
+\addlegendentry{\EF{original expert (13.25 MB)}{expert d'origine (13,25 Mo)}}
+\end{axis}
+\end{tikzpicture}}
+
+% Pointe de l'ensemble de travail du codeur et de la vérification, une passe contre deux passes.
+\providecommand{\TdFmtGraphePointes}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, ybar, bar width=13pt, width=0.95\linewidth, height=0.46\linewidth,
+  ylabel={\EF{peak working set (GB)}{pointe de l'ensemble de travail (Go)}},
+  ymin=0, ymax=1.45, xmin=-0.6, xmax=5.6, xtick={0,...,5},
+  xticklabels={{\EF{coder 20b}{codeur 20b}\\\EF{one pass}{une passe}}, {\EF{verif. 20b}{vérif. 20b}\\\EF{one pass}{une passe}},
+               {\EF{coder 20b}{codeur 20b}\\\EF{two passes}{deux passes}}, {\EF{verif. 20b}{vérif. 20b}\\\EF{bounded}{bornée}},
+               {\EF{coder 120b}{codeur 120b}\\\EF{two passes}{deux passes}}, {\EF{verif. 120b}{vérif. 120b}\\\EF{bounded}{bornée}}},
+  xticklabel style={align=center, font=\scriptsize}, major x grid style={draw=none},
+  nodes near coords={\pgfmathprintnumber[fixed, precision=3]{\pgfplotspointmeta}},
+  nodes near coords style={font=\scriptsize},
+  point meta=explicit]
+\addplot[fill=SerieA!55, draw=SerieA] table[x expr=\coordindex, y expr=\thisrow{pointe_octets}/1e9, meta expr=\thisrow{pointe_octets}/1e9] {\CsvLotF/pointes-memoire.csv};
+\draw[Signe, dashed, line width=0.8pt] (axis cs:3.5,{1.25*0.378695680}) -- (axis cs:4.5,{1.25*0.378695680})
+  ;
+\node[Signe, font=\scriptsize] at (axis cs:4.5,0.68) {\EF{threshold}{seuil} $\EF{1.25}{1{,}25} \times$ 20b};
+\draw[Signe, dashed, line width=0.8pt] (axis cs:4.5,{1.25*0.418242560}) -- (axis cs:5.5,{1.25*0.418242560});
+\end{axis}
+\end{tikzpicture}}

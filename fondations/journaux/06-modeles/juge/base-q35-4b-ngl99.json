@@ -1,0 +1,56 @@
+{
+ "etiquette": "q35-4b-ngl99",
+ "commande": [
+  "~/dev/modeles/llama.cpp-b11515/llama-completion.exe",
+  "-m",
+  "~/dev/modeles/gguf/Qwen3.5-4B-Q4_K_M.gguf",
+  "-f",
+  "donnees/invite-wiki-3000.txt",
+  "-n",
+  "64",
+  "--temp",
+  "0",
+  "--seed",
+  "1",
+  "-no-cnv",
+  "--no-display-prompt",
+  "--perf",
+  "--ignore-eos",
+  "-ngl",
+  "99",
+  "-t",
+  "6",
+  "-c",
+  "2048"
+ ],
+ "date": "2026-10-15 02:30:59",
+ "code_retour": 0,
+ "duree_s": 63.46666598320007,
+ "taille_modele_octets": 2740937888,
+ "prefill": {
+  "ms": 1135.33,
+  "n": 732,
+  "jetons_s": 644.75
+ },
+ "generation": {
+  "ms": 2949.65,
+  "n": 63,
+  "jetons_s": 21.36
+ },
+ "memoire_pointe": {
+  "ensemble_travail_octets": 3449356288,
+  "engagee_octets": 4501925888,
+  "fautes_de_page": 951075
+ },
+ "vram_mio": {
+  "repos": 5944,
+  "pointe": 7752
+ },
+ "disque": {
+  "octets_lus_pendant": 4889111908.904856,
+  "secondes": 63.79161214828491,
+  "debit_repos_moyen_o_s": 19042586.784517694,
+  "octets_attribuables_estimes": 3674354598.446847
+ },
+ "sortie_sha256": "ea5a3df3e2d33f3dd9fea85f59223c7783339f36237a4f14a67fbbab80cc4168"
+}

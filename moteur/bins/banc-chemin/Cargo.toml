@@ -1,0 +1,27 @@
+[package]
+name = "banc-chemin"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+description = "Banc du chemin des octets (lot E) : les essais E0 (mémoire épinglée, lecture sans tampon puis DMA, synchronisations par jeton), E1 (débit du lecteur) et E2 (disque → VRAM décodé, sans modèle, témoin C2)."
+build = "build.rs"
+
+# Dépendances : couture D (§ 2.4). windows-sys et serde_json : MIT ou Apache-2.0. E2 prend aussi,
+# par chemin, le format (lot F : répertoire, parties, empreintes) et les noyaux (lot K : le
+# décodeur K1), comme le dit la note de reprise du lot E (point 8).
+[dependencies]
+trc-cuda = { path = "../../crates/trc-cuda" }
+trc-es = { path = "../../crates/trc-es" }
+trc-format = { path = "../../crates/trc-format" }
+trc-noyaux = { path = "../../crates/trc-noyaux" }
+serde_json = { workspace = true }
+windows-sys = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_System_Power",
+    "Win32_System_SystemInformation",
+    "Win32_System_Threading",
+    "Win32_System_ProcessStatus",
+    "Win32_System_Performance",
+    "Win32_System_Memory",
+] }

@@ -1,0 +1,148 @@
+{
+  "alimentation": {
+    "ACLineStatus": 1,
+    "BatteryFlag": 1,
+    "BatteryLifePercent": 80,
+    "secteur": true
+  },
+  "base": "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+  "commande": "evaluer --modele ~/dev/essais/troncons/genome/synonyme/trc/gpt-oss-20b-synonyme-l0.rapide.trc --base ~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld --fenetres 10 --sortie ~/dev/essais/troncons/genome/synonyme/kl/moteur-synonyme-l0.kld --journal ~/dev/active/troncons/outils/genome/synonyme/../../../mesures/genome/construction/synonyme/moteur/evaluer-synonyme-l0.json --rapide",
+  "compteurs": {
+    "acces": 491520,
+    "defauts_disque": 35099,
+    "emplacements": 365,
+    "evictions": 34734,
+    "experts_decodes": 35099,
+    "experts_verifies": 0,
+    "flux_conflits_evites": 0,
+    "garde_attente_s": 10.42711990000002,
+    "garde_lignes": 5120,
+    "garde_octets": 291944320688,
+    "garde_octets_ouverture": 615333888,
+    "garde_troncons": 35099,
+    "h_vram": 0.9285909016927083,
+    "lectures_enchassement": 5120,
+    "lectures_troncons": 35099,
+    "ms_copie_carte": 31328.719583272934,
+    "ms_decodage_carte": 16341.256927669048,
+    "octets_copies_cache": 292018835456,
+    "octets_disque_cache": 292018835456,
+    "octets_dma": 292018835456,
+    "octets_lus": 293978464256,
+    "octets_lus_enchassement": 41943040,
+    "octets_lus_troncons": 292018835456,
+    "pas": 5120,
+    "pf_emis": 0,
+    "pf_octets": 0,
+    "pf_utiles": 0,
+    "s_attente_routeur": 80.7584639999997,
+    "s_fin_jeton": 21.16556150000003,
+    "s_lectures": 129.14190810000062,
+    "s_pas": 290.1256925000004,
+    "succes_ram": 0,
+    "succes_vram": 456421,
+    "tiedes": 0
+  },
+  "date_utc": "2026-10-22T05:03:48Z",
+  "disque": {
+    "octets_comptes_moteur": {
+      "dont_chargement_residents": 1302351872,
+      "lecteur": 293978464256,
+      "ouverture_tamponnee": 13226785,
+      "total": 293991691041
+    },
+    "processus": {
+      "lectures": 40355,
+      "octets_ecrits": 1025590108,
+      "octets_lus": 293996764962,
+      "octets_lus_depuis_le_depart": 294000959266
+    }
+  },
+  "empreinte_csv_sha256": "fbb329244136e855f7bbbb3348312312acb3002d4df819ab1228e41d793826eb",
+  "fenetres": 10,
+  "flux": false,
+  "flux_experts": 0,
+  "flux_positions": 0,
+  "moteur": {
+    "arrivees": 12,
+    "brut": false,
+    "carte": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "casser_garde": null,
+    "chargement": {
+      "empreintes_verifiees": 314,
+      "lectures": 78,
+      "octets_lus": 1302351872,
+      "octets_tenseurs": 1302341376,
+      "secondes": 1.4375922,
+      "tenseurs": 314
+    },
+    "contexte": 4096,
+    "couches": 24,
+    "couches_d_avance": 3,
+    "emplacements": 365,
+    "enchassement_en_ram": false,
+    "etapes_memoire": [
+      {
+        "ensemble_travail": 5791744,
+        "etape": "avant"
+      },
+      {
+        "ensemble_travail": 19181568,
+        "etape": "fichier"
+      },
+      {
+        "ensemble_travail": 129945600,
+        "etape": "contexte_flux"
+      },
+      {
+        "ensemble_travail": 131137536,
+        "etape": "noyaux"
+      },
+      {
+        "ensemble_travail": 132009984,
+        "etape": "modele"
+      },
+      {
+        "ensemble_travail": 132247552,
+        "etape": "luts"
+      },
+      {
+        "ensemble_travail": 238829568,
+        "etape": "fenetre_et_tampons"
+      },
+      {
+        "ensemble_travail": 239030272,
+        "etape": "emplacements_cache_evenements"
+      }
+    ],
+    "experts": 32,
+    "fichier": "~/dev/essais/troncons/genome/synonyme/trc/gpt-oss-20b-synonyme-l0.rapide.trc",
+    "garde": true,
+    "k": 4,
+    "kv_f32": false,
+    "longueur_arrivee": 8437760,
+    "longueur_lecture": null,
+    "octets_emplacement": 13254144,
+    "octets_epingles": 102080512,
+    "octets_vram_moteur": 6350862512,
+    "ouverture_s": 2.7953634000000003,
+    "prechargement": false,
+    "profondeur_es": 4,
+    "ram_tiede_go": 0.0,
+    "rapide": true,
+    "temoin": false,
+    "tiedes": 0,
+    "vocab": 201088,
+    "vram_plafond_mio": 7179
+  },
+  "n_ctx": 512,
+  "outil": "troncons evaluer",
+  "pas": 5120,
+  "pas_s": 15.912373216076348,
+  "positions_notees": 2550,
+  "positions_par_fenetre": 512,
+  "ppl_positions_notees": 410.8611540793076,
+  "secondes": 321.7621866,
+  "sortie": "~/dev/essais/troncons/genome/synonyme/kl/moteur-synonyme-l0.kld",
+  "version": "0.1.0"
+}

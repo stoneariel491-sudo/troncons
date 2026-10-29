@@ -1,0 +1,50 @@
+% Table des notations, commune aux deux mémoires.
+\chapter*{\EF{Notation}{Notations}}
+\addcontentsline{toc}{chapter}{\EF{Notation}{Notations}}
+\markboth{\EF{Notation}{Notations}}{\EF{Notation}{Notations}}
+
+\EF{Units are decimal: 1\,GB $=10^9$ bytes, 1\,GB/s $=10^9$ bytes per second; binary multiples are written KiB, MiB, GiB. Every number of this thesis carries its provenance: \mes{} measured here on Stone's machine with a committed tool and log, \calc{} computed from named numbers, \litt{} literature (publisher's number, not reproduced).}%
+{Les unités sont décimales : 1\,Go $=10^9$ octets, 1\,Go/s $=10^9$ octets par seconde ; les multiples binaires s'écrivent Kio, Mio, Gio. Chaque nombre du mémoire porte sa provenance : \mes{} mesuré ici sur la machine de Stone, par un outil et un journal commités ; \calc{} calculé à partir de nombres nommés ; \litt{} littérature (chiffre d'éditeur, non reproduit).}
+
+\medskip
+\renewcommand{\arraystretch}{1.18}
+\begin{longtable}{@{}p{0.17\linewidth}p{0.78\linewidth}@{}}
+\toprule
+\EF{Symbol}{Symbole} & \EF{Meaning}{Signification} \\
+\midrule
+\endhead
+\multicolumn{2}{@{}l}{\textsf{\bfseries\EF{Throughput and the roof}{Débit et toit}}}\\
+$B$ & \EF{bytes of weights read per decoded token (batch of one)}{octets de poids lus par jeton décodé (lot de un)}\\
+$W_i$ & \EF{effective throughput of stage $i$ (disk, RAM, PCIe, VRAM), bytes/s}{débit effectif de l'étage $i$ (disque, RAM, PCIe, VRAM), octets/s}\\
+$O_i$ & \EF{bytes that must cross stage $i$ for one token}{octets qui doivent traverser l'étage $i$ pour un jeton}\\
+$f_V, f_R, f_D$ & \EF{fractions of the weights resident in VRAM, RAM, on disk ($f_V+f_R+f_D=1$)}{fractions des poids résidant en VRAM, en RAM, sur le disque ($f_V+f_R+f_D=1$)}\\
+$r$ & \EF{compression factor of stored weights (bytes served / bytes stored)}{facteur de compression des poids stockés (octets servis / octets stockés)}\\
+$r^\star$ & \EF{crossing factor $W_{\mathrm{PCIe}}/W_{\mathrm{disk}}$}{facteur de croisement $W_{\mathrm{PCIe}}/W_{\mathrm{disque}}$}\\
+$t$ & \EF{time per token, s}{temps par jeton, s}\\
+\multicolumn{2}{@{}l}{\textsf{\bfseries\EF{Quantization}{Quantification}}}\\
+$N$ & \EF{number of (active) parameters read per token}{nombre de paramètres (actifs) lus par jeton}\\
+$b$ & \EF{bits per weight, metadata included}{bits par poids, métadonnées comprises}\\
+$R$ & \EF{rate, bits per sample (per weight)}{débit, bits par échantillon (par poids)}\\
+$D(R)$ & \EF{distortion--rate function (mean squared error at rate $R$)}{fonction distorsion-débit (erreur quadratique moyenne au débit $R$)}\\
+$\sigma^2$ & \EF{variance of the source}{variance de la source}\\
+$\Delta(q)$ & \EF{distance in bits of quantizer $q$ to the Shannon bound}{distance en bits du quantificateur $q$ à la borne de Shannon}\\
+$L, k$ & \EF{state width and bits per weight of a shift-register trellis}{largeur d'état et bits par poids d'un treillis à décalage}\\
+$c_i, n_i$ & \EF{sensitivity and size (weights) of matrix $i$}{sensibilité et taille (poids) de la matrice $i$}\\
+\multicolumn{2}{@{}l}{\textsf{\bfseries\EF{Lossless coding}{Codage sans perte}}}\\
+$H(\cdot), h(\cdot)$ & \EF{Shannon entropy (bits) of a discrete variable; differential entropy of a density}{entropie de Shannon (bits) d'une variable discrète ; entropie différentielle d'une densité}\\
+$W_{\mathrm{dec}}, W_g$ & \EF{output throughput of the decoder on the card; throughput at which the matrix--vector product consumes decoded weights}{débit de sortie du décodeur sur la carte ; débit auquel le produit matrice-vecteur consomme des poids décodés}\\
+$M, L$ & \EF{rANS probability precision ($2^{12}$) and lower bound of the state ($2^{16}$, \cref{ch:entropie} only)}{précision des probabilités du rANS ($2^{12}$) et borne basse de l'état ($2^{16}$, au \cref{ch:entropie} seulement)}\\
+$f_s, c_s$ & \EF{quantised frequency and cumulative of symbol $s$}{fréquence quantifiée et cumul du symbole $s$}\\
+$e, \tilde e, \delta$ & \EF{E8M0 scale of an MXFP4 block, median of its row, offset $e - \tilde e$}{échelle E8M0 d'un bloc MXFP4, médiane de sa ligne, écart $e - \tilde e$}\\
+\multicolumn{2}{@{}l}{\textsf{\bfseries\EF{Mixture of experts and cache}{Mélange d'experts et cache}}}\\
+$E, k_e$ & \EF{routed experts per layer, experts chosen per token}{experts routés par couche, experts choisis par jeton}\\
+$B_t, B_e$ & \EF{always-read bytes and routed-expert bytes per token ($B=B_t+B_e$)}{octets toujours lus et octets d'experts routés par jeton ($B=B_t+B_e$)}\\
+$h$ & \EF{hit rate of the expert cache (share of routed bytes served from memory)}{taux de succès du cache d'experts (part des octets routés servie par la mémoire)}\\
+\multicolumn{2}{@{}l}{\textsf{\bfseries\EF{Speculative decoding}{Décodage spéculatif}}}\\
+$\alpha$ & \EF{acceptance rate of one drafted position}{taux d'acceptation d'une position proposée}\\
+$k$ & \EF{number of drafted tokens per verification pass}{nombre de jetons proposés par passe de vérification}\\
+$\mathcal{E}(\alpha,k)$ & \EF{expected tokens produced per full read of the active weights}{espérance du nombre de jetons produits par lecture complète des poids actifs}\\
+$U(n)$ & \EF{expected size of the union of experts of $n$ tokens}{espérance de la taille de l'union des experts de $n$ jetons}\\
+$n^\star$ & \EF{batch size where compute catches up with reading}{taille de lot où le calcul rattrape la lecture}\\
+\bottomrule
+\end{longtable}

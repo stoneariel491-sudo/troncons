@@ -1,0 +1,310 @@
+% =============================================================================
+% Préambule commun aux deux mémoires de troncons (anglais et français).
+% Le fichier maître définit \ifanglais (vrai pour l'anglais) AVANT de charger ce
+% fichier ; tout texte commun (figures, schémas, page de titre) choisit sa langue
+% par \EF{texte anglais}{texte français}.
+% Compilation : lualatex + biber (latexmk -lualatex), depuis memoire/en ou memoire/fr.
+% =============================================================================
+
+% --- Chemins, relatifs au dossier de compilation (memoire/en ou memoire/fr) ---
+% Le maître du Tome II (compilé dans memoire/tome2/<langue>/) les pose avant de charger ce
+% fichier, à ../.. et ../../.. ; ces valeurs par défaut sont celles du Tome I.
+\providecommand{\Racine}{..}             % memoire/
+\providecommand{\Depot}{../..}           % racine du dépôt troncons
+\newcommand{\Donnees}{\Racine/figures/donnees}
+\newcommand{\Schemas}{\Racine/figures/schemas}
+\newcommand{\Graphes}{\Racine/figures/graphes}
+\newcommand{\CsvQuant}{\Depot/fondations/journaux/02-quantification/csv}
+\newcommand{\CsvMachine}{\Depot/fondations/journaux/01-machine}
+\newcommand{\CsvEntropie}{\Depot/fondations/journaux/03-entropie/csv}
+
+% --- Langue ---
+\newcommand{\EF}[2]{\ifanglais#1\else#2\fi}
+\ifanglais
+  \usepackage[french,english]{babel}
+\else
+  \usepackage[english,french]{babel}
+  \frenchsetup{SmallCapsFigTabCaptions=false, ItemLabels=\textendash}
+\fi
+
+% --- Polices : Libertinus (texte, sans, chasse fixe, mathématiques) ---
+\usepackage{fontspec}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage[math-style=ISO,bold-style=ISO]{unicode-math}
+\setmainfont{Libertinus Serif}
+\setsansfont{Libertinus Sans}
+\setmonofont{Libertinus Mono}[Scale=0.92, BoldFont={Libertinus Mono}, BoldFeatures={FakeBold=2.5}, ItalicFont={Libertinus Mono}, ItalicFeatures={FakeSlant=0.18}]
+\setmathfont{Libertinus Math}
+\ifanglais\else\usepackage{icomma}\fi
+\usepackage{microtype}
+
+% --- Mise en page ---
+\usepackage{geometry}
+\geometry{a4paper, inner=30mm, outer=24mm, top=28mm, bottom=30mm, headheight=14pt}
+\usepackage[dvipsnames,table]{xcolor}
+\usepackage{scrlayer-scrpage}
+\pagestyle{scrheadings}
+\clearpairofpagestyles
+\ohead{\headmark}
+\ofoot*{\pagemark}
+\automark[section]{chapter}
+\setkomafont{pageheadfoot}{\normalfont\sffamily\small\color{black!65}}
+\setkomafont{pagenumber}{\normalfont\sffamily\small}
+\setkomafont{disposition}{\normalfont\sffamily\bfseries}
+\setkomafont{chapter}{\normalfont\sffamily\bfseries\Huge}
+\setkomafont{part}{\normalfont\sffamily\bfseries\Huge}
+\setkomafont{chapterprefix}{\normalfont\sffamily\Large\color{Accent}}
+\addtokomafont{caption}{\small}
+\setkomafont{captionlabel}{\sffamily\bfseries}
+\setcapindent{0pt}
+\linespread{1.06}
+
+% --- Couleurs du mémoire (une seule palette pour tous les schémas et graphes) ---
+\definecolor{Accent}{HTML}{1F5C99}
+\definecolor{Encre}{HTML}{1A1A1A}
+\definecolor{Signe}{HTML}{C0392B}       % bit de signe
+\definecolor{Expo}{HTML}{2E6DB4}        % exposant
+\definecolor{Mant}{HTML}{2E8B57}        % mantisse
+\definecolor{Echelle}{HTML}{D68910}     % échelles, métadonnées de bloc
+\definecolor{Code}{HTML}{6C7A89}        % codes quantifiés
+\definecolor{Index}{HTML}{8E44AD}       % index de grille, de livre de codes
+\definecolor{Disque}{HTML}{8B5A2B}
+\definecolor{Ram}{HTML}{1F7A8C}
+\definecolor{Pcie}{HTML}{B9770E}
+\definecolor{Vram}{HTML}{2E8B57}
+\definecolor{Calcul}{HTML}{C0392B}
+\definecolor{SerieA}{HTML}{1F5C99}
+\definecolor{SerieB}{HTML}{C0392B}
+\definecolor{SerieC}{HTML}{2E8B57}
+\definecolor{SerieD}{HTML}{D68910}
+\definecolor{SerieE}{HTML}{8E44AD}
+\definecolor{SerieF}{HTML}{6C7A89}
+\definecolor{Fond}{HTML}{F4F6F8}
+
+% --- Tableaux, figures, listes ---
+\usepackage{booktabs,array,tabularx,multirow,threeparttable,longtable}
+\usepackage{caption,subcaption}
+\captionsetup{font=small, labelfont={sf,bf}, format=hang, justification=justified}
+\usepackage{enumitem}
+\setlist{nosep, leftmargin=*, topsep=3pt}
+\usepackage{csquotes}
+\usepackage{graphicx}
+\usepackage[most]{tcolorbox}
+% Table des matières : la boîte du numéro de page des parties et des chapitres (tocbasic, style tocline) se
+% remplit par \hss au lieu de \hfil. Un numéro plus étroit que la boîte s'imprime exactement à la même place ;
+% un plus large (xvii, xxiii en gras ; le numéro en gras 12 pt d'une partie) rentre dans la ligne par la gauche
+% au lieu de déborder dans la marge (boîtes trop pleines de 1,5 à 5,1 pt dans les trois tomes ; M15 de
+% memoire/tome3/JUGEMENT-redaction-fr.md, 2026-10-29). Rien d'autre ne bouge : ni la largeur des boîtes, ni
+% les coupures, ni les listes des figures et des tableaux.
+\makeatletter
+\newcommand*{\BoiteNumeroTDM}[1]{\hb@xt@\@nameuse{scr@dte@pagenumberwidth}{\hss #1}}
+\AtBeginDocument{%
+  \@ifundefined{scr@tso@part@pagenumberbox}{}{\let\scr@tso@part@pagenumberbox\BoiteNumeroTDM}%
+  \@ifundefined{scr@tso@chapter@pagenumberbox}{}{\let\scr@tso@chapter@pagenumberbox\BoiteNumeroTDM}}
+\makeatother
+
+% --- Unités : séparateur décimal selon la langue ---
+\usepackage{siunitx}
+\ifanglais
+  \sisetup{output-decimal-marker={.}, group-separator={\,}, group-minimum-digits=4,
+           per-mode=symbol, range-phrase={--}, list-final-separator={, and }}
+\else
+  \sisetup{output-decimal-marker={,}, group-separator={\,}, group-minimum-digits=4,
+           per-mode=symbol, range-phrase={ à }, list-final-separator={ et }}
+\fi
+\DeclareSIUnit{\octet}{\EF{B}{o}}
+\DeclareSIUnit{\Go}{\EF{GB}{Go}}
+\DeclareSIUnit{\Mo}{\EF{MB}{Mo}}
+\DeclareSIUnit{\Gio}{\EF{GiB}{Gio}}
+\DeclareSIUnit{\Mio}{\EF{MiB}{Mio}}
+\DeclareSIUnit{\Kio}{\EF{KiB}{Kio}}
+\DeclareSIUnit{\jeton}{\EF{token}{jeton}}
+
+% --- TikZ et pgfplots ---
+\usepackage{tikz}
+% Sous LaTeX 2026-06-01 (MiKTeX 26.5), \textsuperscript et \textsubscript n'entrent plus en mode
+% mathématique : ils appellent \check@mathfonts au niveau du groupe qui les contient, et son
+% \aftergroup\restglb@settings tombe après l'accolade fermante d'un texte de nœud TikZ, là où TikZ
+% attend « ; » (« Giving up on this path », Tome II, \SchemaNoyStructures). Un groupe de plus autour de
+% la commande garde ce retour dans le texte ; le rendu ne change pas. Noyaux plus anciens : inchangés.
+\makeatletter
+\ifdefined\textsuperscript@offset
+  \DeclareRobustCommand*\textsuperscript[1]{{\@textsuperscript{\selectfont#1}}}
+  \DeclareRobustCommand*\textsubscript[1]{{\@textsubscript{\selectfont#1}}}
+\fi
+\makeatother
+\usetikzlibrary{arrows.meta, positioning, calc, fit, backgrounds, decorations.pathreplacing,
+                patterns, shapes.geometric, shapes.misc, matrix, shadows.blur}
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
+\pgfplotsset{compat=1.18}
+\usepgfplotslibrary{groupplots, fillbetween}
+\pgfplotstableset{col sep=comma}
+\ifanglais
+  \pgfkeys{/pgf/number format/.cd, 1000 sep={\,}}
+\else
+  \pgfkeys{/pgf/number format/.cd, use comma, 1000 sep={\,}}
+\fi
+% Style commun des graphes. Sous lualatex, les barres d'erreur exigent « lua backend=false ».
+\pgfplotsset{
+  memoire/.style={lua backend=false, grid=major, grid style={black!12},
+    tick label style={font=\small}, label style={font=\small},
+    legend style={font=\footnotesize, draw=black!25, fill=white, fill opacity=0.92,
+      text opacity=1, rounded corners=1pt},
+    legend cell align=left, every axis plot/.append style={line width=0.9pt},
+    axis line style={black!60}, tick style={black!60}},
+  erreurs/.style={error bars/.cd, y dir=both, y explicit,
+    error bar style={line width=0.6pt}, error mark options={rotate=90, mark size=1.6pt}},
+}
+
+% --- Listings (sans dépendance Python) ---
+\usepackage{listings}
+\lstdefinestyle{memoire}{basicstyle=\ttfamily\footnotesize, columns=fullflexible,
+  keepspaces=true, breaklines=true, frame=tb, framerule=0.4pt, rulecolor=\color{black!35},
+  backgroundcolor=\color{Fond}, numbers=left, numberstyle=\tiny\color{black!45},
+  numbersep=6pt, xleftmargin=14pt, commentstyle=\itshape\color{Mant},
+  keywordstyle=\bfseries\color{Accent}, stringstyle=\color{Signe}, showstringspaces=false,
+  literate={é}{{\'e}}1 {è}{{\`e}}1 {à}{{\`a}}1 {ç}{{\c{c}}}1 {ê}{{\^e}}1 {ù}{{\`u}}1
+           {î}{{\^i}}1 {ô}{{\^o}}1 {â}{{\^a}}1 {É}{{\'E}}1 {À}{{\`A}}1 {ï}{{\"i}}1
+           {→}{{$\rightarrow$}}1 {×}{{$\times$}}1 {≤}{{$\le$}}1 {≥}{{$\ge$}}1}
+\lstset{style=memoire}
+\lstdefinelanguage{WGSL}{morekeywords={fn,let,var,const,return,if,else,for,loop,break,
+  continue,struct,u32,i32,f32,f16,vec2,vec4,array,bitcast,select,workgroup,storage,uniform,
+  read,read_write,override}, sensitive=true, morecomment=[l]{//}, morestring=[b]"}
+
+% --- Bibliographie ---
+\usepackage[backend=biber, style=numeric-comp, sorting=none, maxbibnames=6,
+            minbibnames=3, giveninits=true, urldate=iso, date=iso, seconds=true,
+            backref=false]{biblatex}
+% Un « _ » nu dans une note (adresse de dépôt, nom de fichier) arrête lualatex au moment
+% d'imprimer la bibliographie ; biber l'échappe ici, sans toucher les « \_ » déjà écrits.
+% Dans \regexp, l'antislash du motif se double deux fois, celui du remplacement une fois
+% (éprouvé : un « < » de regard arrière rend le .bcf illisible, il est donc évité).
+\DeclareSourcemap{\maps[datatype=bibtex]{%
+  \map{\step[fieldsource=note, match=\regexp{([^\\\\])_}, replace=\regexp{$1\\_}]}%
+  \map{\step[fieldsource=howpublished, match=\regexp{([^\\\\])_}, replace=\regexp{$1\\_}]}%
+  \map{\step[fieldsource=addendum, match=\regexp{([^\\\\])_}, replace=\regexp{$1\\_}]}}}
+\addbibresource{\Racine/sources/commun.bib}
+\addbibresource{\Racine/sources/01-machine.bib}
+\addbibresource{\Racine/sources/quantification.bib}
+\addbibresource{\Racine/sources/03-entropie.bib}
+\addbibresource{\Racine/sources/04-chargement.bib}
+\addbibresource{\Racine/sources/05-sparsite.bib}
+\addbibresource{\Racine/sources/06-modeles.bib}
+\addbibresource{\Racine/sources/07-synthese.bib}
+\addbibresource{\Racine/sources/decisions-partisan-b.bib}
+\addbibresource{\Racine/sources/etat-de-l-art.bib}
+
+% --- Liens et renvois ---
+\usepackage{xurl}
+\usepackage[hidelinks, unicode, pdfusetitle, bookmarksnumbered]{hyperref}
+\hypersetup{colorlinks=true, linkcolor=Accent, citecolor=Accent!80!black,
+            urlcolor=Accent!70!black}
+\ifanglais
+  \usepackage[capitalise, nameinlink, noabbrev]{cleveref}
+\else
+  \usepackage[french, nameinlink, noabbrev]{cleveref}
+\fi
+
+% --- Théorèmes ---
+% thmtools : compteur partagé, et cleveref connaît le type de chaque environnement.
+\usepackage{thmtools}
+% Sous LaTeX 2026-06-01 (MiKTeX 26.5), le noyau a \newcounteralias, et ses premiers soins pour
+% amsthm l'appellent dans tout \newtheorem{x}[y] ; thmtools 0.76 a déjà fait de \c@x l'alias de
+% \c@theoreme et passe y = x : l'alias de x sur lui-même lève « \c@x already defined ». Pendant
+% les déclarations, un alias déjà fait (\c@x est le même registre que \c@y) ne se refait pas ; tout
+% autre appel va au noyau. Sans \newcounteralias (noyaux plus anciens), rien ne change.
+\ifdefined\newcounteralias
+  \let\AliasCompteurNoyau\newcounteralias
+  \renewcommand*{\newcounteralias}[2]{%
+    \ifcsname c@#1\endcsname
+      \expandafter\ifx\csname c@#1\expandafter\endcsname\csname c@#2\endcsname
+      \else\AliasCompteurNoyau{#1}{#2}\fi
+    \else\AliasCompteurNoyau{#1}{#2}\fi}
+\fi
+\declaretheorem[style=plain, numberwithin=chapter, name=\EF{Theorem}{Théorème}]{theoreme}
+\declaretheorem[style=plain, sibling=theoreme, name=Proposition]{proposition}
+\declaretheorem[style=plain, sibling=theoreme, name=\EF{Lemma}{Lemme}]{lemme}
+\declaretheorem[style=plain, sibling=theoreme, name=\EF{Corollary}{Corollaire}]{corollaire}
+\declaretheorem[style=definition, sibling=theoreme, name=\EF{Definition}{Définition}]{definition}
+\declaretheorem[style=definition, sibling=theoreme, name=\EF{Assumption}{Hypothèse}]{hypothese}
+\declaretheorem[style=remark, sibling=theoreme, name=\EF{Remark}{Remarque}]{remarque}
+\declaretheorem[style=remark, numbered=no, name=\EF{Reading}{Lecture}]{lecture}
+\ifdefined\AliasCompteurNoyau \let\newcounteralias\AliasCompteurNoyau \fi
+\renewcommand{\qedsymbol}{\(\blacksquare\)}
+% Ancres hyperref qualifiées par le chapitre : sans elles, « corollaire.4 » du chapitre 7 et
+% celui du chapitre 3 portent le même nom, et le lien saute au mauvais énoncé.
+\def\theHtheoreme{\thechapter.\arabic{theoreme}}
+\def\theHproposition{\thechapter.\arabic{theoreme}}
+\def\theHlemme{\thechapter.\arabic{theoreme}}
+\def\theHcorollaire{\thechapter.\arabic{theoreme}}
+\def\theHdefinition{\thechapter.\arabic{theoreme}}
+\def\theHhypothese{\thechapter.\arabic{theoreme}}
+\def\theHremarque{\thechapter.\arabic{theoreme}}
+\ifanglais
+  \crefname{theoreme}{theorem}{theorems}\Crefname{theoreme}{Theorem}{Theorems}
+  \crefname{lemme}{lemma}{lemmas}\Crefname{lemme}{Lemma}{Lemmas}
+  \crefname{corollaire}{corollary}{corollaries}\Crefname{corollaire}{Corollary}{Corollaries}
+  \crefname{hypothese}{assumption}{assumptions}\Crefname{hypothese}{Assumption}{Assumptions}
+  \crefname{remarque}{remark}{remarks}\Crefname{remarque}{Remark}{Remarks}
+  \crefname{lstlisting}{listing}{listings}\Crefname{lstlisting}{Listing}{Listings}
+\else
+  \crefname{theoreme}{théorème}{théorèmes}\Crefname{theoreme}{Théorème}{Théorèmes}
+  \crefname{lemme}{lemme}{lemmes}\Crefname{lemme}{Lemme}{Lemmes}
+  \crefname{corollaire}{corollaire}{corollaires}\Crefname{corollaire}{Corollaire}{Corollaires}
+  \crefname{hypothese}{hypothèse}{hypothèses}\Crefname{hypothese}{Hypothèse}{Hypothèses}
+  \crefname{remarque}{remarque}{remarques}\Crefname{remarque}{Remarque}{Remarques}
+  \crefname{definition}{définition}{définitions}\Crefname{definition}{Définition}{Définitions}
+  \crefname{proposition}{proposition}{propositions}\Crefname{proposition}{Proposition}{Propositions}
+  \crefname{lstlisting}{listing}{listings}\Crefname{lstlisting}{Listing}{Listings}
+  % cleveref range les environnements de listings sous le type « listing » (sans quoi il
+  % écrit « liste » en français) : on le nomme aussi.
+  \crefname{listing}{listing}{listings}\Crefname{listing}{Listing}{Listings}
+  \renewcommand{\lstlistingname}{Listing}
+  \renewcommand{\lstlistlistingname}{Liste des listings}
+\fi
+
+% --- Étiquettes de provenance des chiffres (SOCLE : savoir, mesurer, calculer) ---
+\newcommand{\etiq}[2]{\textsf{\scriptsize\color{#1}[#2]}}
+\newcommand{\mes}{\etiq{Mant}{\EF{meas.}{mes.}}}
+\newcommand{\calc}{\etiq{Accent}{\EF{calc.}{calc.}}}
+\newcommand{\litt}{\etiq{Echelle}{\EF{lit.}{litt.}}}
+% Un fichier du dépôt, cité comme source d'un chiffre.
+\newcommand{\fichier}[1]{\textsf{\small\nolinkurl{#1}}}
+% Une phrase barrée, avec ce qui a changé (SOCLE : jamais de retrait silencieux).
+\usepackage[normalem]{ulem}
+\newcommand{\barre}[1]{\sout{#1}}
+
+% --- Encadrés ---
+\newtcolorbox{enbref}[1][]{enhanced, breakable, colback=Fond, colframe=Accent,
+  boxrule=0pt, leftrule=2.5pt, arc=0pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  fonttitle=\sffamily\bfseries, coltitle=Accent, colbacktitle=Fond,
+  title={\EF{In brief}{En bref}}, attach title to upper={\par\smallskip}, #1}
+\newtcolorbox{faux}[1][]{enhanced, breakable, colback=Signe!4, colframe=Signe,
+  boxrule=0pt, leftrule=2.5pt, arc=0pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+  fonttitle=\sffamily\bfseries, coltitle=Signe,
+  title={\EF{What could be wrong}{Ce qui pourrait être faux}},
+  attach title to upper={\par\smallskip}, #1}
+\newtcolorbox{origine}[1][]{enhanced, breakable, colback=white, colframe=black!25,
+  boxrule=0.4pt, arc=1pt, left=8pt, right=8pt, top=5pt, bottom=5pt,
+  fonttitle=\sffamily\bfseries\small, coltitle=black!70,
+  title={\EF{Where we start, what this chapter establishes, what remains}%
+               {D'où l'on part, ce que le chapitre établit, ce qui reste}},
+  attach title to upper={\par\smallskip}, #1}
+
+% --- Notations mathématiques ---
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Prob}{\mathbb{P}}
+\newcommand{\Normale}{\mathcal{N}}
+\newcommand{\bits}{\EF{bits}{bits}}
+\newcommand{\jps}{\EF{tok/s}{jetons/s}}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+% --- Légendes de figures : la donnée d'où vient chaque figure ---
+\newcommand{\sourcefig}[1]{\par\smallskip{\footnotesize\sffamily\color{black!60}%
+  \EF{Data:}{Données :} #1}}
+
+% --- Figures communes (définies comme commandes, tracées là où le chapitre les appelle) ---
+\input{\Racine/commun/figures}

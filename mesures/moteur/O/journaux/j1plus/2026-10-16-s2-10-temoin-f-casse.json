@@ -1,0 +1,124 @@
+{
+  "alimentation": {
+    "ACLineStatus": 1,
+    "BatteryFlag": 1,
+    "BatteryLifePercent": 80,
+    "secteur": true
+  },
+  "base": "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+  "commande": "evaluer --flux --modele ~/dev/modeles/trc/casse/gpt-oss-20b-casse-O3.trc --base ~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld --fenetres 1 --sortie ~/dev/essais/troncons/lot-O/2026-10-16-s2-10-temoin-f-casse.kld --empreintes ~/dev/active/troncons/mesures/moteur/O/journaux/j1plus/2026-10-16-s2-10-temoin-f-casse-empreintes.csv --journal ~/dev/active/troncons/mesures/moteur/O/journaux/j1plus/2026-10-16-s2-10-temoin-f-casse.json",
+  "compteurs": {
+    "acces": 641,
+    "defauts_disque": 641,
+    "emplacements": 362,
+    "evictions": 279,
+    "experts_decodes": 641,
+    "experts_verifies": 0,
+    "h_vram": 0.0,
+    "lectures_enchassement": 512,
+    "lectures_troncons": 641,
+    "ms_copie_carte": 0.0,
+    "ms_decodage_carte": 0.0,
+    "octets_copies_cache": 7700844544,
+    "octets_disque_cache": 7700844544,
+    "octets_dma": 7700844544,
+    "octets_lus": 9007390720,
+    "octets_lus_enchassement": 4194304,
+    "octets_lus_troncons": 7700844544,
+    "pas": 0,
+    "pf_emis": 0,
+    "pf_octets": 0,
+    "pf_utiles": 0,
+    "s_attente_routeur": 0.0,
+    "s_fin_jeton": 0.0,
+    "s_lectures": 0.0,
+    "s_pas": 11.3674684,
+    "succes_ram": 0,
+    "succes_vram": 0,
+    "tiedes": 0
+  },
+  "date_utc": "2026-10-16T04:57:53Z",
+  "empreinte_csv_sha256": "16573dbd1d9f56a8f25b01d45560bbee3a3695bfe14d0c4022e89423ba645a59",
+  "fenetres": 1,
+  "flux": true,
+  "flux_experts": 641,
+  "flux_positions": 512,
+  "moteur": {
+    "arrivees": 12,
+    "brut": false,
+    "carte": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "chargement": {
+      "empreintes_verifiees": 314,
+      "lectures": 78,
+      "octets_lus": 1302351872,
+      "octets_tenseurs": 1302341376,
+      "secondes": 1.4330597,
+      "tenseurs": 314
+    },
+    "contexte": 4096,
+    "couches": 24,
+    "couches_d_avance": 3,
+    "emplacements": 362,
+    "enchassement_en_ram": false,
+    "etapes_memoire": [
+      {
+        "ensemble_travail": 4882432,
+        "etape": "avant"
+      },
+      {
+        "ensemble_travail": 18243584,
+        "etape": "fichier"
+      },
+      {
+        "ensemble_travail": 128143360,
+        "etape": "contexte_flux"
+      },
+      {
+        "ensemble_travail": 129138688,
+        "etape": "noyaux"
+      },
+      {
+        "ensemble_travail": 129945600,
+        "etape": "modele"
+      },
+      {
+        "ensemble_travail": 130170880,
+        "etape": "luts"
+      },
+      {
+        "ensemble_travail": 279085056,
+        "etape": "fenetre_et_tampons"
+      },
+      {
+        "ensemble_travail": 279339008,
+        "etape": "emplacements_cache_evenements"
+      }
+    ],
+    "experts": 32,
+    "fichier": "~/dev/modeles/trc/casse/gpt-oss-20b-casse-O3.trc",
+    "k": 4,
+    "longueur_arrivee": 12144640,
+    "longueur_lecture": null,
+    "octets_emplacement": 13254144,
+    "octets_epingles": 146563072,
+    "octets_vram_moteur": 6355582640,
+    "ouverture_s": 1.6519770999999999,
+    "prechargement": false,
+    "profondeur_es": 4,
+    "ram_tiede_go": 0.0,
+    "temoin": false,
+    "tiedes": 0,
+    "vocab": 201088,
+    "vram_plafond_mio": 7179
+  },
+  "n_ctx": 512,
+  "outil": "troncons evaluer",
+  "pas": 0,
+  "pas_s": 0.0,
+  "positions_notees": 255,
+  "positions_par_fenetre": 512,
+  "ppl_positions_notees": 198.05830159997788,
+  "secondes": 11.3700923,
+  "sortie": "~/dev/essais/troncons/lot-O/2026-10-16-s2-10-temoin-f-casse.kld",
+  "version": "0.1.0"
+}

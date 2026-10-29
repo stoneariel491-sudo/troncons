@@ -1,0 +1,23 @@
+# trc-ordo (lot O) : l'ordonnanceur de couche et le moteur (ARCHITECTURE.md § 5.1, § 5.2, § 5.8).
+[package]
+name = "trc-ordo"
+description = "Le moteur troncons : fichier .trc, contexte CUDA et trois flux, cache d'experts, lecteur IOCP, fenêtre épinglée, et le pas d'un jeton (routeur, défauts lus, copiés, décodés, experts appliqués)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+# Couture D (§ 2.4) : anyhow (erreurs) ; windows-sys (ensemble de travail du processus, relevé à
+# chaque étape de l'ouverture : décomposition du critère C7). Le reste est du moteur.
+[dependencies]
+windows-sys = { workspace = true, features = ["Win32_Foundation", "Win32_System_ProcessStatus", "Win32_System_Threading"] }
+trc-format = { path = "../trc-format" }
+trc-cuda = { path = "../trc-cuda" }
+trc-es = { path = "../trc-es" }
+trc-noyaux = { path = "../trc-noyaux" }
+trc-cache = { path = "../trc-cache" }
+trc-modele = { path = "../trc-modele" }
+anyhow.workspace = true
+# sha2 : la garde de production (constat M1 de l'épreuve J1) hache elle-même ses tampons et la
+# table des lignes d'enchâssement (même empreinte64 que trc-format).
+sha2.workspace = true

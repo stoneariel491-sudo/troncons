@@ -1,0 +1,134 @@
+{
+ "extrapolation": {
+  "0.25": {
+   "taux_bascule_gauss": 0.02200699303430119,
+   "b_tau10_gauss": 0.9195846556136456,
+   "taux_bascule_empirique": 0.010207798830928348,
+   "b_tau10_empirique": 0.8691185452069862
+  },
+  "0.5": {
+   "taux_bascule_gauss": 0.04223525831070868,
+   "b_tau10_gauss": 0.7144608768085031,
+   "taux_bascule_empirique": 0.01956215179947819,
+   "b_tau10_empirique": 0.744831202594425
+  },
+  "1.0": {
+   "taux_bascule_gauss": 0.07774301086570518,
+   "b_tau10_gauss": 0.4897552384866587,
+   "taux_bascule_empirique": 0.03602246932501873,
+   "b_tau10_empirique": 0.6210875794785694
+  },
+  "1.5": {
+   "taux_bascule_gauss": 0.10783928012123299,
+   "b_tau10_gauss": 0.38424883799554493,
+   "taux_bascule_empirique": 0.05023379128007354,
+   "b_tau10_empirique": 0.5494615810991207
+  },
+  "2.0": {
+   "taux_bascule_gauss": 0.13358469201945677,
+   "b_tau10_gauss": 0.32424841370849855,
+   "taux_bascule_empirique": 0.06282492080688501,
+   "b_tau10_empirique": 0.49758049835619755
+  },
+  "3.0": {
+   "taux_bascule_gauss": 0.17528543340003575,
+   "b_tau10_gauss": 0.2587992722314688,
+   "taux_bascule_empirique": 0.08454275643725902,
+   "b_tau10_empirique": 0.42544019268114414
+  },
+  "5.0": {
+   "taux_bascule_gauss": 0.2337801625170606,
+   "b_tau10_gauss": 0.2016617096795975,
+   "taux_bascule_empirique": 0.11923349403854178,
+   "b_tau10_empirique": 0.34239336509680207
+  },
+  "10.0": {
+   "taux_bascule_gauss": 0.31352939692364995,
+   "b_tau10_gauss": 0.15486236400608863,
+   "taux_bascule_empirique": 0.1795038067777085,
+   "b_tau10_empirique": 0.2528124613546899
+  },
+  "20.0": {
+   "taux_bascule_gauss": 0.38082129287022964,
+   "b_tau10_gauss": 0.1293900890464281,
+   "taux_bascule_empirique": 0.25164482916253644,
+   "b_tau10_empirique": 0.19074875862853774
+  }
+ },
+ "propagation": {
+  "p_bascule_sachant_bascule_avant": 0.2664811643835616,
+  "p_bascule_sachant_rien_avant": 0.03371493381062929,
+  "n_bascule_avant": 4672
+ },
+ "prechargement": {
+  "P1_couche_suivante": {
+   "auc": 0.566763250320409,
+   "nul_999e_centile": 0.5120722465828909,
+   "permutations": 999,
+   "positifs": 5050,
+   "n": 117530,
+   "priorite_utile": false,
+   "reference_marge_de_la_couche_meme": 0.8609184735152036
+  },
+  "P2_jeton_suivant": {
+   "auc": 0.6266029055162298,
+   "nul_999e_centile": 0.512473766825848,
+   "permutations": 999,
+   "positifs": 114314,
+   "n": 122400,
+   "priorite_utile": true,
+   "part_ensembles_identiques": 0.06606209150326803,
+   "experts_gardes_moyens": 1.9997222222222222,
+   "spearman_marge_experts_gardes": 0.0755973146423719
+  }
+ }
+}
+corrélation groupée : 0.05772711663819963 nul : 0.023359762414902348
+0 med=0.0997 1/moy=6.15 f0=6.07 pente=1.117 forme=0.912 {'exp': np.float64(0.0423), 'gamma': np.float64(0.028), 'demi_normale': np.float64(0.1757), 'lognormale': np.float64(0.059)}
+1 med=0.0912 1/moy=7.00 f0=7.44 pente=1.030 forme=0.910 {'exp': np.float64(0.0327), 'gamma': np.float64(0.0181), 'demi_normale': np.float64(0.1665), 'lognormale': np.float64(0.0626)}
+2 med=0.0887 1/moy=7.62 f0=7.44 pente=0.995 forme=0.977 {'exp': np.float64(0.0094), 'gamma': np.float64(0.0062), 'demi_normale': np.float64(0.1341), 'lognormale': np.float64(0.0744)}
+3 med=0.0950 1/moy=7.13 f0=9.20 pente=0.900 forme=0.977 {'exp': np.float64(0.0127), 'gamma': np.float64(0.0105), 'demi_normale': np.float64(0.1339), 'lognormale': np.float64(0.0738)}
+4 med=0.0991 1/moy=7.28 f0=7.63 pente=0.939 forme=1.045 {'exp': np.float64(0.0173), 'gamma': np.float64(0.0121), 'demi_normale': np.float64(0.1004), 'lognormale': np.float64(0.0785)}
+5 med=0.1049 1/moy=6.67 f0=7.44 pente=1.031 forme=1.002 {'exp': np.float64(0.0116), 'gamma': np.float64(0.0116), 'demi_normale': np.float64(0.1235), 'lognormale': np.float64(0.0814)}
+6 med=0.0925 1/moy=7.54 f0=7.44 pente=0.974 forme=0.962 {'exp': np.float64(0.0165), 'gamma': np.float64(0.0127), 'demi_normale': np.float64(0.1266), 'lognormale': np.float64(0.0751)}
+7 med=0.1017 1/moy=7.02 f0=5.48 pente=0.912 forme=1.034 {'exp': np.float64(0.0187), 'gamma': np.float64(0.0167), 'demi_normale': np.float64(0.1027), 'lognormale': np.float64(0.0748)}
+8 med=0.0959 1/moy=7.21 f0=6.26 pente=0.999 forme=0.983 {'exp': np.float64(0.0178), 'gamma': np.float64(0.0187), 'demi_normale': np.float64(0.1234), 'lognormale': np.float64(0.0714)}
+9 med=0.1041 1/moy=7.16 f0=6.85 pente=0.913 forme=1.071 {'exp': np.float64(0.028), 'gamma': np.float64(0.0191), 'demi_normale': np.float64(0.0927), 'lognormale': np.float64(0.0818)}
+10 med=0.1031 1/moy=7.08 f0=7.05 pente=0.994 forme=1.043 {'exp': np.float64(0.0216), 'gamma': np.float64(0.0171), 'demi_normale': np.float64(0.0969), 'lognormale': np.float64(0.079)}
+11 med=0.0929 1/moy=7.76 f0=5.68 pente=1.200 forme=1.083 {'exp': np.float64(0.0207), 'gamma': np.float64(0.015), 'demi_normale': np.float64(0.1014), 'lognormale': np.float64(0.0727)}
+12 med=0.0911 1/moy=7.83 f0=5.68 pente=1.079 forme=1.042 {'exp': np.float64(0.0123), 'gamma': np.float64(0.0113), 'demi_normale': np.float64(0.1074), 'lognormale': np.float64(0.0734)}
+13 med=0.0959 1/moy=7.56 f0=5.48 pente=1.159 forme=1.085 {'exp': np.float64(0.0229), 'gamma': np.float64(0.0093), 'demi_normale': np.float64(0.1097), 'lognormale': np.float64(0.0712)}
+14 med=0.0828 1/moy=8.26 f0=9.00 pente=1.026 forme=0.967 {'exp': np.float64(0.0115), 'gamma': np.float64(0.0096), 'demi_normale': np.float64(0.134), 'lognormale': np.float64(0.0711)}
+15 med=0.0645 1/moy=10.84 f0=11.15 pente=0.941 forme=0.998 {'exp': np.float64(0.0064), 'gamma': np.float64(0.0064), 'demi_normale': np.float64(0.1246), 'lognormale': np.float64(0.0746)}
+16 med=0.0646 1/moy=10.78 f0=9.59 pente=1.041 forme=1.028 {'exp': np.float64(0.0121), 'gamma': np.float64(0.0106), 'demi_normale': np.float64(0.1178), 'lognormale': np.float64(0.0731)}
+17 med=0.0729 1/moy=10.05 f0=10.37 pente=0.936 forme=1.069 {'exp': np.float64(0.024), 'gamma': np.float64(0.0165), 'demi_normale': np.float64(0.0969), 'lognormale': np.float64(0.0797)}
+18 med=0.0712 1/moy=9.51 f0=6.65 pente=1.145 forme=1.018 {'exp': np.float64(0.0155), 'gamma': np.float64(0.0185), 'demi_normale': np.float64(0.1425), 'lognormale': np.float64(0.0663)}
+19 med=0.0699 1/moy=10.27 f0=10.57 pente=1.033 forme=1.024 {'exp': np.float64(0.0158), 'gamma': np.float64(0.0121), 'demi_normale': np.float64(0.1151), 'lognormale': np.float64(0.0805)}
+20 med=0.0725 1/moy=9.62 f0=8.22 pente=1.081 forme=1.003 {'exp': np.float64(0.0092), 'gamma': np.float64(0.0098), 'demi_normale': np.float64(0.1232), 'lognormale': np.float64(0.0728)}
+21 med=0.1272 1/moy=5.18 f0=5.48 pente=0.975 forme=0.941 {'exp': np.float64(0.0298), 'gamma': np.float64(0.0275), 'demi_normale': np.float64(0.1389), 'lognormale': np.float64(0.0653)}
+22 med=0.0534 1/moy=12.51 f0=10.96 pente=0.902 forme=0.976 {'exp': np.float64(0.0251), 'gamma': np.float64(0.0254), 'demi_normale': np.float64(0.1677), 'lognormale': np.float64(0.071)}
+23 med=0.0407 1/moy=16.32 f0=17.61 pente=0.964 forme=0.955 {'exp': np.float64(0.0244), 'gamma': np.float64(0.0248), 'demi_normale': np.float64(0.173), 'lognormale': np.float64(0.0704)}
+0 sig_rob=2.15e-03 sd=3.01e-03 kurt=3.5 sig_phi=2.66e-03 (-87.5) sig_2phi=1.83e-03 (-110.1) p(b|m<1e-4)=0.5 n=2
+1 sig_rob=3.75e-03 sd=6.32e-03 kurt=75.5 sig_phi=5.79e-03 (-282.7) sig_2phi=3.55e-03 (-347.6) p(b|m<1e-4)=0.75 n=4
+2 sig_rob=3.78e-03 sd=6.06e-03 kurt=17.8 sig_phi=9.44e-03 (-291.7) sig_2phi=5.01e-03 (-416.6) p(b|m<1e-4)=0.8 n=5
+3 sig_rob=3.94e-03 sd=9.00e-03 kurt=107.4 sig_phi=1.06e-02 (-312.0) sig_2phi=6.68e-03 (-464.6) p(b|m<1e-4)=0.3333333333333333 n=6
+4 sig_rob=4.40e-03 sd=9.44e-03 kurt=34.6 sig_phi=1.03e-02 (-311.7) sig_2phi=5.79e-03 (-413.0) p(b|m<1e-4)=0.5 n=4
+5 sig_rob=4.43e-03 sd=9.93e-03 kurt=33.6 sig_phi=1.26e-02 (-339.9) sig_2phi=7.94e-03 (-484.7) p(b|m<1e-4)=0.3333333333333333 n=3
+6 sig_rob=4.62e-03 sd=1.15e-02 kurt=41.8 sig_phi=1.50e-02 (-484.9) sig_2phi=1.00e-02 (-729.4) p(b|m<1e-4)=0.16666666666666666 n=6
+7 sig_rob=4.75e-03 sd=1.55e-02 kurt=134.1 sig_phi=1.83e-02 (-543.0) sig_2phi=1.26e-02 (-761.1) p(b|m<1e-4)=0.8 n=5
+8 sig_rob=5.48e-03 sd=1.43e-02 kurt=31.9 sig_phi=2.24e-02 (-745.6) sig_2phi=1.45e-02 (-1095.7) p(b|m<1e-4)=1.0 n=4
+9 sig_rob=6.62e-03 sd=2.11e-02 kurt=87.2 sig_phi=2.30e-02 (-692.4) sig_2phi=1.54e-02 (-995.3) p(b|m<1e-4)=0.4 n=5
+10 sig_rob=6.26e-03 sd=2.27e-02 kurt=68.6 sig_phi=3.65e-02 (-841.6) sig_2phi=1.83e-02 (-1311.7) p(b|m<1e-4)=0.6666666666666666 n=3
+11 sig_rob=6.39e-03 sd=2.02e-02 kurt=26.1 sig_phi=3.55e-02 (-898.2) sig_2phi=1.68e-02 (-1313.5) p(b|m<1e-4)=0.0 n=1
+12 sig_rob=6.75e-03 sd=2.20e-02 kurt=31.8 sig_phi=3.55e-02 (-946.7) sig_2phi=2.00e-02 (-1440.0) p(b|m<1e-4)=0.5 n=2
+13 sig_rob=6.41e-03 sd=2.31e-02 kurt=33.6 sig_phi=3.55e-02 (-954.0) sig_2phi=2.18e-02 (-1426.2) p(b|m<1e-4)=0.0 n=2
+14 sig_rob=6.10e-03 sd=1.61e-02 kurt=29.4 sig_phi=3.16e-02 (-951.3) sig_2phi=1.68e-02 (-1453.7) p(b|m<1e-4)=0.8 n=5
+15 sig_rob=6.37e-03 sd=1.86e-02 kurt=33.2 sig_phi=3.25e-02 (-1163.9) sig_2phi=1.83e-02 (-1813.5) p(b|m<1e-4)=0.5714285714285714 n=7
+16 sig_rob=7.02e-03 sd=1.90e-02 kurt=16.4 sig_phi=2.66e-02 (-1081.4) sig_2phi=1.63e-02 (-1540.6) p(b|m<1e-4)=0.0 n=4
+17 sig_rob=7.08e-03 sd=2.24e-02 kurt=40.1 sig_phi=3.65e-02 (-1146.1) sig_2phi=2.05e-02 (-1790.7) p(b|m<1e-4)=1.0 n=5
+18 sig_rob=6.28e-03 sd=1.96e-02 kurt=23.8 sig_phi=2.66e-02 (-981.0) sig_2phi=1.73e-02 (-1407.9) p(b|m<1e-4)=0.5 n=2
+19 sig_rob=6.58e-03 sd=2.40e-02 kurt=20.7 sig_phi=4.34e-02 (-1340.4) sig_2phi=2.18e-02 (-2147.7) p(b|m<1e-4)=0.25 n=4
+20 sig_rob=6.99e-03 sd=2.60e-02 kurt=43.5 sig_phi=5.01e-02 (-1445.1) sig_2phi=2.59e-02 (-2383.7) p(b|m<1e-4)=0.5 n=4
+21 sig_rob=8.64e-03 sd=3.16e-02 kurt=61.6 sig_phi=4.87e-02 (-1091.6) sig_2phi=2.82e-02 (-1717.5) p(b|m<1e-4)=0.6666666666666666 n=3
+22 sig_rob=6.07e-03 sd=2.57e-02 kurt=22.3 sig_phi=3.87e-02 (-1482.1) sig_2phi=2.24e-02 (-2322.7) p(b|m<1e-4)=0.6363636363636364 n=11
+23 sig_rob=5.93e-03 sd=2.17e-02 kurt=17.7 sig_phi=2.74e-02 (-1442.0) sig_2phi=1.68e-02 (-2247.6) p(b|m<1e-4)=0.5555555555555556 n=9

@@ -1,0 +1,117 @@
+% Sources primaires de l'étude genome/predictif-elagage (codage prédictif et élagage synaptique).
+% Métadonnées relues le 2026-10-16 à la source : API Crossref (DOI) et API arXiv, User-Agent
+% troncons-recherche/1.0. Les clés déjà présentes ailleurs ne sont pas répétées : ocp_mx_v1,
+% rouhani2023microscaling, lecun1989obd, hassibi1992obs, huttenlocher1979, rao1999, cover2006,
+% olshausen1996, equitz1991successive, han2015deepcompression, genome-crick1968, frantar2022gptq,
+% gptoss2025, lifar2026watersic, duda2013ans, giesen2014interleaved.
+
+@article{genome-pe-chou1989ecvq,
+  author  = {Chou, Philip A. and Lookabaugh, Tom and Gray, Robert M.},
+  title   = {Entropy-constrained vector quantization},
+  journal = {IEEE Transactions on Acoustics, Speech, and Signal Processing},
+  volume  = {37},
+  number  = {1},
+  pages   = {31--42},
+  year    = {1989},
+  month   = jan,
+  doi     = {10.1109/29.17498},
+  url     = {https://doi.org/10.1109/29.17498},
+  urldate = {2026-10-16},
+  note    = {Le lagrangien D + λR et la condition d'optimalité des centres ; l'ECSQ en est le cas scalaire.}
+}
+
+@article{genome-pe-farvardin1984,
+  author  = {Farvardin, Nariman and Modestino, James W.},
+  title   = {Optimum quantizer performance for a class of non-{G}aussian memoryless sources},
+  journal = {IEEE Transactions on Information Theory},
+  volume  = {30},
+  number  = {3},
+  pages   = {485--497},
+  year    = {1984},
+  month   = may,
+  doi     = {10.1109/TIT.1984.1056920},
+  url     = {https://doi.org/10.1109/TIT.1984.1056920},
+  urldate = {2026-10-16},
+  note    = {Quantification scalaire contrainte par l'entropie (ECSQ) : à débit élevé, des cellules uniformes et une zone morte.}
+}
+
+@article{genome-pe-wu1993,
+  author  = {Wu, Xiaolin and Zhang, Kaizhong},
+  title   = {Quantizer monotonicities and globally optimal scalar quantizer design},
+  journal = {IEEE Transactions on Information Theory},
+  volume  = {39},
+  number  = {3},
+  pages   = {1049--1053},
+  year    = {1993},
+  month   = may,
+  doi     = {10.1109/18.256513},
+  url     = {https://doi.org/10.1109/18.256513},
+  urldate = {2026-10-16},
+  note    = {Optimum global d'un quantificateur scalaire par programmation dynamique sur une source discrète.}
+}
+
+@inproceedings{genome-pe-muresan2002,
+  author    = {Muresan, Dan and Effros, Michelle},
+  title     = {Quantization as histogram segmentation: globally optimal scalar quantizer design in network systems},
+  booktitle = {Proceedings DCC 2002, Data Compression Conference},
+  pages     = {302--311},
+  year      = {2002},
+  doi       = {10.1109/dcc.2002.999968},
+  url       = {https://doi.org/10.1109/dcc.2002.999968},
+  urldate   = {2026-10-16},
+  note      = {La quantification comme segmentation d'un histogramme en intervalles, résolue exactement par programmation dynamique : notre geste sur les 16 codes MXFP4.}
+}
+
+@article{genome-pe-laughlin1981,
+  author  = {Laughlin, Simon},
+  title   = {A Simple Coding Procedure Enhances a Neuron's Information Capacity},
+  journal = {Zeitschrift f{\"u}r Naturforschung C},
+  volume  = {36},
+  number  = {9-10},
+  pages   = {910--912},
+  year    = {1981},
+  month   = oct,
+  doi     = {10.1515/znc-1981-9-1040},
+  url     = {https://doi.org/10.1515/znc-1981-9-1040},
+  urldate = {2026-10-16},
+  note    = {Codage efficace dans l'œil de la mouche : la précision d'un neurone se répartit selon la loi de ce qu'il code.}
+}
+
+@article{genome-pe-crick1966wobble,
+  author  = {Crick, Francis H. C.},
+  title   = {Codon--anticodon pairing: The wobble hypothesis},
+  journal = {Journal of Molecular Biology},
+  volume  = {19},
+  number  = {2},
+  pages   = {548--555},
+  year    = {1966},
+  month   = aug,
+  doi     = {10.1016/S0022-2836(66)80022-0},
+  url     = {https://doi.org/10.1016/S0022-2836(66)80022-0},
+  urldate = {2026-10-16},
+  note    = {Les codons synonymes : plusieurs mots du code pour un même sens ; l'analogue des deux codes ±0 du E2M1.}
+}
+
+@misc{genome-pe-sun2023wanda,
+  author        = {Sun, Mingjie and Liu, Zhuang and Bair, Anna and Kolter, J. Zico},
+  title         = {A Simple and Effective Pruning Approach for Large Language Models},
+  year          = {2023},
+  eprint        = {2306.11695},
+  archiveprefix = {arXiv},
+  version       = {3},
+  url           = {https://arxiv.org/abs/2306.11695v3},
+  urldate       = {2026-10-16},
+  note          = {v1 du 2023-06-20, v3 du 2024-05-06. Élagage par |W_ij| · ‖X_j‖ : la sensibilité diagonale par colonne d'entrée.}
+}
+
+@misc{genome-pe-frantar2023sparsegpt,
+  author        = {Frantar, Elias and Alistarh, Dan},
+  title         = {{SparseGPT}: Massive Language Models Can Be Accurately Pruned in One-Shot},
+  year          = {2023},
+  eprint        = {2301.00774},
+  archiveprefix = {arXiv},
+  version       = {3},
+  url           = {https://arxiv.org/abs/2301.00774v3},
+  urldate       = {2026-10-16},
+  note          = {v1 du 2023-01-02, v3 du 2023-03-22. Élagage avec compensation par la hessienne des entrées (OBS en ligne).}
+}

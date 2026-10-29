@@ -1,0 +1,180 @@
+{
+ "outil": "chargement_juge.py",
+ "machines": {
+  "rtx3070_sn530": {
+   "vram": 448000000000.0,
+   "ram": 50000000000.0,
+   "disque": 2400000000.0,
+   "pcie": 15750000000.0,
+   "vram_cap": 8000000000.0,
+   "ram_cap": 32000000000.0
+  },
+  "gb10": {
+   "vram": 273000000000.0,
+   "ram": 273000000000.0,
+   "disque": 7877000000.0,
+   "pcie": 273000000000.0,
+   "vram_cap": 128000000000.0,
+   "ram_cap": 128000000000.0
+  },
+  "ryzen7430u": {
+   "vram": 51200000000.0,
+   "ram": 51200000000.0,
+   "disque": 1496000000.0,
+   "pcie": 51200000000.0,
+   "vram_cap": 0,
+   "ram_cap": 15400000000.0
+  },
+  "rtx3060": {
+   "vram": 360000000000.0,
+   "ram": 50000000000.0,
+   "disque": 3000000000.0,
+   "pcie": 31500000000.0,
+   "vram_cap": 12000000000.0,
+   "ram_cap": 64000000000.0
+  },
+  "stone": {
+   "vram": 220000000000.0,
+   "ram": 35000000000.0,
+   "disque": 6700000000.0,
+   "pcie": 6400000000.0,
+   "pcie_gen4": 12000000000.0,
+   "vram_cap": 6500000000.0,
+   "ram_cap": 10000000000.0
+  }
+ },
+ "mode": "temoins",
+ "casser": true,
+ "temoins": [
+  {
+   "source": "arXiv 2608.18261 (Suram, 2026-08-18), Qwen3-235B Q4_K_M, -ngl 99 -ncmoe 94, à froid",
+   "bpp": 4.5598852644664305,
+   "octets": {
+    "A": 4203592318.44614,
+    "e": 10758119.064914592,
+    "R": 8090105536.815773,
+    "total": 133645280907.4985
+   },
+   "h_v": 0.02932909577227923,
+   "h_r": 0.2472155636163914,
+   "temps_s": {
+    "carte": 0.09912651336034053,
+    "processeur": 1.5705660113437314,
+    "disque": 24.386791902994403
+   },
+   "h_s": 0.7234553406113293,
+   "octets_disque": 5852830056.718657,
+   "borne_recouvrement": 0.04100580363246598,
+   "borne_serie": 0.03837816274773367,
+   "etage_limitant": "disque",
+   "mesure": 0.128,
+   "sous_la_borne": false,
+   "h_min_implique": 0.7682354091096331
+  },
+  {
+   "source": "arXiv 2608.18261, même montage, à chaud",
+   "bpp": 4.5598852644664305,
+   "octets": {
+    "A": 4203592318.44614,
+    "e": 10758119.064914592,
+    "R": 8090105536.815773,
+    "total": 133645280907.4985
+   },
+   "h_v": 0.0,
+   "h_r": 1.0,
+   "temps_s": {
+    "carte": 0.09383018567960133,
+    "processeur": 1.6180211073631545,
+    "disque": 0.0
+   },
+   "h_s": 0.0,
+   "octets_disque": 0.0,
+   "borne_recouvrement": 0.6180389090409785,
+   "borne_serie": 0.5841628908212786,
+   "etage_limitant": "processeur",
+   "mesure": 0.441,
+   "sous_la_borne": true,
+   "h_min_implique": 0.9327304588798935
+  },
+  {
+   "source": "PR llama.cpp #25294 (2026-07-04), GLM-5.2 UD-Q2_K_XL ~254 Go, 90 emplacements, 79 % de succès (forme de GLM-5.1 prise pour GLM-5.2, absente de l'inventaire)",
+   "bpp": 2.6954458964898933,
+   "octets": {
+    "A": 6126716349.879307,
+    "e": 12718709.443610039,
+    "R": 7631225666.166023,
+    "total": 250325937667.19205
+   },
+   "h_v": 0.79,
+   "h_r": 0.0,
+   "temps_s": {
+    "memoire": 0.5039539200016604,
+    "disque": 2.034476818452285
+   },
+   "h_s": 0.20999999999999996,
+   "octets_disque": 1602557389.8948646,
+   "borne_recouvrement": 0.4915268588613084,
+   "borne_serie": 0.3939441737965478,
+   "etage_limitant": "disque",
+   "mesure": 2.2,
+   "sous_la_borne": false,
+   "h_min_implique": 0.9530815271086933
+  },
+  {
+   "source": "moe-stream (Wok3b, 2026), Qwen3.6-35B-A3B UD-Q4_K_M 20,6 Gio, budget 6 Go, processeur seul",
+   "bpp": 4.983844511409507,
+   "octets": {
+    "A": 1208455584.7539475,
+    "e": 1959727.4033984006,
+    "R": 627112769.0874882,
+    "total": 21276064195.553574
+   },
+   "h_v": 0.0,
+   "h_r": 1.0,
+   "temps_s": {
+    "processeur": 0.3585094441096554,
+    "disque": 0.0
+   },
+   "h_s": 0.0,
+   "octets_disque": 0.0,
+   "borne_recouvrement": 2.7893267985825645,
+   "borne_serie": 2.7893267985825645,
+   "etage_limitant": "processeur",
+   "mesure": 5.05,
+   "sous_la_borne": false,
+   "h_min_implique": 0.9527616661045777
+  },
+  {
+   "source": "arXiv 2312.17238 (Eliseev et Mazur, 2023-12-28), Mixtral-8x7B experts 2 bits, RTX 3060",
+   "bpp": 2.25,
+   "octets": {
+    "A": 783362176.0,
+    "e": 49545216.0,
+    "R": 3170893824.0,
+    "total": 13466937472.0
+   },
+   "h_v": 0.0,
+   "h_r": 1.0,
+   "temps_s": {
+    "carte": 0.10984044444444445,
+    "pcie": 1.00663296,
+    "disque": 0.0
+   },
+   "h_s": 0.0,
+   "octets_disque": 0.0,
+   "borne_recouvrement": 0.9934107462565105,
+   "borne_serie": 0.8956774035272238,
+   "etage_limitant": "pcie",
+   "mesure": 2.278,
+   "sous_la_borne": false,
+   "h_min_implique": 0.5639109981314704
+  }
+ ],
+ "echecs": [
+  "arXiv 2608.18261 (Suram, 2026-08-18), Qwen3-235B Q4_K_M, -ngl 99 -ncmoe 94, à froid",
+  "PR llama.cpp #25294 (2026-07-04), GLM-5.2 UD-Q2_K_XL ~254 Go, 90 emplacements, 79 % de succès (forme de GLM-5.1 prise pour GLM-5.2, absente de l'inventaire)",
+  "moe-stream (Wok3b, 2026), Qwen3.6-35B-A3B UD-Q4_K_M 20,6 Gio, budget 6 Go, processeur seul",
+  "arXiv 2312.17238 (Eliseev et Mazur, 2023-12-28), Mixtral-8x7B experts 2 bits, RTX 3060"
+ ],
+ "verdict": "TEMOIN TOMBE"
+}

@@ -1,0 +1,18 @@
+[package]
+name = "taux-reel-predictif"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Taux réel (rANS de l'étude 03, décodage exact) des codes MXFP4 de gpt-oss : sans perte au bit, sans perte en valeur (codons synonymes ±0 fondus)."
+
+# Une seule dépendance, déjà dans le cache cargo (construction --offline) : rayon 1.12.0, MIT OU
+# Apache-2.0. La bibliothèque rANS de l'étude 03 (outils/03-entropie/rans/src/lib.rs) est incluse
+# par chemin, sans copie.
+[dependencies]
+rayon = "=1.12.0"
+
+[workspace]
+
+[profile.release]
+opt-level = 3
+codegen-units = 1

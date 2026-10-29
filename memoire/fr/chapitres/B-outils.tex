@@ -1,0 +1,16 @@
+\chapter{Outils}\label{ann:outils}
+
+Tout nombre \mes{} ou \calc{} du mémoire sort d'un outil commité. Cette annexe les liste, rangés par étude, chacun avec la première phrase de sa propre description, citée telle quelle. La table est engendrée par \fichier{memoire/outils/annexes.py} depuis \barre{\texttt{git ls-files}} \texttt{git ls-tree} : elle ne s'écrit pas à la main et \barre{suit le dépôt} décrit le dépôt à la publication de ce tome, au commit \texttt{b8af154}. Corrigé le 2026-10-29 : l'outil lisait le dépôt du jour, qui a continué de grandir après ce tome ; il lit maintenant ce commit, et la table reste celle du tome publié.
+
+\section{La chaîne du mémoire}
+
+\begin{itemize}
+\item \fichier{memoire/construire.sh} (et \fichier{memoire/Makefile} pour qui a \texttt{make}) : régénère les données des figures et les tables des annexes, puis construit les deux PDF par \texttt{latexmk} (lualatex, biber) ; il échoue à la première erreur, à toute référence ou citation manquante, et à toute entrée que biber ne trouve pas.
+\item \fichier{memoire/outils/donnees_figures.py} : tire de chaque journal commité le CSV d'une figure, sans aucun nombre écrit à la main (seules constantes : les plafonds de fiche technique, chacun avec sa dérivation).
+\item \fichier{memoire/outils/annexes.py} : les tables de cette annexe et de la suivante.
+\item \fichier{memoire/outils/bib_etudes.py} : les bibliographies des études en biblatex.
+\end{itemize}
+
+\section{Les outils des études}
+
+\input{\Racine/annexes/outils}

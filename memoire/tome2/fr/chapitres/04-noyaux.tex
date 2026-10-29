@@ -1,0 +1,599 @@
+\chapter{Les noyaux sur la carte}\label{ch:t2-noyaux}
+\ifdefined\GrapheNoyDecodeur\else\input{\Racine/figures/tome2/noyaux-figures}\fi
+
+\begin{origine}
+\textbf{Au départ}, l'étude 03 du Tome~I avait un décodeur rANS entrelacé sur la carte (la v4, 80,8 et 82,1\,Go/s sous CUDA en ABBA sur un grand flux) et un produit matrice-vecteur MXFP4 brut sous Vulkan (209,4\,Go/s). La table choisie par voie, qui supprime le réassemblage des flux de classe, n'existait que sur le processeur (mesure F1 de l'arbitre). Aucun noyau de la passe avant de gpt-oss n'était écrit, et la référence f64 du lot R venait d'être validée contre llama.cpp.
+\textbf{Ce chapitre établit} le décodeur à table par voie sur la carte, démontré exact (le pas d'un warp rend exactement le décodage scalaire) et vérifié au bit sur les \num{4608} experts de gpt-oss-120b et les 768 de gpt-oss-20b, par deux codeurs indépendants ; la GEMV MXFP4, exacte au bit sur entiers par construction et à $3\cdot10^{-7}$ d'une référence f64 sur poids réels, à 235\,Go/s ; et les douze noyaux de la passe avant, chacun avec son algorithme, sa preuve d'exactitude ou sa borne d'erreur dérivée, son déterminisme au bit, son témoin et sa cassure. La chaîne entière de ces noyaux est à KL $3{,}0\cdot10^{-6}$ de la référence f64 quand le routage est imposé ; en routage libre, l'écart vient de bascules de routage aux marges sous $10^{-3}$. Enfin, l'écart qui restait au moteur venait tout entier de l'arrondi f16 du cache KV.
+\textbf{Il reste} la décision de l'arbitre sur le repli du décodeur (DELTA en tuiles de 32 et décodage en lot), la cause de l'effet de première série de K1, la chaîne sur le 120b, l'attention en tuiles pour un long contexte, et le mode base du jalon J2.
+Sources : \fichier{moteur/K-pour-le-memoire.md}, \fichier{moteur/REPRISE-K.md}, \fichier{mesures/moteur/K/}, code \fichier{moteur/crates/trc-noyaux/} ; ronde de corrections : \fichier{moteur/O-pour-le-memoire.md} (partie III).
+\end{origine}
+
+\section{Ce que la carte doit faire}\label{sec:t2n-tache}
+
+Sur la carte, un jeton traverse deux sortes de travail. Le \emph{décodage} transforme un tronçon arrivé par DMA (\cref{ch:t2-chemin}) en un emplacement d'expert prêt à être lu ; le \emph{calcul} enchaîne, couche après couche, les noyaux de la passe avant de gpt-oss. Les noyaux sont écrits en CUDA C++, compilés à la construction par \texttt{nvcc} 13.1 (\texttt{-arch=sm\_89}, image cubin plus PTX), embarqués dans le binaire Rust et chargés par l'API du pilote : aucune bibliothèque de CUDA n'est livrée, aucune bibliothèque d'algèbre (pas de GEMM en J1).
+
+\begin{definition}[Règle de déterminisme, couture N]\label{def:t2n-determinisme}
+Aucun noyau n'emploie d'addition atomique en virgule flottante ; toute réduction suit un arbre fixe qui ne dépend que des tailles (ni de la grille, ni de l'ordre d'exécution des blocs). Les seuls atomiques sont des compteurs entiers de contrôle.
+\end{definition}
+
+Sans cette règle, le critère C3 du jalon (logits du fichier codé et du fichier brut égaux au bit) n'aurait pas de sens : deux exécutions du même programme sur les mêmes octets pourraient différer. Chaque section qui suit dit comment le noyau la tient.
+
+\begin{table}[!htbp]
+\centering\small
+\caption[Ressources des noyaux sur Ada]{Ressources des noyaux, relevées par \texttt{ptxas -v} pour \texttt{sm\_89}, et occupation sur la RTX 4060 Laptop (Ada : 100\,Kio de mémoire partagée, 48 warps et 64\,K registres par SM~\cite{nvidia2026adatuning}).}
+\label{tab:t2n-ressources}
+\begin{tabularx}{\linewidth}{@{}lrrX@{}}
+\toprule
+noyau & registres & partagée (o) & remarque \\
+\midrule
+\texttt{decoder\_codes} & 57 & \num{49152} & trois LUT de 16\,Kio ; 2 blocs de 8 warps par SM, 384 warps sur 24 SM \\
+\texttt{decoder\_echelles} & 55 & \num{24576} & une LUT et \num{8192}\,o de médianes \\
+\texttt{decoder\_*\_lot} & 61 / 57 & idem & un expert par valeur de \texttt{blockIdx.z} \\
+\texttt{gemv\_mxfp4} / \texttt{\_lot} & 71 / 79 & 0 & quatre lignes par warp \\
+\texttt{copier\_brut} & 29 & 0 & chemin du fichier brut (témoin C3) \\
+\texttt{attention} & 97 & \num{2304} + 4/position & au plus \num{8192} positions par appel \\
+\texttt{routeur\_topk} & — & 144 (pile) & tableaux indexés \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{moteur/K-pour-le-memoire.md} (tableau T-K1), \fichier{moteur/REPRISE-K.md} (relevés de 15 h 06 et 20 h 50).}
+\end{table}
+
+\section{Le décodeur à table par voie (K1)}\label{sec:t2n-decodeur}
+
+\subsection{Le flux, la tuile, la table}
+
+Le format \texttt{.trc} (§ 4.9 de la spécification) code chaque flux par un rANS entrelacé sur 32 voies : probabilités sur 12 bits ($M = \num{4096}$), état $x$ sur 32 bits, borne basse $L = 2^{16}$, mots de 16 bits. Un \emph{macro-pas} produit 128 octets contigus : la voie $l$ du macro-pas $m$ écrit le mot de sortie de 32 bits d'indice $w = 32m + l$, et ses quatre sous-pas $k = 0..3$ en écrivent les octets, du poids faible au poids fort. Une \emph{tuile} enchaîne $N = 256$ macro-pas ; chaque tuile a son pointeur de début dans le flux de mots partagé et ses 32 états initiaux, si bien que les tuiles se décodent indépendamment.
+
+Pour les codes MXFP4 (sorte CODES\_CTX), un bloc de 32 poids porte 16 octets, soit 4 mots : les voies $4q$ à $4q+3$ du macro-pas $m$ écrivent le bloc $8m + q = \lfloor w/4 \rfloor$, et toutes les quatre choisissent la table du contexte $\kappa$ de ce bloc, la \emph{classe d'échelle} : $\kappa = 0$, 1 ou 2 selon que l'écart d'échelle $\delta$ du bloc est sous, à, ou au-dessus de la médiane de sa ligne (\cref{fig:t2n-tuile}).
+
+\begin{figure}[!htbp]
+\centering
+\resizebox{\linewidth}{!}{\SchemaNoyTuile}
+\caption[La tuile rANS et la table par voie]{Un macro-pas de la tuile : 32 voies, groupées par quatre sous la table de leur bloc (couleur : la classe d'échelle $\kappa$, exemple), au-dessus des 32 mots de sortie ; en bas, le flux de mots de 16 bits partagé par les voies, distribué par vote et comptage de bits.}
+\label{fig:t2n-tuile}
+\end{figure}
+
+Une table se monte en VRAM sous forme de LUT de \num{4096} entrées de 32 bits, une par fente de probabilité (\cref{fig:t2n-bits}, en haut) : le symbole $s$ dans les bits 0 à 7, $f - 1$ dans les bits 8 à 19, l'écart de la fente à la fréquence cumulée dans les bits 20 à 31. On range $f - 1$ et non $f$ : un symbole seul de sa table a $f = \num{4096} = 2^{12}$, qui ne tient pas en 12 bits (test \texttt{symbole\_\allowbreak unique\_\allowbreak a\_\allowbreak frequence\_\allowbreak pleine}).
+
+\begin{figure}[!htbp]
+\centering
+\resizebox{\linewidth}{!}{\SchemaNoyBits}
+\caption[Les bits : entrée de LUT, bloc MXFP4, code, échelle E8M0]{Au bit près : l'entrée de LUT de géométrie 1 ; le bloc MXFP4 d'origine de 17 octets (une échelle E8M0, puis 16 octets de codes, l'octet $i$ portant les poids $i$ et $16 + i$, disposition de \texttt{block\_mxfp4} de ggml~\cite{ggml2026mxfp4}) ; un code de 4 bits, signe et grandeur E2M1 doublée~\cite{ocpmx2023} ; et l'échelle $2^{e-128}$ écrite directement en bits de f32 par le noyau.}
+\label{fig:t2n-bits}
+\end{figure}
+
+\subsection{Deux noyaux, un emplacement}
+
+La table de CODES\_CTX dépend de $\kappa$, que donne DELTA : le décodeur décode toujours DELTA avant CODES\_CTX (§ 4.9.3). Un expert se décode donc en deux lancements sur le même flux CUDA :
+\begin{enumerate}
+\item \texttt{decoder\_echelles}, grille $(X, 3)$, 128 fils : pour chaque matrice $j$, décode DELTA$_j$ (une seule table), reconstruit l'échelle de chaque bloc $e[\beta] = (\text{méd}[r] + \delta[\beta] - 128) \bmod 256$, et recopie bit à bit les biais (en entiers de 32 bits, pour qu'aucune conversion ne touche un NaN) ;
+\item \texttt{decoder\_codes}, grille $(X, 3)$, 256 fils, 48\,Kio de mémoire partagée (les trois LUT de la matrice) : décode CODES\_CTX$_j$, la voie qui produit le mot $w$ choisissant la LUT du contexte $\kappa(\lfloor w/4 \rfloor)$, recalculé depuis l'échelle déjà écrite et la médiane.
+\end{enumerate}
+Les deux noyaux lisent la partie de tronçon telle qu'elle est arrivée par DMA (en-tête, table des flux, flux) : l'hôte n'a rien à analyser. Une tuile est confiée à un warp, et les warps parcourent les tuiles par pas de grille, si bien que toute grille est juste. La sortie est l'emplacement de disposition SoA que lit la GEMV (\cref{fig:t2n-soa}).
+
+\begin{figure}[!htbp]
+\centering
+\SchemaNoySoA
+\caption[L'emplacement SoA d'un expert de gpt-oss, à l'échelle]{L'emplacement d'un expert de gpt-oss, à l'échelle (couture N, § 5.6) : pour chaque matrice, les codes, puis les échelles et les biais, chacun aligné sur 256 octets.}
+\label{fig:t2n-soa}
+\end{figure}
+
+\subsection{L'exactitude, démontrée}
+
+Le décodeur normatif du § 4.9.2 fait les 32 voies \emph{une à une}, dans l'ordre croissant : la voie $l$ lit son entrée de LUT, met à jour son état, et, si l'état passe sous $L$, lit le mot suivant du flux partagé. Le noyau fait les 32 voies \emph{en même temps}. Il faut montrer qu'il produit les mêmes symboles.
+
+\begin{theoreme}[Le pas d'un warp rend exactement le décodage scalaire]\label{thm:t2n-warp}
+Soit une tuile codée par le codeur du § 4.9.2 (ordre inverse : macro-pas, sous-pas et voies décroissants ; chaque voie part de $L$ ; pile de mots renversée). Le noyau, qui traite à chaque sous-pas les 32 voies simultanément, produit les mêmes symboles, dans les mêmes positions, que le décodeur scalaire qui traite les voies une à une dans l'ordre croissant ; et à chaque sous-pas, états et pointeur sont égaux dans les deux.
+\end{theoreme}
+
+\begin{proof}
+Par récurrence sur les sous-pas de la tuile ; au départ, les deux ont $p = \text{début}[t]$ et les mêmes 32 états.
+(i) Le calcul de l'état d'une voie, $y \leftarrow f\,(x \gg 12) + b$ avec $(s, f, b)$ lus dans la LUT à l'adresse $x \bmod \num{4096}$, ne dépend que de son propre état et de la table : il commute entre voies.
+(ii) Seul l'ordre de lecture des mots lie les voies. Dans le décodeur scalaire, au sous-pas courant, les voies qui renormalisent ($y < L$) lisent les mots $p, p+1, \ldots$ dans l'ordre croissant des voies. Le noyau calcule $\mathrm{vote} = \mathrm{ballot}(y < L)$ (un bit par voie) et donne à la voie $l$ le mot $p + \mathrm{popc}(\mathrm{vote} \mathbin{\&} (2^l - 1))$, c'est-à-dire $p$ plus le nombre de voies d'indice inférieur qui renormalisent aussi : exactement la position scalaire. Puis $p \leftarrow p + \mathrm{popc}(\mathrm{vote})$, comme le scalaire après ses 32 voies.
+(iii) Une voie ne renormalise jamais deux fois au même sous-pas : si $x \ge L$, alors $x \gg 12 \ge 16$, donc $y \ge 16 f \ge 16$, et pour $y < L$, $(y \ll 16) \mathbin{|} \text{mot} \ge 2^{16} = L$.
+(iv) Le codeur a émis ses mots dans l'ordre exactement inverse de ces lectures (le dernier émis est le premier lu, par le renversement de la pile) : chaque voie relit le mot qu'elle a écrit. États et pointeur étant égaux après le sous-pas, la récurrence se poursuit.
+\end{proof}
+
+Les listings de ce chapitre sont des extraits verbatim des sources, à une exception près, dite ici : six caractères des commentaires que la police à chasse fixe du mémoire n'a pas (les crochets de partie entière et de plafond, le sigma de somme, l'exposant de transposée) y sont rendus par \texttt{floor(\ldots)}, \texttt{ceil(\ldots)}, \texttt{sum} et \texttt{\^{}T} (\fichier{memoire/outils/tome2\_chemin\_noyaux.py}) ; le code n'en contient aucun.
+
+\lstinputlisting[style=tdeux, language=CUDA, caption={[Le pas d'un warp]Le pas d'un warp (\fichier{moteur/crates/trc-noyaux/noyaux/commun.cuh}, lignes 197 à 227, commit \texttt{82a84e3}). Vote et comptage de bits donnent la position de chaque voie (\cref{thm:t2n-warp}) ; deux échanges \texttt{\_\_shfl\_sync} distribuent les mots de la fenêtre (\cref{lem:t2n-fenetre})~\cite{nvidia2026cppext}.}, label={lst:t2n-pas}]{\ListingsTdeux/pas-octet.cuh}
+
+\paragraph{Contrôles gratuits.} En fin de tuile, chaque voie doit valoir $L$ (l'état initial du codeur), et le pointeur doit égaler le début de la tuile suivante (ou $W$, le nombre de mots, pour la dernière). Le second contrôle, ajouté par le noyau et par le lot F indépendamment, voit un mot de trop que le premier ne voit pas. Aucun des deux ne garde la \emph{table} : une fente de LUT faussée rend une sortie fausse sans sortir une voie de $L$ (\cref{tab:t2n-temoins-k1}) ; c'est pourquoi les tables portent une empreinte vérifiée à l'ouverture du fichier.
+
+\subsection{La fenêtre de mots}
+
+Lire un mot dans la mémoire globale à chaque renormalisation coûterait une latence entière par sous-pas. Le warp tient donc une fenêtre de 96 mots de 32 bits du flux (192 mots de 16) dans trois registres par voie : \texttt{cour} (le mot base${}+l$), \texttt{suiv} (base${}+32+l$) et \texttt{apres} (base${}+64+l$), qu'il s'échange par \texttt{\_\_shfl\_sync} (\cref{fig:t2n-fenetre}).
+
+\begin{figure}[!htbp]
+\centering
+\SchemaNoyFenetreMots
+\caption[La fenêtre de mots à trois registres]{La fenêtre de mots du warp : trois registres par voie, 96 mots de 32 bits. L'invariant garantit qu'aucune lecture ne sort de \texttt{cour} et \texttt{suiv} ; \texttt{apres} est chargé une avance plus tôt, ce qui cache sa latence.}
+\label{fig:t2n-fenetre}
+\end{figure}
+
+\begin{lemme}[La fenêtre ne déborde jamais]\label{lem:t2n-fenetre}
+Avant chaque sous-pas, $(p \gg 1) - \mathrm{base} < 32$. Alors toute lecture du sous-pas tombe dans \texttt{cour} ou \texttt{suiv}, et après le sous-pas l'invariant est rétabli par au plus une avance de 32.
+\end{lemme}
+
+\begin{proof}
+Pendant un sous-pas, une voie lit au plus le mot $p + 31$ (32 voies au plus renormalisent), d'indice de mot de 32 bits $(p + 31) \gg 1 \le (p \gg 1) + 16$ ; donc l'indice relatif $(\mathrm{pos} \gg 1) - \mathrm{base} < 32 + 16 = 48$ : le mot est dans \texttt{cour} (moins de 32) ou dans \texttt{suiv}, jamais au-delà. Après le sous-pas, $p' \le p + 32$, donc $(p' \gg 1) - \mathrm{base} < 48$ ; s'il atteint 32, la fenêtre avance de 32, et il redevient inférieur à 16 : l'invariant tient.
+\end{proof}
+
+\paragraph{Le calcul de la cadence.} Une renormalisation apporte 16 bits, et un symbole en consomme son coût. Un octet de CODES\_CTX coûte environ $2 \times 3{,}81 = 7{,}6$ bits (gpt-oss-120b, \texttt{bits\_\allowbreak par\_\allowbreak poids\_\allowbreak entropie\_\allowbreak tables}), d'où $7{,}6/16 = 0{,}48$ lecture par voie et par sous-pas, environ 15 mots de 16 bits par sous-pas pour le warp, et une avance de fenêtre (64 mots de 16 bits) tous les $64/15 \approx 4{,}2$ sous-pas \calc. Un octet de DELTA coûte environ $32 \times 0{,}034 = 1{,}1$ bit : une avance tous les 30 sous-pas environ. Avec deux registres, le mot chargé à l'avance sert dès que le pointeur a franchi 16 mots de 32 bits de plus, environ 2 sous-pas de CODES\_CTX ; avec le troisième, il ne sert qu'après $4{,}2 + 2 \approx 6$ sous-pas, et sa latence est cachée : c'est la raison de la version 2 du noyau. Le commentaire du code écrit « tous les $\approx 8$ pas » ; le calcul donne 4,2 pour CODES\_CTX et 30 pour DELTA. L'écart est dit ici, non mesuré. Garde : \texttt{mot32} rend 0 au-delà de $\lceil W/2 \rceil$, si bien qu'un flux corrompu ne fait jamais lire hors de la partie.
+
+\subsection{La table par voie, et le déterminisme}
+
+\begin{proposition}[La table par voie est juste et ne diverge pas]\label{prop:t2n-table-voie}
+Le contexte du mot $w$ est $\kappa(\lfloor w/4 \rfloor)$, connu du décodeur avant le décodage de CODES\_CTX. Codeur et décodeur choisissent la même table, et le \cref{thm:t2n-warp} s'applique table par table. Le choix est une adresse, pas une branche : les 32 voies exécutent la même instruction.
+\end{proposition}
+
+\begin{proof}
+$\kappa$ ne dépend que de $\delta$, décodé par le premier noyau ; le codeur l'a calculé sur les mêmes $\delta$. Dans le \cref{thm:t2n-warp}, le point (i) vaut pour toute table pourvu que codeur et décodeur emploient la même au même symbole ; (ii) à (iv) ne regardent pas la table. Dans le noyau, la table est \texttt{lut[ctx]}, une base d'adresse en mémoire partagée ; seule l'adresse lue diffère d'une voie à l'autre.
+\end{proof}
+
+Le noyau lit $\kappa$ un macro-pas d'avance : l'échelle et la médiane du bloc suivant sont chargées pendant les quatre sous-pas du bloc courant, pour que leur latence se cache (\cref{lst:t2n-codes}).
+
+\lstinputlisting[style=tdeux, language=CUDA, caption={[La boucle de \texttt{corps\_codes}]La boucle de \texttt{corps\_codes} (\fichier{moteur/crates/trc-noyaux/noyaux/decodeur.cuh}, lignes 172 à 206, commit \texttt{a64740c}) : une tuile par warp, parcours par pas de grille ; la classe $\kappa$ du bloc suivant lue d'avance ; la table choisie par adresse.}, label={lst:t2n-codes}]{\ListingsTdeux/corps-codes.cuh}
+
+\begin{proposition}[Déterminisme du décodeur]\label{prop:t2n-det-decodeur}
+Toute grille rend les mêmes octets, et le décodage en lot rend les mêmes octets que l'expert seul.
+\end{proposition}
+
+\begin{proof}
+Le décodeur ne fait que des opérations entières ; ses seuls atomiques sont des compteurs entiers (commutatifs). La sortie de chaque voie ne dépend que de la tuile, pas de l'ordre d'exécution des warps ni de la grille (une tuile, un warp, parcours par pas de grille). Le lot et l'expert seul appellent les mêmes corps (\texttt{corps\_echelles}, \texttt{corps\_codes}).
+\end{proof}
+
+Le test \texttt{decodeur\_\allowbreak en\_\allowbreak lot\_\allowbreak egal\_\allowbreak au\_\allowbreak seul} le vérifie au bit (trois experts, un bit de flux retourné dans le deuxième : lui seul sort de $L$) ; sa cassure (descripteur 0 pour tous) tombe.
+
+\subsection{Témoins et cassures}
+
+\begin{table}[!htbp]
+\centering\small
+\caption[K1 : témoins et cassures]{K1 : les témoins du décodeur et leurs cassures \mes. « Hors $L$ » : voies qui ne finissent pas sur $L$.}
+\label{tab:t2n-temoins-k1}
+\begin{tabularx}{\linewidth}{@{}p{4.4cm}p{2.5cm}p{2.9cm}X@{}}
+\toprule
+témoin & résultat & cassure & résultat de la cassure \\
+\midrule
+120b, \num{4608} experts, codeur indépendant du banc, noyaux v1 & 0 faux, 0 hors $L$ & LUT $\kappa = 1$ faussée ; bit de flux & 8 faux, 0 hors $L$ ; 2 faux, 64 hors $L$, 2 pointeurs \\
+120b, noyaux v2 & 0 faux sur \num{4608} & — & — \\
+120b, noyaux finaux (deux passes) & 0 faux sur $640 + \num{3968}$ & — & — \\
+vrai fichier du lot F, 20b, 768 experts, contre \texttt{trc-codec} et le répertoire, seul et en lot & 0 faux par les deux chemins & LUT ; flux & 8 faux, 0 hors $L$ ; 8 faux, 171 hors $L$, 7 pointeurs \\
+vrai fichier du lot F, 120b, \num{4608} experts, seul et en lot & 0 faux, 0 hors $L$ & LUT ; flux & 8 faux, 0 hors $L$ ; 8 faux, 163 hors $L$, 8 pointeurs \\
+enveloppes Rust (\texttt{cargo test -p trc-noyaux}) & 9 tests verts & fente, bit, magie, descripteur unique & tombent \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{mesures/moteur/K/k1-justesse-*.json}, \fichier{k1-trc-gptoss20b.json}, \fichier{k1-trc-gptoss120b.json}, \fichier{k1-*casse*.json} ; \fichier{mesures/moteur/K/csv/k1-justesse-par-couche.csv}, \fichier{k1-trc-par-couche.csv}.}
+\end{table}
+
+Le fait à retenir est dans la première et la quatrième ligne : \textbf{une fente de LUT faussée rend 8 experts faux sans sortir une seule voie de $L$}. Le retour à $L$ garde le flux et l'état, pas la table (03 § 3.3).
+
+\subsection{Pourquoi un expert seul est lent : le modèle de latence}
+
+Pour gpt-oss, une matrice de DELTA produit \num{259200} octets, soit \num{2025} macro-pas, soit 8 tuiles de 256 macro-pas ; une matrice de CODES\_CTX, \num{4147200} octets, soit \num{32400} macro-pas, soit 127 tuiles. Un expert compte 24 tuiles de DELTA et 381 de CODES\_CTX. Chaque tuile est une chaîne de $256 \times 4 = \num{1024}$ sous-pas \emph{dépendants} : l'état $x$ de chaque voie dépend du sous-pas précédent.
+
+\begin{proposition}[Modèle de latence du décodage]\label{prop:t2n-latence}
+Soient $\tau_1$ la durée d'un sous-pas quand un seul warp occupe son SM et $\tau_{16}$ sa durée quand 16 warps se partagent un SM. Le décodage d'un expert seul dure
+\[
+T_{\mathrm{expert}} \approx \num{1024}\,\tau_1 + \num{1024}\,\tau_{16} + 2\,t_{\mathrm{lancement}},
+\]
+et un lot de $n$ experts d'une même couche, par expert, $T_{\mathrm{lot}}(n)/n \approx (\num{1024}\,\tau_1' + n \cdot \num{1024}\,\tau_{16})/n$, qui tend vers $\num{1024}\,\tau_{16}$ quand $n$ grandit.
+\end{proposition}
+
+\begin{proof}
+Phase DELTA : 24 tuiles, donc 24 warps sur 24 SM, un par SM ; la phase dure une chaîne de \num{1024} sous-pas à $\tau_1$ (la carte est vide à 94\,\% : 24 warps sur 384 places). Phase CODES\_CTX : 381 warps en une seule vague sur 384 places (16 par SM, limite de la mémoire partagée), une chaîne de \num{1024} sous-pas à $\tau_{16}$. En lot, les $24n$ warps de DELTA tournent ensemble (une chaîne, à $\tau_1' \approx \tau_1$ tant que la carte n'est pas saturée), puis les $n$ vagues de CODES\_CTX se suivent.
+\end{proof}
+
+\paragraph{La confrontation, sans paramètre libre.} Sur la passe propre de 16 h 46 (120b, couche 17), le temps de DELTA vaut 152\,µs et celui de CODES\_CTX 195\,µs, avec 2\,µs de trou entre les lancements \mes ; d'où $\tau_1 = 152/\num{1024} = 148$\,ns et $\tau_{16} = 195/\num{1024} = 190$\,ns par sous-pas, soit environ 400 et 510 cycles à 2,67\,GHz \calc : le sous-pas d'un warp seul vaut une dizaine de latences dépendantes (LUT partagée, multiplication, vote, deux échanges, sélection, avance de fenêtre). Le modèle prédit $152 + 195 + 2 \approx 349$\,µs pour un expert seul (mesuré : 343\,µs, les deux lancements se chevauchant un peu) et, pour un lot de 4, $(152 + 4 \times 195)/4 = 233$\,µs par expert : \textbf{mesuré 233,2\,µs} (53,35\,Go/s de codes) \calc. Ses deux temps sont mesurés sur A ; sa prédiction porte sur C.
+
+\paragraph{La conséquence.} Le décodage d'un expert seul est borné par la longueur de sa chaîne (\num{1024} sous-pas), non par la bande passante. Deux leviers seulement : moins de sous-pas par tuile ($N$ plus petit au codage, un choix du codeur que le format porte déjà dans chaque flux, au prix de 0,4\,\% d'en-tête par flux de plus) ou plus de tuiles en vol (le lot). La borne du lot quand $n \to \infty$ vaut $\num{12441600}\,\text{o} / 195\,\text{µs} = 63{,}8$\,Go/s de codes \calc.
+
+\begin{figure}[!htbp]
+\centering
+\GrapheNoyDecomposition
+\caption[K1 : décomposition du temps d'un expert]{K1 : décomposition du temps de décodage d'un expert, séance propre de 20 h 24 \mes. A : DELTA 151 et 153\,µs, CODES\_CTX 194,6\,µs, trou 2\,µs. D (DELTA codé en tuiles de 32 macro-pas) : DELTA 34,8\,µs. La prédiction déclarée de D pour DELTA (19 à 22\,µs) était fausse : à 8 warps par SM, le sous-pas passe de 148 à 272\,ns ; le total tient dans $\pm 10\,\%$ parce que CODES\_CTX domine.}
+\label{fig:t2n-decomposition}
+\sourcefig{\fichier{mesures/moteur/K/csv/k1-decomposition.csv}.}
+\end{figure}
+
+\subsection{Les débits, et un verdict qui tombe de 0,9 et 1,1\,\%}
+
+Seuil déclaré avant la mesure : $0{,}8 \times 41{,}6 = 33{,}28$\,Go/s de codes écrits, jugé sur la \emph{pire} passe A d'une série, où 41,6\,Go/s est le débit de la variante que K1 remplace (décodage puis réassemblage des trois flux de classe, publié par 03). Deux processus par variante, 5 séries A B C C B A chacun, carte verrouillée, secteur (\cref{fig:t2n-decodeur}).
+
+\begin{figure}[!htbp]
+\centering
+\GrapheNoyDecodeur
+\caption[K1 : débit du décodeur par passe]{K1, débit du décodeur par passe (Go/s de codes écrits ; le temps compte DELTA, échelles et biais), séance propre du 2026-10-15 à 20 h 24 \mes. La copie brute des mêmes octets (B) fait 105,4\,Go/s, hors du cadre. Les deux pires passes de A sont la première série de chaque processus (33,0 et 32,9).}
+\label{fig:t2n-decodeur}
+\sourcefig{\fichier{mesures/moteur/K/csv/k1-debit-passes.csv}, réordonné dans \fichier{t2n-k1.csv} ; médianes et pires dans \fichier{t2n-k1-resume.csv}.}
+\end{figure}
+
+\begin{table}[!htbp]
+\centering\small
+\caption[K1 et K2 : débits contre seuils]{K1 et K2 : débits (médianes et pires passes des deux processus) contre les seuils déclarés \mes.}
+\label{tab:t2n-debits}
+\begin{tabularx}{\linewidth}{@{}Xllll@{}}
+\toprule
+variante & médianes & pires & seuil & verdict \\
+\midrule
+K1 A, un expert à la fois (déclarée) & 36,43 / 36,29 & 32,99 / 32,92 & 33,28 & \textbf{tombe de 0,9 et 1,1\,\%} \\
+K1 C, lot de 4 & 53,41 / 53,23 & 53,37 / 53,18 & 33,28 & tient \\
+K1 D, DELTA en tuiles de 32 & 55,09 / 55,00 & 52,49 / 51,92 & 33,28 & tient (prédit 57 $\pm$ 10\,\%) \\
+K1 D + lot de 4 & 58,80 / 58,72 & 58,75 / 58,64 & 33,28 & tient \\
+référence refaite : v4 sous CUDA + réassemblage & 45,79 / 45,75 & — & — & \barre{41,6} \\
+copie brute (B) & 105,45 / 105,45 & — & — & — \\
+K2, lot de 12 matrices & 235,35 / 235,41 & 219,13 / 220,89 & 167,5 & tient (+12\,\% sur Vulkan) \\
+K2, une matrice par lancement & 160,21 / 159,87 & — & — & — \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{mesures/moteur/K/csv/k1-debit-passes.csv}, \fichier{k1-reference-03.csv}, \fichier{k2-debit-passes.csv}, \fichier{journaux/*-20261015-2024.*}.}
+\end{table}
+
+Ce que la mesure dit, dans l'ordre :
+\begin{enumerate}
+\item \textbf{Le seuil déclaré tombe pour la variante déclarée}, de 0,9 et 1,1\,\% (une pire passe par processus : $1 - 32{,}99/33{,}28$ et $1 - 32{,}92/33{,}28$ \calc ; \barre{de 0,9\,\%}, repris de \fichier{moteur/K-pour-le-memoire.md}, ne comptait que le premier processus), sur un effet de première série (pire passe 9\,\% sous les autres, dans chaque processus ; les neuf autres de 36,3 à 36,5, écart 0,3\,\%). La règle était la pire passe : on ne retire pas la passe. La cause n'est pas cherchée ([hyp.] réveil de la carte ou du cache entre l'étalonnage et la série).
+\item \textbf{La référence elle-même était sous-estimée.} \barre{41,6\,Go/s, le chemin que K1 remplace} 03 avait composé ce chiffre avec le v4 \emph{sous Vulkan} (70\,Go/s) ; refait sous CUDA dans la même séance (v4 82,69 / 82,57\,Go/s, réassemblage 102,63 / 102,61), le chemin remplacé fait \textbf{45,8}\,Go/s. Contre lui ($0{,}8 \times 45{,}8 = 36{,}6$), la médiane de A tombe aussi.
+\item \textbf{Le modèle de latence explique pourquoi} (\cref{prop:t2n-latence}) et prédit les deux remèdes.
+\item \textbf{Les deux remèdes tiennent contre les deux références} : D sans toucher au format (le codeur choisit $N = 32$ pour DELTA, +16,9\,Ko par expert, +0,14\,\% du tronçon), C sans toucher au codeur ; ensemble, 58,8\,Go/s.
+\item La prédiction de D était juste sur le total (55,0 pour 57 $\pm$ 10\,\%) et fausse sur sa partie DELTA (34,8\,µs pour 19 à 22) : le modèle ignore la contention à 8 warps par SM.
+\end{enumerate}
+Proposition à l'arbitre (non tranchée à l'heure où ce chapitre s'écrit) : D et le décodage en lot des défauts d'une même couche ; le repli déclaré par la spécification (flux de classe, sorte 0x05) n'est pas nécessaire, il est plus lent (45,8) que D (55,0). Aucune conséquence sur J1 : 0,34\,ms par expert contre 383\,ms de disque par jeton mesurées au jalon (\cref{t2res-sec:c5} ; \barre{157\,ms}, la prédiction du Tome~I, n'est pas une mesure) ; l'élasticité du débit au décodeur est nulle tant que le disque limite.
+
+\section{Le produit matrice-vecteur MXFP4 (K2)}\label{sec:t2n-gemv}
+
+\subsection{L'algorithme}
+
+$y = W x + b$ sur l'emplacement SoA. Un warp traite 4 lignes ; la voie $l$ prend les blocs $b = l, l + 32, l + 64, \ldots$ de ces lignes, charge une fois les 32 valeurs de $x$ d'un bloc et les applique aux 4 lignes ; puis une réduction papillon sur les 32 voies (5 niveaux, \texttt{\_\_shfl\_xor\_sync}). Un bloc de 256 fils couvre 32 lignes. Les codes et les échelles sont lus « en flux » (\texttt{\_\_ldcs}) : les poids ne resservent pas. La valeur d'un poids est $k[c] \cdot 2^{e - 128}$, avec $k = \{0, 1, 2, 3, 4, 6, 8, 12\}$ signé par le bit 3 : les grandeurs E2M1 doublées, d'où le $-128$ au lieu du $-127$ de l'E8M0 (\cref{fig:t2n-bits}).
+
+\lstinputlisting[style=tdeux, language=CUDA, caption={[L'échelle E8M0 exacte et le produit d'un bloc]L'échelle E8M0 exacte, la valeur d'un code et le produit d'un bloc dans un ordre fixe (\fichier{moteur/crates/trc-noyaux/noyaux/gemv.cuh}, lignes 25 à 55, commit \texttt{4473050}). La constante \texttt{0xC8643210} range les huit grandeurs doublées, une par demi-octet.}, label={lst:t2n-gemv}]{\ListingsTdeux/gemv-bloc.cuh}
+
+\begin{lemme}[L'échelle E8M0 est exacte]\label{lem:t2n-e8m0}
+Pour tout $e \in [0, 255]$, \texttt{echelle\_e8m0}$(e)$ rend exactement $2^{e - 128}$ en f32.
+\end{lemme}
+
+\begin{proof}
+Pour $e \ge 2$, les bits $(e - 1) \ll 23$ donnent un f32 normal d'exposant biaisé $e - 1$, de valeur $2^{e - 1 - 127} = 2^{e - 128}$, mantisse nulle ; $e - 1 \le 254$ reste sous l'exposant réservé 255. Pour $e = 0$ et $e = 1$, $2^{-128}$ et $2^{-127}$ sont sous-normaux : un sous-normal de bits de mantisse $m$ vaut $m \cdot 2^{-149}$, et \texttt{0x00200000} $= 2^{21}$, d'où $2^{21 + e - 149} = 2^{e - 128}$. Les 256 valeurs sont en outre vérifiées une à une (\texttt{e8m0\_\allowbreak 256\_\allowbreak valeurs\_\allowbreak fausses} $= 0$). Le noyau est compilé sans \texttt{--use\_fast\_math}, qui ramènerait les sous-normaux à zéro.
+\end{proof}
+
+\subsection{Exacte au bit sur entiers}
+
+\begin{lemme}[Sommes exactes en f32]\label{lem:t2n-exact}
+Si tous les produits et toutes les sommes partielles d'un calcul, dans n'importe quel ordre, sont des multiples de $2^{-m}$ de valeur absolue inférieure à $2^{24 - m}$, alors le calcul en f32 (arrondi au plus proche) est exact quel que soit l'ordre.
+\end{lemme}
+
+\begin{proof}
+Un multiple de $2^{-m}$ de valeur absolue inférieure à $2^{24-m}$ s'écrit $a \cdot 2^{-m}$ avec $|a| < 2^{24}$ entier : il tient dans les 24 bits de mantisse d'un f32, il est représentable. Chaque opération (produit, somme, \texttt{fmaf}) a un résultat exact représentable ; l'arrondi IEEE~754 d'un nombre représentable le rend inchangé~\cite{ieee754-2019}. Par récurrence sur les opérations, aucune n'arrondit.
+\end{proof}
+
+\paragraph{Le témoin, posé.} Échelles $e \in [117, 123]$, entrées $x \in \{-2, \ldots, 2\}$. Chaque terme $k \cdot x \cdot 2^{e - 128}$ est un multiple de $2^{-11}$ (car $e - 128 \ge -11$ et $k$, $x$ entiers), de valeur absolue au plus $12 \times 2 \times 2^{-5} = 0{,}75$ ; toute somme partielle d'une ligne de \num{2880} termes est un multiple de $2^{-11}$ de valeur absolue au plus $\num{2880} \times 0{,}75 = \num{2160} < 2^{12}$ \calc : elle tient en $12 + 11 = 23$ bits. Par le \cref{lem:t2n-exact}, la carte doit égaler \emph{au bit} la somme exacte. Mesuré : 0 ligne fausse sur 5 formes (dont $\num{2880} \times \num{2880}$, $37 \times 96$, $5 \times 32$) ; la cassure (référence $\times 1{,}01$) fait tomber \num{8639} lignes sur \num{8640} \mes. La ligne qui tient sous la cassure n'a pas été examinée : [hyp.] une ligne de somme nulle, que $\times 1{,}01$ ne change pas.
+
+\subsection{Sur poids réels : la borne d'erreur}
+
+\begin{proposition}[Borne a priori de la GEMV]\label{prop:t2n-borne-gemv}
+Pour une ligne, la somme est faite en f32 en trois étages : les 32 termes d'un bloc (ordre fixe), les $\lceil B/32 \rceil$ blocs d'une voie (3 au plus pour $B = 90$), puis l'arbre papillon sur 32 voies (5 niveaux). Le résultat vérifie
+\[
+|\hat y - y| \le \gamma_{n_e} \sum |\text{termes}|, \qquad \gamma_n = \frac{n u}{1 - n u},\ u = 2^{-24},\ n_e = 32 + 3 + 5 = 40,
+\]
+soit $\gamma_{40} \approx 2{,}4\cdot10^{-6}$ fois la somme des valeurs absolues.
+\end{proposition}
+
+\begin{proof}
+Chaque terme traverse au plus $n_e$ opérations en chaîne (une par terme du bloc, une par bloc de la voie, une par niveau de l'arbre), chacune d'erreur relative au plus $u$ ; la borne classique d'une somme récursive s'applique à chaque chemin~\cite{higham2002}. L'échelle est exacte (\cref{lem:t2n-e8m0}) et multiplie sans erreur supplémentaire au-delà de la sienne, comptée dans la chaîne.
+\end{proof}
+
+Le seuil déclaré ($10^{-5}$ de $\max|y|$) suppose $\sum|\text{termes}| \le 4 \max|y|$. Mesuré sur 24 matrices réelles du 120b (8 experts $\times$ 3) : \textbf{$2{,}9\cdot10^{-7}$ au pire}, 34 fois sous le seuil (\cref{fig:t2n-ecarts}) \mes. Le déterminisme suit de l'ordre fixe : lot et seul rendent les mêmes bits (\texttt{lot\_\allowbreak different\_\allowbreak du\_\allowbreak seul} $= 0$).
+
+\begin{figure}[!htbp]
+\centering
+\GrapheNoyEcarts
+\caption[K2 : écart de la GEMV sur poids réels]{K2 : écart relatif $\max|y - y_{64}| / \max|y_{64}|$ de la GEMV contre une référence f64, 24 matrices réelles de gpt-oss-120b \mes. En pointillé, $\gamma_{40}$ : la borne a priori par unité de $\sum|\text{termes}|$ (\cref{prop:t2n-borne-gemv}) ; les erreurs réelles se compensent, et l'écart mesuré reste un ordre de grandeur sous elle.}
+\label{fig:t2n-ecarts}
+\sourcefig{\fichier{mesures/moteur/K/csv/k2-ecarts-reels.csv} (depuis \fichier{k2-justesse-gptoss120b.json}).}
+\end{figure}
+
+\subsection{Le toit}
+
+Une matrice $\num{2880} \times \num{2880}$ lit \num{4406400}\,octets de MXFP4 équivalents (codes et échelles), plus \num{11520} de biais et \num{11520} de $x$. La bande passante de la VRAM (bus de 128 bits, GDDR6) borne le débit ; le seuil de K2 est $0{,}8 \times 209{,}4 = 167{,}5$\,Go/s (la GEMV MXFP4 brute de 03 sous Vulkan). Mesuré : \textbf{235,35 et 235,41\,Go/s} pour un lot de 12 matrices (une couche de 4 experts), pires passes 219,1 et 220,9 ; une matrice par lancement fait 160\,Go/s (\cref{fig:t2n-gemv}) \mes. Une couche prend 230\,µs ; les GEMV d'experts d'un jeton du 120b (36 couches), environ 8,3\,ms \calc, à comparer aux 383\,ms de disque d'un jeton mesurées au jalon (157 prédites par le Tome~I).
+
+\begin{figure}[!htbp]
+\centering
+\GrapheNoyGemv
+\caption[K2 : débit de la GEMV MXFP4]{K2, débit de la GEMV MXFP4 par passe (Go/s de MXFP4 équivalents), séance propre de 20 h 24 \mes. Le lot de 12 matrices dépasse de 12\,\% la référence Vulkan de 03 ; une matrice par lancement paie la queue de vague et le lancement.}
+\label{fig:t2n-gemv}
+\sourcefig{\fichier{mesures/moteur/K/csv/k2-debit-passes.csv}, réordonné dans \fichier{t2n-k2.csv}.}
+\end{figure}
+
+\section{La passe avant : douze noyaux (K3)}\label{sec:t2n-passe}
+
+\subsection{Les noyaux et leurs structures}
+
+La passe avant de gpt-oss, telle que \texttt{trc-reference} (lot R) l'a écrite depuis la définition publiée par OpenAI et validée contre llama.cpp, se découpe en douze noyaux : \texttt{gemv\_mxfp4} (K2), \texttt{gemv\_q8\_0}, \texttt{gemv\_f32}, \texttt{rmsnorm}~\cite{zhang2019rmsnorm}, \texttt{rope\_yarn}~\cite{su2021roformer,peng2023yarn}, \texttt{ecrire\_kv}, \texttt{attention} (avec puits appris par tête~\cite{xiao2024sinks}), \texttt{routeur\_topk}, \texttt{swiglu\_oai}~\cite{shazeer2020glu}, \texttt{combiner}, \texttt{ligne\_q8\_0} et \texttt{argmax}. La \cref{fig:t2n-passe} les dispose dans l'ordre d'une couche.
+
+\begin{figure}[!htbp]
+\centering
+\resizebox{\linewidth}{!}{\SchemaNoyPasse}
+\caption[La passe avant d'une couche, noyau par noyau]{La passe avant d'une couche de gpt-oss, noyau par noyau ($d = \num{2880}$, 64 têtes de requête, 8 têtes de clé et de valeur de dimension 64). La moitié gauche précède le routeur ; la boîte aux lettres porte sa décision à l'hôte (\cref{ch:t2-chemin}), qui décide succès et défauts ; la moitié droite applique les quatre experts et les combine dans un ordre fixe.}
+\label{fig:t2n-passe}
+\end{figure}
+
+\begin{figure}[!htbp]
+\centering
+\resizebox{\linewidth}{!}{\SchemaNoyStructures}
+\caption[Les structures passées aux noyaux]{Les structures passées aux noyaux, octet par octet (même disposition côté Rust, \texttt{\#[repr(C)]}, \fichier{moteur/crates/trc-noyaux/src/abi.rs}). \texttt{DescDecodage} et \texttt{DescGemv} décrivent un élément d'un lot ; \texttt{ParamsRope} (alignement 8) porte YaRN en f64 (base \num{150000}, facteur 32, contexte d'origine \num{4096}, $\beta$ rapide 32 et lent 1) et la variante (0 : OpenAI ; 1 : llama.cpp) ; \texttt{ParamsAttention} porte la plage lue et l'anneau (0, ou 128 sur une couche à fenêtre).}
+\label{fig:t2n-structures}
+\end{figure}
+
+\begin{table}[!htbp]
+\centering\small
+\caption[Les tampons de la passe avant]{Les tampons de la passe avant, au bit près.}
+\label{tab:t2n-tampons}
+\begin{tabularx}{\linewidth}{@{}lp{2.6cm}X@{}}
+\toprule
+structure & octets & champs \\
+\midrule
+case de la boîte aux lettres & $4(2k+1) = 36$ utiles, dans 64 & mot 0 : séquence, écrite en dernier après \texttt{\_\_threadfence\_system} ; mots 1 à $k$ : indices ; mots $k+1$ à $2k$ : poids (bits de f32). Protocole de l'essai E0\,(c), \cref{ch:t2-chemin} \\
+cache KV d'une couche & $2 \cdot \text{cases} \cdot 512$ par moitié & f16 \texttt{[case][tête\_kv][64]}, pour K et pour V ; 128 cases sur une couche paire (anneau), sinon la longueur du contexte \\
+bloc Q8\_0 (ggml) & 34 & f16 $d$, puis $32 \times$ i8 ; l'adresse d'un bloc est paire, d'où la lecture par mots de 16 bits \\
+activations & — & f32 contigus \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Le protocole du témoin}
+
+Chaque noyau est jugé \emph{seul}, sur les poids \textbf{réels} lus dans le GGUF d'origine par le lecteur du lot R (chemin indépendant du \texttt{.trc}), aux couches 0 (à fenêtre) et 1 (pleine) de gpt-oss-20b puis de gpt-oss-120b. Son entrée est la sortie f64 de la référence arrondie en f32 (les erreurs ne s'enchaînent pas) ; sa référence est l'opération correspondante de \texttt{trc-reference}, appliquée en f64 \emph{aux mêmes valeurs f32}. L'écart est $e = \max_i |y_i - y^{64}_i| / \max_i |y^{64}_i|$ sur le vecteur de sortie entier. Chaque appel est fait deux fois : les deux sorties doivent être égales au bit. Chaque cassure injecte une vraie faute plausible \emph{dans la référence} ; seul le témoin visé doit tomber, les onze autres tenir.
+
+\subsection{Un seul arrondi : les noyaux en f64}
+
+\begin{proposition}[Un seul arrondi tient à $2^{-24}$]\label{prop:t2n-un-arrondi}
+Un noyau qui calcule en f64 sur la carte et arrondit une seule fois vers le f32 (\texttt{rmsnorm}, \texttt{rope\_yarn}, \texttt{swiglu\_oai}, les poids du routeur) vérifie $e \le 2^{-24} + O(2^{-50}) \approx 5{,}96\cdot10^{-8}$.
+\end{proposition}
+
+\begin{proof}
+Soit $y$ la valeur exacte et $\hat y_{64}$ le calcul en f64 : $|\hat y_{64} - y| \le c \cdot 2^{-53} |y|$, avec $c$ petit (une dizaine d'opérations, plus l'erreur de \texttt{pow}, \texttt{log}, \texttt{exp}, \texttt{sin}, \texttt{cos} de CUDA en double précision, 1 à 2 ulp). L'arrondi au plus proche ajoute $|\mathrm{fl}_{32}(\hat y_{64}) - \hat y_{64}| \le 2^{-24} |\hat y_{64}|$. D'où $|\hat y - y| \le (2^{-24} + c\,2^{-53})|y|(1 + O(2^{-24}))$ pour chaque composante, et $e$, qui normalise par le maximum, est borné de même.
+\end{proof}
+
+\textbf{Mesuré} (20b puis 120b) : \texttt{rmsnorm} 5,2 et 5,6$\cdot10^{-8}$ ; \texttt{rope\_\allowbreak yarn} 5,3 et 4,6$\cdot10^{-8}$ ; \texttt{swiglu\_\allowbreak oai} 4,9 et 3,5$\cdot10^{-8}$ ; poids du routeur 4,7 et 5,0$\cdot10^{-8}$ \mes. Tous sont sous la borne, et presque à son niveau : l'arrondi final est la seule erreur visible. Le seuil de la couture N ($10^{-6}$) laisse 17 fois de marge.
+
+\paragraph{Pourquoi la rotation se calcule en f64, en un seul calcul.} L'angle vaut $p\,\theta_i$, avec $\theta_0 = 1$. En f32, l'angle à la position $p$ porte une erreur de l'ordre de $2^{-24} p$ : $2{,}4\cdot10^{-4}$\,rad à $p = \num{4096}$, $7{,}8\cdot10^{-3}$\,rad à $p = \num{131072}$ \calc. Une erreur d'angle $\delta$ donne une erreur relative de l'ordre de $\delta$ sur la paire tournée ; le seuil de $10^{-6}$ serait manqué dès que $2^{-24} p > 10^{-6}$, soit $p > 10^{-6} \times 2^{24} \approx 17$ \calc. En f64, l'erreur d'angle vaut $2^{-53} p$, négligeable à toute position. Le noyau calcule donc en f64 la fréquence de YaRN (rampe entre les bornes $\beta$ et concentration $0{,}1 \ln s + 1$), l'angle, le sinus et le cosinus, et la rotation (\cref{lst:t2n-rope}).
+
+\lstinputlisting[style=tdeux, language=CUDA, caption={[La fréquence de YaRN en f64]\texttt{inv\_freq\_yarn} (\fichier{moteur/crates/trc-noyaux/noyaux/passe.cuh}, lignes 145 à 167, commit \texttt{c09551e}) : la fréquence de la paire $i$ et la concentration, en f64. La variante 1 arrondit les bornes de la rampe comme llama.cpp ; la variante 0, celle du modèle, ne les arrondit pas.}, label={lst:t2n-rope}]{\ListingsTdeux/rope-yarn.cuh}
+
+\subsection{Les noyaux exacts}
+
+\begin{proposition}[L'enchâssement est exact]\label{prop:t2n-ligne}
+\texttt{ligne\_q8\_0} rend exactement $d \cdot q$ pour chaque poids d'une ligne Q8\_0.
+\end{proposition}
+
+\begin{proof}
+$d$ est un f16, à 11 bits de mantisse ; $q$ est un i8, $|q| \le 128$, à 7 bits significatifs au plus ($128 = 2^7$ n'en a qu'un). Le produit tient en 18 bits, sous les 24 d'un f32, et reste dans l'étendue des normaux ou des sous-normaux exacts ($|d q| \le \num{65504} \times 128$, et $\ge 2^{-24}$ s'il n'est pas nul) : il est exact.
+\end{proof}
+
+Mesuré : 0 différence sur 64 lignes, dont la première et la dernière \mes. Pour \texttt{gemv\_q8\_0}, \texttt{gemv\_f32} et \texttt{gemv\_mxfp4}, le \cref{lem:t2n-exact} donne des témoins exacts : Q8\_0 avec $d = 2^e$, $e \in [-2, 1]$, $q \in [-127, 127]$, $x \in \{-1, 0, 1\}$, sommes multiples de $2^{-2}$ bornées par $128 \cdot 32 \cdot 127 \cdot 2 = \num{1040384} < 2^{22}$ pour $C = \num{4096}$ ; f32 avec $W, x \in [-8, 8]$ entiers, somme au plus \num{184320} ; MXFP4 avec $e \in [127, 129]$, $x \in [-2, 2]$, multiples de $2^{-1}$ bornés par \num{138240} \calc. Mesuré : 0 différence sur 5 formes, jusqu'à $\num{2880} \times \num{4096}$ \mes. Sur poids réels, la borne de la \cref{prop:t2n-borne-gemv} vaut avec $n_e = 32 + 1 + \lceil B/32 \rceil + 5$ : 41 pour $C = \num{2880}$, 42 pour $C = \num{4096}$ (\texttt{attn\_output}), d'où $\gamma \approx 2{,}5\cdot10^{-6}$ ; mesuré : 1,6 à 2,6$\cdot10^{-7}$ sur $q$, $k$, $v$, $o$, le routeur, les experts et la sortie à \num{201088} lignes, 39 à 62 fois sous $10^{-5}$ \mes.
+
+\begin{proposition}[Le combiner est égal au bit à l'hôte]\label{prop:t2n-combiner}
+\texttt{combiner} rend, pour chaque composante, exactement la valeur que calcule l'hôte en f32 pour $x + (((g_0 s_0 + g_1 s_1) + g_2 s_2) + g_3 s_3)$, dans cet ordre.
+\end{proposition}
+
+\begin{proof}
+IEEE~754 fixe le résultat de chaque addition et de chaque multiplication en arrondi au plus proche pair : mêmes opérandes, même ordre, même mode, même résultat~\cite{ieee754-2019}. Le noyau emploie \texttt{\_\_fmul\_rn} et \texttt{\_\_fadd\_rn}, que le compilateur ne contracte jamais en fma~\cite{nvidia2026intrinseques} ; l'hôte (Rust, x86-64, SSE) ne contracte jamais. Les deux suites d'opérations sont donc identiques, opération par opération.
+\end{proof}
+
+\textbf{Cassure faite dans la source} : avec un \texttt{fmaf} à la place, le test tombe dès l'élément 649 (\fichier{tests/passe.rs}) \mes. Un arrondi de moins change des bits.
+
+\lstinputlisting[style=tdeux, language=CUDA, caption={[Le combiner]\texttt{combiner} (\fichier{passe.cuh}, lignes 527 à 542, commit \texttt{c09551e}) : chaque produit et chaque somme arrondis séparément ; \texttt{poids} nul sert au résidu de l'attention ($n = 1$, poids 1, aucune multiplication).}, label={lst:t2n-combiner}]{\ListingsTdeux/combiner.cuh}
+
+\subsection{L'attention, la plus petite marge}
+
+L'attention d'une position, une tête de requête par bloc de 256 fils, se fait en trois phases (\cref{lst:t2n-attention}) : (1) les scores $s_j = (q \cdot k_j)/8$, produit en f32 sur $d = 0..63$ dans l'ordre ; (2) le softmax avec le puits de la tête dans le dénominateur : $m = \max(\max_j s_j, \text{puits})$, $e_j = \exp(s_j - m)$, $z = \sum_j e_j + \exp(\text{puits} - m)$, les deux réductions par un arbre fixe sur 256 fils ; (3) la somme pondérée des valeurs en quatre groupes ($j \equiv g \bmod 4$, chacun dans l'ordre), combinés $((g_0 + g_1) + (g_2 + g_3))$. La case d'une position est la position, ou la position modulo 128 sur une couche à fenêtre.
+
+\lstinputlisting[style=tdeux, language=CUDA, caption={[L'attention de décodage]Le corps d'\texttt{attention} (\fichier{passe.cuh}, lignes 325 à 371, commit \texttt{c09551e}) : scores, softmax avec puits, somme en quatre groupes ; aucun atomique, deux arbres fixes.}, label={lst:t2n-attention}]{\ListingsTdeux/attention.cuh}
+
+\begin{proposition}[Borne de l'attention]\label{prop:t2n-attention}
+L'erreur relative de la sortie est de l'ordre de $\max_j |\delta s_j| + \gamma_{n_a}$, avec $|\delta s_j| \le \gamma_{64} \sum_t |q_t k_{j,t}| / 8$, $\gamma_{64} \approx 3{,}8\cdot10^{-6}$, et $n_a \approx \num{1024}$ additions en chaîne pour $n = \num{4096}$ positions ($\gamma \approx 6\cdot10^{-5}$ au pire).
+\end{proposition}
+
+\begin{proof}
+Le score est une somme de 64 produits en f32 (\cref{prop:t2n-borne-gemv} avec $n_e = 64$). Une erreur $\delta s$ multiplie le poids par $\exp(\delta s) \approx 1 + \delta s$ ; la sortie, moyenne pondérée, hérite d'une erreur relative de l'ordre de $\max_j |\delta s_j|$. S'y ajoutent les sommes de $e_j$ et de $e_j v_j$ : au plus $n/4$ termes par groupe, puis un arbre de 4, soit environ \num{1024} additions en chaîne pour $n = \num{4096}$. Ce sont des bornes de pire cas ; les erreurs réelles se compensent.
+\end{proof}
+
+Mesuré : 2,2 à 6,2$\cdot10^{-6}$ sur la couche à fenêtre, 0,46 à 1,9$\cdot10^{-6}$ sur la couche pleine (jusqu'à \num{4096} positions), pour un seuil de $10^{-5}$ \mes : \textbf{la marge la plus petite, 1,6} sur le 20b (2,5 sur le 120b). Si C4 l'exigeait, des scores en f64 coûteraient environ 0,17\,ms par couche (\barre{au plus 0,15\,ms}) [calc. : $\num{3.36e7}$ opérations, soit $64$ têtes $\times \num{4096} \times 64 \times 2$ opérations à environ 0,2\,Tflop/s en f64], sans effet devant le disque.
+
+\subsection{Les sélections, et le déterminisme d'ensemble}
+
+\begin{proposition}[Les sélections sont déterministes]\label{prop:t2n-selection}
+\texttt{argmax} et \texttt{routeur\_topk} rendent le même élément quel que soit l'arbre de réduction ; les égalités se départagent au plus petit indice.
+\end{proposition}
+
+\begin{proof}
+Les deux noyaux prennent le minimum de la clé $(-v, i)$ sur les valeurs non NaN (\texttt{meilleur} : plus grande valeur, puis plus petit indice ; un NaN n'est jamais meilleur). C'est un ordre total ; le minimum d'un ensemble pour un ordre total est unique, et l'opération « meilleur de deux » est associative et commutative : toute réduction, quel que soit son arbre, rend cet élément. L'arbre est fixé quand même.
+\end{proof}
+
+Vérifié sur des vecteurs à égalités (quatre maxima égaux, 128 zéros, maxima aux indices 64 et 127) ; la cassure « plus grand indice » ne fait tomber que ces cas \mes. \texttt{routeur\_topk} calcule ensuite le softmax des $k$ valeurs retenues en f64 et écrit la case de la boîte aux lettres dans l'ordre du protocole de l'essai E0\,(c) : indices et poids, barrière système, puis la séquence (\cref{lst:t2n-routeur}).
+
+\lstinputlisting[style=tdeux, language=CUDA, caption={[Le routeur]Le corps de \texttt{routeur\_topk} (\fichier{passe.cuh}, lignes 461 à 514, commit \texttt{c09551e}) : $k$ tours de réduction papillon sur l'ordre total, puis le softmax des $k$ en f64 et la case de la boîte aux lettres, séquence en dernier.}, label={lst:t2n-routeur}]{\ListingsTdeux/routeur-topk.cuh}
+
+Les réductions flottantes de \texttt{rmsnorm} et d'\texttt{attention} suivent un arbre fixe sur 256 fils, sans atomique ; celles des GEMV, un papillon fixe sur 32 voies. Chaque noyau est donc une fonction déterministe des octets qu'il lit (\cref{def:t2n-determinisme}), et chaque appel des témoins, fait deux fois, rend les mêmes bits.
+
+\subsection{Résultats, noyau par noyau}
+
+\begin{table}[!htbp]
+\centering\small
+\caption[K3 : les douze noyaux contre la référence f64]{K3 : chaque noyau contre \texttt{trc-reference} sur poids réels, et sa cassure \mes. Marge : seuil / pire écart. Les témoins comptent 143 cas (20b) et 116 (120b) ; chaque appel est déterministe au bit ; chaque cassure fait tomber son seul témoin.}
+\label{tab:t2n-k3}
+\footnotesize
+\begin{tabularx}{\linewidth}{@{}lrrrrX@{}}
+\toprule
+noyau & seuil & pire 20b & pire 120b & marge 20b & cassure (dans la référence) : effet \\
+\midrule
+\texttt{gemv\_mxfp4} & $10^{-5}$ & $2{,}4\cdot10^{-7}$ & $1{,}6\cdot10^{-7}$ & 41 & échelle $2^{e-127}$ : écart 0,66 \\
+\texttt{gemv\_q8\_0} & $10^{-5}$ & $1{,}9\cdot10^{-7}$ & $2{,}5\cdot10^{-7}$ & 53 & biais omis : 0,70, sauf \texttt{attn\_k} (biais nul) \\
+\texttt{gemv\_f32} & $10^{-5}$ & $2{,}6\cdot10^{-7}$ & $2{,}2\cdot10^{-7}$ & 39 & biais omis : 0,28 \\
+\texttt{rmsnorm} & $10^{-6}$ & $5{,}2\cdot10^{-8}$ & $5{,}6\cdot10^{-8}$ & 19 & moyenne sur $n - 1$ : $1{,}7\cdot10^{-4}$ \\
+\texttt{rope\_yarn} & $10^{-6}$ & $5{,}3\cdot10^{-8}$ & $4{,}6\cdot10^{-8}$ & 19 & sans la concentration : 0,35 \\
+\texttt{attention} & $10^{-5}$ & $6{,}2\cdot10^{-6}$ & $3{,}9\cdot10^{-6}$ & 1,6 & puits omis : 1,0 \\
+\texttt{routeur\_topk} (poids) & $10^{-6}$ & $4{,}7\cdot10^{-8}$ & $5{,}0\cdot10^{-8}$ & 21 & égalité au plus grand indice : 18 indices différents \\
+\texttt{swiglu\_oai} & $10^{-6}$ & $4{,}9\cdot10^{-8}$ & $3{,}5\cdot10^{-8}$ & 20 & $\alpha = 1$ : 0,28 \\
+\texttt{combiner} & égalité & 0 & 0 & — & ordre inversé : \num{5762} différences \\
+\texttt{ecrire\_kv} & égalité & 0 & 0 & — & arrondi vers zéro : \num{392654} différences \\
+\texttt{ligne\_q8\_0} & égalité & 0 & 0 & — & ligne voisine : \num{176448} différences \\
+\texttt{argmax}, indices du routeur & égalité & 0 & 0 & — & égalité au plus grand indice : 3 différences \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{mesures/moteur/K/csv/k3-par-noyau.csv} (lignes \texttt{temoin} et \texttt{casse:*}), \fichier{mesures/moteur/K/k3/}.}
+\end{table}
+
+\begin{figure}[!htbp]
+\centering
+\GrapheNoyMarges
+\caption[K3 : la marge de chaque noyau à son seuil]{K3 : la marge de chaque noyau à seuil (seuil / pire écart, échelle logarithmique), 20b et 120b \mes. Les noyaux en f64 tiennent à $2^{-24}$ (marge 17 à 29 pour un seuil de $10^{-6}$) ; les GEMV, 39 à 62 fois sous $10^{-5}$ ; l'attention est la plus serrée.}
+\label{fig:t2n-marges}
+\sourcefig{\fichier{mesures/moteur/K/csv/k3-par-noyau.csv}, dans \fichier{t2n-marges.csv}.}
+\end{figure}
+
+\subsection{La chaîne de bout en bout}
+
+Les noyaux justes un à un ne font pas encore une passe juste : il faut les enchaîner. Le mode \texttt{chaine} du témoin fait la passe avant \emph{entière} de gpt-oss-20b sur la carte, par les seuls noyaux de K1 à K3 (aucun arrondi de l'hôte entre deux noyaux), sur les 160 premiers jetons réels de la fenêtre 0 de wikitext-2, contre la référence f64, couche par couche (chaque expert chargé une fois par couche).
+
+\begin{proposition}[Ordre couche par couche = ordre jeton par jeton]\label{prop:t2n-ordre}
+Si les deux ordres lancent les mêmes noyaux avec les mêmes arguments numériques, l'ordre couche par couche (toutes les positions d'une couche, puis la couche suivante) et l'ordre jeton par jeton (toutes les couches d'une position, puis la suivante) rendent les mêmes bits.
+\end{proposition}
+
+\begin{proof}
+Soit $x_p^\ell$ l'état de la position $p$ après la couche $\ell$. Par causalité, $x_p^\ell$ ne dépend que de $x_p^{\ell-1}$ et des clés et valeurs des positions $q \le p$ à la couche $\ell$, elles-mêmes fonctions de $x_q^{\ell-1}$. Par récurrence sur $(\ell, p)$ dans l'ordre produit, chaque $x_p^\ell$ sort des mêmes noyaux, sur les mêmes octets, dans le même ordre interne (\cref{def:t2n-determinisme}). Sur l'anneau d'une couche à fenêtre, la position $p$ est lue juste après son écriture, et les 128 cases portent alors exactement les positions $p - 127 \ldots p$ dans les deux ordres.
+\end{proof}
+
+C'est une identité de programme, non une mesure ; le moteur du lot O l'a vérifiée ensuite (160 lignes sur 160 égales entre la chaîne et le moteur, témoin O2).
+
+\begin{table}[!htbp]
+\centering\small
+\caption[K3 : la chaîne de bout en bout]{K3 : la chaîne de bout en bout, gpt-oss-20b, 24 couches, 160 jetons \mes. Seuil déclaré : KL moyenne $\le 7\cdot10^{-5}$.}
+\label{tab:t2n-chaine}
+\footnotesize
+\begin{tabular}{@{}lrrrrl@{}}
+\toprule
+essai & KL moyenne & KL max & médiane & premier choix & verdict \\
+\midrule
+routage libre (tel que déclaré) & $7{,}28\cdot10^{-3}$ & 1,02 & $2{,}5\cdot10^{-6}$ & 158 / 160 & tombe \\
+D2, routage imposé & $3{,}0\cdot10^{-6}$ & $1{,}4\cdot10^{-4}$ & $1{,}8\cdot10^{-7}$ & 160 / 160 & tient \\
+D2, cassure : fenêtre sur les couches impaires & $1{,}6\cdot10^{-2}$ & 1,36 & — & 156 / 160 & tombe \\
+D2, cassure : poids inversés & 0,52 & 2,27 & — & 77 / 160 & tombe \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/moteur/K/k3/k3-chaine-*.json}, \fichier{mesures/moteur/K/csv/k3-chaine-kl.csv}.}
+\end{table}
+
+Telle que déclarée, la chaîne \textbf{tombe} (\cref{tab:t2n-chaine}) : KL moyenne $7{,}28\cdot10^{-3}$, cent fois le seuil. Mais la médiane vaut $2{,}5\cdot10^{-6}$, et les six positions qui portent 99,3\,\% de la KL sont exactement celles des six premières bascules de routage (67, 87, 114, 129, 136, 153 ; \cref{fig:t2n-chaine}). Le diagnostic, déclaré après ce premier résultat et avant son code (c'est écrit dans la note du lot K, 21 h 22), impose à la chaîne les experts de la référence (D2) : la KL tombe à $3{,}0\cdot10^{-6}$, 160 premiers choix sur 160.
+
+\begin{figure}[!htbp]
+\centering
+\GrapheNoyChaine
+\caption[K3 : KL par position, routage libre contre imposé]{K3, la chaîne : KL(référence $\|$ chaîne) par position, gpt-oss-20b \mes. En routage libre, six pics (positions 67, 87, 114, 129, 136, 153) portent 99,3\,\% de la KL ; sous routage imposé, ils disparaissent et la KL reste entre $10^{-9}$ et $10^{-4}$.}
+\label{fig:t2n-chaine}
+\sourcefig{\fichier{mesures/moteur/K/csv/k3-chaine-kl.csv}.}
+\end{figure}
+
+\begin{proposition}[L'amplificateur de routage]\label{prop:t2n-bascule}
+Soit $\mu$ la marge du routeur de la référence à une décision (l'écart entre ses 4\textsuperscript{e} et 5\textsuperscript{e} logits) et $\eta$ l'erreur de la chaîne f32 sur cette marge. La décision bascule si $\eta > \mu$ (avec le bon signe). Une bascule remplace un expert de poids $g$ par un autre, et l'état de la position change de l'ordre de $g\,\|s_e - s_{e'}\|$ au lieu de $10^{-7}$ : c'est un saut, non un arrondi.
+\end{proposition}
+
+\begin{proof}
+Le routeur garde les 4 plus grands logits ; une perturbation $\eta$ plus grande que l'écart entre le 4\textsuperscript{e} et le 5\textsuperscript{e}, dans le sens qui les inverse, échange les deux experts. La sortie de la couche pour cette position change alors de $g\,(s_{e'} - s_e)$ (au renormalisé du softmax près), sans commune mesure avec l'erreur d'arrondi des noyaux. L'écart se propage aux couches suivantes de la position, et un peu aux positions plus tardives, par leur attention.
+\end{proof}
+
+\textbf{Mesuré} (\cref{fig:t2n-routage}) : sur \num{3840} décisions, 334 ont une marge de référence sous $10^{-2}$, 34 sous $10^{-3}$, 4 sous $10^{-4}$ ; en routage libre, 22 décisions changent d'ensemble (et 15 seulement d'ordre). Sous routage imposé, la carte aurait basculé 3 décisions, de marges $1{,}4\cdot10^{-4}$, $3{,}3\cdot10^{-4}$ et $7{,}9\cdot10^{-4}$ ; $\eta$ est donc de l'ordre de $10^{-4}$ à $10^{-3}$, et quatre décisions de marge plus petite n'ont pas basculé : le signe de $\eta$ décide \mes.
+
+\begin{figure}[!htbp]
+\centering
+\GrapheNoyRoutage
+\caption[K3 : les décisions de routage et leurs bascules]{K3, diagnostic D1 : chaque décision de routage de la chaîne en routage libre (24 couches $\times$ 160 positions), selon la marge du routeur de la référence \mes. Croix : la chaîne choisit un autre ensemble d'experts. Les bascules se concentrent aux petites marges ; la ligne marque $10^{-3}$.}
+\label{fig:t2n-routage}
+\sourcefig{\fichier{mesures/moteur/K/k3/k3-chaine-d1-gptoss20b-marges.csv}, dans \fichier{t2n-routage.csv}.}
+\end{figure}
+
+\paragraph{La conséquence pour le critère C4.} La KL de bout en bout d'un moteur f32 contre la référence f64 ne mesure pas la précision de ses noyaux ; elle compte les décisions dont la marge est sous le $\eta$ du moteur, chacune au coût d'une bascule. troncons (activations f32, poids exacts) doit avoir un $\eta$ plus petit que llama.cpp, qui ramène ses activations en Q8\_0. C4 se jouera sur ce terme. Proposition du lot K à l'arbitre : juger toute comparaison de bout en bout aussi sous routage imposé, et compter les bascules à part, avec la marge de chacune.
+
+\paragraph{Trouvé en chemin.}
+\begin{itemize}
+\item \textbf{Le biais des clés de gpt-oss vaut exactement 0}, dans les deux GGUF : 512 valeurs sur 512, aux couches 0, 1 et 5 (\fichier{k3\_biais\_attention.py}), alors que les biais de $q$ et de $v$ sont pleins ($|b|$ jusqu'à 3,9) \mes. Sans puits, un biais de clé ajouterait $q \cdot b_k$ à tous les scores d'une tête et le softmax l'effacerait ; avec le puits dans le dénominateur, il ne s'effacerait pas. Sa nullité est une donnée du modèle, non une évidence ; la cassure « biais omis » l'a fait voir en ne tombant pas sur \texttt{attn\_k}.
+\item \textbf{La fenêtre ne se voit qu'après 128 positions} (\cref{fig:t2n-fenetre-kl}) : sous la cassure « fenêtre », la KL des positions 0 à 127 est égale au bit à celle de la chaîne saine ; sur les positions 128 à 159, elle vaut $8{,}2\cdot10^{-2}$. Un témoin de bout en bout plus court que la fenêtre ne voit pas cette faute.
+\item \textbf{Le fma change des bits} : un \texttt{fmaf} remis dans \texttt{combiner} fait tomber l'égalité avec l'hôte (\cref{prop:t2n-combiner}).
+\end{itemize}
+
+\begin{figure}[!htbp]
+\centering
+\GrapheNoyFenetre
+\caption[K3 : la cassure « fenêtre » et sa marche à 128]{K3 : la chaîne sous routage imposé, saine et sous la cassure « fenêtre posée sur les couches impaires » \mes. Les deux courbes sont égales au bit jusqu'à la position 127 ; la faute n'apparaît qu'au moment où l'anneau de 128 cases commence à oublier.}
+\label{fig:t2n-fenetre-kl}
+\sourcefig{\fichier{mesures/moteur/K/csv/k3-chaine-kl.csv} (colonnes \texttt{kl\_impose}, \texttt{kl\_impose\_casse\_fenetre}).}
+\end{figure}
+
+\section{La ronde : le cache KV en f32}\label{sec:t2n-kv}
+
+L'épreuve indépendante a trouvé que le premier jeton du texte de C12 différait de celui de la vérité f64, et que l'écart venait du cache KV. La ronde de corrections a ajouté deux noyaux, \texttt{ecrire\_kv\_f32} et \texttt{attention\_kvf32}, qui font les mêmes calculs dans le même ordre que \texttt{ecrire\_kv} et \texttt{attention}, à ceci près que les clés et les valeurs sont gardées en f32, sans toucher aux noyaux de la couture N (option \texttt{--kv-f32}). Témoin : égaux au bit au chemin f16 sur des valeurs représentables en f16 (cache plein et anneau) ; cassure : des valeurs non représentables font différer \mes.
+
+\begin{proposition}[Ce que coûte l'arrondi f16 du cache]\label{prop:t2n-kv}
+L'arrondi f16 d'une clé, $\tilde k = k(1 + \delta)$, $|\delta| \le u_{16} = 2^{-11} \approx 4{,}9\cdot10^{-4}$, perturbe le score $s = c \sum_d q_d k_d$ ($c = 1/8$, 64 termes) d'au plus $c\,u_{16} \sum_d |q_d k_d|$ au premier ordre, contre $\gamma_{64} \approx 3{,}8\cdot10^{-6}$ pour le produit f32 lui-même. En f32, la seule erreur qui reste est celle des noyaux, $u_{32}/u_{16} = 2^{-13} \approx 1/\num{8192}$ fois plus petite. La KL d'une petite perturbation $\Delta z$ des logits est du second ordre, $\mathrm{KL} \approx \tfrac12 \mathrm{Var}_p(\Delta z)$.
+\end{proposition}
+
+\begin{proof}
+Le premier point est le développement au premier ordre de $s$ en $\delta$. Pour le second, soit $q_i \propto p_i e^{-\Delta z_i}$ : $\mathrm{KL}(p\|q) = \E_p[\Delta z] + \ln \E_p[e^{-\Delta z}]$ ; le développement de $\ln \E_p[e^{-\Delta z}] = -\E_p[\Delta z] + \tfrac12 \mathrm{Var}_p(\Delta z) + O(\Delta z^3)$ donne le résultat.
+\end{proof}
+
+\barre{Divisée par $\num{8192}^2 \approx 6{,}7\cdot10^{7}$, la KL du f16 (3,08$\cdot10^{-3}$ sur le 120b) tomberait vers $5\cdot10^{-11}$ [\ldots{} les bascules de routage ne le sont pas, mais elles disparaissent avec elle]} : estimation reprise du lot O, barrée par le \cref{thm:t2r-amplification} (deux régimes de la KL d'un mélange d'experts). Le terme sans bascule, en $u^2$, est divisé par $\num{8192}^2 \approx 6{,}7\cdot10^{7}$ ; celui des bascules, linéaire en $u$, ne disparaît pas avec l'erreur : il est divisé par \num{8192} seulement. Partant de la KL du f16 (3,08$\cdot10^{-3}$ sur la fenêtre 0 du 120b), la KL en f32 est donc au plus de l'ordre de $0{,}00308/\num{8192} \approx 3{,}8\cdot10^{-7}$\,nat \calc{} (\cref{sec:t2r-f32-theorie}), encore bien sous le pas du format à 16 bits par logit ($\approx 2{,}4\cdot10^{-4}$\,nat). Le seul juge reste la mesure : $-0{,}00048$, le zéro de l'instrument (\cref{sec:t2r-f32-mesure}).
+
+\begin{table}[!htbp]
+\centering\small
+\caption[Le cache KV en f16 contre f32]{Le cache KV en f16 contre f32, contre la vérité f64 du juge \mes. La KL négative est celle de la référence f64 du lot R contre la même vérité ($-4{,}8\cdot10^{-4}$) : un biais commun du plancher du format, qui fixe le zéro de l'instrument.}
+\label{tab:t2n-kv}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+cas & KL moyenne & premier choix & KL $> 0{,}1$ & écart max des $\log p$ \\
+\midrule
+120b, fenêtre 0, KV f16 & 0,00308 & 95,7\,\% & 0,39\,\% & 3,07\,nat \\
+\textbf{120b, fenêtre 0, KV f32} & $\mathbf{-0{,}00048}$ & \textbf{100\,\%} & 0 & \textbf{0,69 pas} \\
+20b, fenêtre 0, KV f16 & 0,00174 & 96,5\,\% & 0,39\,\% & 2,32\,nat \\
+\textbf{20b, fenêtre 0, KV f32} & $\mathbf{-0{,}00048}$ & \textbf{100\,\%} & 0 & 2,04 pas \\
+120b, invite, positions 512 à 706, f16 & 0,00963 & — & 2,05\,\% & — \\
+\textbf{120b, invite, positions 512 à 706, f32} & $\mathbf{-0{,}00054}$ & — & 0 & — \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/moteur/O/corrections/journaux/verdicts-kv-2026-10-16.json}, \fichier{m5-ecart-logp-*.json} ; \fichier{moteur/O-pour-le-memoire.md}, § 13.3.}
+\end{table}
+
+\begin{figure}[!htbp]
+\centering
+\GrapheNoyKV
+\caption[Le cache KV : f16 contre f32, 120b]{KL moyenne courante contre la vérité f64, fenêtre 0 de gpt-oss-120b, positions notées 256 à 510 \mes. En f16, la KL monte par sauts (bascules de routage) jusqu'à 0,00308 ; en f32, elle reste au plancher du format.}
+\label{fig:t2n-kv}
+\sourcefig{\fichier{mesures/moteur/O/corrections/csv/kv-f16-f32-par-position.csv} (cas \texttt{f0-120b}), moyenne courante dans \fichier{t2n-kv-120b.csv}.}
+\end{figure}
+
+Sur l'invite de 708 jetons, les argmax sont égaux à la vérité 708 sur 708 (f16 : 687), le routage égal sur toutes les (couche, position), et le premier jeton de C12 devient celui de la vérité \mes. \textbf{L'arrondi f16 du cache KV portait tout l'écart mesurable entre troncons et les mathématiques exactes du modèle.} Le coût : $18 \times (\num{4096} + 128) \times 2 \times 512 \times 2\,\text{o} = 155{,}7$\,Mo en f16, le double en f32, soit $155{,}7 / 13{,}25 = 11{,}8$ emplacements d'experts de moins \calc ; mesuré : 326 $\to$ 314 emplacements \mes. Le choix de la couture N (f16 ou f32) revient à l'arbitre.
+
+\section{Ce que le chapitre a barré}\label{sec:t2n-barres}
+
+\begin{itemize}
+\item \barre{Référence de K1 : 41,6\,Go/s} : composée par 03 avec le v4 sous Vulkan ; refaite sous CUDA, 45,8\,Go/s.
+\item \barre{Ce qui reste : K3 (la passe avant), K4} : K3 est fait (les douze noyaux tiennent sur les deux modèles) ; reste K4.
+\item \barre{Le témoin 120b repose sur le codeur du banc : le second codeur n'est prouvé que sur le 20b} : prouvé aussi sur le 120b depuis 20 h 52 (\num{4608} / \num{4608} contre le fichier du lot F).
+\item \barre{Prédiction de D : DELTA en 19 à 22\,µs} : 34,8\,µs mesurés (contention à 8 warps par SM) ; le total, lui, tient.
+\end{itemize}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{Le seuil de K1 compare deux grandeurs différentes} : 41,6\,Go/s est un débit sur un grand flux (des milliers de tuiles en vol), celui de K1 un débit par expert (381 tuiles, une vague, plus 24 tuiles de DELTA seules). La comparaison est prudente pour nous, mais ce n'est pas la même grandeur ; C s'en rapproche.
+\item \textbf{L'effet de première série n'est pas expliqué} ; il a décidé du verdict de K1.
+\item \textbf{Le modèle de latence} ignore la queue de vague, le recouvrement de deux lancements et la contention de plusieurs warps de DELTA sur un SM : il a prédit juste le lot et faux la partie DELTA de D.
+\item \textbf{Les témoins par noyau ne voient que les couches 0 et 1}, et l'entrée de la couche 1 est l'enchâssement normé, pas l'état réel après la couche 0. Une couche aux scores d'attention plus pointus pourrait rapprocher l'attention de son seuil (marge 1,6). La chaîne passe par les 24 couches du 20b et tient sous routage imposé : cela borne l'effet sur le 20b, pas sur le 120b.
+\item \textbf{La chaîne n'a tourné que sur le 20b}, sur 160 positions d'une seule fenêtre ; sur le 120b, elle demande de l'ordre de 120\,Go de lectures.
+\item \textbf{D2 impose les experts mais garde les poids de la carte} : il ne sépare pas une erreur sur les poids du routeur d'une erreur sur les experts ; les deux sont bornées par les témoins par noyau.
+\item \textbf{Le seuil de la chaîne ($7\cdot10^{-5}$) était mal posé pour un MoE qui amplifie} ; il est resté tel quel et son verdict est publié ; le diagnostic a été déclaré après ce premier résultat.
+\item \textbf{L'attention lit au plus \num{8192} positions par appel} (4 octets de mémoire partagée par position) : assez pour J1 (\num{4096}), pas pour un long contexte.
+\item \textbf{La cadence de la fenêtre de mots} (4,2 sous-pas par avance pour CODES\_CTX) est calculée sur un taux moyen ; le commentaire du code dit 8 ; aucune des deux n'est mesurée.
+\item \textbf{« KV f32 = vérité »} est mesuré sur une fenêtre de 512 jetons et une invite de 708 (120b) et une fenêtre du 20b, pas sur les 10 fenêtres.
+\item \textbf{Les débits dépendent de la fréquence de la carte d'un portable} ; l'état de la carte avant et après chaque passe est journalisé.
+\end{itemize}
+\end{faux}
+
+\paragraph{D'où l'on part, où l'on va.} Le décodeur et les douze noyaux sont écrits, démontrés là où une preuve existe, bornés là où il n'y a qu'une borne, et vérifiés au bit ou sous leur seuil sur les poids réels des deux modèles ; ils coûtent au jeton deux ordres de grandeur de moins que le disque. Ce qui reste n'est plus de la justesse : c'est le choix du repli du décodeur, celui de la précision du cache KV, et, pour la suite, une attention en tuiles et le mode base de J2, où la GEMV lira une table de centres au lieu des grandeurs E2M1.

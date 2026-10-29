@@ -1,0 +1,355 @@
+% Sources de l'étude 04 (chargement à la demande, déchargement, caches d'experts),
+% reprises de fondations/04-chargement.md § 10. Produit par memoire/outils/bib_etudes.py.
+
+@online{flexgen2023,
+  author     = {Sheng, Ying and others},
+  title      = {{FlexGen}: High-Throughput Generative Inference of Large Language Models with a Single {GPU}},
+  date       = {2023-03-13},
+  eprint     = {2303.06865},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2303.06865},
+  urldate    = {2026-10-15},
+  note       = {ICML 2023 ; dernière version 2023-06-12}
+}
+
+@online{llminflash2024,
+  author     = {Alizadeh, Keivan and others},
+  title      = {{LLM} in a Flash: Efficient Large Language Model Inference with Limited Memory},
+  date       = {2023-12-12},
+  eprint     = {2312.11514},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2312.11514},
+  urldate    = {2026-10-15},
+  note       = {ACL 2024 ; dernière version 2024-07-30}
+}
+
+@online{powerinfer2024,
+  author     = {Song, Yixin and others},
+  title      = {{PowerInfer}: Fast Large Language Model Serving with a Consumer-grade {GPU}},
+  date       = {2023-12-16},
+  eprint     = {2312.12456},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2312.12456},
+  urldate    = {2026-10-15},
+  note       = {SOSP 2024 ; dernière version 2024-12-12}
+}
+
+@online{powerinfer2_2024,
+  author     = {Xue, Zhenliang and others},
+  title      = {{PowerInfer-2}: Fast Large Language Model Inference on a Smartphone},
+  date       = {2024-06-10},
+  eprint     = {2406.06282},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2406.06282},
+  urldate    = {2026-10-15},
+  note       = {dernière version 2024-12-12}
+}
+
+@online{mixtraloffload2023,
+  author     = {Eliseev, Artyom and Mazur, Denis},
+  title      = {Fast Inference of Mixture-of-Experts Language Models with Offloading},
+  date       = {2023-12-28},
+  eprint     = {2312.17238},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2312.17238},
+  urldate    = {2026-10-15}
+}
+
+@online{mixtral2024,
+  author     = {Jiang, Albert Q. and others},
+  title      = {Mixtral of Experts},
+  date       = {2024-01-08},
+  eprint     = {2401.04088},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2401.04088},
+  urldate    = {2026-10-15}
+}
+
+@online{moeinfinity2024,
+  author     = {Xue, Leyang and others},
+  title      = {{MoE-Infinity}: Efficient {MoE} Inference on Personal Machines with Sparsity-Aware Expert Cache},
+  date       = {2024-01-25},
+  eprint     = {2401.14361},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2401.14361},
+  urldate    = {2026-10-15},
+  note       = {dernière version 2025-03-12}
+}
+
+@online{fiddler2025,
+  author     = {Kamahori, Keisuke and others},
+  title      = {{Fiddler}: {CPU-GPU} Orchestration for Fast Inference of Mixture-of-Experts Models},
+  date       = {2024-02-10},
+  eprint     = {2402.07033},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2402.07033},
+  urldate    = {2026-10-15},
+  note       = {ICLR 2025 ; dernière version 2025-05-01}
+}
+
+@online{promoe2024,
+  author     = {Song, Xiaoniu and others},
+  title      = {{ProMoE}: Fast {MoE}-based {LLM} Serving using Proactive Caching},
+  date       = {2024-10-29},
+  eprint     = {2410.22134},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2410.22134},
+  urldate    = {2026-10-15},
+  note       = {dernière version 2025-09-01}
+}
+
+@online{hobbit2024,
+  author     = {Tang, Peng and others},
+  title      = {{HOBBIT}: A Mixed Precision Expert Offloading System for Fast {MoE} Inference},
+  date       = {2024-11-03},
+  eprint     = {2411.01433},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2411.01433},
+  urldate    = {2026-10-15},
+  note       = {dernière version 2024-11-06}
+}
+
+@online{adapmoe2024,
+  author     = {Zhong, Shuzhang and others},
+  title      = {{AdapMoE}: Adaptive Sensitivity-based Expert Gating and Management for Efficient {MoE} Inference},
+  date       = {2024-08-19},
+  eprint     = {2408.10284},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2408.10284},
+  urldate    = {2026-10-15}
+}
+
+@online{expertflow2024,
+  author     = {He, Xin and others},
+  title      = {{ExpertFlow}: Optimized Expert Activation and Token Allocation for Efficient Mixture-of-Experts Inference},
+  date       = {2024-10-23},
+  eprint     = {2410.17954},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2410.17954},
+  urldate    = {2026-10-15},
+  note       = {DAC 2026 ; dernière version 2026-04-02}
+}
+
+@online{pregated2023,
+  author     = {Hwang, Ranggi and others},
+  title      = {Pre-gated {MoE}: An Algorithm-System Co-Design for Fast and Scalable Mixture-of-Expert Inference},
+  date       = {2023-08-23},
+  eprint     = {2308.12066},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2308.12066},
+  urldate    = {2026-10-15},
+  note       = {dernière version 2024-04-27}
+}
+
+@online{moelightning2024,
+  author     = {Cao, Shiyi and others},
+  title      = {{MoE-Lightning}: High-Throughput {MoE} Inference on Memory-constrained {GPUs}},
+  date       = {2024-11-18},
+  eprint     = {2411.11217},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2411.11217},
+  urldate    = {2026-10-15}
+}
+
+@online{pipo2025,
+  author     = {Liu, Yangyijian and others},
+  title      = {{PIPO}: Pipelined Offloading for Efficient Inference on Consumer Devices},
+  date       = {2025-03-15},
+  eprint     = {2504.03664},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2504.03664},
+  urldate    = {2026-10-15},
+  note       = {dernière version 2025-06-13}
+}
+
+@online{ktransformers2025,
+  author     = {Chen, Hongtao and others},
+  title      = {{KTransformers}: Unleashing the Full Potential of {CPU/GPU} Hybrid Inference for {MoE} Models},
+  date       = {2025-10},
+  url        = {https://madsys.cs.tsinghua.edu.cn/publication/ktransformers-unleashing-the-full-potential-of-cpu/gpu-hybrid-inference-for-moe-models/SOSP25-chen.pdf},
+  urldate    = {2026-10-15},
+  note       = {SOSP 2025, DOI 10.1145/3731569.3764843}
+}
+
+@online{dali2026,
+  author     = {Zhu and others},
+  title      = {{DALI}: Dynamic Expert Allocation for {CPU-GPU} {MoE} Inference},
+  date       = {2026-02-03},
+  eprint     = {2602.03495},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2602.03495},
+  urldate    = {2026-10-15}
+}
+
+@online{seqmoe2026,
+  author     = {Wang and others},
+  title      = {{SeqMoE}: Sequence-level Expert Prefetching for Offloaded {MoE} Inference},
+  date       = {2026-09-11},
+  eprint     = {2609.12978},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2609.12978},
+  urldate    = {2026-10-15}
+}
+
+@online{specmd2026,
+  author     = {Hoang and others},
+  title      = {{SpecMD}: Expert Caching for Mixture-of-Experts Decoding},
+  date       = {2026-02-03},
+  eprint     = {2602.03921},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2602.03921},
+  urldate    = {2026-10-15}
+}
+
+@online{cachecond2024,
+  author     = {Skliar, Andrii and others},
+  title      = {Mixture of Cache-Conditional Experts for Efficient Mobile Device Inference},
+  date       = {2024-11-27},
+  eprint     = {2412.00099},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2412.00099},
+  urldate    = {2026-10-15},
+  note       = {TMLR ; dernière version 2025-06-24}
+}
+
+@online{lin2025cache,
+  author     = {Lin and others},
+  title      = {In-depth Analysis on Caching and Pre-fetching in Mixture of Experts Offloading},
+  date       = {2025-11-08},
+  eprint     = {2511.05814},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2511.05814},
+  urldate    = {2026-10-15}
+}
+
+@online{cacheable2026,
+  author     = {Suram},
+  title      = {Cacheable by Design? Training Routers for Expert Locality},
+  date       = {2026-08-18},
+  eprint     = {2608.18261},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2608.18261},
+  urldate    = {2026-10-15},
+  note       = {un seul auteur ; incohérences internes relevées par l'étude 04}
+}
+
+@online{ssdllama2026,
+  author     = {Liang and others},
+  title      = {{SSD-LLaMA}: {SSD}, {RAM} and {VRAM} as One Hierarchy for Trillion-Parameter {MoE} Inference},
+  date       = {2026-09-16},
+  eprint     = {2609.18110},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2609.18110},
+  urldate    = {2026-10-15}
+}
+
+@online{edge0_2026,
+  author     = {Lin and others},
+  title      = {The Other Half of the Memory Wall ({Edge0})},
+  date       = {2026-09-17},
+  eprint     = {2609.18063},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2609.18063},
+  urldate    = {2026-10-15}
+}
+
+@online{flashmoe2026,
+  author     = {Kim and others},
+  title      = {{FlashMoE}: Learned Expert Cache Replacement},
+  date       = {2026-01-22},
+  eprint     = {2601.17063},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2601.17063},
+  urldate    = {2026-10-15},
+  note       = {dernière version 2026-10-05}
+}
+
+@online{smallthinker2025,
+  author     = {{SmallThinker Team}},
+  title      = {{SmallThinker}: A Family of Efficient Large Language Models Natively Trained for Local Deployment},
+  date       = {2025-07},
+  eprint     = {2507.20984},
+  eprinttype = {arxiv},
+  url        = {https://arxiv.org/abs/2507.20984},
+  urldate    = {2026-10-15}
+}
+
+@online{commitmoe2026,
+  author     = {Li and others},
+  title      = {{CommitMoE}},
+  date       = {2026-03-14},
+  url        = {https://ojs.aaai.org/index.php/AAAI/article/view/39454},
+  urldate    = {2026-10-15},
+  note       = {AAAI 2026}
+}
+
+@online{zeroinference2022,
+  author     = {{DeepSpeed Team}},
+  title      = {{ZeRO-Inference}: Democratizing Massive Model Inference},
+  date       = {2022-09-09},
+  url        = {https://www.deepspeed.ai/2022/09/09/zero-inference.html},
+  urldate    = {2026-10-15}
+}
+
+@online{directstorage13,
+  author     = {{Microsoft}},
+  title      = {{DirectStorage} 1.3 is now available},
+  date       = {2025-07-01},
+  url        = {https://devblogs.microsoft.com/directx/directstorage-1-3-is-now-available},
+  urldate    = {2026-10-15}
+}
+
+@online{llamapr25294,
+  author     = {{ggml-org}},
+  title      = {llama.cpp pull request 25294: experts read from disk with an explicit cache},
+  date       = {2026-07-04},
+  url        = {https://github.com/ggml-org/llama.cpp/pull/25294},
+  urldate    = {2026-10-15},
+  note       = {ouverte au 2026-10-15}
+}
+
+@online{llama20757,
+  author     = {{ggml-org}},
+  title      = {llama.cpp issue 20757: two-level expert cache},
+  date       = {2026-03-19},
+  url        = {https://github.com/ggml-org/llama.cpp/issues/20757},
+  urldate    = {2026-10-15},
+  note       = {communautaire}
+}
+
+@online{llama24528,
+  author     = {{ggml-org}},
+  title      = {llama.cpp discussion 24528: {VRAM} cache of hot experts},
+  date       = {2026-06-12},
+  url        = {https://github.com/ggml-org/llama.cpp/discussions/24528},
+  urldate    = {2026-10-15},
+  note       = {communautaire}
+}
+
+@online{llama27149,
+  author     = {{ggml-org}},
+  title      = {llama.cpp discussion 27149: reading only the active experts},
+  date       = {2026-08-15},
+  url        = {https://github.com/ggml-org/llama.cpp/discussions/27149},
+  urldate    = {2026-10-15},
+  note       = {communautaire}
+}
+
+@online{moestream2026,
+  author     = {{Wok3b}},
+  title      = {moe-stream},
+  date       = {2026},
+  url        = {https://github.com/Wok3b/moe-stream},
+  urldate    = {2026-10-15},
+  note       = {licence MIT d'après la page du dépôt}
+}
+
+@online{airllm2026,
+  author     = {{lyogavin}},
+  title      = {{AirLLM}},
+  date       = {2026-10-14},
+  url        = {https://github.com/lyogavin/airllm},
+  urldate    = {2026-10-15},
+  note       = {Apache-2.0, commit 0f679cc}
+}
+

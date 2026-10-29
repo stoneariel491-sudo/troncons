@@ -1,0 +1,374 @@
+% Tome~III, chapitre 11 : la géométrie tropicale du routeur (version française).
+% Rédacteur B, 2026-10-29. Plan et réserves : memoire/tome3/PLAN-redaction.md § 11.
+% Chaque nombre vient d'un fichier commité lu au moment d'écrire : genome/pistes/tropicale/garde-tropicale.md
+% (avec ses phrases barrées), pour-le-memoire.md, seuil-declare.md, seuil-declare-indices.md, JUGEMENT.md (deux
+% jugements, 2026-10-22 et 2026-10-27), et les journaux de mesures/pistes/tropicale/. Tout ce dossier est en
+% lecture seule : les figures sont appelées par leurs macros (genome/pistes/tropicale/figures-tropicale.tex,
+% chargé par memoire/tome3/commun/figures.tex) et leurs légendes sont écrites ici.
+
+\chapter{La géométrie tropicale du routeur}\label{t3tro:ch}
+
+\begin{origine}
+\textbf{Au départ}, le lot R du Tome~II avait montré que les bascules de routage portent l'essentiel de la KL entre deux calculs proches : imposer le routage de la référence en retire 88\,\%, et 96,5\,\% de la KL se trouve sur les positions qui basculent ; la marge du routeur, l'écart entre son 4\textsuperscript{e} et son 5\textsuperscript{e} logit, valait 0,083 en médiane sur toutes les cellules et 0,0095 sur celles qui basculent. La synthèse de la ronde (\fichier{genome/05-synthese.md} §\,3.1) en avait tiré une idée de Stone : une \emph{garde} qui lirait cette marge et referait en exact les seules cellules fragiles. Elle restait à juger.
+\textbf{Ce chapitre établit} que la garde tombe au seuil déclaré avant la lecture : pour 10\,\% des cellules signalées, elle attrape 57,1\,\% des bascules (2\,905 sur 5\,087), loin des 80\,\% exigés, et 80\,\% en coûteraient 26,6\,\%. Il pose la géométrie qui fait de la marge une distance (le routeur est un polynôme tropical, ses régions des polyèdres), mesure les lois de la marge (presque exponentielle), de la bascule ($\Phi(-m/\sigma)$, palier $\tfrac12$) et de la propagation (26,6\,\% contre 3,4\,\%), démontre une forme close de la courbe de la garde, qui ne dépend que d'un nombre sans dimension $\kappa$, et dit, avec son juge, ce que ce théorème n'explique pas. Deux explorations, après le verdict et dites telles : la garde attrape 85,2\,\% des racines de cascade ; une garde qui se souvient du conflit gagne $+1{,}61$ point, sous les 5 déclarés.
+\textbf{Il reste} un journal de routage du mode rapide, pour connaître son $\kappa$ et juger la garde des racines, et la mesure de la réparation : refaire une couche en exact éteint-il la racine et ses suites ?
+Sources : \fichier{genome/pistes/tropicale/garde-tropicale.md}, \fichier{pour-le-memoire.md}, \fichier{seuil-declare.md}, \fichier{seuil-declare-indices.md}, \fichier{JUGEMENT.md} ; \fichier{mesures/pistes/tropicale/} (journaux, figures, \fichier{indices/}, \fichier{juge/}) ; outils \fichier{outils/pistes/tropicale/}.
+\end{origine}
+
+\begin{enbref}
+Le routeur d'une couche donne une note à chacun des 32 experts et garde les quatre meilleurs. L'espace de ses entrées est donc découpé en régions, une par quatuor, et ces régions sont des polyèdres : des pièces à faces planes. Une entrée proche d'une face est fragile : un rien la fait changer de quatuor, et ce changement, une « bascule », coûte cher en qualité. La marge mesure cette proximité. L'idée de la garde est celle d'un contrôleur qui ne surveille que les cas limites ; l'image est empruntée au cortex cingulaire, qui surveille le conflit entre deux réponses concurrentes, et ce n'est qu'une image. La mesure dit qu'elle surveille bien les premières couches et mal les dernières, parce qu'une bascule en entraîne d'autres, loin des faces, que la marge ne peut pas voir.
+\end{enbref}
+
+% =====================================================================================================
+\section{La question et le seuil déclaré}\label{t3tro:sec:question}
+
+Le routeur de la couche $\ell$ calcule $z = W_r h + b_r$ (32 logits) et garde les quatre plus grands. Le mode rapide (\cref{t3sno:ch}) remplace des experts exacts par des experts compressés ; l'erreur qu'il introduit déplace l'état $h$ et, près d'une face, fait basculer le choix de la couche suivante. \emph{La garde} : en mode rapide, après les experts rapides de la couche $\ell$, le moteur lit la marge du routeur de $\ell + 1$ ; sous un seuil $\tau$, il refait la couche $\ell$ en exact pour cette position.
+
+Son coût est la part des cellules (couche, position) signalées, $c(\tau)$ ; son gain la part des bascules signalées, $b(\tau)$. \textbf{Seuil déclaré} (\fichier{genome/pistes/tropicale/seuil-declare.md}, commit \texttt{69260f1}, avant toute lecture) : la garde vaut d'être construite si elle attrape au moins 80\,\% des bascules en signalant au plus 10\,\% des cellules. Le 10\,\% dérive du coût : un défaut d'expert exact sur 10\,\% des cellules coûte au plus 10\,\% des octets du mode exact. La garde tourne dans le calcul rapide et ne voit que sa propre marge ; la marge qui décide est celle de $B$, le calcul qui s'écarte de la référence $A$. La prédiction, écrite dans la même déclaration : 55 à 65\,\%, donc un échec.
+
+Le juge a vérifié l'ordre par \texttt{git log} : le seuil (\texttt{69260f1}, 2026-10-21 23:22:18, seul commit de ce fichier) précède les premiers outils de lecture (\texttt{4b2a8eb}, 23:23:32) et le verdict (\texttt{77d8110}, 23:25:17) ; git ne prouve pas qu'aucune lecture exploratoire n'a eu lieu avant, et l'horloge des notes de la piste est fausse de quelques minutes (\fichier{JUGEMENT.md} §\,1).
+
+% =====================================================================================================
+\section{Le routeur comme polynôme tropical}\label{t3tro:sec:tropical}
+
+Soit $z(h) = W_r h + b_r \in \mathbb{R}^{32}$, $W_r = [w_1 \dots w_{32}]^\top$. Pour un ensemble $S$ de $k = 4$ indices, la région
+\begin{equation}\label{t3tro:eq:region}
+P_S = \{\, h : z_i(h) \ge z_j(h),\ \forall i \in S,\ \forall j \notin S \,\}
+\end{equation}
+est une intersection de $k(32 - k) = 112$ demi-espaces : un polyèdre convexe, éventuellement vide. Les $P_S$ recouvrent l'espace et ne se chevauchent que par leurs bords.
+
+\begin{proposition}[Le top-$k$ est un polynôme tropical]\label{t3tro:prop:tropical}
+La fonction $F_k(h) = \max_{|S| = k} \sum_{i \in S} z_i(h)$ est un polynôme du semi-anneau $(\max, +)$ en les formes affines $z_i$ ; elle est convexe et affine par morceaux, ses morceaux sont les $P_S$, et son lieu de non-différentiabilité, son hypersurface tropicale, est la réunion des faces $\{z_i = z_j\}$ où $i$ est au rang 4 et $j$ au rang 5.
+\end{proposition}
+\begin{proof}
+Dans le semi-anneau tropical, la « somme » est le max et le « produit » est $+$ : $F_k$ est la somme tropicale des monômes $\bigodot_{i \in S} z_i$, donc un polynôme tropical ; maximum de fonctions affines, elle est convexe et affine par morceaux. Sur l'intérieur de $P_S$, le max est atteint par le seul $S$ (tout autre ensemble remplace un $i \in S$ par un $j \notin S$ avec $z_j < z_i$), et $F_k$ y est affine de gradient $\sum_{i\in S} w_i$. Deux ensembles atteignent le max à la fois exactement quand on peut échanger un élément de rang 4 contre un élément de rang 5 sans changer la somme, c'est-à-dire sur $\{z_{(4)} = z_{(5)}\}$.
+\end{proof}
+C'est le cadre de Zhang, Naitzat et Lim pour les réseaux ReLU \cite{zhang2018tropical} ; le top-$k$ s'y range par la même algèbre.
+
+\begin{definition}[Marge]\label{t3tro:def:marge}
+La marge d'une cellule est $m(h) = z_{(4)}(h) - z_{(5)}(h) \ge 0$, l'écart entre le 4\textsuperscript{e} et le 5\textsuperscript{e} logit. Elle est nulle exactement sur l'hypersurface tropicale.
+\end{definition}
+
+\begin{proposition}[La marge comme distance]\label{t3tro:prop:distance}
+Soit $h$ intérieur à $P_S$. (a) Dans l'espace des logits, la distance de $z$ à la frontière de sa région vaut $m/\sqrt 2$. (b) Dans l'espace des états, la distance de $h$ à la frontière de $P_S$ vaut
+\begin{equation}\label{t3tro:eq:distance}
+d(h, \partial P_S) = \min_{i \in S,\, j \notin S} \frac{z_i(h) - z_j(h)}{\lVert w_i - w_j \rVert} \;\ge\; \frac{m(h)}{\max_{i \in S,\, j\notin S} \lVert w_i - w_j\rVert},
+\end{equation}
+et la distance à la face du couple $(i, j)$ des rangs 4 et 5 vaut exactement $m/\lVert w_i - w_j \rVert$.
+\end{proposition}
+\begin{proof}
+La distance d'un point intérieur à la frontière d'un polyèdre convexe est le minimum de ses distances aux hyperplans qui le définissent : le point le plus proche de la frontière est sur l'un d'eux, et un hyperplan redondant, qui ne porte pas de face, est au-delà de la frontière. La distance de $h$ à $\{z_i = z_j\}$ est $(z_i - z_j)/\lVert w_i - w_j\rVert$, d'où l'égalité de (b) ; chaque numérateur est au moins $m$, d'où la borne. (a) est le même calcul dans les coordonnées $z$, où $w_i - w_j$ devient $e_i - e_j$, de norme $\sqrt 2$, et le plus petit numérateur est $m$.
+\end{proof}
+La note de la piste écrit que $m/\lVert w_i - w_j\rVert$, pour le couple des rangs 4 et 5, borne par en dessous la distance à toute frontière de la région. C'est vrai de cette face, et dans l'espace des logits ; dans l'espace des états, un autre couple dont les vecteurs de routeur diffèrent davantage peut être plus proche, et la borne générale est celle de \eqref{t3tro:eq:distance}. La bande de garde $\{m < \tau\}$ est donc, le long de la face du couple $(i, j)$, une tranche d'épaisseur $\tau/\lVert w_i - w_j\rVert$ de chaque côté, et de demi-épaisseur $\tau/\lVert P(w_i - w_j)\rVert$ dans une coupe par un plan de projecteur $P$ (\cref{fig:t3-trop-coupe}) : large là où deux experts voisins se ressemblent dans le plan.
+
+\begin{figure}[tbp]
+\centering
+\FigureTropicaleCoupe
+\caption[Les polyèdres réels du routeur de la couche 12]{\textbf{Le routeur réel découpe l'espace des états en polyèdres ; la bande de garde suit leurs faces, plus large là où deux experts voisins se ressemblent.} \calc~Les régions top-4 du routeur de la couche 12 de gpt-oss-20b, dans le plan des deux premières directions singulières à droite de $W_r$ ($h = a u + b v$, par l'origine de l'espace des états normalisés) ; en rouge, la bande $\{m < \tau_{10}\}$. Gauche : 92 régions sur $8 \times 8$ logits ; droite : l'agrandissement d'une grappe ($0{,}7 \times 0{,}7$ logit). Une coupe à deux dimensions d'un espace à 2\,880 : la géométrie y est vraie, les aires ne sont pas des probabilités, et le cadrage de l'agrandissement est un choix. \HorsStyle\sourcefig{\fichier{mesures/pistes/tropicale/figures/coupe-routeur-c12-fr.png} ; script \fichier{outils/pistes/tropicale/figures.py}.}}
+\label{fig:t3-trop-coupe}
+\end{figure}
+
+% =====================================================================================================
+\section{Les données et les témoins}\label{t3tro:sec:donnees}
+
+\paragraph{Les données.} Trois journaux de routage du lot R (commit \texttt{21453da}, empreintes SHA-256 dans la déclaration), gpt-oss-20b, 24 couches $\times$ 5\,110 positions (10 fenêtres de 511), soit 122\,640 cellules : $A$ (\texttt{ref-openai-bis}), $B$ (\texttt{ref-llamacpp-bis}), $C$ (la rampe de llama.cpp avec le routage de $A$ imposé). Une bascule est une cellule où les \emph{ensembles} de quatre experts de $A$ et $B$ diffèrent : 5\,087. (Comparer les listes ordonnées en compterait 11\,028 ; le top-4 est un ensemble, l'ordre interne ne change pas les experts appelés.) Ce sont les seuls journaux du dépôt qui portent une marge. \textbf{Aucun journal de routage du mode rapide n'existe} : la perturbation mesurée ici est celle de deux calculs exacts, la rampe de position d'OpenAI et celle de llama.cpp.
+
+\begin{table}[tbp]
+\centering\small
+\caption[La garde tropicale : les témoins]{La garde tropicale : les témoins de l'instrument, chacun avec sa cassure \mes.}
+\label{t3tro:tab:temoins}
+\renewcommand{\arraystretch}{1.1}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.2\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.18\linewidth}>{\raggedright\arraybackslash}p{0.2\linewidth}@{}}
+\toprule
+Témoin & Réponse connue & Obtenu & Cassure \\
+\midrule
+T1, la lecture & 5\,087 bascules et les 8 quantiles de marge du résumé du lot R & au dernier chiffre de f32 & un octet d'expert changé : 5\,088 ; pas de 7 octets : refusé \\
+T2, la réponse d'avance & $A$ contre $C$ (routage imposé) : 0 bascule & 0 & un expert changé : 1 \\
+T3, l'instrument discrimine & marges permutées : $b(\tau_{10}) = 10 \pm 2\,\%$ ; marges oracles : $b = 100\,\%$ pour $c \le 4{,}2\,\%$ & 10,05\,\% ; 100\,\% à 4,15\,\% & (sa propre cassure) \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{mesures/pistes/tropicale/temoins.json} ; \fichier{genome/pistes/tropicale/garde-tropicale.md} §\,2.}
+\end{table}
+
+T3 est sa propre cassure : le même instrument rend 10\,\% quand la marge ne sait rien et 100\,\% quand elle sait tout (\cref{t3tro:tab:temoins}). Le juge a refait T2 et T3 par son code, et ajouté les siens : un octet changé sur une cellule sans bascule donne 5\,088 ; ses marges permutées donnent 10,4\,\% ; et un témoin J5, qui met 600 bascules non attrapées à marge nulle, attend $2\,905 + 600 - 64 = 3\,441$ attrapées et les obtient. Sa première écriture attendait \barre{$2\,905 + 600 = 3\,505$} : elle oubliait que les 600 cellules entrées en tête en chassent 600, dont 64 bascules (\fichier{JUGEMENT.md} §\,3).
+
+% =====================================================================================================
+\section{Le verdict : la courbe de la garde}\label{t3tro:sec:verdict}
+
+\begin{table}[tbp]
+\centering\small
+\caption[La courbe de la garde]{La courbe de la garde : cellules et bascules sous le seuil $\tau$ de la marge de $B$ \mes. Le juge la refait par un classement explicite des 122\,640 cellules, sans seuil interpolé, à l'unité.}
+\label{t3tro:tab:courbe}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+$\tau$ & cellules sous $\tau$ & part des cellules $c$ & bascules sous $\tau$ & part des bascules $b$ \\
+\midrule
+$10^{-4}$ & 106 & 0,09\,\% & 58 & 1,1\,\% \\
+$3{,}16 \cdot 10^{-4}$ & 336 & 0,27\,\% & 168 & 3,3\,\% \\
+$10^{-3}$ & 995 & 0,81\,\% & 477 & 9,4\,\% \\
+$3{,}16 \cdot 10^{-3}$ & 3\,238 & 2,64\,\% & 1\,265 & 24,9\,\% \\
+$10^{-2}$ & 10\,089 & 8,23\,\% & 2\,654 & 52,2\,\% \\
+$\boldsymbol{\tau_{10} = 0{,}012410}$ & \textbf{12\,264} & \textbf{10,00\,\%} & \textbf{2\,905} & \textbf{57,1\,\%} \\
+$1{,}58 \cdot 10^{-2}$ & 15\,406 & 12,56\,\% & 3\,167 & 62,3\,\% \\
+$3{,}16 \cdot 10^{-2}$ & 28\,733 & 23,43\,\% & 3\,932 & 77,3\,\% \\
+$0{,}0366$ (80\,\% des bascules) & 32\,623 & 26,60\,\% & 4\,070 & 80,0\,\% \\
+$10^{-1}$ & 69\,090 & 56,34\,\% & 4\,829 & 94,9\,\% \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/pistes/tropicale/courbe-garde.csv}, \fichier{garde-resume.json}, \fichier{second-chemin.json} ; juge : \fichier{mesures/pistes/tropicale/juge/juge.json}.}
+\end{table}
+
+\textbf{Au seuil déclaré, la garde tombe} : au décile $\tau_{10} = 0{,}012410$, elle signale 12\,264 cellules et attrape 2\,905 bascules sur 5\,087, 57,1\,\% (\cref{t3tro:tab:courbe,fig:t3-trop-courbe}). Pour 80\,\% il faudrait 32\,623 cellules, 26,6\,\%. La prédiction écrite avant (55 à 65\,\%) tient. Le second chemin (une lecture en Python pur, par la fonction de lecture du lot R, comptage par boucles) rend les mêmes 2\,905 bascules sur les mêmes 12\,264 cellules ; le juge, par son propre code et un classement explicite (un seul ex aequo à la frontière, sans ambiguïté), aussi. Le seuil $\tau_{10}$ est le décile des marges mesurées sur les journaux eux-mêmes : cela avantage la garde, qui tombe quand même.
+
+\begin{figure}[tbp]
+\centering
+\GrapheTropicaleCourbe
+\caption[La courbe de la garde tropicale]{\textbf{La garde attrape 57,1\,\% des bascules pour 10\,\% des cellules, loin de la zone de construction déclarée ; elle attrape 85,2\,\% des racines de cascade.} \mes~Part des bascules attrapées contre part des cellules signalées ($m_B < \tau$) : toutes les bascules (le verdict), les racines de cascade et les bascules qui suivent une bascule (explorées après le verdict), l'oracle non déployable $\min(m_A, m_B)$, et le hasard. Zone verte : la zone de construction déclarée avant la lecture ($c \le 10\,\%$, $b \ge 80\,\%$). \sourcefig{\fichier{mesures/pistes/tropicale/figures/fig-courbe.csv} ; script \fichier{outils/pistes/tropicale/figures.py}.}}
+\label{fig:t3-trop-courbe}
+\end{figure}
+
+\paragraph{Les variantes, qui ne décident pas.} La marge de $A$ au lieu de $B$ : 56,1\,\% (aire sous la courbe ROC 0,862 pour les deux). L'oracle non déployable $\min(m_A, m_B)$ : 65,7\,\%, et 80\,\% pour 16,9\,\% des cellules ; même lui manque le seuil. Les seules positions notées par le juge du lot R : 53,4\,\%. Un contrôle croisé sous une autre perturbation (le moteur de la carte contre la référence, 22 bascules) attrape 9 bascules sur 22 ; il ne juge rien (intervalle à 95\,\% de 21 à 64\,\%), mais ne contredit pas \mes.
+
+\paragraph{La profondeur.} La garde voit bien les premières couches et mal les dernières (\cref{t3tro:tab:couches,fig:t3-trop-couches}). L'échelle robuste de la perturbation de l'écart, $\delta = m_A - m_B$ sur les cellules sans bascule à grande marge ($m_B > 0{,}1$), monte de 0,0022 à la couche 0 à 0,0059--0,0086 aux couches 9 à 23. Une garde réglée couche par couche ($\tau_\ell$ appris sur cinq fenêtres, jugé sur les cinq autres, puis l'inverse) ne gagne rien : 55,4 et 56,0\,\% contre 55,9 et 58,7\,\% pour le $\tau$ global sur les mêmes moitiés \mes.
+
+\begin{table}[tbp]
+\centering\small
+\caption[La garde par couche]{La garde par couche, au $\tau_{10}$ global \mes. Les fourchettes sont refaites par le juge.}
+\label{t3tro:tab:couches}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Couches & taux de bascule & $b(\tau_{10})$ & marge médiane aux bascules & aire ROC \\
+\midrule
+0 & 0,72\,\% & 100\,\% & 0,0013 & 0,991 \\
+1 à 4 & 1,3 à 1,9\,\% & 86,0 à 91,0\,\% & 0,0029 à 0,0045 & 0,956 à 0,961 \\
+5 à 7 & 2,1 à 3,1\,\% & 73,9 à 79,6\,\% & 0,0042 à 0,0060 & 0,930 à 0,957 \\
+8 à 14 & 3,3 à 5,0\,\% & 51,2 à 58,6\,\% & 0,0092 à 0,0113 & 0,851 à 0,896 \\
+15 à 23 & 4,7 à 8,1\,\% & 37,8 à 60,5\,\% & 0,0084 à 0,0199 & 0,771 à 0,864 \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/pistes/tropicale/decile-par-couche.csv}.}
+\end{table}
+
+\begin{figure}[tbp]
+\centering
+\GrapheTropicaleCouches
+\caption[La garde par couche]{\textbf{La garde voit les premières couches et perd les dernières, à mesure que la perturbation grandit.} \mes~Part des bascules attrapées au $\tau_{10}$ global, par couche : toutes, racines, bascules qui suivent une bascule ; tirets (axe de droite) : l'échelle robuste de la perturbation $\delta$. Trait horizontal : 80\,\%. \sourcefig{\fichier{mesures/pistes/tropicale/figures/fig-par-couche.csv} ; script \fichier{outils/pistes/tropicale/figures.py}.}}
+\label{fig:t3-trop-couches}
+\end{figure}
+
+% =====================================================================================================
+\section{Pourquoi elle tombe}\label{t3tro:sec:pourquoi}
+
+\subsection{La loi de la marge : presque exponentielle}\label{t3tro:sec:loi-marge}
+
+\begin{lemme}[Représentation de Rényi]\label{t3tro:lem:renyi}
+Si $X_1, \dots, X_n$ sont exponentielles indépendantes de taux $\lambda$, rangées en ordre décroissant $X_{(1)} \ge \dots \ge X_{(n)}$, les espacements $D_k = X_{(k)} - X_{(k+1)}$, $k = 1, \dots, n$, avec $X_{(n+1)} = 0$, sont indépendants et $D_k$ suit une loi exponentielle de taux $k\lambda$.
+\end{lemme}
+\begin{proof}
+Rangeons les mêmes variables en ordre croissant, $Y_1 \le \dots \le Y_n$ (soit $Y_j = X_{(n+1-j)}$), et posons $Y_0 = 0$, c'est-à-dire $X_{(n+1)} = 0$. Le minimum de $n$ exponentielles indépendantes de taux $\lambda$ suit la loi exponentielle de taux $n\lambda$, puisque $P(Y_1 > y) = \prod_i P(X_i > y) = e^{-n\lambda y}$. Sachant $Y_1 = y$ et l'indice de la variable qui l'atteint, les $n - 1$ autres sont indépendantes et conditionnées par $X_i > y$ ; par l'absence de mémoire de la loi exponentielle, leurs excès $X_i - y$ sont exponentiels de taux $\lambda$, indépendants entre eux, et leur loi ne dépend ni de $y$ ni de l'indice. L'espacement $Y_2 - Y_1$, minimum de ces $n - 1$ excès, suit donc la loi exponentielle de taux $(n-1)\lambda$ et il est indépendant de $Y_1$. En recommençant à partir de $Y_2$, puis de $Y_3$, et ainsi de suite, on obtient que les $Y_{j+1} - Y_j$ ($j = 0, \dots, n-1$) sont indépendants, de taux $(n - j)\lambda$. Or $Y_{j+1} - Y_j = X_{(n-j)} - X_{(n-j+1)} = D_{n-j}$ : avec $k = n - j$, $D_k$ suit la loi exponentielle de taux $k\lambda$, et les $D_k$ sont indépendants.
+\end{proof}
+C'est le théorème de Rényi \cite{renyi1953ordre} (notice vérifiée par la piste le 2026-10-22, article non relu) ; la démonstration ci-dessus, par l'absence de mémoire, ne dépend pas de l'article. Pour une loi mère de densité $f$ et de taux de défaillance $\eta(x) = f(x)/(1 - F(x))$, la transformation $x \mapsto -\ln(1 - F(x))$ rend les variables exponentielles de taux 1 et, au voisinage du haut de l'échantillon, elle est localement linéaire de pente $\eta(x_{(k)})$ ; d'où $D_k \approx \mathrm{Exp}\bigl(k\,\eta(x_{(k)})\bigr)$. La marge $m = D_4$ est donc, au premier ordre, exponentielle : densité finie et non nulle en zéro, $f_m(0) \approx 1/\E[m]$, et $P(m < \tau) \approx \tau/\E[m]$ pour $\tau$ petit \calc. Les 32 logits ne sont ni indépendants ni de même loi ; la mesure dit que la conclusion tient quand même.
+
+Mesuré à chaque couche \mes~(\fichier{mesures/pistes/tropicale/loi-marge-par-couche.csv}) : l'ajustement gamma donne une forme de 0,91 à 1,09 (1 serait l'exponentielle) ; la distance de Kolmogorov-Smirnov à l'exponentielle de même moyenne vaut 0,006 à 0,042, contre 0,09 à 0,18 à la demi-normale et 0,06 à 0,08 à la log-normale ; la pente de $\log P(m < \tau)$ contre $\log\tau$ sur $[10^{-4} ; 10^{-2}]$ vaut 0,90 à 1,20 ; la densité sous $10^{-3}$ (5,5 à 17,6) suit $1/\E[m]$ (5,2 à 16,3). Les couches profondes ont des marges plus serrées (\cref{fig:t3-trop-survie}).
+
+\begin{figure}[tbp]
+\centering
+\GrapheTropicaleSurvie
+\caption[La loi de la marge]{\textbf{La survie de la marge est une droite en échelle logarithmique : la marge est presque exponentielle, comme le prédit l'espacement des statistiques d'ordre.} \mes~$P(m > x)$ pour quatre couches (0, 8, 16, 23) ; tirets : la loi exponentielle de même moyenne. \sourcefig{\fichier{mesures/pistes/tropicale/figures/fig-survie.csv} ; script \fichier{outils/pistes/tropicale/figures.py}.}}
+\label{fig:t3-trop-survie}
+\end{figure}
+
+\paragraph{D'une couche à la suivante.} Pour une même position, la corrélation de Spearman entre $m_\ell$ et $m_{\ell+1}$ va de 0,002 à 0,125 ; groupée sur les 23 couples, 0,058, au-dessus du 99,9\textsuperscript{e} centile de 999 permutations (0,023) : réelle et minuscule \mes. Une marge serrée à une couche ne dit presque rien de la suivante ; chaque couche tire sa marge à neuf. Conséquence directe : comme priorité de préchargement de la couche suivante, la marge fait une aire ROC de 0,567, sous la barre déclarée de 0,60 ; pour le jeton suivant, 0,627 : utile par la barre, mais faiblement (le jeton suivant garde en moyenne 2,0 experts sur 4, 1,89 au décile de marge le plus bas, 2,17 au plus haut, contre 0,5 au hasard).
+
+\subsection{La loi de bascule}\label{t3tro:sec:loi-bascule}
+
+\begin{proposition}[Loi de bascule]\label{t3tro:prop:bascule}
+Soit $m_B$ la marge du calcul qui garde et $\delta$ la perturbation, entre $A$ et $B$, de l'écart entre les experts aux rangs 4 et 5 de $B$. La cellule bascule dès que l'écart de $A$ passe sous zéro, $m_B + \delta < 0$. Si $\delta$ est indépendante de $m_B$, de loi symétrique $G$,
+\begin{equation}\label{t3tro:eq:bascule}
+P(\text{bascule} \mid m_B = m) = G(-m), \qquad \lim_{m \to 0} P = G(0) = \tfrac12 .
+\end{equation}
+\end{proposition}
+\begin{proof}
+$P(m + \delta < 0) = P(\delta < -m) = G(-m)$, et $G(0) = \tfrac12$ par symétrie.
+\end{proof}
+Pour une perturbation gaussienne, $\Phi(-m/\sigma)$. La déclaration avait écrit \barre{$2\Phi(-m/\sigma)$}, qui vaudrait 1 en zéro, comme si la bascule était certaine sur la face ; la dérivation donne $\Phi$, et les données tranchent : sous $m = 10^{-4}$, 58 bascules sur 106 cellules ($0{,}55 \pm 0{,}05$), et la vraisemblance de $\Phi$ bat celle de $2\Phi$ aux 24 couches \mes~(\fichier{loi-bascule-sigma.csv}). C'est une borne inférieure de la probabilité réelle : d'autres couples que (4, 5) peuvent croiser, mais il leur faut une perturbation plus grande que $m$. Le juge le note : la forme a changé après la lecture ; le théorème qui suit et l'extrapolation reposent sur elle, et restent des modèles. La forme gaussienne est fausse dans la queue : $\delta$ a un kurtosis en excès de 3,5 (couche 0) à 134 (couche 7). Le modèle gaussien prédit 7,8\,\% de bascules (mesuré 4,15\,\%) ; la forme empirique de $\delta$, mise à l'échelle, 3,6\,\% \calc~(\cref{fig:t3-trop-loi-bascule}).
+
+\begin{figure}[tbp]
+\centering
+\GrapheTropicaleLoiBascule
+\caption[La loi de bascule]{\textbf{La probabilité de bascule tend vers $\tfrac12$ quand la marge tend vers zéro : la loi est $\Phi(-m/\sigma)$, pas $2\Phi$.} \mes\,\calc~$P(\text{bascule} \mid m_B)$ mesurée par classes de marge, trois groupes de couches ; trait plein : le modèle à $\delta$ empirique $P(\delta < -m)$ ; pointillés : le gaussien $\Phi(-m/\hat\sigma)$. \sourcefig{\fichier{mesures/pistes/tropicale/figures/fig-loi-bascule.csv} ; script \fichier{outils/pistes/tropicale/figures.py}.}}
+\label{fig:t3-trop-loi-bascule}
+\end{figure}
+
+\subsection{La propagation : une bascule en appelle d'autres}\label{t3tro:sec:propagation}
+
+Sachant une bascule en $(\ell, p)$, la même position bascule en $\ell + 1$ dans \textbf{26,6\,\%} des cas (4\,672 couples), contre \textbf{3,4\,\%} sans bascule en $\ell$ \mes~(\fichier{propagation.csv} ; le juge : 26,65 et 3,37\,\%). L'écart grandit avec la marge de la couche suivante (\cref{t3tro:tab:propagation}).
+
+\begin{table}[tbp]
+\centering\small
+\caption[La propagation des bascules]{La propagation : probabilité de bascule en $\ell + 1$, selon la marge en $\ell + 1$, après une bascule en $\ell$ ou sans \mes. Entre parenthèses, le nombre de couples.}
+\label{t3tro:tab:propagation}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Marge en $\ell + 1$ & après une bascule & sans bascule avant & rapport \\
+\midrule
+$< 10^{-3}$ & 61,8\,\% (34) & 47,5\,\% (930) & 1,3 \\
+$10^{-3}$ à $10^{-2}$ & 57,1\,\% (380) & 23,1\,\% (8\,403) & 2,5 \\
+$10^{-2}$ à $3 \cdot 10^{-2}$ & 47,2\,\% (755) & 5,4\,\% (15\,896) & 8,7 \\
+$3 \cdot 10^{-2}$ à $0{,}1$ & 27,0\,\% (1\,716) & 1,3\,\% (38\,415) & 21 \\
+$> 0{,}1$ & 10,5\,\% (1\,787) & 0,14\,\% (49\,214) & 75 \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/pistes/tropicale/propagation.csv}.}
+\end{table}
+
+Après une bascule, l'état caché a changé d'experts : la perturbation n'est plus un arrondi, c'est la différence entre deux experts (33 à 84\,\% de l'énergie de sortie, \fichier{05-synthese.md} §\,2.2). Le $\kappa$ local devient grand, et la bascule suivante tombe à une marge large que la garde ne signale pas. C'est la cause principale de la chute en profondeur : les secondaires sont 59\,\% des bascules (3\,006 sur 5\,087), de marge médiane 0,0194 contre 0,0037 pour les racines. Le rapport $\times 7{,}9$ (et $\times 75$ à marge large) est une association ; l'intervention du lot R (routage imposé, 88\,\% de la KL retirée) va dans le même sens sans la démontrer pour les cascades.
+
+\subsection{Le nombre de garde : une forme close}\label{t3tro:sec:theoreme}
+
+\begin{hypothese}[Le modèle homogène]\label{t3tro:hyp:homogene}
+La marge $M$ suit une loi exponentielle de taux $\lambda$ ; la perturbation $\delta$ suit $\Normale(0, \sigma^2)$, indépendante de $M$ ; la cellule bascule si $\delta < -M$ ; la garde signale $M < \tau$. On note $\kappa = \lambda\sigma = \sigma/\E[M]$, le \emph{nombre de garde}, $t = \tau/\sigma$, $\Phi$ et $\varphi$ la répartition et la densité normales.
+\end{hypothese}
+
+\begin{lemme}\label{t3tro:lem:decalage}
+Pour $\kappa > 0$ et $u \ge 0$ : $e^{-\kappa u}\varphi(u) = e^{\kappa^2/2}\varphi(u + \kappa)$.
+\end{lemme}
+\begin{proof}
+$-\kappa u - u^2/2 = -(u + \kappa)^2/2 + \kappa^2/2$.
+\end{proof}
+
+\begin{lemme}\label{t3tro:lem:integrale}
+$\displaystyle\int_0^T \lambda e^{-\lambda m}\,\Phi(-m/\sigma)\,\dd m = \tfrac12 - e^{-\lambda T}\Phi(-T/\sigma) - e^{\kappa^2/2}\bigl[\Phi(T/\sigma + \kappa) - \Phi(\kappa)\bigr]$.
+\end{lemme}
+\begin{proof}
+Par parties, avec $U = \Phi(-m/\sigma)$, $\dd V = \lambda e^{-\lambda m}\,\dd m$, $V = -e^{-\lambda m}$, $\dd U = -\varphi(m/\sigma)/\sigma\,\dd m$ :
+\[
+\int_0^T = \bigl[-e^{-\lambda m}\Phi(-m/\sigma)\bigr]_0^T - \int_0^T e^{-\lambda m}\,\frac{\varphi(m/\sigma)}{\sigma}\,\dd m = \tfrac12 - e^{-\lambda T}\Phi(-T/\sigma) - \int_0^{T/\sigma} e^{-\kappa u}\varphi(u)\,\dd u ,
+\]
+et par le \cref{t3tro:lem:decalage} la dernière intégrale vaut $e^{\kappa^2/2}\int_0^{T/\sigma}\varphi(u + \kappa)\,\dd u = e^{\kappa^2/2}\bigl[\Phi(T/\sigma + \kappa) - \Phi(\kappa)\bigr]$.
+\end{proof}
+
+\begin{theoreme}[Le nombre de garde]\label{t3tro:thm:garde}
+Sous l'\cref{t3tro:hyp:homogene}, la part des cellules signalées est $c = 1 - e^{-\lambda\tau}$, le taux de bascule est
+\begin{equation}\label{t3tro:eq:pb}
+P(B) = \tfrac12 - e^{\kappa^2/2}\,\Phi(-\kappa),
+\end{equation}
+et la part des bascules signalées est
+\begin{equation}\label{t3tro:eq:b}
+b = \frac{\tfrac12 - e^{-\lambda\tau}\Phi(-t) - e^{\kappa^2/2}\bigl(\Phi(t + \kappa) - \Phi(\kappa)\bigr)}{\tfrac12 - e^{\kappa^2/2}\,\Phi(-\kappa)}, \qquad \lambda\tau = -\ln(1 - c),\quad t = \lambda\tau/\kappa .
+\end{equation}
+La courbe $(c, b)$ ne dépend que de $\kappa$.
+\end{theoreme}
+\begin{proof}
+$c = P(M < \tau) = 1 - e^{-\lambda\tau}$. $P(B)$ est le \cref{t3tro:lem:integrale} quand $T \to \infty$ : les termes en $e^{-\lambda T}$ s'annulent, $\Phi(T/\sigma + \kappa) \to 1$, d'où $\tfrac12 - e^{\kappa^2/2}(1 - \Phi(\kappa)) = \tfrac12 - e^{\kappa^2/2}\Phi(-\kappa)$. $b = P(M < \tau, B)/P(B)$ est le \cref{t3tro:lem:integrale} en $T = \tau$ divisé par $P(B)$. Enfin $\lambda\tau = -\ln(1 - c)$ et $t = \tau/\sigma = \lambda\tau/\kappa$ ne dépendent que de $(c, \kappa)$.
+\end{proof}
+Les limites se lisent sur \eqref{t3tro:eq:b} : $\kappa \to 0$ donne $b \to 1$ (les bascules se concentrent en $m = 0$) ; $\kappa \to \infty$ donne $b \to c$ (la marge ne sait plus rien), le témoin T3 vu par la théorie. Vérification \calc~(\fichier{mesures/pistes/tropicale/theoreme.json}) : une quadrature numérique (tolérances $10^{-13}$) contre la forme close sur 18 couples $\kappa \in \{0{,}01 ; 0{,}05 ; 0{,}1 ; 0{,}3 ; 1 ; 3\}$, $c \in \{1 ; 10 ; 30\,\%\}$ : écart maximal \barre{$1{,}3 \cdot 10^{-14}$} $3{,}7 \cdot 10^{-15}$ ; le premier chiffre venait de l'écriture naïve $e^{\kappa^2/2}\Phi(-\kappa)$, qui perd des chiffres quand $\kappa$ grandit, réécrite depuis par le logarithme de la queue normale. Un exemple : $P(B)$ en $\kappa = 0{,}2$ vaut $\tfrac12 - e^{0{,}02} \times 0{,}42074 = 0{,}07076$, 0,0707601917665 par la forme close contre 0,0707601917664 par la quadrature.
+
+Le seuil 80\,/\,10 se résout en $\kappa^\ast = 0{,}1079$, où $P(B) = 4{,}03\,\%$ \calc~(\cref{fig:t3-trop-kappa}) ; le juge, par une quadrature de Simpson sans la forme close, redonne $b = 79{,}993\,\%$ et $P(B) = 4{,}0294\,\%$ en $\kappa = 0{,}1079$.
+
+\begin{figure}[tbp]
+\centering
+\GrapheTropicaleKappa
+\caption[Le théorème du nombre de garde]{\textbf{Dans le modèle homogène, une seule grandeur, $\kappa = \sigma/\E[m]$, décide de toute garde à marge : la garde tient 80\,/\,10 si et seulement si $\kappa \le 0{,}108$.} \calc~$b$ à $c = 10\,\%$ et taux de bascule $P(B)$ contre $\kappa$, par la forme close \eqref{t3tro:eq:b} ; zone verte : la zone de construction. Le modèle est homogène (une loi de marge, un $\sigma$) ; la garde réelle mêle 24 couches de $\kappa_\ell$ de 0,016 à 0,48, et ce théorème n'explique qu'environ un point des 23 qui manquent (texte). \sourcefig{\fichier{mesures/pistes/tropicale/theoreme-kappa.csv} ; script \fichier{outils/pistes/tropicale/theoreme.py}.}}
+\label{fig:t3-trop-kappa}
+\end{figure}
+
+\paragraph{Le corollaire, et ce que le juge en a fait.} Comme $b$ décroît et $P(B)$ croît avec $\kappa$, la piste en avait tiré : \barre{« une garde à marge ne peut tenir 80\,/\,10 que si le calcul rapide fait basculer moins d'environ 4\,\% des cellules »}. Le juge (\fichier{JUGEMENT.md} §\,4.1) en fait une propriété du seul modèle homogène, par un contre-exemple construit : 2 couches sur 24 à marges serrées (moyenne $10^{-4}$, $\sigma = 10^{-3}$) et 22 à marges larges (moyenne 0,1, $\sigma = 0{,}004$), garde à seuil global : $P(B) = 5{,}26\,\%$ et pourtant $b = 85{,}9\,\%$ pour 10\,\% des cellules \calc~(\fichier{mesures/pistes/tropicale/juge/juge-modele.json}). La phrase \barre{« une queue de $\delta$ plus lourde ne fait que baisser ce plafond »} n'est vraie que dans le seul cas calculé : l'ordre « plus lourde » n'y est pas défini.
+
+\paragraph{Le théorème n'explique pas l'échec.} Le livrable plaçait côte à côte « il faut au plus 4,0\,\% de bascules » et « les deux rampes en font 4,15\,\% », ce qui se lit comme une explication. Au taux mesuré ($5\,087/122\,640 = 4{,}148\,\%$), le modèle homogène donne $\kappa = 0{,}1113$ et $b = 78{,}8\,\%$ ; la mesure dit 57,1\,\%. Le nombre de garde rend compte d'environ 1 point sur les 23 qui manquent. Le reste vient de l'hétérogénéité des couches (la garde réelle applique un seuil global à 24 couches dont la marge moyenne va de 0,061 à 0,193 et dont $\kappa_\ell$ va de 0,016 à 0,48) et des cascades. Couche par couche, la forme close suit la mesure de $b$ aux couches 0 à 9 à 0,1 près et la sous-estime de 0,02 à 0,17 plus profond, où le $\sigma$ ajusté absorbe les secondaires \mes~(\fichier{theoreme-par-couche.csv}). Le nombre de garde est une belle forme close ; ce n'est pas la raison de l'échec.
+
+\subsection{L'extrapolation au mode rapide (modèle)}\label{t3tro:sec:extrapolation}
+
+Le mode rapide perturbe sans doute plus que les deux rampes : avec 32 experts sur 768 remplacés, sa KL est déjà 0,036, contre 0,0145 pour les deux rampes, et elle monte avec le nombre d'experts remplacés (0,0636 avec 128). On multiplie la perturbation par $s$ en gardant les marges, $P(\text{bascule} \mid m) = G(-m/s)$, avec deux $G$ : la gaussienne de $\sigma_\ell$ ajustée, et la loi empirique de $\delta$ par couche (\cref{t3tro:tab:extrapolation,fig:t3-trop-extrapolation}). À $s = 1$, les deux modèles encadrent la mesure (49,0 et 62,1\,\% contre 57,1\,\%) ; pour les racines, le modèle empirique tombe juste (1\,956 racines prédites contre 2\,081 comptées, $b$ 85,3 contre 85,2\,\%). Les racines passent sous 80\,\% dès $s \approx 1{,}3$ (interpolation linéaire entre $s = 1$ et 1,5 ; un message de commit disait \barre{1,4}). Ce sont des extrapolations, à lire comme telles.
+
+\begin{table}[tbp]
+\centering\small
+\caption[L'extrapolation de la garde]{L'extrapolation : $b(\tau_{10})$ prédit quand la perturbation de l'écart est multipliée par $s$ \calc~(modèle).}
+\label{t3tro:tab:extrapolation}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+$s$ & toutes, $\delta$ gaussien & toutes, $\delta$ empirique & racines, $\delta$ empirique \\
+\midrule
+0,5 & 71,4\,\% & 74,5\,\% & 93,8\,\% \\
+\textbf{1} (mesuré : 57,1\,\% ; racines 85,2\,\%) & 49,0\,\% & 62,1\,\% & 85,3\,\% \\
+1,5 & 38,4\,\% & 54,9\,\% & 77,2\,\% \\
+2 & 32,4\,\% & 49,8\,\% & 69,9\,\% \\
+3 & 25,9\,\% & 42,5\,\% & 58,7\,\% \\
+5 & 20,2\,\% & 34,2\,\% & 45,1\,\% \\
+10 & 15,5\,\% & 25,3\,\% & 30,8\,\% \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/pistes/tropicale/extrapolation-garde.csv}, \fichier{cascades.json}.}
+\end{table}
+
+\begin{figure}[tbp]
+\centering
+\GrapheTropicaleExtrapolation
+\caption[L'extrapolation de la garde (modèle)]{\textbf{Si le mode rapide perturbe davantage que les deux rampes, la garde attrape encore moins, et la garde des racines passe sous 80\,\% vers $s \approx 1{,}3$.} \calc~Modèle, non mesure : $b(\tau_{10})$ prédit contre le facteur de perturbation $s$ (racines et toutes, $\delta$ empirique ; toutes, $\delta$ gaussien) ; points noirs : les deux valeurs mesurées à $s = 1$. \sourcefig{\fichier{mesures/pistes/tropicale/figures/fig-extrapolation.csv} ; script \fichier{outils/pistes/tropicale/figures.py}.}}
+\label{fig:t3-trop-extrapolation}
+\end{figure}
+
+% =====================================================================================================
+\section{Après le verdict : deux explorations}\label{t3tro:sec:explorations}
+
+\subsection{La garde des racines}\label{t3tro:sec:racines}
+
+Cette lecture a été choisie \emph{après} avoir vu la propagation ; elle ne change pas le verdict. Elle n'a pourtant aucun paramètre ajusté sur les bascules : $\tau_{10}$ est un quantile des marges seules, et la racine (la première bascule de la position, toutes couches confondues) ne dépend d'aucun seuil. 2\,081 positions sur 5\,110 (40,7\,\%) ont au moins une bascule ; la garde signale leur racine dans \textbf{85,2\,\%} des cas (1\,773), les secondaires dans 37,7\,\% (1\,132 sur 3\,006) ; second chemin et juge égaux à l'unité \mes~(\fichier{cascades.json}, \fichier{second-chemin-racines.json}). Par couche, les racines sont attrapées de 68\,\% (couche 20) à 100\,\% (couche 0), au-dessus de 80\,\% à 17 couches sur 24.
+
+Si réparer une racine éteignait ses suites, c'est elle qu'il faudrait attraper. Deux choses manquent, qu'aucun journal ne donne. \emph{La réparation} : dans ces journaux la perturbation vient de la rampe de position, dans l'attention, et refaire une couche en exact n'y changerait rien ; en mode rapide, refaire la couche $\ell$ retire l'erreur des experts de $\ell$, pas celle des couches d'avant ni celle du cache KV des positions passées. \emph{Le $\kappa$ du mode rapide.} La définition « première bascule de la position » ignore aussi la propagation par le cache KV : une racine peut être la suite d'une bascule d'une position antérieure.
+
+\paragraph{La mesure qui jugerait (G2, puis G3).} Deux journaux au format du lot R, le moteur exact et le moteur en mode rapide, chacun avec sa propre marge (8 octets par cellule, 981\,128 octets par passe ; le noyau \texttt{routeur\_topk} classe déjà, la marge est une soustraction de plus). Seuil à déclarer avant la passe : la garde des racines vaut d'être construite si, au $\tau_{10}$ des marges du mode rapide, elle signale au moins 80\,\% des racines pour au plus 10\,\% des cellules, et $P(B)$ du mode rapide est mesuré pour situer son $\kappa$. La prédiction de la piste, « elle tombe si $P(B)$ dépasse environ 5\,\% », est celle du modèle homogène, que le contre-exemple du juge peut démentir. Seulement si G2 passe, G3, la réparation : à chaque racine signalée, refaire la couche précédente en exact, et juger la KL appariée contre le mode rapide sans garde.
+
+\subsection{La mémoire du conflit : une garde à indices multiples}\label{t3tro:sec:indices}
+
+\paragraph{D'où vient l'idée.} Le cortex cingulaire antérieur surveille le conflit entre réponses concurrentes et en accumule la trace d'un essai à l'autre \cite{botvinick2001conflict} ; sous conflit élevé, le cortex médiofrontal relève le seuil de décision \cite{cavanagh2011subthalamic} (notices vérifiées par la piste le 2026-10-26, articles non relus). La garde fait la moitié de ce mécanisme : elle lit le conflit instantané, la marge. La mesure demande si l'autre moitié, la mémoire du conflit, trie mieux les bascules. C'est une analogie qui propose une mesure ; elle ne prouve rien.
+
+\paragraph{Le protocole} (\fichier{genome/pistes/tropicale/seuil-declare-indices.md}, commit \texttt{50bf472}, inchangé depuis, avant tout journal). Cinq indices tirés de la seule marge de $B$ : $f_1 = \ln m$ ; $f_2$ = $\ln$ de la plus petite marge des couches plus basses, même position (le conflit déjà vu en profondeur) ; $f_3$ = $\ln$ marge de la position précédente, même couche ; $f_4$ = part des cellules (couches $\le \ell$, huit dernières positions) sous 0,01241 (le conflit accumulé dans le temps) ; $f_5$ = la profondeur. Une régression logistique, dix plis (une fenêtre de test chacun), et une garde qui signale dans chaque fenêtre de test les cellules de plus fort score. Seuil : utile si le gain sur la marge seule est d'au moins 5 points, avec un intervalle à 95\,\% qui exclut 0 et un gain positif dans 8 fenêtres sur 10. Prédiction écrite : $+1$ à $+6$ points, et 80\,\% hors de portée.
+
+\paragraph{Deux dérivations.} \emph{L'ajustement.} Pour des indices centrés réduits $z_i$ (avec 1 en tête) et des étiquettes $y_i \in \{0, 1\}$, on minimise
+\begin{equation}\label{t3tro:eq:logistique}
+J(w) = -\sum_i \bigl[y_i \ln p_i + (1 - y_i)\ln(1 - p_i)\bigr] + \frac{\lambda}{2}\lVert w_{1:}\rVert^2, \qquad p_i = \sigma(z_i^\top w),
+\end{equation}
+avec $\lambda = 1$ et l'ordonnée à l'origine non pénalisée. Le gradient est $g = Z^\top(p - y) + \Lambda w$, la hessienne $H = Z^\top \operatorname{diag}(p(1-p))\,Z + \Lambda$, définie positive pour $\lambda > 0$ hors ordonnée ; le pas de Newton est $w \leftarrow w - H^{-1}g$, arrêté quand $\max|\Delta w| < 10^{-9}$. Le score de la garde est le logit $z_i^\top w$, monotone en $p_i$ : le classement ne dépend pas de la fonction $\sigma$. \emph{Le coût fixé.} Dans chaque fenêtre de test ($24 \times 511 = 12\,264$ cellules), la garde signale exactement $K = \lfloor 0{,}10 \times 12\,264\rfloor = 1\,226$ cellules ; la part attrapée est $b = \sum_w (\text{bascules signalées dans } w)/5\,087$. Chaque modèle coûte la même chose et ne se distingue que par son tri.
+
+\begin{table}[tbp]
+\centering\small
+\caption[La garde à indices multiples]{La garde à indices multiples : bascules attrapées pour 10\,\% des cellules de chaque fenêtre de test \mes. IC : 10\,000 tirages des dix fenêtres (graine 20261026). Refait à l'unité par le juge.}
+\label{t3tro:tab:indices}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Modèle & attrapées & gain (points) & IC à 95\,\% & fenêtres positives \\
+\midrule
+M0, la marge seule & 56,99\,\% (2\,899) & --- & --- & --- \\
+M1, $f_1$ seul & 56,99\,\% & 0 & --- & --- \\
+M2, profondeur ($f_1$, $f_5$, $f_1 f_5$) & 57,26\,\% & $+0{,}28$ & $-0{,}74$ à $+1{,}17$ & 6/10 \\
+\textbf{M3, tous les indices} & \textbf{58,60\,\%} (2\,981) & $\mathbf{+1{,}61}$ & $+0{,}99$ à $+2{,}34$ & 9/10 \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/pistes/tropicale/indices/indices-resume.json} ; juge : \fichier{mesures/pistes/tropicale/juge/juge-indices.json}.}
+\end{table}
+
+\paragraph{Verdict au seuil déclaré : pas utile} (\cref{t3tro:tab:indices}). Le gain est réel (l'intervalle exclut 0, 9 fenêtres sur 10) mais sous les 5 points, et la garde reste très loin de 80\,\%. Le second chemin recompte les scores écrits en Python pur, égaux à l'unité dans les dix plis, et une autre classe de modèle (probabilités par classes, sans régression) rend 59,05\,\% ($+2{,}06$). Le juge refait l'ajustement lui-même depuis la seule déclaration, et retrouve 2\,981 et l'intervalle au millième ; il note que le second chemin de la piste éprouvait le comptage, pas l'ajustement. Robustesse : avec $K = 1\,227$, $+1{,}612$ ; sans pénalité, $+1{,}59$ \mes.
+
+\paragraph{D'où vient le gain.} Les ablations, exploratoires et lues après le verdict, mettent tout le gain sur $f_2$, le conflit déjà vu plus bas sur la même position : $f_1, f_5 + f_2$ rend $+1{,}65$ (IC $+0{,}77$ à $+2{,}60$) ; avec $f_3$ ou $f_4$ seuls, $+0{,}33$ et $+0{,}45$, d'intervalles qui contiennent 0 ; M3 sans $f_2$, $+0{,}43$ \mes~(\fichier{indices/complements.json}). L'analogie tient donc à moitié : la mémoire du conflit le long de la \emph{profondeur} aide un peu ; celle le long du \emph{temps} n'apporte \barre{rien} aucun gain détectable : le juge corrige la formulation, car les intervalles de $f_3$ et $f_4$ montent jusqu'à $+1{,}25$ et $+1{,}43$ point, et une contribution de cet ordre n'est pas exclue.
+
+\paragraph{Les témoins, et trois attendus faux.} L'identité M1 $=$ M0 tient pli par pli ; $f_2, f_3, f_4$ permutés dans chaque couche ramènent le gain à $+0{,}33$ (le juge : $+0{,}35$). Trois attendus déclarés étaient faux, et la piste en a dit deux. (1) La cassure de M1 par étiquettes mélangées devait rendre $10 \pm 2\,\%$ ; elle rend \barre{50,6\,\%} : un modèle à une seule entrée classe les cellules par $\pm f_1$ quel que soit l'ajustement, seul le signe du coefficient change ; la bonne cassure permute les entrées du test (9,97\,\%). (2) L'oracle « bascule vérifiée en $(\ell - 1, p)$ » devait gagner plus de 15 points ; il en gagne 10,99, parce qu'il ne concerne que 3,8\,\% des cellules et 24,5\,\% des bascules. (3) Le juge ajoute le troisième : M3 sur étiquettes mélangées, déclaré à $10 \pm 2\,\%$ et publié à 11,6\,\%, rend $15{,}9\,\%$ en moyenne sur vingt graines (écart-type 4,8, de 5,3 à 24,5\,\%), et 3 graines sur 20 seulement tombent dans l'attendu : le 11,6\,\% était un tirage favorable. Le témoin tombe ($58{,}6 \to 16 \pm 5\,\%$), mais pas à l'attendu. Aucun de ces attendus ne touche le verdict.
+
+\paragraph{Une phrase à barrer.} La piste écrivait que même un oracle ne rapporte qu'environ 11 points à une garde qui juge cellule par cellule : \barre{« plafond d'environ 11 points même avec un oracle »}. Le juge la corrige : l'oracle cellule par cellule du premier verdict (marge nulle aux bascules) attrape 100\,\% pour 4,2\,\% des cellules ; ce que mesure l'oracle de 10,99 points, c'est que la cascade verticale stricte n'explique qu'un quart des bascules.
+
+% =====================================================================================================
+\section{Ce qui pourrait être faux}\label{t3tro:sec:faux}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{La perturbation n'est pas celle du mode rapide.} Tout est mesuré sur l'écart entre deux calculs exacts (deux rampes de position, dans l'attention). Le verdict se transporte au mode rapide par le théorème et par l'extrapolation, qui sont des modèles ; un mode rapide dont l'erreur se concentrerait aux couches où la garde voit bien (0 à 4) ferait mieux, et le contre-exemple du juge montre qu'une hétérogénéité favorable suffit.
+\item \textbf{Le théorème repose sur une forme choisie après la lecture} ($\Phi$ au lieu du $2\Phi$ déclaré) et sur une perturbation gaussienne, fausse dans la queue (kurtosis jusqu'à 134). Il est étiqueté modèle et doit le rester ; il n'explique qu'environ un point de l'échec.
+\item \textbf{Les racines sont une lecture choisie après coup} : 85,2\,\% n'est pas un verdict, et la définition ignore la propagation par le cache KV.
+\item \textbf{La causalité des cascades} n'est pas prouvée par intervention : le rapport $\times 7{,}9$ est une association.
+\item \textbf{Un seul texte} : dix fenêtres de wikitext ; les intervalles disent la variation entre fenêtres d'un même texte, pas entre textes. $\tau_{10}$ est le décile du même échantillon, ce qui avantage la garde.
+\item \textbf{La loi de Rényi et les deux notices du cortex} sont citées d'après leurs notices vérifiées, sans relecture des articles ; la loi de Rényi est démontrée ici sans l'article (\cref{t3tro:lem:renyi}), mais seulement pour des variables exponentielles indépendantes de même taux, ce que les 32 logits ne sont pas ; la mesure tient seule, l'analogie ne prouve rien.
+\item \textbf{La coupe du routeur} passe par l'origine de l'espace des états normalisés, pas par des états réels ; ses aires ne sont pas des fréquences, et c'est une figure PNG hors du style commun.
+\item \textbf{La \cref{t3tro:prop:distance}} corrige une phrase de la note de la piste par un argument de la rédaction (la distance à la frontière d'un polyèdre convexe est le minimum des distances à ses hyperplans) ; aucun chiffre n'en dépend.
+\item \textbf{Ce que le juge n'a pas refait} : les lois de la marge, la corrélation entre couches, le préchargement, l'extrapolation, les figures, le contrôle croisé K3 d1, et les ablations des indices. Ils ne décident rien, mais ne sont pas éprouvés par un second regard.
+\end{itemize}
+\end{faux}

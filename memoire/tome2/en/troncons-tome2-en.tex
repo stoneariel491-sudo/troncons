@@ -1,0 +1,53 @@
+% Thesis of troncons, Volume II: the system (English version).
+% Build: from memoire/, ./construire.sh tome2 (or latexmk -r ../../latexmkrc in this folder).
+% Same class, same preamble, same figures and same bibliography as Volume I; only the paths
+% change, because this master is compiled two levels lower (memoire/tome2/en/).
+\documentclass[11pt, a4paper, twoside, openright, parskip=false, headings=big,
+               chapterprefix=true, numbers=noenddot, bibliography=totoc,
+               listof=totoc]{scrbook}
+\newif\ifanglais
+\anglaistrue
+\newcommand{\Racine}{../..}               % memoire/
+\newcommand{\Depot}{../../..}             % root of the troncons repository
+\input{\Racine/commun/preambule}
+\input{\Racine/tome2/commun/bibliographie}
+
+\title{troncons, Volume II: the system}
+\author{Stone}
+\date{16 October 2026}
+
+\begin{document}
+\frontmatter
+\input{\Racine/tome2/commun/page-titre}
+\input{resume}
+\tableofcontents
+\listoffigures
+\listoftables
+\lstlistoflistings
+\input{\Racine/tome2/commun/notations}
+
+\mainmatter
+\input{chapitres/00-introduction}
+
+\part{The program}
+\input{chapitres/01-architecture}
+\input{chapitres/02-format}
+\input{chapitres/03-chemin}
+\input{chapitres/04-noyaux}
+
+\part{The truth and the memory}
+\input{chapitres/05-reference}
+\input{chapitres/06-cache-moteur}
+
+\part{The judgement}
+\input{chapitres/07-resultats}
+\input{chapitres/08-epreuve}
+\input{chapitres/09-discussion}
+
+\appendix
+\input{annexes/A-protocoles}
+\input{annexes/B-outils}
+
+\backmatter
+\input{\Racine/tome2/commun/fin}
+\end{document}

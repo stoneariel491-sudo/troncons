@@ -1,0 +1,23 @@
+# Le génome des poids (sujet genome) : recettes graine + coefficients, motifs partagés, lecture par
+# codons glissants, mesurées sur les experts MXFP4 réels de gpt-oss. Processeur seul.
+# Crate hors de l'espace moteur/ (aucun fichier des autres lots touché) ; lit le GGUF par
+# trc-reference (dépendance par chemin). Versions épinglées sur le cache cargo de la machine,
+# construction --offline.
+[package]
+name = "genome-recette"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+publish = false
+
+[workspace]
+
+[dependencies]
+trc-reference = { path = "../../../moteur/crates/trc-reference" }
+rayon = "=1.12.0"
+anyhow = "=1.0.104"
+
+[profile.release]
+opt-level = 3
+debug = "line-tables-only"
+codegen-units = 16

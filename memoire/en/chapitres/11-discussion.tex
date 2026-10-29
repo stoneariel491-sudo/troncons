@@ -1,0 +1,100 @@
+\chapter{Discussion and limits}\label{ch:discussion}
+
+\begin{origine}
+\textbf{Where we start}: nine chapters that each measure, prove and decide on their own.
+\textbf{This chapter establishes} what they say together; what is solid in them and what is fragile; the ideas the numbers killed; the numbers that had to be struck out, gathered in one place; and the limits of the method itself.
+\textbf{What remains} is to confront it with the program: each fragility named here has its planned measurement in \cref{ch:futurs}.
+\end{origine}
+
+\section{What the first part establishes}\label{sec:bilan}
+
+\begin{enumerate}
+\item \textbf{The judge is a maximum, and on this machine the disk holds it.} For gpt-oss-120b in the retained locality scenario, the disk takes 157\,ms per token, the link 58, the GPU 36 (\cref{sec:exemple-pose}). Any lever that does not touch $h_s B_e/(r_d W_{\mathrm{D}})$ is, here, ornament (\cref{cor:ornement}).
+\item \textbf{The disk delivers 47\,\% of its rating}, because the volume is encrypted by BitLocker and goes through Intel RST VMD (\cref{ch:machine}): the largest lever of the machine is not software.
+\item \textbf{Every bit removed is worth as much as every byte of throughput gained} (elasticities $\pm 0.98$, \cref{prop:elasticites}); extreme quantization and lossless compression act on the same term, and the Shannon bound says what is left to take (\cref{ch:quant}).
+\item \textbf{The cache hit rate decides everything for a mixture of experts} (\cref{ch:chargement}): between uniform routing and a fitted LRU, the ceiling of A changes by a factor of 3.
+\item \textbf{Speculation cannot be judged without expert reuse}: the condition $\alpha > 1 - \rho$ (\cref{prop:spec-rho}) replaces the ``never'' of \cref{ch:sparsite}; on gpt-oss-20b, $\rho = 0.577$ (\cref{sec:premieres-mesures}).
+\item \textbf{Memory can stop depending on the model}: A0 serves a 63.4\,GB model with 1.9\,GB of peak RAM, and the minimal window goes down to 0.64\,GB (\cref{sec:fenetre-chiffree}).
+\item \textbf{A new mechanism exists, narrower than announced}: the exact refinement of a native 4-bit code costs nothing in entropy (\cref{prop:raffinement}) and its base loses 0.27 bit less than truncation at equal error; but once the complements are counted, its throughput gain is only real at the price of a tunable share of precision (\cref{sec:correction-b1}).
+\end{enumerate}
+
+\section{What is solid, what is fragile}\label{sec:solide-fragile}
+
+\paragraph{Solid.} The stage throughputs, each measured with a witness that can fall, in ABBA series, and redone by a second path (system counter for the disk, encryption API for BitLocker); the theorems and their proofs (\cref{thm:toit,thm:amortissement}, \cref{prop:raffinement,prop:elasticites}); the exactness of the rANS decoder on the 108 tensors of gpt-oss-120b; the inventory of models read from their headers, redone on the local file.
+
+\paragraph{Fragile.} Everything that depends on locality: the ceilings of A and B rest on a power law fitted at one point (\cref{hyp:beta}) whose shape is already contradicted on gpt-oss-20b; the llama.cpp baseline of gpt-oss-120b, still estimated; the quality of B, only estimated by a linearity valid for small errors; several neighbouring works, read only in abstract.
+
+\section{The ideas killed by the numbers}\label{sec:idees-tuees}
+
+The SOCLE asks to kill an idea by numbers, not by opinion. \Cref{tab:idees-tuees} gathers them.
+
+\begin{table}[ht]
+\centering\small
+\caption[The ideas killed by the numbers]{The ideas killed by the numbers, and the number that kills them.}
+\label{tab:idees-tuees}
+\begin{tabular}{@{}p{0.34\linewidth}p{0.46\linewidth}l@{}}
+\toprule
+Idea & The number that kills it & Where \\
+\midrule
+Decoding inside the product (fused rANS + GEMV) & 3.7 times slower than the raw product, no faster than two passes \mes & \cref{ch:entropie} \\
+``Multiplication-free'' trellis on the GPU & 52 against 121\,GB/s: bit counts cost more than the multiplication \mes & \cref{ch:quant} \\
+Decoding on the CPU & 0.075\,GB/s per thread \mes & study 03, § 4.4 \\
+Activation sparsity under verification & the union of 4 tokens touches 89.5\,\% of the weights; a shared mask (block of 4, 50\,\%) multiplies perplexity by 16.9 \mes & \cref{tab:masque-commun} \\
+Speculation on a fine-grained MoE under independence & would need $\alpha > 0.969$ for gpt-oss-120b \calc; qualified by $\rho$ & \cref{prop:spec-rho} \\
+DirectX 12 through wgpu & neither f16 nor subgroups; 32\,GB/s in 4 bits against 122 \mes & study 01, § 5.3 \\
+IoRing instead of IOCP & gap of 0 to 5\,\%, below the noise \mes & \cref{ch:machine} \\
+Faster kernels in the disk regime & zero elasticity, under 2\,\% \calc & \cref{cor:ornement} \\
+Computing warm experts on the CPU & the link (58\,ms) does not hold the maximum (disk 157\,ms) \calc & \cref{sec:archi-a} \\
+A 1-bit-magnitude base for B & 16.4\,\% error, twelve times the format's own noise \mes & \cref{tab:bases} \\
+C (a 70B dense read from disk, with a tree) & 2.50 tokens/s at best against 6.24 for A, and 28.3\,GB to download \calc & \cref{sec:archi-c} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{The struck-out numbers}\label{sec:chiffres-barres}
+
+When a measurement contradicted a published number, even ours, the sentence was struck out in place and what changed was stated. This thesis keeps the list (\cref{tab:barres}): it is the trace that the method worked.
+
+\begin{table}[ht]
+\centering\small
+\caption[The struck-out numbers]{The numbers struck out during the foundations, and what replaced them.}
+\label{tab:barres}
+\begin{tabular}{@{}p{0.32\linewidth}p{0.42\linewidth}p{0.18\linewidth}@{}}
+\toprule
+Struck out & Replaced by, and why & Where \\
+\midrule
+\barre{Ceiling of gpt-oss-120b without cache: 5.5 tokens/s} & $\approx 2$ tokens/s: 5.5 assumed the disk at its link ceiling, it delivers 36\,\% of it & \cref{sec:toit} \\
+\barre{$r^\star$ is 1.05 bit stored for 4.5 served} & 1.17 bit: Q4\_K\_M serves 5.08 bits, not 4.5 & \cref{sec:toit} \\
+\barre{A resident matrix deserves 2.6 more bits} & 2.18 bits (link) and 3.24 bits (disk), with the measured throughputs & \cref{ch:quant} \\
+\barre{Disk-cache witness: rereading from cache exceeds the link} & copying from the Windows cache is bound by one thread (3.1\,GB/s); replaced by the system counter & \cref{ann:protocoles} \\
+\barre{Correctness of a lossless engine: same tokens as llama.cpp} & llama.cpp diverges from itself across backends; KL budget 0.0055 & \cref{sec:protocole-jugement} \\
+\barre{Lossless rate on the cache: $+14.4\,\%$} & $+13.1\,\%$: the GPU keeps its experts decoded & \cref{sec:temoins-equation} \\
+\barre{B1: 8.88 tokens/s, $\times 1.42$ over A} & 6.16 (serial 4.83): the complements were not counted & \cref{sec:correction-b1} \\
+\barre{B1 beats A as soon as 4.2\,\% of misses are served by the base} & B1 never beats A at the ceiling, only in series & \cref{sec:correction-b1} \\
+\barre{Optimal $k = 0$ for a MoE read from disk} & depends on $\rho$; $\alpha > 0.42$ would suffice on gpt-oss-20b & \cref{prop:spec-rho} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{The limits of the method}\label{sec:limites-methode}
+
+\begin{itemize}
+\item \textbf{One machine.} Everything is measured on Stone's laptop; it is the target, but the conclusions about the limiting stage change with another disk (an unencrypted volume hands the lead to the link, \cref{ch:futurs}).
+\item \textbf{A shared machine.} Other agents were measuring at the same time; ``best'' throughputs are lower bounds of the idle machine, and each pass logs the foreign load.
+\item \textbf{Two machines in one.} On battery, the GPU, the link and the CPU change regime (\cref{sec:batterie}); all retained measurements are on mains power, and the power state is logged with each pass (\cref{ann:protocoles}).
+\item \textbf{A quality judge calibrated on another model.} The budget $\kappa = 0.0055$ comes from Qwen3.5-4B; it must be remeasured on gpt-oss.
+\item \textbf{Literature in abstract.} Several neighbours of B (TRACE, MatGPTQ, AnyBCQ) are read only in abstract: nothing is published before they are read in full.
+\item \textbf{A tooling choice that closes a door.} J1 will be in CUDA (\cref{sec:decision}): the program will require an NVIDIA GPU until the Vulkan port.
+\end{itemize}
+
+\section{Reading ``without RAM or anything''}\label{sec:lecture-discussion}
+
+The retained reading (\cref{def:fenetre}) was never substituted for Stone's request: it is his to confirm. The numbers make it concrete. Zero RAM is impossible; a RAM that does not depend on the model is reachable, and its price can be read on \cref{fig:plafond-ram}: each GB of RAM given back to the system costs about 0.24 token/s in the fitted-LRU scenario. ``Without RAM'' becomes a knob, which Stone can turn according to what else he does on his machine.
+
+\begin{faux}
+\begin{itemize}
+\item The summary inherits every fragility of the chapters: first locality, then the estimated baseline, finally the quality of B.
+\item The list of killed ideas holds for this regime (encrypted disk, batch of one); several come back if the disk stops limiting.
+\item The list of struck-out numbers is complete only for what the studies published; a wrong number not yet contradicted is, by definition, not in it.
+\end{itemize}
+\end{faux}

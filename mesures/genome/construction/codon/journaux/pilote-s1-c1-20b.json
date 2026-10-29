@@ -1,0 +1,79 @@
+{
+ "seance": "s1",
+ "phases": [
+  "c1-20b"
+ ],
+ "debut": "2026-10-17 09:32:16",
+ "passes": [
+  {
+   "nom": "s1-c1-20b-K-casse",
+   "commande": [
+    "~\\dev\\cibles\\troncons-codon\\release\\troncons.exe",
+    "evaluer",
+    "--flux",
+    "--sans-garde",
+    "--modele",
+    "~\\dev\\essais\\troncons\\codon\\gpt-oss-20b-v12-casse-mediane.trc",
+    "--base",
+    "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+    "--fenetres",
+    "1",
+    "--positions",
+    "512",
+    "--sortie",
+    "~\\dev\\essais\\troncons\\codon\\casse.kld",
+    "--empreintes",
+    "~\\dev\\active\\troncons\\mesures\\genome\\construction\\codon\\journaux\\s1-c1-20b-K-casse-empreintes.csv",
+    "--journal",
+    "~\\dev\\active\\troncons\\mesures\\genome\\construction\\codon\\journaux\\s1-c1-20b-K-casse.json"
+   ],
+   "code": 0,
+   "secondes": 22.228364944458008,
+   "alimentation_avant": "2",
+   "llama_avant": [],
+   "vram_avant_mio": 1134,
+   "alimentation_apres": "2"
+  }
+ ],
+ "c1_20b": {
+  "T0_contre_commite": {
+   "a": "mesures\\moteur\\O\\journaux\\o3\\o3-2026-10-15-s1-code-empreintes.csv",
+   "b": "mesures\\genome\\construction\\codon\\journaux\\s1-c1-20b-T0-v10-empreintes.csv",
+   "lignes_a": 5120,
+   "lignes_b": 5120,
+   "differentes": 0,
+   "premiere": null
+  },
+  "B_contre_T0": {
+   "a": "mesures\\genome\\construction\\codon\\journaux\\s1-c1-20b-T0-v10-empreintes.csv",
+   "b": "mesures\\genome\\construction\\codon\\journaux\\s1-c1-20b-B-v12-empreintes.csv",
+   "lignes_a": 5120,
+   "lignes_b": 5120,
+   "differentes": 0,
+   "premiere": null
+  },
+  "kld_T0": "3e43e7dc382c5c692438c15576b59eadedf7f8c84601a714e7c17f71f2b9edcb",
+  "kld_B": "3e43e7dc382c5c692438c15576b59eadedf7f8c84601a714e7c17f71f2b9edcb",
+  "kld_egaux": true,
+  "K_contre_T0": {
+   "a": "mesures\\genome\\construction\\codon\\journaux\\s1-c1-20b-T0-v10-empreintes.csv",
+   "b": "mesures\\genome\\construction\\codon\\journaux\\s1-c1-20b-K-casse-empreintes.csv",
+   "lignes_a": 5120,
+   "lignes_b": 512,
+   "differentes": 512,
+   "premiere": [
+    "0",
+    "0",
+    "793",
+    "309",
+    "d583210996a0654e"
+   ]
+  },
+  "verdict": {
+   "temoin_programme": true,
+   "A_C1_20b": true,
+   "cassure_tombe": true
+  }
+ },
+ "fin": "2026-10-17 09:32:54"
+}

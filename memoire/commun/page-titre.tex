@@ -1,0 +1,46 @@
+% Page de titre commune (langue choisie par \EF). Dessinée en TikZ : le chemin des
+% données disque -> RAM -> PCIe -> VRAM -> calcul, avec les débits mesurés sur la
+% machine de Stone (fondations/journaux/01-machine/debits-mesures.json).
+\begin{titlepage}
+\thispagestyle{empty}
+\begin{tikzpicture}[remember picture, overlay]
+  \fill[Accent] (current page.north west) rectangle ([yshift=-9.5cm]current page.north east);
+  \node[anchor=north west, text=white, font=\sffamily\bfseries\fontsize{40}{44}\selectfont]
+    at ([xshift=2.6cm, yshift=-2.4cm]current page.north west) {troncons};
+  \node[anchor=north west, text=white, text width=15.5cm, align=left,
+        font=\sffamily\LARGE\linespread{1.15}\selectfont]
+    at ([xshift=2.6cm, yshift=-4.3cm]current page.north west)
+    {\EF{Running a model far larger than memory:\\ compress to the extreme, decompress at the exact instant of need}%
+        {Faire tourner un modèle bien plus grand que la mémoire :\\ compresser à l'extrême, décompresser à l'instant exact du besoin}};
+  \node[anchor=north west, text=white!85!Accent, font=\sffamily\large]
+    at ([xshift=2.6cm, yshift=-7.6cm]current page.north west)
+    {\EF{Research thesis --- Part~I and~II: the measured foundations}%
+        {Mémoire de recherche --- parties~I et~II : les fondations mesurées}};
+  % Le chemin des données, du plus lent au plus rapide.
+  \begin{scope}[shift={([xshift=2.6cm, yshift=-13.2cm]current page.north west)},
+                every node/.style={font=\sffamily\small}]
+    \foreach \x/\nom/\col/\deb/\lar [count=\nidx] in {0/\EF{Disk}{Disque}/Disque/2.82/1.2,
+                                         3.4/RAM/Ram/15{,}6/1.9,
+                                         6.8/PCIe/Pcie/12{,}2/1.75,
+                                         10.2/VRAM/Vram/251/3.4,
+                                         13.6/\EF{Compute}{Calcul}/Calcul/{}/1.0}{
+      \node[draw=\col, fill=\col!12, rounded corners=2pt, minimum width=2.5cm,
+            minimum height=1.05cm, line width=0.9pt] (n\nidx) at (\x,0) {\textbf{\nom}};
+    }
+    \foreach \a/\b/\d/\w in {1/2/2.82/1.0, 2/3/12.2/1.8, 3/4/12.2/1.8, 4/5/251.3/4.5}{
+      \draw[-{Latex[length=2.2mm]}, line width=\w pt, black!70] (n\a.east) -- (n\b.west)
+        node[midway, above=3pt, font=\sffamily\scriptsize, black!75] {\num{\d}};
+    }
+    \node[anchor=north west, font=\sffamily\scriptsize, black!60, text width=16cm]
+      at (-1.25,-0.9) {\EF{Throughputs measured on Stone's machine, GB/s (disk: 16\,MiB random reads; PCIe: host-to-device DMA; VRAM: shader reads). Arrow width grows with throughput.}%
+                         {Débits mesurés sur la machine de Stone, en Go/s (disque : lectures aléatoires de 16\,Mio ; PCIe : DMA hôte vers carte ; VRAM : lecture par shader). L'épaisseur des flèches croît avec le débit.}};
+  \end{scope}
+  \node[anchor=south west, font=\sffamily, text width=15cm, align=left]
+    at ([xshift=2.6cm, yshift=3.2cm]current page.south west)
+    {{\Large\bfseries Stone}\\[4pt]
+     {\large \EF{Toronto, 15 October 2026}{Toronto, le 15 octobre 2026}}\\[10pt]
+     {\small\color{black!65}\EF{Working version. Chapters on the architecture, the implementation and the results are to come; every figure is regenerated from the measurement data committed in the \texttt{troncons} repository.}%
+         {Version de travail. Les chapitres d'architecture, d'implémentation et de résultats sont à venir ; chaque figure se régénère depuis les données de mesure commitées dans le dépôt \texttt{troncons}.}}};
+  \fill[Accent] ([yshift=1.4cm]current page.south west) rectangle ([yshift=1.55cm]current page.south east);
+\end{tikzpicture}
+\end{titlepage}

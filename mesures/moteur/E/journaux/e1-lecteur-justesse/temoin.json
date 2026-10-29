@@ -1,0 +1,159 @@
+{
+  "commande": [
+    "~\\dev\\cibles\\troncons-E\\release\\banc-chemin.exe",
+    "lecteur",
+    "--journal",
+    "mesures/moteur/E/journaux/e1-lecteur-justesse/temoin.json",
+    "--fichier",
+    "~/dev/modeles/gguf/gpt-oss-20b-MXFP4.gguf",
+    "--serie",
+    "8",
+    "--tours-abba",
+    "1",
+    "--repos-s",
+    "1",
+    "--verifier",
+    "4"
+  ],
+  "essai": "lecteur",
+  "machine_debut": {
+    "batterie_pourcent": 80,
+    "ensemble_de_travail_o": 4804608,
+    "ensemble_de_travail_pointe_o": 4804608,
+    "heure": "2026-10-15T15:20:01.739",
+    "ram_disponible_o": 516112384,
+    "ram_totale_o": 16780529664,
+    "secteur": true
+  },
+  "outil": "banc-chemin",
+  "resultat": {
+    "fichier": "~/dev/modeles/gguf/gpt-oss-20b-MXFP4.gguf",
+    "graine": 20261015,
+    "justesse": {
+      "casser": false,
+      "ecarts": 0,
+      "lectures": [
+        {
+          "decalage": 4205207552,
+          "ecarts": 0,
+          "k": 0
+        },
+        {
+          "decalage": 9758613504,
+          "ecarts": 0,
+          "k": 1
+        },
+        {
+          "decalage": 4467171328,
+          "ecarts": 0,
+          "k": 2
+        },
+        {
+          "decalage": 10632081408,
+          "ecarts": 0,
+          "k": 3
+        }
+      ]
+    },
+    "machine_fin": {
+      "batterie_pourcent": 80,
+      "ensemble_de_travail_o": 65060864,
+      "ensemble_de_travail_pointe_o": 77635584,
+      "heure": "2026-10-15T15:20:05.156",
+      "ram_disponible_o": 1174761472,
+      "ram_totale_o": 16780529664,
+      "secteur": true
+    },
+    "passes": [
+      {
+        "duree_us_max": 42274,
+        "duree_us_mediane": 40199,
+        "duree_us_p10": 15983,
+        "duree_us_p90": 41717,
+        "erreurs": 0,
+        "go_s": 1.3237593745685037,
+        "go_s_etrangers": 0.17419587472959558,
+        "lectures": 8,
+        "lettre": "A",
+        "octets": 100663296,
+        "octets_etrangers": 13246464,
+        "octets_systeme": 113909760,
+        "profondeur": 4,
+        "rang": 0,
+        "secondes": 0.0760435,
+        "secondes_mur": 0.0760435,
+        "tour": 0
+      },
+      {
+        "duree_us_max": 36734,
+        "duree_us_mediane": 9252,
+        "duree_us_p10": 8104,
+        "duree_us_p90": 17142,
+        "erreurs": 0,
+        "go_s": 0.9465524371563735,
+        "go_s_etrangers": 0.689496395301056,
+        "lectures": 8,
+        "lettre": "B",
+        "octets": 100663296,
+        "octets_etrangers": 73326080,
+        "octets_systeme": 173989376,
+        "profondeur": 1,
+        "rang": 1,
+        "secondes": 0.1063473,
+        "secondes_mur": 0.1063473,
+        "tour": 0
+      },
+      {
+        "duree_us_max": 30074,
+        "duree_us_mediane": 7597,
+        "duree_us_p10": 7476,
+        "duree_us_p90": 10169,
+        "erreurs": 0,
+        "go_s": 1.14910995409875,
+        "go_s_etrangers": 0.8449062854233566,
+        "lectures": 8,
+        "lettre": "B",
+        "octets": 100663296,
+        "octets_etrangers": 74014720,
+        "octets_systeme": 174678016,
+        "profondeur": 1,
+        "rang": 2,
+        "secondes": 0.0876011,
+        "secondes_mur": 0.0876011,
+        "tour": 0
+      },
+      {
+        "duree_us_max": 66323,
+        "duree_us_mediane": 39012,
+        "duree_us_p10": 17125,
+        "duree_us_p90": 59178,
+        "erreurs": 0,
+        "go_s": 0.9409780953529394,
+        "go_s_etrangers": 0.8985257246163438,
+        "lectures": 8,
+        "lettre": "A",
+        "octets": 100663296,
+        "octets_etrangers": 96121856,
+        "octets_systeme": 196785152,
+        "profondeur": 4,
+        "rang": 3,
+        "secondes": 0.1069773,
+        "secondes_mur": 0.1069773,
+        "tour": 0
+      }
+    ],
+    "profondeurs": [
+      4,
+      1
+    ],
+    "repos": {
+      "go_s": 0.9765330226754714,
+      "octets": 976896000,
+      "secondes": 1.0003717
+    },
+    "taille_fichier_o": 12109566624,
+    "taille_morceau_o": 12582912,
+    "tours": 1
+  },
+  "version": "0.1.0"
+}

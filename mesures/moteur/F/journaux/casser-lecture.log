@@ -1,0 +1,17 @@
+=== référence (rien de cassé)
+  ok     gguf::tests::lectures_alignees_et_non_alignees
+=== cassure : décalage dans la fenêtre faux d'un octet quand d mod 4096 = 17 (gguf.rs)
+  FAILED gguf::tests::lectures_alignees_et_non_alignees
+  -> TOMBE ; fichier restauré : True
+=== cassure : seule la première fenêtre est lue (les suivantes recopient l'ancien contenu du rebond) (gguf.rs)
+  FAILED gguf::tests::lectures_alignees_et_non_alignees
+  -> TOMBE ; fichier restauré : True
+=== cassure : fin de fichier non vue : une lecture qui rend 0 arrête la boucle sans erreur (gguf.rs)
+  FAILED gguf::tests::lectures_alignees_et_non_alignees
+  -> TOMBE ; fichier restauré : True
+=== cassure : SHA-256 du fichier : relecture après la lecture courte de la fin (décalage non aligné) (coder.rs)
+  FAILED gguf::tests::lectures_alignees_et_non_alignees
+  -> TOMBE ; fichier restauré : True
+=== après restauration
+  ok     gguf::tests::lectures_alignees_et_non_alignees
+VERDICT : toutes les cassures tombent, le témoin tient restauré

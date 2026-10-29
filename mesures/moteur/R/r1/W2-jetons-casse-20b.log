@@ -1,0 +1,76 @@
+# 2026-10-15T13:26:13-04:00 cassure de W2 : le même texte précédé de « X »
+init_tokenizer: initializing tokenizer for type 2
+{
+  "ajoute_bos": false,
+  "commande": [
+    "~\\dev\\cibles\\troncons-R\\release\\juge.exe",
+    "jetons",
+    "--dll",
+    "~/dev/modeles/llama.cpp-b11515/llama.dll",
+    "--vocab",
+    "~/dev/modeles/gguf/gpt-oss-20b-MXFP4.gguf",
+    "--texte",
+    "<session>/scratchpad/wiki-casse.raw",
+    "--kld",
+    "~/dev/essais/troncons/lot-R/r0/processeur.kld"
+  ],
+  "duree_s": 1.3671111,
+  "egaux": false,
+  "jetons_du_kld": 5120,
+  "jetons_du_texte": 287211,
+  "outil": "juge jetons",
+  "premier_ecart": 0,
+  "premiers_jetons": [
+    [
+      55,
+      "X"
+    ],
+    [
+      793,
+      " \n"
+    ],
+    [
+      314,
+      " ="
+    ],
+    [
+      13169,
+      " Robert"
+    ],
+    [
+      418,
+      " B"
+    ],
+    [
+      9826,
+      "oul"
+    ],
+    [
+      399,
+      "ter"
+    ],
+    [
+      314,
+      " ="
+    ],
+    [
+      56319,
+      " \n \n"
+    ],
+    [
+      13169,
+      " Robert"
+    ],
+    [
+      418,
+      " B"
+    ],
+    [
+      9826,
+      "oul"
+    ]
+  ],
+  "taille_vocab": 201088
+}
+Error: découpage différent de celui de llama-perplexity
+# fin 2026-10-15T13:26:17-04:00 code 1

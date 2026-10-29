@@ -1,0 +1,48 @@
+% Sources du Tome III, ajoutées à celles que le préambule commun charge déjà (commun, 01-machine,
+% quantification, 03-entropie, 04-chargement, 05-sparsite, 06-modeles, 07-synthese,
+% decisions-partisan-b, etat-de-l-art). Ossature du 2026-10-29.
+%
+% Chaque clé n'est définie qu'une fois dans l'ensemble chargé : biber refuse les doublons
+% (« Duplicate ») et construire.sh tombe. Vérifié le 2026-10-29 sur tous les .bib commités du dépôt
+% (clé par clé) : les fichiers ci-dessous n'ont aucune clé en commun entre eux ni avec le préambule.
+% Une clé non citée ne s'imprime pas : charger un fichier entier ne coûte rien.
+%
+% Trois fichiers ne sont pas chargés :
+%   - mesures-gpt-oss.bib et moteur-epreuve-J1.bib, comme au Tome II (leurs clés en double :
+%     belady1966, mattson1970, merity2016wikitext, openai2025gptoss, wilson1927, sont dans commun,
+%     moteur-O, moteur-R et genome-duplication) ;
+%   - p6.bib (mimétisme P6) : sa clé hobbit2024 est déjà dans 04-chargement.bib. Ses deux autres clés,
+%     lu2024experts et haidar2018mixed, ne sont nulle part ailleurs : le rédacteur du chapitre 6 qui les
+%     cite les porte dans un fichier neuf (memoire/sources/tome3-mimetisme.bib, recopiées de p6.bib
+%     telles quelles) et l'ajoute ici ; p6.bib ne se modifie pas.
+% Les sources des pistes restent sous genome/pistes/ (lecture seule) et se chargent par \Depot.
+% Les sources de P2, P4 et P5 sont écrites dans leurs notes « pour le mémoire » (§ Sources) sans .bib :
+% le rédacteur du chapitre 6 les porte dans tome3-mimetisme.bib, chacune avec son adresse et sa date
+% de consultation, et vérifie Mattson 1970 à la source (réserve de l'inventaire, III-6.4).
+%
+% Tome II (ses sources, que le Tome III cite pour le moteur, le juge et le cache) :
+\addbibresource{\Racine/sources/moteur-E.bib}
+\addbibresource{\Racine/sources/moteur-F.bib}
+\addbibresource{\Racine/sources/moteur-K.bib}
+\addbibresource{\Racine/sources/moteur-O.bib}
+\addbibresource{\Racine/sources/moteur-R.bib}
+\addbibresource{\Racine/sources/tome2-architecture-format.bib}
+\addbibresource{\Racine/sources/tome2-reference-cache.bib}
+\addbibresource{\Racine/sources/tome2-resultats.bib}
+% La quête du génome des poids :
+\addbibresource{\Racine/sources/genome-etat-de-l-art.bib}
+\addbibresource{\Racine/sources/genome-genome.bib}
+\addbibresource{\Racine/sources/genome-duplication.bib}
+\addbibresource{\Racine/sources/genome-predictif-elagage.bib}
+\addbibresource{\Racine/sources/genome-construction-synthese.bib}
+% Le placement disque (chapitre « L'étage disque » du Tome II ; le Tome III le cite pour lire le J1, R1) :
+\addbibresource{\Racine/sources/placement-disque.bib}
+% Le mimétisme :
+\addbibresource{\Racine/sources/p1.bib}
+\addbibresource{\Racine/sources/p3-routage.bib}
+% Sources neuves des chapitres 6 et 12 (rédacteur B, 2026-10-29 ; notices relues à la source, voir l'en-tête
+% du fichier ; haidar2018mixed y est recopiée de p6.bib, qui reste non chargé) :
+\addbibresource{\Racine/sources/tome3-mimetisme.bib}
+% Les pistes :
+\addbibresource{\Depot/genome/pistes/tropicale/tropicale.bib}
+\addbibresource{\Depot/genome/pistes/spectres/spectres.bib}

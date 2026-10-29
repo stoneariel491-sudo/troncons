@@ -1,0 +1,294 @@
+% Volume~III, chapter 5: predictive coding and synaptic pruning (English version).
+% Translated on 2026-10-29 by translator EN1 from memoire/tome3/fr/chapitres/05-predictif.tex (writer A,
+% corrected: G2), number for number, same labels. Sources as in the French chapter:
+% genome/predictif-elagage-pour-le-memoire.md (the deliverable of the subject), genome/REPRISE-predictif-elagage.md,
+% mesures/genome/predictif-elagage/ (resume-12.csv, taux-reel-*.json, contextes-*.json, debit-distorsion-12.*,
+% plans/, kl/, sortie-experts-*), genome/05-synthese.md § 1.1 (protocol P3). No figure is drawn (III-5.1 and
+% III-5.2 proposed, not drawn): tables.
+\chapter{Predictive coding and synaptic pruning}\label{t3pre:ch}
+
+\begin{origine}
+\textbf{The starting point} is that, on the 12 expert tensors of the frontier (gpt-oss-20b, layers 0, 8, 16 and 23, gate, up and down; 3\,185\,049\,600 weights), lossless coding reads 3.8431 bits per weight (A\_ctx), and the base of B 2.6441 bits for 4.2920\,\% relative squared error; the scale context $\kappa$ (below, equal to, above the median of the row) is already in the format. The reading predicted that lossless predictive coding would gain only what the neighbour brings (0.005 bit), and that pruning would depend on the output, not on the weights (\cref{t3que:tab:pronostic}).
+\textbf{This chapter establishes} the exact gain of the synonymous codons of E2M1, proved and measured with the real codec on the two whole models; that lossless predictive coding, in the strict sense, removes almost nothing, except one predictor: the energy class of the \emph{input column}; a system lossless in value, folded zero and column, at \textbf{3.6844 bits} against 3.8434, decoded exactly; the rate--distortion frame in which synaptic pruning is only the zero-rate regime of a reverse water-filling; that the metric of the frontier is wrong for judging a loss; and that the output of the experts, then the KL against the reference, make everything that fills across the absolute scales fail, even at equal expert error, leaving only one lossy point: partitions relative to the row, tensor by tensor, at \textbf{0.911 times the bits} of the base and a \textbf{statistically equal KL}.
+\textbf{What remains} is the card kernels for the tables per context, error feedback on the alphabet of the cells, a sensitivity criterion judged per token or against the KL, and the measurement on the 24 layers, then on the 120b.
+Sources: \fichier{genome/predictif-elagage-pour-le-memoire.md} (the deliverable of the subject); \fichier{genome/REPRISE-predictif-elagage.md}; \fichier{mesures/genome/predictif-elagage/} (\texttt{resume-12.csv}, \texttt{taux-reel-*.json}, \texttt{contextes-*.json}, \texttt{debit-distorsion-12.*}, \texttt{plans/}, \texttt{sortie-experts-*}, \texttt{kl/}); \fichier{genome/05-synthese.md} §\,1.1; tools under \fichier{outils/genome/predictif-elagage/}.
+\end{origine}
+
+\begin{enbref}
+Two moves of the nervous system served as guides, as analogies. The retina does not transmit the image, it transmits what distinguishes it from what its neighbours predicted: that is predictive coding~\cite{rao1999}, and a neuron of the fly's eye even adjusts its response to the law of its inputs to draw the most information from them~\cite{genome-pe-laughlin1981}. The developing brain, for its part, makes too many synapses and then removes those that activity does not call upon: that is synaptic pruning~\cite{huttenlocher1979}. Transposed to the weights, the first move asks what the neighbours of a code say about it, and the answer is: almost nothing, except the column through which it reads its input. The second move is formulated exactly in rate theory: set a price for the bit, and let the synapses that do not pay it disappear. It gains a great deal on weight metrics, and almost all of that gain vanishes when judged on text. What holds is modest and solid: a zero sign that one stops paying for, a map of columns, and a base that saves 9\,\% of the bits without degrading the divergence beyond the noise of the measurement.
+\end{enbref}
+
+\section{The synonymous codons of E2M1}\label{t3pre:sec:codons}
+
+\paragraph{The fact} \mes. On the 12 tensors, $P(+0) = 0.068\,46$ and $P(-0) = 0.068\,48$; more broadly, $P(+c) = P(-c)$ to within $10^{-4}$ for each magnitude. Per tensor, $P(+0)$ and $P(-0)$ differ by less than $10^{-4}$, from 0.059 to 0.098 each (\fichier{histo-12-gptoss20b.npz}). The quantiser that produced the MXFP4 of gpt-oss keeps the sign of the original value even when its magnitude rounds to zero. Yet E2M1 has two codes for zero, \texttt{0b0000} and \texttt{0b1000}; ggml reads both as the integer 0, the f64 reference as $+0$ and $-0$, which change no non-zero sum (\cref{t3ecl:prop:zero}).
+
+\paragraph{The biological parallel, as an image.} The synonymous codons of the genetic code (\cref{t3int:sec:genome}) often differ by their third base, Crick's ``wobble'' position~\cite{genome-pe-crick1966wobble}, and a mutation that goes from one to the other is silent. The two codes $\pm0$ are two synonymous codons; the information that distinguishes them has no phenotype. Canonicalising every $-0$ into $+0$ before entropy coding amounts to reducing codon usage to a single codon per meaning.
+
+\begin{proposition}[The exact gain of folding]\label{t3pre:prop:fondu}
+Let $C$ be the 4-bit code of a weight and $V = v(C)$ its value, $v(c) = (-1)^{c_3} K[c \mathbin{\&} 7]$, injective except on $\{0, 8\}$. Let $S$ be the sign bit. Then
+\begin{equation}\label{t3pre:eq:fondu}
+H(C) = H(V) + P(V = 0)\, H(S \mid V = 0).
+\end{equation}
+The same statement holds conditionally on any context the decoder knows (scale class $\kappa$, neighbouring byte).
+\end{proposition}
+
+\begin{proof}
+$V$ is a function of $C$, so $H(V \mid C) = 0$ and $H(C, V) = H(C)$. By the chain rule, $H(C, V) = H(V) + H(C \mid V)$. Given $V = v \ne 0$, $C$ is determined ($v$ injective outside 0): $H(C \mid V = v) = 0$. Given $V = 0$, $C \in \{0, 8\}$ is determined by $S$: $H(C\mid V = 0) = H(S \mid V = 0)$. Hence $H(C\mid V) = \sum_v P(V = v)\,H(C\mid V = v) = P(V = 0)\,H(S\mid V = 0)$. Replacing $H(\cdot)$ by $H(\cdot\mid\kappa)$ everywhere changes no step.
+\end{proof}
+
+Folding 8 into 0 replaces $C$ by $C'$ of the same value, and $H(C') = H(V)$: the gain is $P(V = 0)\,H(S\mid V = 0)$, that is roughly $P(V = 0)$ bit when the sign is a fair coin. \textbf{Computation set out} \calc: $P(V = 0) = 0.068\,46 + 0.068\,48 = 0.136\,94$; $H(S\mid V = 0) = h(0.068\,46/0.136\,94) = h(0.499\,93) = 1.0000$ bit, $h$ being the binary entropy; gain $= 0.136\,94$ bit per weight. Measured by the conditional entropy (context $\kappa$, tables per tensor): 0.136\,939 \mes; by the real codec: 0.1370 \mes. The form of the gain per byte, which serves the format, is taken up in \cref{t3cod:ch}.
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X r r r >{\raggedright\arraybackslash}X@{}}
+\toprule
+Tensors & lossless to the bit & zero folded & gain & log \\
+\midrule
+12 of the frontier (20b) & 3.8434 & \textbf{3.7064} & 0.1370 & \fichier{taux-reel-12-gptoss20b.json} \\
+72, all layers (20b) & 3.8509 & \textbf{3.7230} & 0.1280 & \fichier{taux-reel-toutes-gptoss20b.json} \\
+108, all layers (120b, 60.9\,GB) & 3.8549 & \textbf{3.7292} & 0.1257 & \fichier{taux-reel-toutes-gptoss120b.json} \\
+\bottomrule
+\end{tabularx}
+\caption[The zero-synonym codon with the real codec, on the two models]{The zero-synonym codon with the real codec (rANS of study 03, accounting of the arbiter, A\_flux), in bits per weight \mes. The ``lossless to the bit'' row recovers exactly the arbiter's A\_flux (3.8434): a second path of the same codec. Logs under \fichier{mesures/genome/predictif-elagage/}.}
+\label{t3pre:tab:codons}
+\end{table}
+
+\paragraph{The controls.} Each stream is decoded and compared byte by byte, no lane outside its final state; each decoded nibble returns the original value ($d = o$, or $o = 8$ and $d = 0$). Break (8 sent to 1): the value control fails (\fichier{taux-reel-12-gptoss20b-casse.json}). End to end, the f64 reference with rebuilt weights (hook \texttt{alterer\_expert}) gives, for the identity plan, \texttt{.kld} entries identical byte for byte to the reference (510 entries) and \texttt{juge kl} = 0 exactly (\fichier{kl/identite-2f-octets.json}); the folded-zero plan gives identical values, hence the same output. These measurements join those of the scout by another path (\cref{t3ecl:tab:zero}) and extend them to the whole 120b.
+
+\section{Lossless predictive coding: what the neighbours say about a code}\label{t3pre:sec:predictif}
+
+\paragraph{The frame.} For a discrete alphabet, ``predict, then code the deviation'' is written exactly: code the code with a law conditioned on a context $X$ that the decoder knows. The gain is the mutual information
+\begin{equation}\label{t3pre:eq:im}
+I(C ; X \mid \kappa) = H(C \mid \kappa) - H(C \mid \kappa, X).
+\end{equation}
+The frequency estimator is biased downwards; by Miller's expansion~\cite{miller1955bias}, with tables per tensor, the bias on the gain is $(K_X - K_\kappa)(16 - 1)/(2 N_t \ln 2)$ bit per symbol, $K$ being the number of contexts and $N_t = 265\,420\,800$ weights per tensor. \textbf{Threshold declared beforehand}: 0.015 bit per weight, the header cost of one more stream (0.40\,\% of 3.84 bits, study 03).
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabular}{l r r l}
+\toprule
+Predictor, in addition to $\kappa$ & $H$ (bits per weight) & gain & verdict \\
+\midrule
+none ($\kappa$ alone) & 3.7923 & --- & reference \\
+exact $\delta$ ($\pm 2$) & 3.7915 & 0.0007 & ruled out \\
+whole byte (pair of nibbles of the block) & 3.7885 & 0.0037 & already in A\_ctx \\
+left code & 3.7846 & 0.0076 & ruled out \\
+code above (previous row) & 3.7831 & 0.0091 & ruled out \\
+parent expert (same place, expert $e - 1$) & 3.7879 & 0.0043 & ruled out \\
+left $\times$ above (867 contexts) & 3.7922 & 0.0000 & ruled out (tables) \\
+constraint of the block maximum & 3.7921 & 0.0001 & ruled out \\
+\textbf{class of the input column (quartile)} & \textbf{3.7608} & \textbf{0.0314} & \textbf{retained} \\
+\bottomrule
+\end{tabular}
+\caption[What the neighbours say about a code]{Lossless predictive coding: what each context removes from the entropy of a code, 12 tensors, tables included \mes. Declared threshold: 0.015 bit. Data: \fichier{mesures/genome/predictif-elagage/contextes-gptoss20b.json}.}
+\label{t3pre:tab:contextes}
+\end{table}
+
+\paragraph{Reading} (\cref{t3pre:tab:contextes}).
+\begin{itemize}
+\item \textbf{The neighbours predict almost nothing.} Given the scale of its block, an MXFP4 code is an almost independent draw; what the literature calls the ``spatial dependency'' of the weights is here below 0.01 bit.
+\item \textbf{The parent expert predicts nothing} (0.004): the experts of a layer are not mutated copies of one another at the level of the codes, which \cref{t3dup:ch} puts in numbers on the values, with permutation.
+\item \textbf{Each block contains at least one large code} ($|\mathrm{E2M1}| \ge 2$): 0 blocks out of 99\,532\,800 lack one; the OCP rule of the scale ($2^{\lfloor\log_2 \max\rfloor - 2}$) is indeed followed, but the constraint is worth only $10^{-4}$ bit: a block almost always has several large codes.
+\item \textbf{The input column carries a structure.} Some columns have, on average over all the rows and all the experts of a tensor, larger weights relative to the scale of their block. The ratio between the most energetic column and the median ranges from 1.11 (blk.0 down) to 2.93 (blk.23 gate), in root energy. The inputs of gate and up are the hidden state, some of whose channels carry outlier activations; training answered with weights of different size. It is a fact of the input, shared by the 32 experts: a map of 2 bits per column and per tensor (720 bytes) suffices. It is the same statistic that the chance parent of \cref{t3dup:ch} took back at 88 to 94\,\% in layer 0.
+\end{itemize}
+
+\paragraph{The controls, and a struck-out correction.} Context equal to the code itself: $H = 0$ (holds). ``Left'' context randomly permuted: gain of $6.33\cdot10^{-5}$ for an expected bias of $6.26\cdot10^{-5}$ (holds, \fichier{contextes-temoin-corrige.json}). The deliverable carries a first formula, struck out: ``\barre{Expected bias $(51 - 1)\cdot15/(2N\ln 2) = 5.4\cdot10^{-6}$ with pooled $N$, control failed.}'' Corrected on 2026-10-16: the tables are per tensor, the bias is computed with $N_t$ and $51 - 3$ added parameters; with the old formula (the break of the corrected control), the control does fail (\fichier{contextes-temoin-corrige-casse.json}).
+
+\paragraph{The real codec, $\kappa \times$ column.} Streams of nibbles separated by context, alphabet of 16, zero folded, map and tables counted (\fichier{taux-reel-colonne-12-gptoss20b.json}) \mes: \textbf{3.6844 bits per weight}, against 3.7103 for the same split in $\kappa$ alone (real gain of the column: 0.0259) and 3.7064 for the byte alphabet in $\kappa$. Per tensor, the column saves nothing on blk.23.ffn\_down (3.6744 $\to$ 3.6741: the input of down is the output of a SwiGLU, with no outlier channel) and most of it on gate and up. The system lossless in value, zero folded and column, therefore reads \textbf{3.6844 bits against 3.8434}, that is $-4.1\,\%$ \calc, and \cref{t3syn:ch} shows where this gain lives (almost all of it in layer 0).
+
+\section{Pruning and bounded predictive quantisation: the rate--distortion frame}\label{t3pre:sec:cadre}
+
+\paragraph{The problem.} Replace each code $c$, in a block of scale $e$, by a cell $s$ of a partition $P_k$ of the 16 codes ordered on the real line ($-12, \ldots, -1, -0, +0, +1, \ldots, +12$ in doubled E2M1 magnitudes $K$), chosen according to a context $k$ that the decoder knows, rebuilt as $\hat w = r_{k,s}\, 2^{e-128}$. Rate: $H(s \mid k)$, one table per tensor and per context. Distortion: the sum of the $(w - \hat w)^2$. It is an entropy-constrained quantiser on a discrete source~\cite{genome-pe-chou1989ecvq,genome-pe-farvardin1984}.
+
+\begin{lemme}[The optimal centre of a cell]\label{t3pre:lem:centre}
+For a fixed cell, the weighted centroid $r^\ast = B/A$ is the reconstruction that minimises $\sum_i 4^{\,e_i - 128}(K_i - r)^2$, and the remaining error is $C - B^2/A$, with $A = \sum_i 4^{e_i}$, $B = \sum_i 4^{e_i} K_i$, $C = \sum_i 4^{e_i} K_i^2$ (up to a factor $4^{-128}$).
+\end{lemme}
+
+\begin{proof}
+The function $r \mapsto C - 2rB + r^2 A$ is a quadratic in $r$, with derivative $2(Ar - B)$, zero at $B/A$; $A > 0$ makes it a minimum, where the value is $C - 2B^2/A + B^2/A = C - B^2/A$. (The vector case is that of Chou, Lookabaugh and Gray~\cite{genome-pe-chou1989ecvq}.)
+\end{proof}
+
+\begin{lemme}[Exact dynamic programming]\label{t3pre:lem:dp}
+With a multiplier $\mu$, the cost of a partition into intervals of the 16 ordered positions is a sum of terms each depending only on its cell, $c(i, j) = D_{[i,j]}/E + \mu\, n_{[i,j]} \bigl(-\log_2 (n_{[i,j]}/n_k)\bigr)$, $E$ being the energy of the context and $n$ the counts. The best partition is obtained exactly by the recurrence
+\begin{equation}\label{t3pre:eq:dp}
+J(0) = 0, \qquad J(j) = \min_{0 \le i < j}\ J(i) + c(i, j - 1),
+\end{equation}
+in $16 \times 17 / 2 = 136$ cell evaluations, instead of the $2^{15}$ partitions.
+\end{lemme}
+
+\begin{proof}
+A partition into intervals of $\{0, \ldots, j-1\}$ ends with a last interval $[i, j-1]$, preceded by a partition of $\{0, \ldots, i-1\}$. The cost being additive by cell, the minimal cost decomposes as~\eqref{t3pre:eq:dp} (Bellman's principle). There is one possible cell per pair $i \le j$ of the 16 positions, that is 136, each evaluated once by \cref{t3pre:lem:centre} on cumulative sums. This is the histogram segmentation of Muresan and Effros~\cite{genome-pe-muresan2002}, and of Wu and Zhang~\cite{genome-pe-wu1993}. The cells are intervals because, for the squared distortion, an optimal cell is convex on the line.
+\end{proof}
+
+\begin{proposition}[Reverse water-filling, and pruning as its zero-rate regime]\label{t3pre:prop:remplissage}
+A $\mu$ common to all the contexts achieves the minimum of the total distortion under a total rate constraint: at the points where each context is on its convex curve $D_k(R_k)$, the Karush--Kuhn--Tucker condition is $-\partial D_k/\partial R_k = \mu$ for every active context, and a context whose slope at zero rate is weaker than $\mu$ stays at zero rate. The low-energy contexts (small scale $e$, little-active column) reach their zero rate first: a single cell, the whole context rebuilt by its centre, almost zero.
+\end{proposition}
+
+\begin{proof}
+We minimise $\sum_k D_k(R_k)$ under $\sum_k R_k \le R$, $R_k \ge 0$, with convex decreasing $D_k$. The Lagrangian $\sum_k D_k(R_k) + \mu(\sum_k R_k - R) - \sum_k \nu_k R_k$ gives, at the optimum, $D_k'(R_k) + \mu - \nu_k = 0$, $\nu_k \ge 0$, $\nu_k R_k = 0$. For an active context ($R_k > 0$), $\nu_k = 0$ and $-D'_k(R_k) = \mu$; for an inactive context, $-D'_k(0) = \mu - \nu_k \le \mu$. Convexity makes these conditions sufficient. This is the reverse water-filling of~\cite[th. 10.3.3]{cover2006}, transposed to a discrete source by contexts. A low-energy context has a slope $-D'_k(0)$ proportional to its energy: it becomes inactive first.
+\end{proof}
+
+\textbf{Synaptic pruning thus appears as the zero-rate regime of reverse water-filling}: one does not choose to prune, one chooses a price for the bit, and the synapses that do not pay it disappear. This is the move of Optimal Brain Damage~\cite{lecun1989obd} and of Deep Compression~\cite{han2015deepcompression}, written on our cells.
+
+\paragraph{The metric, and why that of the frontier is wrong here.} The first pass used the global error of the frontier, $\sum (w - \hat w)^2 / \sum w^2$ over the 12 tensors. Yet the share of the energy per tensor is extremely unequal \mes: blk.23.ffn\_down 91.5\,\%, blk.16.ffn\_down 8.0\,\%, blk.8.ffn\_down 0.40\,\%, the other nine together 0.015\,\%. A common $\mu$ under this metric empties the nine small tensors: 0.32 bit ``at 4.29\,\%'' (\fichier{ecsq\_e\_metrique\_globale}, for the record), absurd. \textbf{Metric retained}: the mean over the tensors of their own relative error, each matrix counting as much; the base is 4.3367\,\% in it (from 4.05 to 4.80\,\% per tensor).
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X r r r@{}}
+\toprule
+Family, at mean error per tensor equal to the base (4.337\,\%) & bits per weight & ratio to the base & share pruned \\
+\midrule
+base (frontier, same instrument) & 2.632 & 1 & --- \\
+pruning by magnitude (the rest exact, zero folded) & 2.665 & 1.012 & --- \\
+free partitions, context $\kappa$ & 2.359 & 0.896 & --- \\
+free partitions, row $\delta$ bounded to $\pm 3$ & 2.353 & 0.894 & --- \\
+dead zone alone, context $e$ (Lagrangian pruning) & 2.318 & 0.881 & --- \\
+\textbf{free partitions, context $e$ (reverse water-filling)} & \textbf{2.019} & \textbf{0.767} & 31\,\% \\
+\bottomrule
+\end{tabularx}
+\caption[The rate--distortion frame, in weight error]{The families of the rate--distortion frame, in weight error \mes. Ideal entropies, plus the scales (0.0375) and the tables; the base with the same instrument is 2.6321, against 2.6441 with the real codec (gap of 0.46\,\%). Data: \fichier{mesures/genome/predictif-elagage/debit-distorsion-12.json} and \texttt{.csv}.}
+\label{t3pre:tab:rd}
+\end{table}
+
+\paragraph{Why pruning by magnitude loses} (\cref{t3pre:tab:rd}). Pruning means folding the small magnitudes into the zero symbol; the rate falls only by the entropy of these symbols, while all the other codes keep their 3 bits and more. At equal error, it is better to enlarge \emph{all} the cells a little than to empty a few. The small magnitudes carry little energy, but also few bits: the 50\,\% smallest weights of a tensor carry only 4.3\,\% of its energy, and removing them removes only about half the bits that would be needed. Reverse water-filling by $e$, for its part, gains 23\,\% of the bits on the weight metric; \cref{t3pre:sec:sortie} says what is left of it.
+
+\section{Activity-dependent pruning}\label{t3pre:sec:activite}
+
+\paragraph{The frame.} For a matrix $W$ and inputs $x$ of covariance $\Sigma$, by~\eqref{t3que:eq:sortie},
+\begin{equation}\label{t3pre:eq:diag}
+\E\,\|\Delta W x\|^2 = \mathrm{tr}(\Delta W\, \Sigma\, \Delta W^\top) = \sum_{i,j,j'} \Delta W_{ij}\Delta W_{ij'}\Sigma_{jj'} \ \approx\ \sum_{i,j} \Delta W_{ij}^2\, \Sigma_{jj},
+\end{equation}
+a diagonal approximation, exact on average if the errors of different columns are uncorrelated. The sensitivity of a weight is $s_j = \E[x_j^2]$, the activity of its column. This is the criterion of Wanda ($|W_{ij}|\cdot\|X_j\|$)~\cite{genome-pe-sun2023wanda}, close to that of SparseGPT~\cite{genome-pe-frantar2023sparsegpt}, and the diagonal term of OBD. The biological analogy is explicit: in the developing brain, synaptic pruning depends on activity, a little-used synapse is removed first.
+
+\paragraph{The system.} The masses of \cref{t3pre:lem:centre} become $A = \sum 4^{e} s_j$; the context becomes $(e, q)$, $q$ being the activity quartile of the column in the expert (a map of 2 bits per column and per expert matrix, 0.0007 bit per weight, counted). The $s_j$ come from windows 0 to 4 of the corpus of lot R, captured by the f64 reference (inputs of gate and up: the normalised state routed to the expert; input of down: the SwiGLU computed with the exact weights).
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X r r r@{}}
+\toprule
+Family & predicted output error & bits per weight & ratio to the base (2.632) \\
+\midrule
+base & 4.489\,\% & 2.632 & 1 \\
+partitions by $e$ (weight metric) & 4.494\,\% & 2.022 & 0.768 \\
+partitions by $e$, masses weighted by activity & 4.461\,\% & 2.005 & 0.762 \\
+partitions by $(e, q)$ & 4.487\,\% & 1.695 & 0.644 \\
+\bottomrule
+\end{tabularx}
+\caption[Activity-dependent pruning, predicted error]{Activity-dependent pruning, at output error \emph{predicted} by~\eqref{t3pre:eq:diag} \mes~\calc. At this point, 40.9\,\% of the weights are folded into the cell that contains zero. Data: \fichier{mesures/genome/predictif-elagage/plans/debit-sensibilite-12.json}.}
+\label{t3pre:tab:activite}
+\end{table}
+
+\paragraph{A prediction, struck out.} The deliverable announced among its results: ``\barre{Activity-dependent pruning: 1.695 bits ($\times 0.644$) at equal error.}'' It struck it out on 2026-10-17 (\fichier{genome/predictif-elagage-pour-le-memoire.md} §\,0, point 7): it is an error \emph{predicted} by the diagonal approximation (\cref{t3pre:tab:activite}); measured, this plan breaks the expert and the KL (0.271, \cref{t3pre:sec:kl}).
+
+\section{The real inputs, and the error at the output of the experts}\label{t3pre:sec:sortie}
+
+\paragraph{The inputs} \mes. The f64 reference (\texttt{trc-reference}, batched path) ran on the 10 windows of 512 tokens of the corpus of lot R with a capture hook (\texttt{sonde capture}, \fichier{capture-entrees-20b.json}, 2\,828\,s): for layers 0, 8, 16 and 23, the normalised state after the attention of each position routed to each expert, 20\,440 vectors of 2\,880 per layer (235.5\,MB in f32, outside the repository). Calibration of the plans that read the activations: windows 0 to 4; evaluation: windows 5 to 9.
+
+\paragraph{The measurement} (\fichier{sortie\_experts.py}): for each expert, exact output $y = W_d\,\mathrm{swiglu}(W_g x + b_g, W_u x + b_u) + b_d$ and rebuilt output $\hat y$ (the three matrices of the plan), relative errors summed over the experts (weighting by the tokens) then averaged over the four layers. Controls: identity and folded-zero plans, zero error exactly (holds).
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X r r r r r r@{}}
+\toprule
+Plan & real bits & gate & up & down alone & \textbf{whole expert} & ratio \\
+\midrule
+base (frontier) & 2.6444 & 1.16\,\% & 2.52\,\% & 2.72\,\% & \textbf{5.57\,\%} & 1 \\
+partitions by $\kappa$ & 2.3743 & 1.12\,\% & 2.70\,\% & 2.37\,\% & \textbf{5.48\,\%} & 0.98 \\
+dead zone by $e$ & 2.3283 & 1.44\,\% & 2.15\,\% & 2.51\,\% & 34.8\,\% & 6.2 \\
+partitions by $e$ (weights) & 2.0178 & 1.03\,\% & 2.65\,\% & 2.38\,\% & 22.0\,\% & 4.0 \\
+partitions by row $\delta$ ($\pm3$) & 2.353 (ideal) & 1.14\,\% & 2.67\,\% & 2.42\,\% & 5.48\,\% & 0.98 \\
+\textbf{partitions by $e$, Hebbian masses} & \textbf{2.1815} & 0.92\,\% & 2.38\,\% & 2.45\,\% & \textbf{5.70\,\%} & 1.02 \\
+partitions by $(e,$ row, column$)$, Hebbian & 1.7556 & 2.36\,\% & 4.30\,\% & 6.41\,\% & 9.23\,\% & 1.66 \\
+partitions by $(e,$ column activity$)$ & 1.6942 & --- & --- & --- & (KL 0.271) & --- \\
+\bottomrule
+\end{tabularx}
+\caption[The error at the output of the experts]{The relative error at the output of the experts, real inputs (windows 5 to 9), mean of the four layers \mes. Real bits: \texttt{taux\_plan}, exact decoding (the base gives 2.6444 there against 2.6441 published by the arbiter: second path). Data: \fichier{mesures/genome/predictif-elagage/sortie-experts-12.json}, \fichier{sortie-experts-12-hebb.json}, synthesis \fichier{resume-12.csv}.}
+\label{t3pre:tab:sortie}
+\end{table}
+
+Per layer, the expert error (0 / 8 / 16 / 23) is \mes: base 5.1 / 7.6 / 6.7 / 2.9\,\%; $\kappa$ 6.1 / 7.6 / 6.5 / 1.8\,\%; Hebbian by $e$ 5.1 / 8.3 / 7.1 / 2.3\,\%; Hebbian $(e,$ row, column$)$ 6.4 / 17.8 / 9.5 / 3.2\,\%.
+
+\paragraph{What the measurement revealed} (\cref{t3pre:tab:sortie}). The plans that fill across the absolute scales keep each matrix below 3\,\% relative error, and the whole expert becomes wrong at 22 to 35\,\%. The cause: the quantity that the relative error of a matrix measures is not the one that counts. A row $i$ of gate or of up acts on the output through column $i$ of down, and training distributes the scale freely between the two: the up path has a rescaling symmetry, $u_i \to c\,u_i$ and $W_d[:, i] \to W_d[:, i]/c$ change almost nothing (almost, because the bound on $u$ in the SwiGLU is not homogeneous, \cref{t3dup:prop:permutation}). A row of small scale in gate can therefore weigh heavily at the output, and reverse water-filling by matrix empties precisely these rows.
+
+\paragraph{Hebbian sensitivity.} It answers at first order (\fichier{histo\_hebb.py}). Linearising the output around the exact weights,
+\begin{equation}\label{t3pre:eq:hebb}
+\E\,\|\Delta y\|^2 \approx \sum_{i,j} \Delta W_{ij}^2\, r_i\, s_j, \qquad s_j = \E[x_j^2], \quad r_i = \|W_d[:, i]\|^2\, \E\Bigl[\Bigl(\frac{\partial a_i}{\partial g_i}\Bigr)^2\Bigr]
+\end{equation}
+(or $\partial a_i / \partial u_i$ for the up matrix), $a$ being the intermediate activation. The first factor, $s_j$, is the activity of the input (presynaptic); the second, $r_i$, the influence of the output (postsynaptic); the weight of a synapse is their product, Hebb's product. The factorisation $\E[(\partial a/\partial g)^2 x^2] \approx \E[(\partial a/\partial g)^2]\,\E[x^2]$ neglects their correlation, and the diagonal approximation~\eqref{t3pre:eq:diag} that of the columns: two hypotheses that the measurement judges.
+
+\subsection{Hebbian pruning: what holds, what overfits}
+
+\begin{itemize}
+\item \textbf{Hebbian masses, context $e$ alone} (no map sent: $r_i$ and $s_j$ serve only the coder, to choose the partitions and the centres): \textbf{2.1815 real bits, expert error 5.70\,\%} against 5.57\,\% for the base at 2.6444, that is 0.825 times the bits for the same error to within 2\,\% \mes. The same reverse water-filling without Hebbian sensitivity broke the expert (22\,\%): it was indeed the gate/up $\leftrightarrow$ down scale symmetry that broke it, and the postsynaptic influence that repairs it.
+\item \textbf{With maps of rows and columns} (16 classes, 9\,273 cells): predicted 4.33\,\%, measured \textbf{9.23\,\%}, layer 8 at 17.8\,\%. The prediction does not hold: the quartiles of $r_i$ and $s_j$ are estimated on about 320 inputs per expert (windows 0 to 4), and the factorisation of~\eqref{t3pre:eq:hebb} neglects their correlation; a plan that gives zero bits to the classes judged inactive pays dearly for any estimation error. Overfitting measured, not supposed.
+\item \textbf{Variant relative to the row} ($\delta \times$ row $\times$ column): 1.9619 real bits, KL 0.091, paired difference $+0.027 \pm 0.004$ against the base (\fichier{kl/comparer-base-hebb\_d\_lc-f5-9.json}): loses.
+\end{itemize}
+
+\section{The KL against the f64 reference}\label{t3pre:sec:kl}
+
+\paragraph{The protocol (P3 of the round).} Windows 5 to 9 (1\,275 scored positions), only the 12 matrices of the frontier altered, that is \textbf{128 experts out of 768} (4 whole layers out of 24; \fichier{genome/05-synthese.md} §\,1.1), probe \texttt{alterer} then \texttt{juge kl} of lot R against the slice of the reference (\fichier{kl\_tranche.py}, fingerprint in \fichier{kl/tranche-ref-f5-9.json}). Control of the chain: identity plan, \texttt{.kld} entries identical byte for byte to the reference, KL = 0 exactly. The absolute KL of this protocol is not comparable with that of the scout (P1, 32 experts): four times more experts are replaced in it. What is comparable is the ratio to the base of the same protocol and, better, the paired difference position by position, with the rule of lot R (equal if $\bar d \le 2\sigma(\bar d)$ and $\bar e \ge -2\sigma(\bar e)$ for the first choice).
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X r r r r >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X@{}}
+\toprule
+Plan & real bits & mean KL & $\pm$ & median & 99\textsuperscript{th} percentile & same first choice \\
+\midrule
+base (frontier) & 2.6444 & 0.0636 & 0.0050 & 0.0227 & 0.777 & 81.6\,\% \\
+Hebbian by $e$ & 2.1815 & 0.195 & 0.009 & 0.075 & 1.54 & 60.8\,\% \\
+Hebbian $(e,$ row, column$)$ & 1.7556 & 0.192 & 0.008 & --- & --- & 59.4\,\% \\
+Hebbian $(\delta,$ row, column$)$ & 1.9619 & 0.091 & 0.005 & --- & --- & 73.4\,\% \\
+partitions by $e$ (weights) & 2.0178 & 0.309 & 0.011 & 0.209 & 1.83 & 58.5\,\% \\
+partitions by $(e,$ column activity$)$ & 1.6942 & 0.271 & 0.009 & 0.188 & 1.51 & 57.1\,\% \\
+partitions by $\kappa$ (equal mean error) & 2.3743 & 0.0804 & 0.0063 & 0.0263 & 1.10 & 78.4\,\% \\
+\textbf{partitions by $\kappa$, each tensor at the error of the base} & \textbf{2.4079} & \textbf{0.0702} & 0.0059 & 0.0235 & 0.911 & 79.5\,\% \\
+\bottomrule
+\end{tabularx}
+\caption[The KL of the quantisation and pruning plans]{The KL against the f64 reference (protocol P3: 128 experts out of 768, 1\,275 positions) \mes. Data: \fichier{mesures/genome/predictif-elagage/kl/kl-12-*-f5-9.json}, synthesis \fichier{resume-12.csv}.}
+\label{t3pre:tab:kl}
+\end{table}
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X l r l@{}}
+\toprule
+Plan, against the base & KL, paired difference & first choice (points) & verdict of the judge \\
+\midrule
+partitions by $\kappa$, equal mean error & $+0.0167 \pm 0.0049$ (3.4\,$\sigma$) & $-3.2 \pm 1.0$ & worse \\
+\textbf{partitions by $\kappa$, tensor by tensor} & $\mathbf{+0.0066 \pm 0.0053}$ (1.2\,$\sigma$) & $-2.1 \pm 1.1$ & \textbf{equal} \\
+Hebbian by $e$ & $+0.131 \pm 0.007$ & $-20.8 \pm 1.4$ & worse \\
+Hebbian $(e,$ row, column$)$ & $+0.128 \pm 0.007$ & $-22.2 \pm 1.4$ & worse \\
+Hebbian $(\delta,$ row, column$)$ & $+0.027 \pm 0.004$ & $-8.2 \pm 1.2$ & worse \\
+\bottomrule
+\end{tabularx}
+\caption[The paired comparisons of the plans]{The paired comparisons of the plans against the base, same 1\,275 positions, same truth (\texttt{juge comparer}) \mes. Data: \fichier{mesures/genome/predictif-elagage/kl/comparer-base-*-f5-9.json}.}
+\label{t3pre:tab:apparie}
+\end{table}
+
+\paragraph{What the KL decides} (\cref{t3pre:tab:kl,t3pre:tab:apparie}).
+\begin{itemize}
+\item \textbf{Every plan that fills across the absolute scales loses}, by 3 to 5 times the KL of the base: partitions by $e$ (0.309), pruning by column activity (0.271), Hebbian by $e$ (0.195). The plans that break the expert break the model.
+\item \textbf{Even at equal expert error.} Hebbian by $e$ makes 5.70\,\% expert error against 5.57\,\% for the base, and three times its KL (paired $+0.131 \pm 0.007$, first choice $-20.8$ points). The mean relative error at the output of an expert, weighted by $\|y\|^2$, is not enough to judge: it is held by the tokens and the dimensions of large output; reverse water-filling across the scales concentrates the error on what is small (blocks and rows of small scale, 23\,\% of the weights folded into zero), which the RMS norm of the following layers brings back to scale and which the KL sees. The lesson of the subject: at the output, one should judge the relative error \emph{per token}, or the KL directly, not the total energy.
+\item \textbf{At equal mean error, the $\kappa$ plan is not worth the base in KL} ($+0.0167 \pm 0.0049$, 3.4\,$\sigma$): it moves the error towards layer 0 (6.1\,\% expert error against 5.1\,\%), and an early error in the network weighs more in the KL. Hence the plan ``each tensor at the error of the base'' (\fichier{plans.py --par-tenseur}, one $\mu$ per tensor: domination tensor by tensor), at \textbf{2.4079 real bits, 0.911 times the base}. Paired against the base: $+0.0066 \pm 0.0053$ (1.2\,$\sigma$), first choice $-2.1 \pm 1.1$ points. \textbf{Statistically equal to the base} by the rule of lot R; literally a little above.
+\end{itemize}
+
+This is the lossy point that the subject retains: 9\,\% fewer bits than the base of the frontier, at a KL equal within the noise of the measurement. The cautious reading is that of the deliverable itself: the central paired difference remains positive, and with more positions it could become significant. \Cref{t3syn:ch} places this point on the common frontier of the round, under the name ``partitions by $\kappa$, equal by the rule''.
+
+\section{What remains}\label{t3pre:sec:reste}
+
+\begin{itemize}
+\item \textbf{The card kernels}: a decoder with a table per $(\kappa,$ column$)$ or per $(e, q)$, and the reconstruction by a table of centres (4 to 16 registers); their connection into the coder of the format. The lossless part (zero folded and column) has entered the format v1.2 (\cref{t3cod:ch}).
+\item \textbf{Error feedback} (GPTQ, ``closed-loop predictive coding'') on the alphabet of the cells, with the full Hessian of the real inputs; and a sensitivity criterion judged per token, or learnt against the KL, since the mean energy misled.
+\item \textbf{The dominated $\kappa$ plan} + column + zero folded on the 24 layers, and its KL; then gpt-oss-120b.
+\end{itemize}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{The lossy rates are ideal entropies}, not a codec, except where the ``real bits'' column says so; the gap of the real codec measured on the base is 0.46\,\%, and it may be larger for tables with many contexts (2\,077 cells in $e$, 3\,808 in $(e, q)$) and rare cells.
+\item \textbf{The diagonal approximation} of the sensitivity~\eqref{t3pre:eq:diag} neglects the correlations between input columns, and the Hebbian factorisation~\eqref{t3pre:eq:hebb} those between input and derivative; the exact measurement at the output judges them, and made a prediction fail (struck out).
+\item \textbf{The inputs}: 10 windows of 512 tokens from a single corpus; about 640 inputs per expert and per layer, about 320 for calibration: the activity quartiles of a little-routed expert are noisy.
+\item \textbf{The KL alters only 4 layers out of 24}; the effect on the 24 is not measured (the KL would grow, for the base as for the plan). It covers 1\,275 positions of a single corpus, and the 9\,\% advantage of the dominated $\kappa$ plan is at a statistically \emph{equal} KL, not a better one (central difference $+0.0066$).
+\item \textbf{The gain of the synonymous codons} assumes that every engine reads $\pm0$ as 0: true of ggml (integer table) and of the reference; for the kernels of troncons, it is proposition A1 of \cref{t3cod:ch} and its measurement.
+\item \textbf{No figure} carries this chapter: the two proposed (III-5.1, III-5.2) are not drawn, and the tables stand in for them.
+\end{itemize}
+\end{faux}

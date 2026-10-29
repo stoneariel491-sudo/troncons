@@ -1,0 +1,24 @@
+# troncons (lot O) : le programme (générer, évaluer, mesurer ; ARCHITECTURE.md § 5.10).
+[package]
+name = "troncons"
+description = "Le moteur troncons : un modèle plus gros que la mémoire, servi par tronçons"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+# Couture D (§ 2.4) : sha2 (empreinte du texte et des logits), serde_json (journaux), anyhow,
+# windows-sys (état de l'alimentation : GetSystemPowerStatus ; sortie sans destruction sur
+# erreur : TerminateProcess, constat G1 de l'épreuve J1).
+[dependencies]
+trc-cache = { path = "../../crates/trc-cache" }
+trc-ordo = { path = "../../crates/trc-ordo" }
+trc-format = { path = "../../crates/trc-format" }
+trc-cuda = { path = "../../crates/trc-cuda" }
+trc-es = { path = "../../crates/trc-es" }
+trc-jetons = { path = "../../crates/trc-jetons" }
+trc-juge = { path = "../../crates/trc-juge" }
+sha2.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+windows-sys = { workspace = true, features = ["Win32_Foundation", "Win32_System_Power", "Win32_System_Threading"] }

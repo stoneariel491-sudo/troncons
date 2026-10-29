@@ -1,0 +1,40 @@
+20b code 6 {'P1_hl64': 0.6026, 'P3': 0.4752, 'KNN': 0.727, 'KNNm': 0.6998, 'KNN_k1': 0.6194, 'KNN_succ_hasard': 0.4791}
+20b code 10 {'P1_hl64': 0.7677, 'P3': 0.646, 'KNN': 0.8502, 'KNNm': 0.845, 'KNN_k1': 0.6735, 'KNN_succ_hasard': 0.6333}
+20b dialogue 6 {'P1_hl64': 0.6943, 'P3': 0.7015, 'KNN': 0.7738, 'KNNm': 0.7638, 'KNN_k1': 0.6275, 'KNN_succ_hasard': 0.6405}
+20b dialogue 10 {'P1_hl64': 0.8512, 'P3': 0.8522, 'KNN': 0.8796, 'KNNm': 0.8882, 'KNN_k1': 0.6813, 'KNN_succ_hasard': 0.7814}
+20b prose-en 6 {'P1_hl64': 0.6697, 'P3': 0.6711, 'KNN': 0.7406, 'KNNm': 0.7341, 'KNN_k1': 0.5859, 'KNN_succ_hasard': 0.5974}
+20b prose-en 10 {'P1_hl64': 0.8227, 'P3': 0.8234, 'KNN': 0.8599, 'KNNm': 0.8667, 'KNN_k1': 0.6475, 'KNN_succ_hasard': 0.7403}
+20b prose-fr 6 {'P1_hl64': 0.7108, 'P3': 0.7, 'KNN': 0.7639, 'KNNm': 0.7627, 'KNN_k1': 0.6104, 'KNN_succ_hasard': 0.6259}
+20b prose-fr 10 {'P1_hl64': 0.8602, 'P3': 0.854, 'KNN': 0.8773, 'KNNm': 0.8895, 'KNN_k1': 0.6698, 'KNN_succ_hasard': 0.7672}
+20b wiki 6 {'P1_hl64': 0.6727, 'P3': 0.6406, 'KNN': 0.7733, 'KNNm': 0.7503, 'KNN_k1': 0.6468, 'KNN_succ_hasard': 0.6162}
+20b wiki 10 {'P1_hl64': 0.8244, 'P3': 0.8031, 'KNN': 0.8839, 'KNNm': 0.8809, 'KNN_k1': 0.7011, 'KNN_succ_hasard': 0.7619}
+120b code 13 {'P1_hl64': 0.5388, 'P3': 0.5062, 'KNN': 0.7391, 'KNNm': 0.7076, 'KNN_k1': 0.5129, 'KNN_succ_hasard': 0.3466}
+120b code 26 {'P1_hl64': 0.7391, 'P3': 0.7021, 'KNN': 0.8004, 'KNNm': 0.8252, 'KNN_k1': 0.5715, 'KNN_succ_hasard': 0.5127}
+120b dialogue 13 {'P1_hl64': 0.6667, 'P3': 0.6753, 'KNN': 0.7043, 'KNNm': 0.7229, 'KNN_k1': 0.4364, 'KNN_succ_hasard': 0.5438}
+120b dialogue 26 {'P1_hl64': 0.8346, 'P3': 0.8328, 'KNN': 0.7837, 'KNNm': 0.8257, 'KNN_k1': 0.5026, 'KNN_succ_hasard': 0.6717}
+120b prose-en 13 {'P1_hl64': 0.6497, 'P3': 0.652, 'KNN': 0.6789, 'KNNm': 0.6995, 'KNN_k1': 0.3958, 'KNN_succ_hasard': 0.5021}
+120b prose-en 26 {'P1_hl64': 0.8158, 'P3': 0.8125, 'KNN': 0.7684, 'KNNm': 0.8127, 'KNN_k1': 0.467, 'KNN_succ_hasard': 0.639}
+120b prose-fr 13 {'P1_hl64': 0.6966, 'P3': 0.6823, 'KNN': 0.7157, 'KNNm': 0.7376, 'KNN_k1': 0.4398, 'KNN_succ_hasard': 0.5431}
+120b prose-fr 26 {'P1_hl64': 0.8538, 'P3': 0.8384, 'KNN': 0.7884, 'KNNm': 0.8337, 'KNN_k1': 0.5046, 'KNN_succ_hasard': 0.664}
+120b wiki 13 {'P1_hl64': 0.6583, 'P3': 0.6422, 'KNN': 0.731, 'KNNm': 0.7316, 'KNN_k1': 0.4701, 'KNN_succ_hasard': 0.5301}
+120b wiki 26 {'P1_hl64': 0.8209, 'P3': 0.8063, 'KNN': 0.7982, 'KNNm': 0.8329, 'KNN_k1': 0.5314, 'KNN_succ_hasard': 0.6583}
+écrit ~\dev\active\troncons\mesures\mimetisme\vivant\ek-brut.json
+écrit ~\dev\active\troncons\mesures\mimetisme\vivant\ek-verdict.json
+Traceback (most recent call last):
+  File "~\dev\active\troncons\outils\mimetisme\vivant\memoire_episodique.py", line 105, in <module>
+    main()
+    ~~~~^^
+  File "~\dev\active\troncons\outils\mimetisme\vivant\memoire_episodique.py", line 101, in main
+    print(json.dumps({m: x["passe"] for m, x in verdict.items()}))
+          ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "~\AppData\Local\Programs\Python\Python313\Lib\json\__init__.py", line 235, in dumps
+    return _default_encoder.encode(obj)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "~\AppData\Local\Programs\Python\Python313\Lib\json\encoder.py", line 202, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+  File "~\AppData\Local\Programs\Python\Python313\Lib\json\encoder.py", line 263, in iterencode
+    return _iterencode(o, 0)
+  File "~\AppData\Local\Programs\Python\Python313\Lib\json\encoder.py", line 182, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+                    f'is not JSON serializable')
+TypeError: Object of type bool is not JSON serializable

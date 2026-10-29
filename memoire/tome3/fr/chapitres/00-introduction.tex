@@ -1,0 +1,97 @@
+% Tome~III, introduction (version française). Rédacteur D, 2026-10-29, écrite après les chapitres.
+% Mots de Stone : SOCLE.md et idees/biomimetisme-genome-des-poids.md, cités exactement, fautes comprises.
+% Chiffres : ceux des chapitres du tome et de leurs sources (genome/05-synthese.md § 0 et § 2.3, 06, 07,
+% JUGEMENT-construction, mimetisme/tri.md, pistes) ; ceux du Tome~II, de son introduction.
+
+\chapter{Introduction}\label{t3int:ch}
+
+\begin{origine}
+\textbf{Au départ}, les deux premiers tomes. Le Tome~I a mesuré la machine de Stone et démontré que, sur elle, le disque est l'étage le plus lent : ce qui compte est le nombre de bits qu'un jeton doit lire. Le Tome~II a construit troncons, qui fait tourner gpt-oss-120b (\SI{63.4}{\Go}) avec \SI{384}{\Mo} de mémoire, exactement (logits identiques au bit entre fichier codé et fichier brut), à \num{2.22} fois la meilleure base mesurée ; ses poids d'experts se lisaient à \num{3.84} bits par poids sans perte, et la base de la découpe « base + complément » à \num{2.64} bits avec perte.
+\textbf{Ce tome établit} ce qu'a donné l'idée biomimétique de Stone, le génome des poids : une ronde de quatre équipes qui l'a mise à l'épreuve et a dit, chiffres en main, pourquoi presque tout tombe ; trois mécanismes qui gagnent, tous trois des « synonymes » au sens du code génétique ; leur construction dans le format et le moteur, et le juge qui l'a refaite ; six pistes empruntées à d'autres disciplines ; deux pistes mathématiques, la géométrie tropicale du routeur et les spectres des matrices.
+\textbf{Il reste} ce que la discussion rassemble (\cref{t3dis:ch}) : la queue de la KL, que rien ne vise encore ; le 120b servi par sa base synonyme ; un autre corpus ; le motif de lecture qui fait la vitesse de ce disque.
+\end{origine}
+
+\begin{enbref}
+Un modèle d'IA est un très long texte de nombres. Stone a proposé de s'inspirer du vivant, qui ne stocke pas un organisme mais un génome, une recette d'où l'organisme se construit. Ce tome raconte ce que cette idée est devenue quand on l'a jugée par la mesure. La première réponse est sévère : une fois connue l'échelle de leur bloc, les poids de gpt-oss se comportent comme du bruit, et un bruit ne se résume pas ; la graine, les motifs partagés, la parenté entre experts, la recette sans perte tombent tous pour cette raison. Mais le vivant a un autre geste que la recette : la redondance du code génétique, où plusieurs codons désignent le même acide aminé. Les trois mécanismes qui gagnent sont de cette sorte. Le premier efface une information que le calcul ne lit jamais (le signe d'un zéro), sans perte, et fait lire \SI{1.80}{\Go} de moins au 120b. Le deuxième se sert de ce que le codeur sait déjà (la classe d'énergie de chaque colonne d'entrée). Le troisième, la mutation synonyme, choisit une approximation des poids dont l'erreur tombe là où les entrées réelles ne regardent pas : servie seule, la base des 768 experts du 20b divise par deux la KL de la base fixe du Tome~II. Le tome dit aussi ce qui ne marche pas, aussi précisément que ce qui marche : le mode rapide n'apporte pas la vitesse annoncée, la garde tropicale ne voit pas les bascules en cascade, les spectres ne suivent pas une loi de puissance, et aucune des six pistes empruntées ne tient franchement devant son juge.
+\end{enbref}
+
+\section{La question, posée par Stone et par la machine}\label{t3int:sec:question}
+
+\paragraph{La mission.} Stone l'a écrite le 15 octobre 2026, et le Tome~I la cite en entier : faire tourner « un modele ultra lourd quelcoque d'une ai […] sans ram ni rien », en un mot « compresser à l'extreme puis décompresser en un temps record au besoin à l'instant exacte du noeud ». Les deux premiers tomes ont pris la seconde moitié de la phrase au mot : le format \texttt{.trc} et le moteur décompressent chaque expert au moment exact où le calcul le demande, puis le libèrent. Ce tome prend la première : compresser plus loin.
+
+\paragraph{L'idée.} Le même jour, Stone a ajouté une piste à lui :
+\begin{quote}\itshape
+J'ai penser à du biomimetisme informatique par exemple simjler une forme de molecule d'adn virtuel qui peut stocker une grande qua tutoriel d'informations en quelque sorte creer une nouvelle convention differentes du bit une transcription et implémentation
+\end{quote}
+puis, le lendemain, sa consigne pour l'étude : « le but est de concevoir un systeme fonctionnel et si il ne voye rien de convaincaint vers l'ADN au terme ils recherche le moyen biomimétique le plus prométeur jusqu'à trouver » (\fichier{idees/biomimetisme-genome-des-poids.md}). La conviction de Stone (« j'ai la certitude que ce qu'on cherche se trouve dans du biomimetisme ») est l'hypothèse de travail du tome ; la mesure la juge, et le tome rapporte les deux.
+
+\paragraph{Ce que la machine en fait.} Une nouvelle convention de symboles ne crée pas de place : l'ADN écrit avec quatre lettres, soit deux bits par lettre, et aucun alphabet ne descend sous l'entropie du message \parencite{shannon1948,cover2006}. La force du vivant n'est pas son alphabet, mais ses mécanismes. Et la machine dit lesquels comptent : le disque est l'étage le plus lent (\SI{2.82}{\Go\per\second} mesurés au Tome~I), et la carte attend pendant qu'il lit, avec, selon le calcul de l'idée, de l'ordre de 214 opérations disponibles par octet compressé. Un génome des poids dépense donc du calcul pour économiser des octets, l'échange même que cette machine demande. La question du tome, sous sa forme jugeable, est celle-ci :
+
+\begin{center}
+\begin{tcolorbox}[enhanced, width=0.92\linewidth, colback=Fond, colframe=Accent, boxrule=0.6pt, arc=1pt]
+\emph{Existe-t-il un mécanisme, inspiré du vivant, qui fasse lire sur le disque moins de bits par poids d'expert que la frontière du Tome~II (\num{3.84} bits sans perte ; \num{2.64} bits pour la base, avec perte), à une fidélité jugée par la KL sur du texte contre la référence exacte, et qui se transcrive sur la carte plus vite que le disque ne lit ce qu'il remplace ?}
+\end{tcolorbox}
+\end{center}
+
+La question se juge à chaque étape par un seuil déclaré avant la mesure (annexe~\ref{t3ann:protocoles}), et par un juge qui n'a pas fait le travail.
+
+\section{Ce que « génome » veut dire ici}\label{t3int:sec:genome}
+
+Le mot est une analogie, et le tome la dit comme telle chaque fois qu'il s'en sert. Dans le vivant, une séquence de bases se lit par triplets, les \emph{codons}, et le code génétique les traduit en acides aminés \parencite{genome-crick1961}. Ce code est dégénéré : 64 codons pour une vingtaine d'acides aminés et un signal d'arrêt, si bien que plusieurs codons \emph{synonymes} désignent le même. Une mutation qui change un codon en un synonyme est sans effet sur la protéine ; et le code naturel est rangé de telle sorte que les erreurs les plus probables tombent sur des acides aminés semblables \parencite{genome-crick1968,freeland1998}. \Cref{t3int:tab:analogie} donne ce que le tome transpose, et où.
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[L'analogie du génome, et ce qu'elle désigne ici]{L'analogie du génome, et ce qu'elle désigne dans ce tome. Une analogie choisit une direction de recherche ; elle ne prouve rien.}
+\label{t3int:tab:analogie}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.27\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.16\linewidth}@{}}
+\toprule
+Dans le vivant & Dans troncons & Chapitre \\
+\midrule
+le génome, recette plutôt que résultat & une graine et des coefficients, ou un brin de bits lu par une table, d'où les poids se reconstruisent & \cref{t3gen:ch} \\
+le ribosome qui lit l'ARN codon après codon & une fenêtre de 12 bits qui glisse le long du brin et rend des poids par une table & \cref{t3gen:ch} \\
+la duplication de gènes & un expert codé comme mutation d'un expert parent & \cref{t3dup:ch} \\
+le codage prédictif, l'élagage synaptique & ne coder que l'écart à une prédiction ; retirer les poids inutiles & \cref{t3pre:ch} \\
+le codon synonyme & le signe d'un zéro MXFP4, que le calcul ne lit jamais & \cref{t3cod:ch} \\
+la mutation synonyme & une base des poids dont l'erreur tombe là où les entrées réelles ne regardent pas & \cref{t3sno:ch} \\
+l'expression à la demande & l'expert décodé au moment du calcul, puis libéré (déjà construit au Tome~II) & --- \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Deux mises en garde valent pour tout le tome. Le vivant tolère des erreurs qu'un modèle de langage ne tolère peut-être pas ; et une analogie belle n'est pas un argument : chaque mécanisme se juge par la mesure, pas par la beauté de l'image (\fichier{idees/biomimetisme-genome-des-poids.md}, § 6). Le tome emprunte aussi à d'autres disciplines que la biologie (le climat, la physique des verres de spin, la statistique, le cortex) ; ces emprunts sont dits comme tels au \cref{t3mim:ch}.
+
+\section{Le chemin du tome}\label{t3int:sec:chemin}
+
+Le tome a trois parties, comme le Tome~II.
+
+\paragraph{La question et la ronde.} \Cref{t3que:ch} pose la question dans les termes de la machine : le bloc MXFP4 au bit près, la frontière, la borne distorsion-débit dans le domaine des poids, et les douze familles « génomiques » de la littérature. \Cref{t3ecl:ch} donne l'éclaireur, qui a trouvé où sont le bruit et la structure, et conçu les deux premiers mécanismes synonymes. Les \cref{t3gen:ch,t3dup:ch,t3pre:ch} donnent les trois autres équipes de la ronde : la recette (le brin lu par codons, la graine), la duplication de gènes, le codage prédictif et l'élagage. \Cref{t3mim:ch} donne le mimétisme, six pistes venues d'autres disciplines vers le chemin des octets. \Cref{t3syn:ch} rassemble la ronde sur un seul axe, la KL sur le texte, et dit pourquoi chaque mécanisme gagne ou tombe.
+
+\paragraph{La construction.} \Cref{t3cod:ch} donne le lot A : le codon synonyme du zéro dans le format \texttt{.trc}, version 1.2, sans perte. \Cref{t3sno:ch} donne le lot B : le génome synonyme sur les 768 experts et le mode rapide du moteur. \Cref{t3jug:ch} donne le juge qui a refait les deux lots par ses propres chemins.
+
+\paragraph{Les pistes et le bilan.} \Cref{t3tro:ch} donne la géométrie tropicale du routeur et sa garde ; \cref{t3spe:ch} les spectres des matrices ; \cref{t3dis:ch} la discussion, les verdicts rassemblés, ce qui pourrait être faux à l'échelle du tome et les travaux futurs. Les annexes donnent les protocoles (seuils déclarés et témoins), les outils et les journaux.
+
+\paragraph{Ce qui est allé au Tome~II.} La construction a rencontré une question qui n'est pas celle du génome : pourquoi deux fichiers du même modèle se lisent à des vitesses différentes sur ce disque. Le flux du placement disque et son juge y ont répondu (le motif des requêtes de lecture que le format impose, \fichier{genome/JUGEMENT-placement.md}) ; par la décision de ce juge, leur travail va au Tome~II, dans un chapitre « L'étage disque ». Ce tome n'en garde que la conséquence, la réserve R1, qui fixe comment lire le gain de vitesse du format v1.2 (\cref{t3jug:sec:r1}).
+
+\section{Ce que ce tome apporte}\label{t3int:sec:apports}
+
+\begin{enumerate}
+\item \textbf{La raison des échecs, mesurée.} Une fois l'échelle du bloc connue, les poids sont du bruit (le code voisin n'apporte que \num{0.005} bit ; les rangées tournées sont gaussiennes à \SI{1.5}{\percent} près ; deux experts appariés ont le cosinus de deux experts tirés au hasard) ; quelques colonnes géantes portent la structure ; et l'erreur de sortie d'un expert ne prédit pas la KL, qui a une part lisse et une queue de bascules de routage (\cref{t3syn:ch}).
+\item \textbf{Trois mécanismes synonymes qui gagnent} : le codon du zéro, sans perte (\num{3.8434} $\to$ \num{3.7064} bits par poids sur les tenseurs de référence, dans la comptabilité A\_flux, celle du codec de l'étude 03 ; \num{3.8431} $\to$ \num{3.7061} dans celle des codes, A\_ctx, que donnent les \cref{t3que:ch,t3ecl:ch} ; \SI{1.80}{\Go} de moins à lire sur le 120b) ; le contexte de la colonne, sans perte (\num{3.6844} bits) ; la mutation synonyme, avec perte (\cref{t3ecl:ch,t3syn:ch}).
+\item \textbf{Un format v1.2 exact}, construit, dont un décodeur écrit par le juge depuis la seule description retrouve chaque expert tiré au bit près, au signe des zéros près, et dont les logits sont identiques au bit sur dix fenêtres que personne n'avait vues ; sur ce disque, le J1 du 120b y gagne $\times 1{,}44$, par le motif de ses requêtes de lecture (\cref{t3cod:ch,t3jug:ch}).
+\item \textbf{Un mode rapide servi par le moteur} : les 768 experts du 20b servis par leur base synonyme ($\lambda = 0$), \num{2.67} bits par poids, KL \num{0.1318} contre \num{0.2640} pour la base fixe, redonnée hors de R1 par le juge, et servie par la carte aussi fidèlement que par la référence f64 (\cref{t3sno:ch}).
+\item \textbf{Des idées tuées par les nombres}, chacune avec la propriété qui l'a décidée : la graine, les motifs, la duplication, la recette sans perte, l'hebbien, l'élagage, la garde tropicale, la loi de puissance des spectres ; et deux gains de vitesse barrés comme gains du mode rapide (\cref{t3dis:ch}).
+\end{enumerate}
+
+\section{Comment lire ce tome}\label{t3int:sec:lire}
+
+\paragraph{Le juge : la KL.} Presque tous les verdicts du tome sont rendus par un seul nombre, la divergence de Kullback-Leibler (la KL) entre la loi du jeton suivant donnée par le modèle modifié et celle de la référence exacte f64 du Tome~II, moyennée sur des positions de texte. Elle est posée en cinq phrases au \cref{t3ecl:sec:kl}, avant son premier usage, et reprise avec ses deux parts au \cref{t3syn:sec:juge}. Les autres noms du travail (les fenêtres R1, les lots, les protocoles P0 à P3, A\_ctx et A\_flux\dots) sont dans la table des notations, au début du tome.
+
+\paragraph{La provenance des nombres.} Chaque nombre porte sa provenance : \mes{} mesuré ici, par un outil et un journal commités ; \calc{} calculé à partir de nombres nommés ; \litt{} littérature, non reproduite ; et, quand il le faut, [hyp.] pour une hypothèse dite. Chaque nombre vient d'un fichier commité, cité par son chemin (\fichier{comme ceci}) ; aucun n'est recopié de mémoire.
+
+\paragraph{Les phrases barrées.} Quand une mesure a démenti un chiffre ou une phrase publiés, même les nôtres, la phrase est barrée \barre{comme ceci} là où elle était, et l'on dit ce qui l'a remplacée. Le tome en porte beaucoup : c'est la trace que les juges ont fait leur travail.
+
+\paragraph{Les figures.} Les figures au style du tome ont un numéro dans l'inventaire des figures (III-$x$.$y$, le chapitre de l'inventaire et le rang, \fichier{memoire/tome3/INVENTAIRE-figures.md}) ; le texte ne s'en sert que pour une figure prévue et non tracée, et appelle les autres par leur numéro imprimé, qui suit les chapitres du PDF (l'introduction y est le chapitre~1). Chacune se tire des données commitées par un script commité, et sa légende, jugée, ouvre sur l'idée de la figure en une phrase. Les figures du mimétisme et la coupe du routeur sont incluses telles que leurs pistes les ont tracées, hors du style commun, et leur légende le dit ; celles des spectres viennent d'un document à part de leur piste.
+
+\paragraph{Les réserves.} Six réserves de l'inventaire des figures traversent le tome ; pour ne pas les confondre avec les dix fenêtres d'évaluation que le Tome~II appelle R1, le tome écrit toujours « la réserve R1 ». La réserve R1 : le gain $\times 1{,}44$ du J1 vient du format v1.2 par le motif de ses requêtes de lecture, propre à ce disque, jamais de « l'état du fichier ». R3 : les mesures faites avec 32 experts substitués et celles faites avec 768 ne se relient par aucun trait. R4 : le rapport de KL de S\textsuperscript{*} vient de la passe à dix fenêtres, l'ancien chiffre à trois fenêtres est barré. R5 : les figures hors du style commun sont dites telles. R6 : le second tirage de P3, en travail dans une autre session, ne donne aucun chiffre au tome. (R2 concerne le Tome~II.)
+
+\paragraph{Ce qui pourrait être faux.} Chaque chapitre se ferme sur sa propre section ; celle du tome entier est au \cref{t3dis:sec:faux}.

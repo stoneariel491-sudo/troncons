@@ -1,0 +1,16 @@
+# Le juge : logits, divergence KL, premier choix, perplexité, règle ABBA (ARCHITECTURE.md § 5.9 ; lot R).
+[package]
+name = "trc-juge"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+trc-reference = { path = "../trc-reference" }
+trc-jetons = { path = "../trc-jetons" }
+rayon.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+windows-sys = { workspace = true, features = ["Win32_Foundation", "Win32_System_Performance", "Win32_System_ProcessStatus", "Win32_System_Threading", "Win32_System_Console", "Win32_System_JobObjects", "Win32_Security"] }

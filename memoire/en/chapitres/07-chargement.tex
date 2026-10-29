@@ -1,0 +1,258 @@
+\chapter{On-demand loading}\label{ch:chargement}
+
+\begin{origine}
+\textbf{At the start}, one question: when a model does not fit in memory, where are its weights at the moment a computation needs them, how many bytes must move per token, through which stage, and what share of that movement hides behind the computation?
+\textbf{This chapter establishes} the review of everything that runs a model larger than memory, from 2022's \enquote{layer by layer} to the 2026 engines that read the experts of an MoE from disk, judged by a single rule (bytes per token divided by the throughput of each stage); the quantity that decides everything for an MoE, the cache hit rate; the hit rate implied by any published measurement; and the judge rerun with the measured disk.
+\textbf{What remains} is a real routing trace on a 2026 MoE, a clean PCIe pass, and the miss policy that assembles the four possible responses.
+Source: \fichier{fondations/04-chargement.md}, \fichier{fondations/journaux/04-chargement/}.
+\end{origine}
+
+\section{The law of loading}\label{sec:loi-chargement}
+
+During decoding, each token reads every active weight once. \Cref{thm:toit} bounds the throughput between two regimes: perfectly overlapped stages, $d \le 1/\max_i (O_i/W_i)$, and stages in series, $d = 1/\sum_i (O_i/W_i)$. A real system falls between the two, and where it falls can be measured:
+\begin{equation}\label{eq:part-cachee}
+\text{hidden share} = \frac{\sum_i t_i - t_{\text{measured}}}{\sum_i t_i - \max_i t_i}, \qquad t_i = O_i/W_i .
+\end{equation}
+Every system we read says that out-of-memory decoding is a problem of bytes, not of compute, and their numbers confirm it: FlexGen spends more than 99.5\,\% of its time transferring weights; HOBBIT measures 80\,ms to load one Mixtral layer against 3\,ms to compute it on an RTX 4090 \litt~\cite{flexgen2023,hobbit2024}. The \enquote{bytes over throughput} judge (\texttt{chargement\_juge.py}) bounds every technique; it was validated on five published measurements, none of which exceeds its bound, and, with throughputs divided by 10, it fails on four of the five: the control can fail.
+
+\section{The mixture of experts in three quantities}\label{sec:moe-grandeurs}
+
+For an MoE with $L$ expert layers, $E$ routed experts per layer, $k_e$ experts chosen per token, stored at $b$ bits per weight, we set (\cref{fig:moe}):
+\begin{align}
+B_t &= \text{always-read bytes (attention, shared experts, routers, norms, head)}, \nonumber\\
+e &= \frac{P_{\text{experts}}}{E\, L} \cdot \frac{b}{8} \quad \text{(bytes of one routed expert)}, \qquad
+B_e = k_e\, L\, e \quad \text{(routed bytes per token)}. \label{eq:moe-grandeurs}
+\end{align}
+A share $h_v$ of the routed bytes comes from VRAM, $h_r$ from RAM, $h_s = 1 - h_v - h_r$ from disk, which must deliver $h_s B_e$ bytes per token. It is almost always the limiting stage, and \textbf{the cache hit rate $h = h_v + h_r$ is the quantity that decides everything}.
+
+\begin{figure}[ht]
+\centering
+\SchemaMoE
+\caption[A mixture-of-experts layer and its cache hierarchy]{A mixture-of-experts layer and the cache hierarchy serving its experts. Always-read tensors reside in VRAM; among the $E$ experts of the layer, the router picks $k_e$; each is served by VRAM, RAM or disk.}
+\label{fig:moe}
+\end{figure}
+
+Conversely, a published throughput measurement says something about the locality it does not publish.
+
+\begin{lemme}[The hit rate implied by a measurement]\label{lem:succes-implique}
+If a system reaches $d$ tokens per second with a disk of throughput $W_{\mathrm{disk}}$ and $B_e$ routed bytes per token, its cache serves at least a share
+\begin{equation}\label{eq:succes-implique}
+h_{\min} = 1 - \frac{W_{\mathrm{disk}}}{d\, B_e}
+\end{equation}
+of the routed bytes.
+\end{lemme}
+
+\begin{proof}
+By \cref{thm:toit} applied to the disk stage, $1/d \ge (1-h) B_e / W_{\mathrm{disk}}$, i.e.\ $1 - h \le W_{\mathrm{disk}}/(d B_e)$.
+\end{proof}
+
+\begin{table}[ht]
+\centering\small
+\caption[Locality read from published measurements]{The cache hit rate implied by three published measurements (\cref{lem:succes-implique}) \calc~on \litt.}
+\label{tab:succes-implique}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+Published measurement & share of model in fast memory & implied hit rate, at least \\
+\midrule
+Qwen3-235B warm, 0.441 tok/s, disk 2.4\,GB/s~\cite{cacheable2026} & about 25--30\,\% & 33\,\% \\
+GLM-5.2, 2.20 tok/s, disk $\le$ 7.877\,GB/s~\cite{llamapr25294} & 79\,GB of 254 (31\,\%) & 53\,\% (published: 79\,\%) \\
+moe-stream, Qwen3.6-35B-A3B, 5.05 tok/s, 6\,GB~\cite{moestream2026} & 6 of 19.5\,GB of experts (31\,\%) & 53\,\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The GLM case serves as a control: the bound (53\,\%) is below the published hit rate (79\,\%). The moe-stream case shows, without a routing trace, that a cache holding 31\,\% of the experts serves at least 53\,\% of the bytes: \textbf{locality is worth at least a factor of 1.7 on capacity} for this model.
+
+\section{Granularity}\label{sec:granularite}
+
+A stage reaches its throughput only beyond a request size and a queue depth. The machine's disk is the extreme example: 0.22\,GB/s at 4\,KiB against 2.4 to 2.8\,GB/s at 1--16\,MiB (\cref{fig:disque}), a factor of 11 to 13. The literature says the same elsewhere: the system page cache delivers 148\,MB/s where the same disk gives 1\,496\,MB/s with explicit expert-sized reads, with 25\,000 to 50\,000 page faults per token~\cite{moestream2026}; in a GGUF file, the three matrices of an expert sit in three different tensors, hence 6\,912 pages touched per expert against 192 after regrouping~\cite{llama27149} \litt. \textbf{An expert must be one read, contiguous, aligned on 4\,KiB.} On the card, a synchronous transfer costs a fixed latency of about 33\,µs (64\,KiB move at 1.5\,GB/s) \mes.
+
+\section{Dense models}\label{sec:denses}
+
+\paragraph{Layer by layer (AirLLM~\cite{airllm2026}).} The model is split into one file per layer; at each pass, layer $\ell$ is read, copied, computed, freed, and a thread prepares $\ell+1$. This system publishes memory, not speed (\enquote{70B on a 4\,GB card}). The judge quantifies it: a dense 70B in FP16 reads 140\,GB per token; at the measured disk throughput, \textbf{49.6\,s per token} \calc. It is exactly the literal reading of \enquote{without RAM or anything}, and that is why it is not enough: peak memory is solved, throughput is not.
+
+\paragraph{FlexGen~\cite{flexgen2023} and ZeRO-Inference~\cite{zeroinference2022}.} FlexGen amortizes the weight read over a large block of batches, with a per-layer cost model where five streams overlap, $T = \max(\text{ctog}, \text{gtoc}, \text{dtoc}, \text{ctod}, \text{comp})$, and an eleven-variable policy chosen by linear programming. It reaches 0.69 tokens/s on OPT-175B, but with an effective batch of 144 and thousands of seconds of latency \litt: nothing for interactive use at batch size one.
+
+\paragraph{llama.cpp~\cite{llamacpp}.} Read at commit \texttt{843e7dc}: memory mapping of the file (\texttt{mmap}, with \texttt{PrefetchVirtualMemory} under Windows), the simplest and worst-grained on-demand loading there is; \texttt{-ngl N} to put $N$ layers on the card, the rest computed by the processor, without overlap between layers; \texttt{-ncmoe N} to leave the experts of $N$ layers on the processor; \texttt{--load-mode dio} for a direct read bypassing the system cache; lazy reading of tensors above 4\,GiB; and \texttt{--moe-cache-mib}, experimental, a VRAM cache of the experts kept in RAM. Reading experts from disk with an explicit cache is an open pull request~\cite{llamapr25294}.
+
+\paragraph{LLM in a flash~\cite{llminflash2024} and PowerInfer~\cite{powerinfer2024,powerinfer2_2024}.} The first predicts the active FFN neurons, keeps those of the last tokens in DRAM (windowing), and bundles the row and column of one neuron to read it in one piece: 20 to 25 times better than naive loading on the GPU. The second places \enquote{hot} neurons on the card and computes \enquote{cold} ones on the processor. Both rely on the activation sparsity of ReLU functions; in modern SwiGLU models it is weak, and \cref{ch:sparsite} measures it.
+
+\section{Mixtures of experts}\label{sec:moe-systemes}
+
+\paragraph{Offloading, prediction, caching.} Mixtral-offloading~\cite{mixtraloffload2023} keeps an LRU cache of a few experts per layer in VRAM and applies the router of layer $\ell+1$ to the hidden state of layer $\ell$ (the residual changes little) to prefetch: $\times 1.47$ on an RTX 3060. The systems that follow predict better (\cref{tab:prediction}); two lessons weigh for what follows. HOBBIT~\cite{hobbit2024} replaces a missing expert by its low-precision copy for at most one point of loss. Edge0~\cite{edge0_2026} measures that prediction removes no bytes but takes latency off the critical path, and that only a full token of lead pays off in a real engine.
+
+\begin{table}[ht]
+\centering\small
+\caption[Predicting and prefetching experts]{Predicting and prefetching experts: published accuracy and gain \litt.}
+\label{tab:prediction}
+\begin{tabularx}{\linewidth}{@{}lXl@{}}
+\toprule
+System & Prediction and published result & Machine \\
+\midrule
+Mixtral-offloading~\cite{mixtraloffload2023} & router $\ell{+}1$ on state $\ell$; $\times1.47$ with LRU & RTX 3060 \\
+ProMoE~\cite{promoe2024} & learned predictor, 84.7\,\%; decoding $\times2.07$ & RTX 4090 \\
+HOBBIT~\cite{hobbit2024} & routers $\ell{+}1..\ell{+}3$, 96\,\% at $\ell{+}1$; up to $\times9.93$ & RTX 4090, Orin \\
+AdapMoE~\cite{adapmoe2024} & adaptive gating ($-25$\,\% of experts); $\times1.35$ & edge \\
+ExpertFlow~\cite{expertflow2024} & whole-path predictor; up to $\times10$ & one card \\
+SeqMoE~\cite{seqmoe2026} & multi-step, probabilistic Belady; 96.97\,\% at 45\,\% residency & --- \\
+Edge0~\cite{edge0_2026} & pre-router, one token ahead; +80 to +84\,\% in decoding & Mac mini M4 Pro \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Computing the expert where it is.} Fiddler~\cite{fiddler2025} computes on the processor an expert absent from the card if that is cheaper than transferring it; KTransformers~\cite{ktransformers2025} computes experts in RAM with AVX-512 and AMX kernels and \emph{defers} some experts: their output is added to layer $\ell+2$ instead of $\ell+1$, which lets the processor compute during the next attention, for at most two points of loss. On Stone's machine, the study had quantified that an expert of Qwen3-30B (2.86\,MB in Q4\_K\_M) costs 82\,µs to compute on the processor (RAM assumed at 35\,GB/s) against $33 + 448$\,µs to transfer at 6.4\,GB/s: \barre{transferring costs 5.9 times more than computing in place}. Redone with the throughputs measured in \cref{ch:machine} \calc: computing on the processor costs $2.86/15.6 = 183$\,µs, transferring $33 + 2.86/12.2 = 267$\,µs, i.e.\ only \textbf{1.5 times} more; computing on the card from VRAM, 11\,µs. With a single RAM channel, Fiddler's rule barely holds, and each expert kept in VRAM is worth sixteen kept in RAM.
+
+\paragraph{Reading experts from disk (2026).} llama.cpp pull request \#25294~\cite{llamapr25294} manages a cache of slots in card memory, reads misses through a thread pool and reaches 2.20 tokens/s on GLM-5.2 (254\,GB) with a 79\,\% hit rate, against 0.87 with mmap. moe-stream~\cite{moestream2026} runs under Windows, on the processor alone: Qwen3.6-35B-A3B goes from 0.82 tokens/s with mmap to 5.05 with an explicit 6\,GB cache. SSD-LLaMA~\cite{ssdllama2026} treats SSD, RAM and VRAM as one hierarchy and \textbf{compresses the experts} (disk traffic $-33.2$\,\%), on an RTX 5090 with PCIe 5.0. SmallThinker~\cite{smallthinker2025} takes the opposite stance: a model designed for local use, whose router sits before attention so that experts are read during attention; locality can be bought at training time, not on an existing model \litt.
+
+\begin{table}[ht]
+\centering\small
+\caption[Expert cache policies]{Expert cache policies: published hit rates \litt.}
+\label{tab:caches}
+\begin{tabularx}{\linewidth}{@{}lXl@{}}
+\toprule
+Policy & Published result & Source \\
+\midrule
+LRU & 65.9\,\% at 13.4\,\% of budget (Qwen3-30B, one layer) & \cite{cacheable2026} \\
+LFU & 60.1\,\% at the same point & \cite{cacheable2026} \\
+Static pinning & 59.2\,\% at the same point & \cite{cacheable2026} \\
+Belady (offline optimum) & 79.1\,\% at the same point & \cite{cacheable2026} \\
+\enquote{Least-Stale} & 88--92\,\% at 1\,\% capacity & \cite{specmd2026} \\
+Learned (recency and frequency) & +51\,\% hit rate over LRU and LFU & \cite{flashmoe2026} \\
+Cache-conditional routing & DeepSeek-V2 misses 28\,\% $\to$ 7\,\%, perplexity +0.1 to 3\,\% & \cite{cachecond2024} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Expert locality from one token to the next}\label{sec:localite}
+
+\begin{table}[ht]
+\centering\small
+\caption[Measured expert locality]{Reuse of experts from one token to the next \litt.}
+\label{tab:localite}
+\begin{tabularx}{\linewidth}{@{}lXl@{}}
+\toprule
+Model ($E$, $k_e$) & Adjacent reuse & \enquote{At random} \\
+\midrule
+Mixtral-8x7B (8, 2)~\cite{mixtral2024} & first choice repeated 13.6--14.9\,\% (layer 0), 24.6--28.4\,\% (layer 15) & 12.5\,\% \\
+Qwen3-30B-A3B (128, 8)~\cite{cacheable2026} & 0.444 & 0.223 \\
+Qwen3.6-35B-A3B (256, 8)~\cite{edge0_2026} & \enquote{about a quarter} of a layer's set & 3.1\,\% \calc \\
+Qwen1.5-MoE, DeepSeek-V2, Mixtral~\cite{cachecond2024} & mean cache residency 26, 19, 5 tokens & --- \\
+Qwen3-30B (4 domains)~\cite{cacheable2026} & 52.5\,\% of experts carry 95\,\% of traffic; code/other overlap 0.11--0.16 & --- \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Locality exists and it is weak (\cref{tab:localite}): a token reuses about a quarter to 44\,\% of the previous token's experts, two to eight times chance; it is stronger in the middle of the network than at its ends; popularity counts as much as recency; and the domain changes the hot set. The optimum against which every policy is judged is Belady's.
+
+\begin{theoreme}[Belady~\cite{belady1966}]\label{thm:belady}
+For a request sequence known in advance and a cache of $C$ slots, the policy that, at each miss, evicts the element whose next request is the farthest away minimizes the number of misses.
+\end{theoreme}
+
+\begin{proof}
+By exchange. Let $\mathcal O$ be an optimal policy that first differs from Belady's $\mathcal B$ at time $t$: $\mathcal B$ evicts $x$, whose next request is the farthest, and $\mathcal O$ evicts $y \ne x$. Build $\mathcal O'$ that evicts $x$ at time $t$ then imitates $\mathcal O$, with $y$ in place of $x$, until the next request for $y$ (which precedes that for $x$). At that request, $\mathcal O'$ has $y$ cached when $\mathcal O$ does not: $\mathcal O$ pays a miss $\mathcal O'$ does not, or else $\mathcal O$ has evicted $x$ in the meantime and the two caches become equal again. In every case $\mathcal O'$ pays no more misses than $\mathcal O$ and coincides with $\mathcal B$ one step longer; by induction, $\mathcal B$ is optimal.
+\end{proof}
+
+The \texttt{chargement\_localite.py} tool measures, on a routing trace, adjacent reuse, its two chance references, reuse distances and the hit rates of LRU, LFU, static pinning and Belady for every budget. Its synthetic controls hold: uniform routing (reuse 0.0613 for 0.0625 expected, tolerance of 4 standard deviations, and LRU equal to $C/E$ at every budget), frozen routing (hit rate 0.9998), \enquote{sticky} routing with parameter $\rho = 0.6$ (0.604 measured), Belady never exceeded (\cref{thm:belady}). With the token order shuffled, the reuse of sticky routing falls to 0.0635 and the control fails: the instrument sees the order. Two errors of the first pass were found by these controls and corrected. \Cref{fig:localite} already shows the shape of the problem on sticky routing: the 9 to 13 point gap between LRU and Belady is the margin a perfect prediction could recover. \textbf{The instrument is ready; the real trace is missing.}
+
+\begin{figure}[ht]
+\centering
+\GrapheLocalite
+\caption[Cache policy hit rates on synthetic routing]{Hit rates of cache policies on the synthetic \enquote{sticky} routing control ($\rho = 0.6$, $E = 128$, $k_e = 8$) \calc. Belady bounds every policy; the LRU--Belady gap is what a perfect prediction would recover.}
+\label{fig:localite}
+\sourcefig{\fichier{fondations/journaux/04-chargement/localite-temoins.json}, control T3.}
+\end{figure}
+
+\section{Double-buffered pipelines}\label{sec:double-tampon}
+
+With two buffers, reading piece $\ell+1$ happens during the computation of piece $\ell$; the time per piece becomes $\max(L_\ell, C_\ell)$ instead of $L_\ell + C_\ell$, plus an initial fill (\cref{lem:flowshop}). To hide a latency $\lambda$, a prefetch depth $d \ge \lceil \lambda / C_{\text{layer}} \rceil$ layers is needed.
+
+\begin{proposition}[Double buffering hides latency, never volume]\label{prop:volume}
+Whatever the prefetching, the time per token remains at least $\max_i O_i/W_i$ (\cref{thm:toit}); a deep enough prefetch only removes the waits due to request latency.
+\end{proposition}
+
+\begin{proof}
+Prefetching changes when transfers happen, not their volume: each stage must still move $O_i$ bytes per token, and the argument of \cref{thm:toit} does not depend on the order of transfers.
+\end{proof}
+
+Example \calc: for Qwen3-235B at about 1 token/s, a layer lasts 10.6\,ms. The study had quantified reading one expert (10.76\,MB) at 1.6\,ms assuming a 6.7\,GB/s disk; at the measured throughput (2.82\,GB/s), it lasts 3.8\,ms, and eight missing experts 30.5\,ms, three times a layer. One layer of lead hides the latency of one miss; no lead hides the volume of eight.
+
+\paragraph{What the machine gives the pipeline} \mes. A host-to-device copy overlaps almost perfectly with VRAM traffic on another stream (hidden share 0.98 to 1.01, VRAM slowed by 5.6\,\%): the copy engines are free while the card works. Pinned memory is worth 21\,\% more throughput than pageable memory. And the link reaches generation 4 only if the card is in a high performance state (\cref{fig:pcie-gen}): \textbf{the card must compute while we copy}, which is convenient, since that is the point of overlap.
+
+\paragraph{The Windows paths.} Unbuffered reads through IOCP or IoRing (the equivalent of io\_uring with \texttt{O\_DIRECT}); DirectStorage, which reads the NVMe into a Direct3D~12 resource and decompresses on the GPU (GDeflate since version 1.1, Zstandard in preview 1.4~\cite{microsoft2026directstorage14}); CUDA, unpacked on the machine, for asynchronous copies and pinned memory. No inference engine we read uses DirectStorage.
+
+\section{The judge applied to the machine}\label{sec:juge}
+
+The study had applied the judge with assumed throughputs (RAM 35\,GB/s, disk 6.7\,GB/s), then with the first provisional disk reading (2.4\,GB/s), crossing out its conclusions at each correction. We rerun it here, same tool, with the throughput measured and retained by \cref{ch:machine} (\texttt{--disque-go-s 2.82}); assumed capacities: 6.5\,GB of VRAM and 10\,GB of RAM for weights.
+
+\begin{figure}[ht]
+\centering
+\GrapheJuge
+\caption[Required cache hit rate, model by model]{Expert-cache hit rate required for 5 and 10 tokens/s, disk measured at 2.82\,GB/s, and the share of the model that fits in fast memory (black tick) \calc. Wherever the bar exceeds the tick, locality, prediction or fewer bytes are required.}
+\label{fig:juge}
+\sourcefig{\fichier{memoire/figures/donnees/juge-stone-disque-2.82.json} (\fichier{outils/chargement\_juge.py}) and \fichier{fondations/journaux/04-chargement/juge-stone-disque-2.4.json}.}
+\end{figure}
+
+\begin{table}[ht]
+\centering\small
+\caption[The judge on the machine, disk at 2.4 then 2.82\,GB/s]{The judge on the machine: bound without locality and required hit rate, disk at 2.4\,GB/s (study 04) then 2.82\,GB/s (retained measurement) \calc.}
+\label{tab:juge}
+\pgfplotstabletypeset[col sep=comma, fixed, precision=2, zerofill,
+  columns={modele,bpp,R_go,borne_24,borne_282,h5_282,h10_282,part_tenable},
+  columns/modele/.style={string type, column name=Model, column type={l}},
+  columns/bpp/.style={column name={bits/weight}, column type={r}},
+  columns/R_go/.style={column name={$B_e$ (GB)}, column type={r}},
+  columns/borne_24/.style={column name={bound, 2.4}, column type={r}},
+  columns/borne_282/.style={column name={bound, 2.82}, column type={r}},
+  columns/h5_282/.style={column name={$h$ for 5}, column type={r}},
+  columns/h10_282/.style={column name={$h$ for 10}, column type={r}},
+  columns/part_tenable/.style={column name={share that fits}, column type={r}},
+  every head row/.style={before row=\toprule, after row=\midrule},
+  every last row/.style={after row=\bottomrule}]{\Donnees/charge-juge.csv}
+\end{table}
+
+Reading (\cref{fig:juge,tab:juge}):
+\begin{enumerate}
+\item \textbf{MoE models with a low $B_e$ (at most 1.5\,GB routed per token), three to five times larger than memory, are within reach}: Qwen3-Next-80B (4.6 tokens/s without locality) and Qwen3.8-Flash-Next (2.4) require 38 to 80\,\% hit rate for 5 to 10 tokens/s.
+\item \textbf{Large MoE models with thick experts ($B_e \ge 4.5$\,GB) require 88 to 93\,\% hit rate for 5 tokens/s}, with 4 to 18\,\% of the model in fast memory. The only comparable published point (LRU 65.9\,\%, Belady 79.1\,\% at 13.4\,\% budget) says that cache policies alone cannot get there: $B_e$ must be reduced (\cref{ch:quant}) or the routing changed.
+\item \textbf{gpt-oss-120b}: 1.99 tokens/s without locality, 70\,\% hit rate for 5 tokens/s. It is the third independent path that finds the roof of about 2 tokens/s (\cref{sec:toit}).
+\end{enumerate}
+
+\begin{figure}[ht]
+\centering
+\GrapheSensibiliteH
+\caption[The ceiling of gpt-oss-120b versus cache hit rate]{Ceiling of gpt-oss-120b versus the expert-cache hit rate $h$ (cost model of the model study, $t = \max(B_t/256,\ hB_e/41.6,\ (1-h)B_e/W_{\mathrm{disk}})$) \calc. At the measured disk throughput, going from 26\,\% (uniform routing) to 80\,\% hit rate multiplies the ceiling by 3.7.}
+\label{fig:sensibilite-h}
+\sourcefig{\fichier{memoire/figures/donnees/charge-sensibilite-h.csv}, from \fichier{fondations/journaux/01-machine/debits-mesures.json}.}
+\end{figure}
+
+\section{What is missing in the world}\label{sec:trous-chargement}
+
+\begin{enumerate}
+\item \textbf{No published engine reads experts from disk under Windows all the way into VRAM.} SSD-LLaMA (io\_uring), pull request \#25294 (Linux), Edge0 (MLX) and KTransformers (Linux) do not; moe-stream runs under Windows but on the processor alone. The dominant cost of ignoring this: existing engines read through the page cache or in small pieces, and this disk gives 11 to 13 times less with small blocks.
+\item \textbf{The state of a laptop's PCIe link appears in no publication} (\cref{sec:pcie}).
+\item \textbf{No \enquote{hit rate versus budget} curve for 2026 MoE models at laptop budgets} (5 to 20\,\% of the experts); a single exact point is published.
+\item \textbf{Expert deferral has never been used to absorb a read miss.} KTransformers defers present experts to keep the processor busy; Edge0 shows that latency dominates, not volume. Deferring the missing expert by one layer, instead of waiting, takes that latency off the critical path without prediction and without changing the bytes.
+\item \textbf{Nobody has assembled the four responses to a miss under a measured quality budget} (\cref{fig:defaut}): wait, defer, substitute a low-precision copy, re-route to a present expert.
+\item \textbf{Compression in the read loop is published only on a machine with PCIe 5.0 and an RTX 5090.} On Stone's machine, where the disk is the bound, every point of expert compression is a point of throughput if decompression fits in the compute time (\cref{cor:sans-croisement}).
+\end{enumerate}
+
+\begin{figure}[ht]
+\centering
+\SchemaDefaut
+\caption[The four responses to a cache miss]{The four possible responses to an expert-cache miss, each published separately, never assembled.}
+\label{fig:defaut}
+\end{figure}
+
+\paragraph{An assembly proposal, for the arbiter.} What the review and the judge suggest, as testable hypotheses, each with its control: attention, shared experts, routers and a hot-expert cache in VRAM; RAM as pinned read buffers and warm cache; the disk holding all experts, rewritten one expert per contiguous aligned block, possibly losslessly coded; reads through unbuffered IoRing at queue depth at least 16, or through DirectStorage into VRAM; one-token-ahead prediction; a miss policy chosen by the routing score under a declared perplexity budget; copies launched while the card computes; measurement against llama.cpp \texttt{-ncmoe} and \texttt{--moe-cache-mib} on the same machine, in ABBA series. It is not a decision: it is the input of \cref{ch:avenir}.
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{The judge assumes perfect overlap} and ignores the KV cache, prefill and per-request latency: it bounds, it does not predict. Published measurements fall at 18 to 45\,\% of their bound.
+\item \textbf{The judge's RAM capacity (10\,GB) and PCIe (6.4\,GB/s)} are those of the original study; only the disk value was replaced here.
+\item \textbf{The average bits per weight} apply the same precision to experts and to the rest, which is wrong in detail.
+\item \textbf{Several numbers come from community repositories and discussions}, not peer reviewed; two papers contradict themselves. They are labelled, not discarded.
+\item \textbf{The reuse \enquote{0.444 against 0.223}} depends on a definition of chance that the paper does not give.
+\item \textbf{Deferral to absorb a miss was not measured}, and someone may have done it under another name.
+\item \textbf{The effect of the performance state on the link} is measured on this card and this driver.
+\end{itemize}
+\end{faux}

@@ -1,0 +1,14 @@
+# cassures des témoins de trc-cache, 2026-10-15 13:09:48
+# commit 5a7b569d26cfead47453b50af62a565d9872c160
+référence (copie intacte) : code 0, réussis/échoués ('13', '0'), tombés []
+- épinglage retiré (la victime VRAM peut être un expert de la couche en cours) [src/lib.rs] : tombe comme prévu ; tombés ['tests::deux_etages_egalent_deux_caches_a_pile', 'tests::epinglage_tient_les_k_experts_ensemble', 'tests::falaise_du_lru_global', 'tests::routage_fige_reponses_exactes'] ; en plus des attendus : ['tests::deux_etages_egalent_deux_caches_a_pile', 'tests::falaise_du_lru_global', 'tests::routage_fige_reponses_exactes'] ; réussis/échoués ('9', '4')
+- emplacement en vol évinçable [src/lib.rs] : tombe comme prévu ; tombés ['tests::en_vol_jamais_evince'] ; réussis/échoués ('12', '1')
+- étage RAM aveugle aux succès VRAM (règle 2 rompue) [src/lib.rs] : tombe comme prévu ; tombés ['tests::deux_etages_egalent_deux_caches_a_pile'] ; réussis/échoués ('12', '1')
+- LRU qui ne remonte pas un succès (devient FIFO) [src/politiques.rs] : tombe comme prévu ; tombés ['tests::deux_etages_egalent_deux_caches_a_pile', 'tests::lru_ordre_et_victime', 'tests::politique_faussee_donne_un_autre_compte', 'tests::routage_fige_reponses_exactes'] ; en plus des attendus : ['tests::deux_etages_egalent_deux_caches_a_pile', 'tests::politique_faussee_donne_un_autre_compte', 'tests::routage_fige_reponses_exactes'] ; réussis/échoués ('9', '4')
+- LRU qui évince le plus récent (devient MRU) [src/politiques.rs] : tombe comme prévu ; tombés ['tests::belady_cas_calcule_a_la_main', 'tests::falaise_du_lru_global', 'tests::lru_ordre_et_victime', 'tests::routage_fige_reponses_exactes'] ; en plus des attendus : ['tests::belady_cas_calcule_a_la_main', 'tests::routage_fige_reponses_exactes'] ; réussis/échoués ('9', '4')
+- première version de Belady (commit 4965dd4 : prochain usage cherché depuis l'instant du groupe précédent, le défaut que le témoin O1 a trouvé) [src/politiques.rs] : tombe comme prévu ; tombés ['tests::belady_cas_calcule_a_la_main'] ; réussis/échoués ('12', '1')
+- Belady qui évince le plus PROCHE (anti-optimum) [src/politiques.rs] : tombe comme prévu ; tombés ['tests::belady_cas_calcule_a_la_main', 'tests::belady_jamais_sous_lru', 'tests::falaise_du_lru_global'] ; en plus des attendus : ['tests::falaise_du_lru_global'] ; réussis/échoués ('10', '3')
+- trace : nombre d'experts par couche non vérifié [src/trace.rs] : tombe comme prévu ; tombés ['tests::trace_mal_formee_refusee'] ; réussis/échoués ('12', '1')
+- octets : un défaut RAM compté comme lu du disque [src/lib.rs] : tombe comme prévu ; tombés ['tests::octets_comptes_par_etage'] ; réussis/échoués ('12', '1')
+restaurée : code 0, réussis/échoués ('13', '0'), tombés []
+verdict : TOUTES LES CASSURES TOMBENT, LA COPIE RESTAURÉE TIENT

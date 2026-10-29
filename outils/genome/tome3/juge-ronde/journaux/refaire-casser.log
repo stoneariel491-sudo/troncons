@@ -1,0 +1,276 @@
+témoin de l'instrument : --casser actif
+eclaireur    {'tient': 2, "tient à l'impression": 12, 'tombe': 23, 'choix': 0, 'non refaite': 0, 'jamais utilisée': 0}
+    tient à l'impression points-uniformes lot 40 juge 40.04 | Entier[0] 40=40 | borne-rd.json : longueur de uniforme_precis
+    tombe points-converges lot 25 juge 25.025 | jamais utilisée dans le .tex | borne-rd.json : drapeaux converge
+    tombe H-v lot 3.72283 juge 3.7265522 | Nombre[4] 3.7228≠3.7266 ; coordonnée | borne-rd.json : −Σ p log2 p sur loi_v (15 valeurs)
+    tombe frontiere-bits lot 2.64411 juge 2.64675111 | Nombre[4] 2.6441≠2.6468 ; coordonnée | zero-temoin-sans-drapeau.json : bpp.niveau0_base
+    tombe canonique-bits lot 2.5965 juge 2.5991005 | coordonnée | zero-canonique.json : bpp.niveau0_base
+    tombe frontiere-d-pct lot 4.29197 juge 4.29626649 | Nombre[2] 4.29≠4.30 ; coordonnée | zero-canonique.json : 100 × erreur_base_commune (frontiere.json : 0.04291974512498)
+    tient à l'impression corde-bits-a-d lot 2.16831 juge 2.17048133 | Nombre[2] 2.17=2.17 ; coordonnée | borne-rd.json : interpolation linéaire en D entre itérés voisins, à D = frontière
+    tient à l'impression corde-d-pct-a-r lot 1.83958 juge 1.84141618 | Nombre[2] 1.84=1.84 ; coordonnée | borne-rd.json : interpolation linéaire en bits entre itérés voisins, au débit frontière
+    tient à l'impression ecart-bits lot 0.475794 juge 0.476269775 | Nombre[2] 0.48=0.48 | calculé : frontiere-bits − corde-bits-a-d
+    tient à l'impression part-erreur lot 0.428608 juge 0.429037073 | Nombre[2] 0.43=0.43 | calculé : corde-d / frontiere-d
+    tient à l'impression points-nonconverges lot 15 juge 15.015 | Entier[0] 15=15 | borne-rd.json : drapeaux converge
+    tient à l'impression nonconv-bits-min lot 1.79004 juge 1.79182703 | Nombre[1] 1.8=1.8 | borne-rd.json : min des bits non convergés
+    tombe nonconv-bits-max lot 3.44801 juge 3.45145641 | Nombre[1] 3.4≠3.5 | borne-rd.json : max des bits non convergés
+    tient à l'impression 20b-tenseurs lot 72 juge 72.072 | Entier[0] 72=72 | zero-compte-20b.json : longueur de par_tenseur
+    tombe 20b-couches lot 24 juge 24.024 | jamais utilisée dans le .tex | zero-compte-20b.json : couches distinctes des noms
+    tombe 20b-poids lot 19110297600 juge 1.91294079e+10 | Entier[0] 19110297600≠19129407898 | zero-compte-20b.json : Σ poids par tenseur
+    tombe 20b-cout lot 0.127849 juge 0.127976861 | Nombre[4] 0.1278≠0.1280 | zero-compte-20b.json : Σ poids·p0·H2(p+/p0) / Σ poids (refait)
+    tient à l'impression 20b-cout-min lot 0.117247 juge 0.117364373 | Nombre[3] 0.117=0.117 | zero-compte-20b.json : min par tenseur de p0·H2 (refait)
+    tombe 20b-cout-max lot 0.196433 juge 0.196629329 | Nombre[3] 0.196≠0.197 | zero-compte-20b.json : max par tenseur de p0·H2 (refait)
+    tombe 20b-H-signe lot 0.999999996737 juge 1.001 | Nombre[10] 0.9999999967≠1.0009999967 | zero-compte-20b.json : H2(p+/p0) global (refait)
+    tombe 20b-H-signe-min lot 0.999999496112 juge 1.0009995 | Nombre[9] 0.999999496≠1.000999496 | zero-compte-20b.json : min par tenseur de H2 (refait)
+    tombe 20b-p-plus lot 6.39202 juge 6.39841312 | Nombre[4] 6.3920≠6.3984 | zero-compte-20b.json : part pondérée des +0 (refaite)
+    tombe 20b-p-moins lot 6.39288 juge 6.3992739 | Nombre[4] 6.3929≠6.3993 | zero-compte-20b.json : part pondérée des −0 (refaite)
+    tombe 20b-blocs lot 597196800 juge 597793997 | Entier[0] 597196800≠597793997 | zero-compte-20b.json : Σ poids / 32
+    tient à l'impression 120b-tenseurs lot 108 juge 108.108 | Entier[0] 108=108 | zero-compte-120b.json : longueur de par_tenseur
+    tombe 120b-couches lot 36 juge 36.036 | jamais utilisée dans le .tex | zero-compte-120b.json : couches distinctes des noms
+    tombe 120b-poids lot 114661785600 juge 1.14776447e+11 | Entier[0] 114661785600≠114776447386 | zero-compte-120b.json : Σ poids par tenseur
+    tombe 120b-cout lot 0.125567 juge 0.125693059 | Nombre[4] 0.1256≠0.1257 | zero-compte-120b.json : Σ poids·p0·H2(p+/p0) / Σ poids (refait)
+    tient à l'impression 120b-cout-min lot 0.11538 juge 0.115495579 | Nombre[3] 0.115=0.115 | zero-compte-120b.json : min par tenseur de p0·H2 (refait)
+    tient à l'impression 120b-cout-max lot 0.238738 juge 0.238976942 | Nombre[3] 0.239=0.239 | zero-compte-120b.json : max par tenseur de p0·H2 (refait)
+    tombe 120b-H-signe lot 0.999999995068 juge 1.001 | jamais utilisée dans le .tex | zero-compte-120b.json : H2(p+/p0) global (refait)
+    tombe 120b-H-signe-min lot 0.999999550439 juge 1.00099955 | Nombre[9] 0.999999550≠1.000999550 | zero-compte-120b.json : min par tenseur de H2 (refait)
+    tombe 120b-p-plus lot 6.27786 juge 6.28413354 | jamais utilisée dans le .tex | zero-compte-120b.json : part pondérée des +0 (refaite)
+    tombe 120b-p-moins lot 6.27889 juge 6.28517287 | jamais utilisée dans le .tex | zero-compte-120b.json : part pondérée des −0 (refaite)
+    tombe 120b-blocs lot 3583180800 juge 3.58676398e+09 | Entier[0] 3583180800≠3586763981 | zero-compte-120b.json : Σ poids / 32
+synthese     {'tient': 0, "tient à l'impression": 27, 'tombe': 61, 'choix': 8, 'non refaite': 0, 'jamais utilisée': 0}
+    tombe p1-base-bits lot 2.63808 juge 2.64071812 | jamais utilisée dans le .tex | passes/frontiere-lam0-damp0.01.json : bits_H0_sym
+    tombe p1-syn-bits lot 2.64883 juge 2.65148167 | coordonnée | passes/synonyme-lam0-damp1.json : bits_H0_sym
+    tient à l'impression p1-syn-rapport lot 0.726622 juge 0.727348677 | Nombre[2] 0.73=0.73 ; coordonnée | kl-*-positions.csv : moyenne synonyme / moyenne base
+    tombe s-lam1-bits lot 2.56342 juge 2.5659836 | coordonnée | passes/synonyme-lam1-damp1-e0_8_16_24.json : bits_H0_sym
+    tombe s-baselam1-bits lot 2.6415 juge 2.64414549 | coordonnée | passes/frontiere-lam0-damp0.01-e0_8_16_24.json : bits_H0_sym
+    tombe p2-base-bits lot 2.6441 juge 2.6467441 | jamais utilisée dans le .tex | zero-temoin-sans-drapeau.json : niveau0_base, 4 décimales (frontiere.py l'écrit 2,6441 en dur)
+    tombe p2-sstar-rapport lot 1.01764 juge 1.01865625 | Nombre[3] 1.018≠1.019 ; coordonnée | comparer10-base-contre-recette.json : b / a
+    tombe p3-base-bits lot 2.6444 juge 2.6470444 | jamais utilisée dans le .tex | resume-12.csv : base
+    tombe p3-kappat-bits lot 2.4079 juge 2.4103079 | coordonnée | resume-12.csv : ecsq_kappa_t.bits_reels
+    tombe p3-kappat-rapport lot 1.10308 juge 1.1041829 | coordonnée | resume-12.csv : ecsq_kappa_t.kl / base.kl
+    tombe p3-kappa-bits lot 2.3743 juge 2.3766743 | coordonnée | resume-12.csv : ecsq_kappa.bits_reels
+    tombe p3-kappa-rapport lot 1.26273 juge 1.26399057 | coordonnée | resume-12.csv : ecsq_kappa.kl / base.kl
+    tombe p3-hebbdlc-bits lot 1.9619 juge 1.9638619 | coordonnée | resume-12.csv : hebb_d_lc.bits_reels
+    tombe p3-hebbdlc-rapport lot 1.42866 juge 1.43008988 | coordonnée | resume-12.csv : hebb_d_lc.kl / base.kl
+    tombe p3-hebbe-bits lot 2.1815 juge 2.1836815 | coordonnée | resume-12.csv : hebb_e.bits_reels
+    tombe p3-hebbe-rapport lot 3.05877 juge 3.06182684 | coordonnée | resume-12.csv : hebb_e.kl / base.kl
+    tombe p3-hebbelc-bits lot 1.7556 juge 1.7573556 | coordonnée | resume-12.csv : hebb_e_lc.bits_reels
+    tombe p3-hebbelc-rapport lot 3.0121 juge 3.01511141 | coordonnée | resume-12.csv : hebb_e_lc.kl / base.kl
+    tombe p3-partse-bits lot 2.0178 juge 2.0198178 | coordonnée | resume-12.csv : ecsq_e.bits_reels
+    tombe p3-partse-rapport lot 4.85434 juge 4.85919123 | coordonnée | resume-12.csv : ecsq_e.kl / base.kl
+    tombe p3-elag-bits lot 1.6942 juge 1.6958942 | coordonnée | resume-12.csv : sens_e_q.bits_reels
+    tombe p3-elag-rapport lot 4.26461 juge 4.26887806 | coordonnée | resume-12.csv : sens_e_q.kl / base.kl
+    tombe s-brin-bits lot 2.32482 juge 2.32714112 | coordonnée | verdict-tourne-l12-second-chemin.json : moyenne bits_recette
+    tombe s-sstar-bits lot 2.35954 juge 2.36190311 | coordonnée | verdict-fidelite-sstar.json : moyenne bits_a_sortie_egale
+    tombe s-d2b-bits lot 2.64287 juge 2.6455094 | jamais utilisée dans le .tex | duplication/verdicts.json : D2b.debit_base_avec_parent
+    tombe points-kl lot 12 juge 12.012 | jamais utilisée dans le .tex | compte : P1 (2), P2-10 (2), P3 (8) ; P2 à 3 fenêtres écarté (R4)
+    tient à l'impression points-sans-kl lot 7 juge 7.007 | Entier[0] 7=7 | k10/frontiere.csv : lignes sans KL
+    tombe points-total lot 25 juge 25.025 | jamais utilisée dans le .tex | k10/frontiere.csv : lignes
+    tombe sans-perte lot 3.84343 juge 3.84726968 | Nombre[4] 3.8434≠3.8473 ; coordonnée | taux-reel-colonne : moyenne des 12 bpp_total_identite
+    tombe codon lot 3.70639 juge 3.71009722 | Nombre[4] 3.7064≠3.7101 ; coordonnée | taux-reel-colonne : moyenne des 12 bpp_total_zero_fondu
+    tombe colonne lot 3.68441 juge 3.68809308 | Nombre[4] 3.6844≠3.6881 ; coordonnée | taux-reel-colonne : moyenne des 12 bpp_total_nib_kappa_colonne
+    tombe d1 lot 3.8442 juge 3.84804595 | jamais utilisée dans le .tex | taux-reel total_identite − D1.gain_net_moyen + D1.cout_ajoute
+    tombe sstar-rapport lot 1.01764 juge 1.01865625 | Nombre[3] 1.018≠1.019 | comparer10-base-contre-recette.json : b / a
+    tient à l'impression sstar-apparie lot 0.000362831 juge 0.000363193494 | Nombre[4] 0.0004=0.0004 | comparer10 : apparie.kl_difference_b_moins_a
+    tient à l'impression sstar-apparie-sigma lot 0.00185607 juge 0.00185792487 | Nombre[4] 0.0019=0.0019 | comparer10 : apparie.kl_ecart_type
+    tient à l'impression syn-rapport lot 0.726622 juge 0.727348677 | Nombre[2] 0.73=0.73 | kl-*-positions.csv : moyenne synonyme / moyenne base
+    tient à l'impression syn-ecart-bits lot 0.01075 juge 0.0107635493 | Nombre[3] 0.011=0.011 | calculé
+    tombe kappa-t-bits lot 2.4079 juge 2.4103079 | jamais utilisée dans le .tex | resume-12.csv : ecsq_kappa_t.bits_reels
+    tient à l'impression kappa-t-part-bits lot 0.910566 juge 0.91147629 | Nombre[3] 0.911=0.911 | calculé
+    tombe rapport-max lot 4.85434 juge 4.85919123 | jamais utilisée dans le .tex | max des rapports tracés
+    tient à l'impression colonne-retenues lot 2 juge 2.002 | Entier[0] 2=2 | taux-reel-colonne : gain octet − colonne ≥ 0,015
+    tombe colonne-seuil-moyen lot 3.68433 juge 3.68801283 | jamais utilisée dans le .tex | calculé : règle des 0,015 bit
+    tient à l'impression colonne-perd lot 6 juge 6.006 | Entier[0] 6=6 | taux-reel-colonne : colonne > codon en octets
+    tombe ek-syn-x lot 0.2668 juge 0.2670668 | coordonnée | passes : err_sortie_expert_eval synonyme / frontière (4 décimales comme le CSV)
+    tombe ek-syn-y lot 0.7266 juge 0.7273266 | coordonnée | juges : kl_moyenne synonyme / base
+    tombe ek-sstar3-x lot 0.7473 juge 0.7480473 | coordonnée | verdict-fidelite-sstar.json : moyenne des rapports à 2,64 bits
+    tombe ek-sstar3-y lot 1.3349 juge 1.3362349 | coordonnée | comparer (3 fenêtres) : b / a
+    tombe ek-sstar10-x lot 0.7473 juge 0.7480473 | coordonnée | idem (mêmes 8 experts)
+    tombe ek-sstar10-y lot 1.0176 juge 1.0186176 | Nombre[3] 1.018≠1.019 ; coordonnée | comparer10 : b / a
+    tombe ek-kappa-x lot 0.9837 juge 0.9846837 | coordonnée | resume-12.csv : ecsq_kappa erreur_expert / base
+    tombe ek-kappa-y lot 1.2627 juge 1.2639627 | coordonnée | resume-12.csv : ecsq_kappa kl / base
+    tombe ek-hebbe-x lot 1.0228 juge 1.0238228 | coordonnée | resume-12.csv : hebb_e erreur_expert / base
+    tombe ek-hebbe-y lot 3.0588 juge 3.0618588 | coordonnée | resume-12.csv : hebb_e kl / base
+    tombe ek-hebbelc-x lot 1.656 juge 1.657656 | coordonnée | resume-12.csv : hebb_e_lc erreur_expert / base
+    tombe ek-hebbelc-y lot 3.0121 juge 3.0151121 | coordonnée | resume-12.csv : hebb_e_lc kl / base
+    tombe ek-partse-x lot 3.9505 juge 3.9544505 | coordonnée | resume-12.csv : ecsq_e erreur_expert / base
+    tombe ek-partse-y lot 4.8543 juge 4.8591543 | coordonnée | resume-12.csv : ecsq_e kl / base
+    tient à l'impression bande-x-min lot 0.7473 juge 0.7480473 | Nombre[2] 0.75=0.75 ; coordonnée | calculé
+    tient à l'impression bande-x-max lot 1.0228 juge 1.0238228 | Nombre[2] 1.02=1.02 ; coordonnée | calculé
+    tient à l'impression bande-y-min lot 1.0176 juge 1.0186176 | Nombre[2] 1.02=1.02 | calculé
+    tient à l'impression bande-y-max lot 3.0588 juge 3.0618588 | Nombre[2] 3.06=3.06 | calculé
+    tombe bande-n lot 3 juge 3.003 | jamais utilisée dans le .tex | points tenus dont l'abscisse est dans [0,74 ; 1,03] (05 § 2.1 c)
+    tombe positions lot 2550 juge 2552.55 | Entier[0] 2550≠2553 | kl-frontiere-positions.csv : lignes
+    tient à l'impression fenetres lot 10 juge 10.01 | Entier[0] 10=10 | kl-frontiere-positions.csv : fenêtres distinctes
+    tient à l'impression sous-plancher lot 1 juge 1.001 | Entier[0] 1=1 | positions : KL < 1e-5, deux séries
+    tient à l'impression med-base lot 0.00876222 juge 0.00877097887 | Nombre[4] 0.0088=0.0088 ; coordonnée | positions : médiane (numpy)
+    tient à l'impression med-syn lot 0.00383709 juge 0.00384092439 | Nombre[4] 0.0038=0.0038 ; coordonnée | positions : médiane (numpy)
+    tient à l'impression med-rapport lot 2.28356 juge 2.28584293 | Nombre[1] 2.3=2.3 | calculé
+    tombe moy-base lot 0.0360138 juge 0.0360497777 | jamais utilisée dans le .tex | positions : moyenne
+    tombe moy-syn lot 0.0261684 juge 0.0261945636 | jamais utilisée dans le .tex | positions : moyenne
+    tient à l'impression moy-rapport lot 1.37623 juge 1.37760751 | Nombre[2] 1.38=1.38 | calculé
+    tombe p999-base lot 1.59373 juge 1.59532338 | Nombre[2] 1.59≠1.60 | kl-frontiere-juge.json : kl_p999 (le quantile du juge)
+    tient à l'impression p999-syn lot 1.69694 juge 1.6986323 | Nombre[2] 1.70=1.70 | kl-synonyme-d1-juge.json : kl_p999
+    tombe part-1pct-base lot 0.310759 juge 0.316520631 | Pct[0] 31≠32 | positions : part de la somme portée par les ⌈0.01·n⌉ = 26 plus grandes
+    tombe part-10pct-base lot 0.689213 juge 0.689902435 | jamais utilisée dans le .tex | positions : part de la somme portée par les ⌈0.1·n⌉ = 255 plus grandes
+    tient à l'impression part-1pct-syn lot 0.375045 juge 0.381622412 | Pct[0] 38=38 | positions : part de la somme portée par les ⌈0.01·n⌉ = 26 plus grandes
+    tombe part-10pct-syn lot 0.788976 juge 0.789764984 | jamais utilisée dans le .tex | positions : part de la somme portée par les ⌈0.1·n⌉ = 255 plus grandes
+    tombe positions-gagnees lot 2060 juge 2062.06 | Entier[0] 2060≠2062 | positions : KL synonyme < KL base
+    tombe col-massive lot 1011 juge 1012.011 | Entier[0] 1011≠1012 ; coordonnée | colonnes-energie-erreur.csv : argmax energie_exacte
+    tombe col-n lot 2880 juge 2882.88 | Entier[0] 2880≠2883 | colonnes-energie-erreur.csv : lignes
+    tient à l'impression col-energie-x lot 143.871 juge 144.014406 | Nombre[0] 144=144 ; coordonnée | calculé : énergie / moyenne
+    tient à l'impression col-brin-x lot 334.03 juge 334.36362 | Nombre[0] 334=334 ; coordonnée | calculé : erreur_brin_pondere / moyenne
+    tient à l'impression col-sstar-x lot 1.04893 juge 1.04997753 | Nombre[2] 1.05=1.05 | calculé : erreur_s_etoile / moyenne
+    tient à l'impression col-base-x lot 13.9598 juge 13.9737974 | Nombre[0] 14=14 ; coordonnée | calculé : erreur_base / moyenne
+    tient à l'impression col-bord-x lot 7.58341 juge 7.59099718 | Nombre[1] 7.6=7.6 | calculé : moyenne des colonnes ≡ 0 mod 64 / moyenne de toutes
+    tombe col-morceau-debut lot 960 juge 960.96 | Entier[0] 960≠961 | calculé : morceau de 64 de la colonne géante
+    tombe col-morceau-fin lot 1023 juge 1024.023 | Entier[0] 1023≠1024 | calculé
+    tient à l'impression col-morceau-x lot 8.86285 juge 8.87170798 | Nombre[1] 8.9=8.9 | calculé : autres colonnes du morceau / moyenne
+genome       {'tient': 0, "tient à l'impression": 24, 'tombe': 85, 'choix': 0, 'non refaite': 0, 'jamais utilisée': 0}
+    tombe g-l12-formes lot 7 juge 7.007 | jamais utilisée dans le .tex | gauss-balayage.jsonl : formes distinctes (fort, q = 8, sans Lloyd)
+    tient à l'impression g-l12-db-min lot 0.4583 juge 0.458724514 | Nombre[2] 0.46=0.46 | calculé : 10 log10(mse / 2^(−2 kb/v))
+    tient à l'impression g-l12-db-max lot 1.6582 juge 1.65953607 | Nombre[2] 1.66=1.66 | calculé
+    tombe g-l12-1-1-db lot 0.4583 juge 0.458724514 | jamais utilisée dans le .tex | calculé
+    tombe g-l12-1-1-r lot 1 juge 1.001 | jamais utilisée dans le .tex | kb / v
+    tombe g-l12-2-1-db lot 0.6639 juge 0.664609069 | jamais utilisée dans le .tex | calculé
+    tombe g-l12-2-1-r lot 2 juge 2.002 | jamais utilisée dans le .tex | kb / v
+    tombe g-l12-7-3-db lot 1.222 juge 1.22324711 | jamais utilisée dans le .tex | calculé
+    tombe g-l12-7-3-r lot 2.3333 juge 2.33566667 | jamais utilisée dans le .tex | kb / v
+    tombe g-l12-5-2-db lot 1.0036 juge 1.00459875 | jamais utilisée dans le .tex | calculé
+    tombe g-l12-5-2-r lot 2.5 juge 2.5025 | jamais utilisée dans le .tex | kb / v
+    tombe g-l12-8-3-db lot 1.5995 juge 1.60106072 | jamais utilisée dans le .tex | calculé
+    tombe g-l12-8-3-r lot 2.6667 juge 2.66933333 | jamais utilisée dans le .tex | kb / v
+    tombe g-l12-3-1-db lot 1.0214 juge 1.02244849 | jamais utilisée dans le .tex | calculé
+    tombe g-l12-3-1-r lot 3 juge 3.003 | jamais utilisée dans le .tex | kb / v
+    tombe g-l12-4-1-db lot 1.6582 juge 1.65953607 | jamais utilisée dans le .tex | calculé
+    tombe g-l12-4-1-r lot 4 juge 4.004 | jamais utilisée dans le .tex | kb / v
+    tombe g-l16-formes lot 7 juge 7.007 | jamais utilisée dans le .tex | gauss-balayage.jsonl : formes distinctes (fort, q = 8, sans Lloyd)
+    tient à l'impression g-l16-db-min lot 0.289 juge 0.289334764 | Nombre[2] 0.29=0.29 | calculé : 10 log10(mse / 2^(−2 kb/v))
+    tient à l'impression g-l16-db-max lot 1.0802 juge 1.08098988 | Nombre[2] 1.08=1.08 | calculé
+    tombe g-l16-1-1-db lot 0.289 juge 0.289334764 | jamais utilisée dans le .tex | calculé
+    tombe g-l16-1-1-r lot 1 juge 1.001 | jamais utilisée dans le .tex | kb / v
+    tombe g-l16-2-1-db lot 0.3346 juge 0.334958201 | jamais utilisée dans le .tex | calculé
+    tombe g-l16-2-1-r lot 2 juge 2.002 | jamais utilisée dans le .tex | kb / v
+    tombe g-l16-7-3-db lot 0.574 juge 0.574584584 | jamais utilisée dans le .tex | calculé
+    tombe g-l16-7-3-r lot 2.3333 juge 2.33566667 | jamais utilisée dans le .tex | kb / v
+    tombe g-l16-5-2-db lot 0.5044 juge 0.504951663 | jamais utilisée dans le .tex | calculé
+    tombe g-l16-5-2-r lot 2.5 juge 2.5025 | jamais utilisée dans le .tex | kb / v
+    tombe g-l16-8-3-db lot 0.7067 juge 0.707385562 | jamais utilisée dans le .tex | calculé
+    tombe g-l16-8-3-r lot 2.6667 juge 2.66933333 | jamais utilisée dans le .tex | kb / v
+    tombe g-l16-3-1-db lot 0.553 juge 0.553602282 | jamais utilisée dans le .tex | calculé
+    tombe g-l16-3-1-r lot 3 juge 3.003 | jamais utilisée dans le .tex | kb / v
+    tombe g-l16-4-1-db lot 1.0802 juge 1.08098988 | jamais utilisée dans le .tex | calculé
+    tombe g-l16-4-1-r lot 4 juge 4.004 | jamais utilisée dans le .tex | kb / v
+    tombe g-fen-8 lot 0.087993 juge 0.088080993 | Nombre[4] 0.0880≠0.0881 | gauss-balayage.jsonl
+    tombe g-fen-10 lot 0.078462 juge 0.078540462 | jamais utilisée dans le .tex | gauss-balayage.jsonl
+    tombe g-fen-12 lot 0.072824 juge 0.072896824 | Nombre[4] 0.0728≠0.0729 | gauss-balayage.jsonl
+    tombe g-fen-14 lot 0.069406 juge 0.069475406 | jamais utilisée dans le .tex | gauss-balayage.jsonl
+    tombe g-fen-16 lot 0.067506 juge 0.067573506 | Nombre[4] 0.0675≠0.0676 | gauss-balayage.jsonl
+    tient à l'impression g-var-court lot 0.072067 juge 0.072139067 | Nombre[4] 0.0721=0.0721 | gauss-balayage.jsonl
+    tombe g-var-court-db lot 0.618564 juge 0.619182827 | jamais utilisée dans le .tex | calculé
+    tombe g-var-lloyd3 lot 0.072191 juge 0.072263191 | Nombre[4] 0.0722≠0.0723 | gauss-balayage.jsonl
+    tombe g-var-lloyd3-db lot 0.62603 juge 0.626656435 | jamais utilisée dans le .tex | calculé
+    tombe g-var-q10 lot 0.072828 juge 0.072900828 | Nombre[4] 0.0728≠0.0729 | gauss-balayage.jsonl
+    tombe g-var-q10-db lot 0.664184 juge 0.664847846 | jamais utilisée dans le .tex | calculé
+    tombe g-var-q6 lot 0.073239 juge 0.073312239 | Nombre[4] 0.0732≠0.0733 | gauss-balayage.jsonl
+    tombe g-var-q6-db lot 0.688624 juge 0.689312509 | jamais utilisée dans le .tex | calculé
+    tient à l'impression g-t1 lot 0.073051 juge 0.073124051 | Nombre[4] 0.0731=0.0731 | gauss-T1.json
+    tombe g-t1-db lot 0.677461 juge 0.678138942 | coordonnée | calculé
+    tient à l'impression g-t1-rangees lot 128 juge 128.128 | Entier[0] 128=128 | gauss-T1.json
+    tient à l'impression g-rangees lot 64 juge 64.064 | Entier[0] 64=64 | gauss-balayage.jsonl : rangées distinctes [32, 64] (la légende n'en dit qu'une)
+    tombe g-longueur lot 2880 juge 2882.88 | Entier[0] 2880≠2883 | poids / rangées
+    tombe g-shannon-2 lot 0.0625 juge 0.0625625 | Nombre[4] 0.0625≠0.0626 | 2^(−2·2)
+    tient à l'impression g-q lot 8 juge 8.008 | Entier[0] 8=8 | q des formes
+    tombe v-0-gate-bits lot 2.62344 juge 2.62606722 | coordonnée | verdict-par-tenseur.csv : bits_frontiere
+    tombe v-0-gate-err lot 0.043936 juge 0.0439799426 | coordonnée | verdict-par-tenseur.csv : erreur_base
+    tombe v-0-gate-tourne lot 2.40046 juge 2.40285971 | coordonnée | verdict-par-tenseur.csv : bits_tourne (courbe interpolée : 2.40046)
+    tient à l'impression v-0-gate-gain lot 0.222985 juge 0.223207507 | Nombre[2] 0.22=0.22 | calculé : bits_frontiere − bits_tourne
+    tombe v-0-up-bits lot 2.64224 juge 2.64488402 | coordonnée | verdict-par-tenseur.csv : bits_frontiere
+    tombe v-0-up-err lot 0.0438905 juge 0.0439343865 | coordonnée | verdict-par-tenseur.csv : erreur_base
+    tombe v-0-up-tourne lot 2.42906 juge 2.43148543 | coordonnée | verdict-par-tenseur.csv : bits_tourne (courbe interpolée : 2.42908)
+    tient à l'impression v-0-up-gain lot 0.213185 juge 0.213398593 | Nombre[2] 0.21=0.21 | calculé : bits_frontiere − bits_tourne
+    tombe v-0-down-bits lot 2.6558 juge 2.65845257 | coordonnée | verdict-par-tenseur.csv : bits_frontiere
+    tombe v-0-down-err lot 0.0413689 juge 0.0414102512 | coordonnée | verdict-par-tenseur.csv : erreur_base
+    tombe v-0-down-tourne lot 2.06039 juge 2.06244658 | coordonnée | verdict-par-tenseur.csv : bits_tourne (courbe interpolée : 2.06039)
+    tient à l'impression v-0-down-gain lot 0.595411 juge 0.596005993 | Nombre[2] 0.60=0.60 | calculé : bits_frontiere − bits_tourne
+    tombe v-8-gate-bits lot 2.65974 juge 2.66240052 | coordonnée | verdict-par-tenseur.csv : bits_frontiere
+    tombe v-8-gate-err lot 0.0402158 juge 0.0402560373 | coordonnée | verdict-par-tenseur.csv : erreur_base
+    tombe v-8-gate-tourne lot 2.241 juge 2.2432457 | coordonnée | verdict-par-tenseur.csv : bits_tourne (courbe interpolée : 2.24101)
+    tient à l'impression v-8-gate-gain lot 0.418736 juge 0.41915482 | Nombre[2] 0.42=0.42 | calculé : bits_frontiere − bits_tourne
+    tombe v-8-up-bits lot 2.64243 juge 2.64507121 | coordonnée | verdict-par-tenseur.csv : bits_frontiere
+    tombe v-8-up-err lot 0.0406785 juge 0.0407192123 | coordonnée | verdict-par-tenseur.csv : erreur_base
+    tombe v-8-up-tourne lot 2.43907 juge 2.44150837 | coordonnée | verdict-par-tenseur.csv : bits_tourne (courbe interpolée : 2.43909)
+    tient à l'impression v-8-up-gain lot 0.203359 juge 0.203562842 | Nombre[2] 0.20=0.20 | calculé : bits_frontiere − bits_tourne
+    tombe v-8-down-bits lot 2.64446 juge 2.64710224 | coordonnée | verdict-par-tenseur.csv : bits_frontiere
+    tombe v-8-down-err lot 0.0463145 juge 0.0463608252 | coordonnée | verdict-par-tenseur.csv : erreur_base
+    tombe v-8-down-tourne lot 2.41302 juge 2.41543137 | coordonnée | verdict-par-tenseur.csv : bits_tourne (courbe interpolée : 2.41303)
+    tient à l'impression v-8-down-gain lot 0.231439 juge 0.231670869 | Nombre[2] 0.23=0.23 | calculé : bits_frontiere − bits_tourne
+    tombe v-16-gate-bits lot 2.65689 juge 2.65954767 | coordonnée | verdict-par-tenseur.csv : bits_frontiere
+    tombe v-16-gate-err lot 0.0422683 juge 0.0423105869 | coordonnée | verdict-par-tenseur.csv : erreur_base
+    tombe v-16-gate-tourne lot 2.26605 juge 2.26831291 | coordonnée | verdict-par-tenseur.csv : bits_tourne (courbe interpolée : 2.26605)
+    tient à l'impression v-16-gate-gain lot 0.390844 juge 0.391234757 | Nombre[2] 0.39=0.39 | calculé : bits_frontiere − bits_tourne
+    tombe v-16-up-bits lot 2.66529 juge 2.66795206 | coordonnée | verdict-par-tenseur.csv : bits_frontiere
+    tombe v-16-up-err lot 0.0408932 juge 0.0409340648 | coordonnée | verdict-par-tenseur.csv : erreur_base
+    tombe v-16-up-tourne lot 2.39054 juge 2.39292704 | coordonnée | verdict-par-tenseur.csv : bits_tourne (courbe interpolée : 2.39054)
+    tombe v-16-up-gain lot 0.27475 juge 0.275025028 | Nombre[2] 0.27≠0.28 | calculé : bits_frontiere − bits_tourne
+    tombe v-16-down-bits lot 2.63021 juge 2.63284399 | coordonnée | verdict-par-tenseur.csv : bits_frontiere
+    tombe v-16-down-err lot 0.0420298 juge 0.0420718148 | coordonnée | verdict-par-tenseur.csv : erreur_base
+    tombe v-16-down-tourne lot 2.29202 juge 2.29431294 | coordonnée | verdict-par-tenseur.csv : bits_tourne (courbe interpolée : 2.29203)
+    tient à l'impression v-16-down-gain lot 0.338193 juge 0.33853105 | Nombre[2] 0.34=0.34 | calculé : bits_frontiere − bits_tourne
+    tombe v-23-gate-bits lot 2.64058 juge 2.64322036 | coordonnée | verdict-par-tenseur.csv : bits_frontiere
+    tombe v-23-gate-err lot 0.0432269 juge 0.0432700806 | coordonnée | verdict-par-tenseur.csv : erreur_base
+    tombe v-23-gate-tourne lot 2.22034 juge 2.2225629 | coordonnée | verdict-par-tenseur.csv : bits_tourne (courbe interpolée : 2.22035)
+    tient à l'impression v-23-gate-gain lot 0.420237 juge 0.420657462 | Nombre[2] 0.42=0.42 | calculé : bits_frontiere − bits_tourne
+    tombe v-23-up-bits lot 2.62559 juge 2.62821537 | coordonnée | verdict-par-tenseur.csv : bits_frontiere
+    tombe v-23-up-err lot 0.04254 juge 0.0425825227 | coordonnée | verdict-par-tenseur.csv : erreur_base
+    tombe v-23-up-tourne lot 2.37679 juge 2.37916308 | coordonnée | verdict-par-tenseur.csv : bits_tourne (courbe interpolée : 2.37680)
+    tient à l'impression v-23-up-gain lot 0.248803 juge 0.249052284 | Nombre[2] 0.25=0.25 | calculé : bits_frontiere − bits_tourne
+    tombe v-23-down-bits lot 2.64345 juge 2.64609223 | coordonnée | verdict-par-tenseur.csv : bits_frontiere
+    tombe v-23-down-err lot 0.0425996 juge 0.0426422146 | coordonnée | verdict-par-tenseur.csv : erreur_base
+    tombe v-23-down-tourne lot 2.36907 juge 2.37143748 | coordonnée | verdict-par-tenseur.csv : bits_tourne (courbe interpolée : 2.36908)
+    tient à l'impression v-23-down-gain lot 0.27438 juge 0.27465475 | Nombre[2] 0.27=0.27 | calculé : bits_frontiere − bits_tourne
+    tombe v-gain-moyen lot 0.31936 juge 0.319679663 | Nombre[3] 0.319≠0.320 | calculé
+    tient à l'impression v-gain-min lot 0.203359 juge 0.203562842 | Nombre[2] 0.20=0.20 | calculé
+    tient à l'impression v-gain-max lot 0.595411 juge 0.596005993 | Nombre[2] 0.60=0.60 | calculé
+    tient à l'impression v-tenseurs lot 12 juge 12.012 | Entier[0] 12=12 | verdict-par-tenseur.csv : lignes
+    tient à l'impression v-brut-manquants lot 1 juge 1.001 | Entier[0] 1=1 | verdict-par-tenseur.csv : bits_brut = nan
+    tombe c-tourne-points lot 3962 juge 3965.962 | jamais utilisée dans le .tex | courbes-tourne-l12.csv hors « global »
+    tombe c-brut-points lot 3839 juge 3842.839 | jamais utilisée dans le .tex | courbes-brut-l12.csv hors « global »
+duplication  {'tient': 1, "tient à l'impression": 23, 'tombe': 16, 'choix': 0, 'non refaite': 0, 'jamais utilisée': 0}
+    tombe s-intra-n lot 496 juge 496.496 | jamais utilisée dans le .tex | scores-parente.csv
+    tombe s-intra-max lot 0.0425035 juge 0.0425459967 | jamais utilisée dans le .tex | scores-parente.csv
+    tombe s-intra-med lot 0.00658415 juge 0.00659073183 | jamais utilisée dans le .tex | scores-parente.csv : médiane (numpy)
+    tombe s-voisine-n lot 372 juge 372.372 | jamais utilisée dans le .tex | scores-parente.csv
+    tombe s-voisine-max lot 0.0338933 juge 0.0339271809 | jamais utilisée dans le .tex | scores-parente.csv
+    tombe s-voisine-med lot 0.00437491 juge 0.00437928697 | jamais utilisée dans le .tex | scores-parente.csv : médiane (numpy)
+    tombe s-meme_indice-n lot 12 juge 12.012 | jamais utilisée dans le .tex | scores-parente.csv
+    tombe s-meme_indice-max lot 0.0175926 juge 0.0176101986 | jamais utilisée dans le .tex | scores-parente.csv
+    tombe s-meme_indice-med lot 0.00510634 juge 0.00511144253 | jamais utilisée dans le .tex | scores-parente.csv : médiane (numpy)
+    tombe s-n lot 880 juge 880.88 | Entier[0] 880≠881 | scores-parente.csv : lignes
+    tient à l'impression s-couches lot 4 juge 4.004 | Entier[0] 4=4 | scores-parente.csv
+    tient à l'impression s-couche-1 lot 8 juge 8.008 | Entier[0] 8=8 | scores-parente.csv
+    tient à l'impression s-couche-2 lot 16 juge 16.016 | Entier[0] 16=16 | scores-parente.csv
+    tient à l'impression s-couche-3 lot 23 juge 23.023 | Entier[0] 23=23 | scores-parente.csv
+    tient à l'impression s-enfants lot 4 juge 4.004 | Entier[0] 4=4 | scores-parente.csv : enfants par couche
+    tient à l'impression s-max lot 0.0425035 juge 0.0425459967 | Nombre[4] 0.0425=0.0425 | scores-parente.csv
+    tombe s-min lot 0.00184986 juge 0.00185171076 | Nombre[4] 0.0018≠0.0019 | scores-parente.csv
+    tient à l'impression t-hasard lot 0.00156502 juge 0.00156658893 | Nombre[4] 0.0016=0.0016 ; coordonnée | planter-0.5 : moyenne des témoins de hasard (refaite)
+    tombe t-plante-attendu lot 0.207519 juge 0.207726268 | Nombre[4] 0.2075≠0.2077 ; coordonnée | calculé : −½ log2(1 − ρ²)
+    tombe t-plante-mesure lot 0.207652 juge 0.207860143 | Nombre[4] 0.2077≠0.2079 | planter-0.5 : score_0_1
+    tient à l'impression t-rho lot 0.5 juge 0.5005 | Nombre[1] 0.5=0.5 | planter-0.5 : rho0
+    tient à l'impression t-couche lot 12 juge 12.012 | Entier[0] 12=12 | planter-0.5 : arguments.couche
+    tient à l'impression s-sur-hasard lot 27.1584 juge 27.1855251 | Nombre[0] 27=27 | calculé
+    tient à l'impression s-sous-plante lot 4.88239 juge 4.88727521 | Nombre[1] 4.9=4.9 | calculé
+    tient à l'impression s-par-voisine lot 31 juge 31.031 | Entier[0] 31=31 | scores-parente.csv : candidats voisins par enfant
+    tient à l'impression s-par-intra lot 31 juge 31.031 | Entier[0] 31=31 | scores-parente.csv : candidats intra par enfant
+    tient à l'impression a-experts lot 32 juge 32.032 | Entier[0] 32=32 | arbre-c23.json
+    tient à l'impression a-aretes lot 31 juge 31.031 | Entier[0] 31=31 | Kruskal refait ; mêmes arêtes que arbre-c23.json : True
+    tient à l'impression a-paires lot 496 juge 496.496 | Entier[0] 496=496 | arbre-c23.json : paires
+    tombe a-variance lot 0.309339 juge 0.309648047 | Pct[1] 30.9≠31.0 | MDS classique refaite : Σ 2 premières valeurs propres positives / Σ positives
+    tient à l'impression a-spearman lot 0.605074 juge 0.605678722 | Nombre[2] 0.61=0.61 | Spearman refait (plan contre d)
+    tient à l'impression a-temoin lot 0.111118 juge 0.11122954 | Nombre[2] 0.11=0.11 | phylogenie-c23.json (une seule permutation ; non refait au bit, voir journaux/temoin-mds.csv)
+    tombe a-smax lot 0.0891832 juge 0.0892723638 | Nombre[3] 0.089=0.089 ; Nombre[4] 0.0892≠0.0893 | arbre-c23.json : max des paires
+    tient à l'impression a-moyeu lot 31 juge 31.031 | Entier[0] 31=31 | Kruskal refait : degré maximal 5 PARTAGÉ par [22, 29, 31] ; 31 a la plus grande somme d'arêtes (0.3348 bit)
+    tient à l'impression a-moyeu-degre lot 5 juge 5.005 | Entier[0] 5=5 | Kruskal refait
+    tient à l'impression a-score-min lot 0.00366 juge 0.00366366 | Nombre[4] 0.0037=0.0037 | Kruskal refait : arête la plus faible (5 décimales comme le CSV)
+    tient à l'impression a-feuilles lot 16 juge 16.016 | Entier[0] 16=16 | Kruskal refait : degré 1
+    tient à l'impression a-max-i lot 17 juge 17.017 | Entier[0] 17=17 | Kruskal refait : arête la plus lourde
+    tombe a-max-j lot 31 juge 31.031 | jamais utilisée dans le .tex | Kruskal refait : arête la plus lourde

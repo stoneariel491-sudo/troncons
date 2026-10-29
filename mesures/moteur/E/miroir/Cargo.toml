@@ -1,0 +1,47 @@
+# Espace de construction du banc E2 (lot E), hors de l'espace de travail du moteur.
+#
+# Pourquoi : (1) le banc prend trc-format (lot F) et trc-noyaux (lot K) par chemin ; construire dans
+# moteur/ réécrirait moteur/Cargo.lock, qui est au lot O ; (2) les lots compilent et éditent en
+# même temps : les crates des autres lots sont prises dans un INSTANTANÉ du dépôt au commit courant
+# (`git archive HEAD moteur`, posé par construire.bat e2 sous
+# ~\dev\cibles\troncons-E\instantane), jamais dans leur arbre de travail en cours
+# d'édition. Les sources du banc (bins/banc-chemin) sont celles de l'arbre de travail, les seules
+# de ce lot. Le pilote d'E2 journalise le commit de l'instantané.
+#
+# Les crates de l'instantané gardent leurs `x.workspace = true`, résolus dans leur propre espace
+# (instantane/moteur/Cargo.toml) ; aucune dépendance hors couture D (§ 2.4).
+[workspace]
+resolver = "3"
+
+[package]
+name = "banc-chemin"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+publish = false
+build = "~/dev/active/troncons/moteur/bins/banc-chemin/build.rs"
+
+[[bin]]
+name = "banc-chemin"
+path = "~/dev/active/troncons/moteur/bins/banc-chemin/src/main.rs"
+
+[dependencies]
+trc-cuda = { path = "~/dev/cibles/troncons-E/instantane/moteur/crates/trc-cuda" }
+trc-es = { path = "~/dev/cibles/troncons-E/instantane/moteur/crates/trc-es" }
+trc-format = { path = "~/dev/cibles/troncons-E/instantane/moteur/crates/trc-format" }
+trc-noyaux = { path = "~/dev/cibles/troncons-E/instantane/moteur/crates/trc-noyaux" }
+serde_json = "=1.0.151"
+windows-sys = { version = "=0.61.2", features = [
+    "Win32_Foundation",
+    "Win32_System_Power",
+    "Win32_System_SystemInformation",
+    "Win32_System_Threading",
+    "Win32_System_ProcessStatus",
+    "Win32_System_Performance",
+    "Win32_System_Memory",
+] }
+
+[profile.release]
+opt-level = 3
+debug = "line-tables-only"
+codegen-units = 16

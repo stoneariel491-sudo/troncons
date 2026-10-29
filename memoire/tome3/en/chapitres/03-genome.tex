@@ -1,0 +1,459 @@
+% Volume~III, chapter 3: the genome of the weights (English version).
+% Translated on 2026-10-29 by translator EN1 from memoire/tome3/fr/chapitres/03-genome.tex (writer A,
+% corrected: G2, M7), number for number, same labels. Sources as in the French chapter: genome/genome.md,
+% genome/genome-pour-le-memoire.md, mesures/genome/genome/ (00-seuils-declares.md, csv/, kl/, *.json),
+% genome/05-synthese.md §§ 1.2, 2.2, 2.4. Reserve R4: the KL ratio of S* comes from the K10 pass
+% (kl/comparer10-base-contre-recette.json); the old 3-window number is struck out.
+% Figures (judged, unchanged): III-3.4 \GrapheGenGauss, III-3.6 \GrapheGenCourbes.
+\chapter{The genome of the weights: the recipe, the seed, \texorpdfstring{$S^{*}$}{S*}}\label{t3gen:ch}
+
+\begin{origine}
+\textbf{The starting point} is the frontier (3.8431 bits lossless; a base of 2.6441 bits at 4.2920\,\% error on the weights, on the 12 tensors of F1), codes almost independent given their scale, and Stone's instruction for this subject, on 2026-10-16: ``le but est de concevoir un systeme fonctionnel et si il ne voye rien de convaincaint vers l'ADN au terme ils recherche le moyen biomimétique le plus prométeur jusqu'à trouver'' (the goal is to design a working system, and if they see nothing convincing towards DNA in the end, they search for the most promising biomimetic means until they find it). The reading (\cref{t3que:ch}) predicted that a recipe would gain nothing losslessly, and that with loss it would at best aim at the bound of the weights.
+\textbf{This chapter establishes} that the literal recipe (a seed and coefficients, in the manner of SeedLM) does not beat the frontier, and says so before the measurement through a lemma on the best of $N$ random subspaces; that the same idea, brought to the dimension of a whole row and made searchable by the Viterbi algorithm (the \emph{strand read through codons}), beats it on the 12 tensors in weight error, by 0.20 to 0.60 bit; that at the same point it loses in output error, and why (a table that clips the massive columns); that the corrected system, $S^{*}$, wins in expert output 8 times out of 8, but that its end-to-end KL is \textbf{equal} to that of the base. It also proves that no recipe followed by an exact complement goes below the entropy of the codes.
+\textbf{What remains} is the kernel on the card, the format of a ``STRAND'' stream kind, error feedback between columns combined with the strand, and the KL with all the experts coded.
+Sources: \fichier{genome/genome.md}; \fichier{genome/genome-pour-le-memoire.md}; \fichier{mesures/genome/genome/00-seuils-declares.md}, \fichier{csv/}, \fichier{kl/}, the logs \texttt{*.json}; \fichier{genome/05-synthese.md} §§\,1.2, 2.2, 2.4; tools under \fichier{outils/genome/recette/} and \fichier{outils/genome/recette-kl/}.
+\end{origine}
+
+\begin{enbref}
+Messenger RNA is read three bases at a time, from a fixed starting point, without commas, and each codon is translated by a fixed and degenerate table (\cref{t3int:sec:genome}). The chapter takes this image seriously, as an image: a \emph{strand} of bits stored for each row of a matrix, a 12-bit window that slides along the strand and returns a weight at each step through a table of 256 values, learnt on the tensor, as the genetic code is fixed for a species. The best strand is found exactly by dynamic programming. This codon reader wins where a short seed loses, because its dimension is unlimited. But it wins in weight error and loses at the output: its table clips the few giant columns that the real inputs read most. Once these columns are kept apart, it wins in expert output, and the divergence on text does not move. That is the lesson of the chapter, and of the round: every intermediate judge can be wrong, and only the text decides.
+\end{enbref}
+
+\section{The question and its judge}\label{t3gen:sec:question}
+
+A recipe ``works'' if it reads fewer bits per weight from the disk at equal error; the gain is read in the roof~\eqref{t3que:eq:toit}. The thresholds are in \fichier{mesures/genome/genome/00-seuils-declares.md}, committed before any measurement of a recipe (commit \texttt{e777d6d}, then the clarification of the sample, \texttt{2698ccd}, before the first pass).
+
+\paragraph{Criterion W.} On the sample (experts 0, 8, 16 and 24 of each of the 12 tensors; one row in four, 720 whole rows per expert, 34\,560 rows, 99.5 million weights), at the relative error of the base \emph{measured on the same rows}, the recipe reads fewer bits than the frontier F1 of the same tensor \emph{on each of the 12 tensors} and globally. A recipe without effect would pass all 12 with probability $2^{-12} \approx 2.4\cdot10^{-4}$ (sign test) \calc. The error is $e = \sum (w - \hat w)^2 / \sum w^2$ in the real domain of the weights, scale included, accumulated over the rows of the tensor: the measure of the frontier. Criteria O (output of a layer of experts), F (fidelity as a function of rate), K (KL), C (transcription) and L (exact complement) are declared in the same file; each is judged where it is measured.
+
+\section{The seed: the literal recipe, and why it cannot suffice}\label{t3gen:sec:graine}
+
+\subsection{The mechanism}
+
+A block of $C$ weights $w \in \mathbb{R}^C$ is approximated by $\hat w = U(g)\,t$, where $U(g)$ is a $C \times P$ matrix drawn from a pseudo-random generator by a seed $g$ of $K$ bits, and $t \in \mathbb{R}^P$ are quantised coefficients (4-bit two's-complement integers, a shared 4-bit exponent). The encoder tries the $2^K$ seeds, projects $w$ onto each subspace (pseudo-inverse precomputed by Cholesky), quantises, keeps the best. Rate: $(K + 4 + 4P)/C$ bits per weight. This is the form of SeedLM's problem~\cite{shafipour2024seedlm}; the code is written from scratch (\fichier{outils/genome/recette/}). Two generators: a 16-bit Galois LFSR ($x^{16} + x^{14} + x^{13} + x^{11} + 1$, period 65\,535 checked by the test \texttt{periode\_maximale}) and a counter-based bit mixer. Control T3: a block generated exactly by a seed and quantisable coefficients is recovered at zero error (\texttt{bloc\_engendre\_retrouve\_exactement}).
+
+\subsection{What theory allows, before any measurement}
+
+\begin{lemme}[The best of $N$ random subspaces]\label{t3gen:lem:beta}
+Let $w$ be a uniform direction on the sphere of $\mathbb{R}^C$ and $V$ a uniform random subspace of dimension $P$, independent of $w$. The share of energy outside $V$, $\rho = \|P_{V^\perp} w\|^2 / \|w\|^2$, follows the law $\mathrm{Beta}(a, b)$ with $a = (C - P)/2$ and $b = P/2$.
+\end{lemme}
+
+\begin{proof}
+By rotation invariance, one can fix $V = \mathrm{span}(e_1, \ldots, e_P)$ and take $w = z / \|z\|$ with $z$ standard Gaussian in $\mathbb{R}^C$. Then $\rho = \sum_{i > P} z_i^2 / \sum_i z_i^2 = X/(X + Y)$ with $X = \sum_{i>P} z_i^2 \sim \chi^2_{C-P}$ and $Y = \sum_{i \le P} z_i^2 \sim \chi^2_P$, independent. The ratio $X/(X+Y)$ of two independent chi-squares with $2a$ and $2b$ degrees of freedom has, by definition, the law $\mathrm{Beta}(a, b)$.
+\end{proof}
+
+\begin{corollaire}[The expected minimal residual]\label{t3gen:cor:beta}
+For $N = 2^K$ independent subspaces, with residuals $\rho_1, \ldots, \rho_N$, and $F$ the distribution function of $\mathrm{Beta}(a, b)$,
+\begin{equation}\label{t3gen:eq:minrho}
+\E\bigl[\min_i \rho_i\bigr] = \int_0^1 \bigl(1 - F(\varepsilon)\bigr)^N\, \dd\varepsilon \ \approx\ \Gamma\Bigl(1 + \frac1a\Bigr) \Bigl(\frac{a\, B(a, b)}{N}\Bigr)^{1/a} .
+\end{equation}
+\end{corollaire}
+
+\begin{proof}
+For a non-negative variable, $\E[M] = \int_0^\infty \Prob(M > \varepsilon)\,\dd\varepsilon$; for $M = \min_i \rho_i$ and independent identically distributed $\rho_i$, $\Prob(M > \varepsilon) = (1 - F(\varepsilon))^N$, and $\rho \le 1$. For the asymptote, the density of $\mathrm{Beta}(a, b)$ is $\varepsilon^{a-1}(1-\varepsilon)^{b-1}/B(a,b) \approx \varepsilon^{a-1}/B(a,b)$ near 0, hence $F(\varepsilon) \approx \varepsilon^a / (a\, B(a,b))$. For large $N$, only the region where $F$ is small counts, and $(1 - F)^N \approx \exp(-N F) = \exp(-c\, \varepsilon^a)$ with $c = N/(a B(a,b))$. The change of variable $u = c\,\varepsilon^a$ gives $\int_0^\infty e^{-c\varepsilon^a}\dd\varepsilon = c^{-1/a}\,\frac1a \int_0^\infty u^{1/a - 1} e^{-u}\,\dd u = c^{-1/a}\,\Gamma(1 + 1/a)$, which is~\eqref{t3gen:eq:minrho}.
+\end{proof}
+
+The exact computation by quadrature (\fichier{outils/genome/recette/graine\_theorie.py}, \fichier{graine-theorie.json}), before any quantisation of the coefficients (which can only add error), gives \cref{t3gen:tab:theorie} \calc.
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabular}{l r r r}
+\toprule
+$(C, P, K)$ & rate (bits per weight) & expected minimal residual & Shannon bound at the same rate \\
+\midrule
+(8, 3, 16) & 4.00 & 0.79\,\% & 0.39\,\% \\
+(12, 4, 16) & 3.00 & 3.82\,\% & 1.56\,\% \\
+(12, 3, 16) & 2.67 & \textbf{6.32\,\%} & 2.48\,\% \\
+(14, 4, 16) & 2.57 & 7.07\,\% & 2.83\,\% \\
+(16, 5, 16) & 2.50 & 7.84\,\% & 3.13\,\% \\
+(16, 4, 16) & 2.25 & 10.74\,\% & 4.42\,\% \\
+(8, 1, 16) & 3.00 & 5.35\,\% & 1.56\,\% \\
+\bottomrule
+\end{tabular}
+\caption[The seed predicted by lemma 1]{The expected minimal residual of the seed on an isotropic source, by \cref{t3gen:lem:beta} and its corollary, before quantisation of the coefficients \calc. The Shannon bound of a Gaussian, $2^{-2R}$, is given at the same rate. Data: \fichier{mesures/genome/genome/graine-theorie.json}; \fichier{genome/genome.md} §\,2.2.}
+\label{t3gen:tab:theorie}
+\end{table}
+
+\paragraph{What this says, before the measurement.} Around 2.64 bits, the seed leaves \emph{at least} 6.3\,\% error on an isotropic source, where the base leaves 4.29\,\%; to reach 4.29\,\%, it needs nearly 3 bits. The reason fits in one line: the $K$ bits of the seed buy a random codebook of $2^K$ subspaces in a dimension $C \le 16$. Shannon proves that the random codebook reaches the rate--distortion function~\cite{shannon1959}, but \emph{as the dimension tends to infinity}; at $C = 8$ or 12, the gap to the bound is a factor 2.5 in error. And the $4P + 4$ bits of the coefficients describe a fine position in a subspace chosen at random: they pay for a precision that the coarse choice of the subspace has already lost.
+
+\subsection{The measurement}
+
+\texttt{genome graines} (\fichier{graines.jsonl}, \fichier{graines.log}): expert 0 of each of the 12 tensors, 32 rows spread over the whole height, whole rows; the error of the base, measured on the same weights, is 4.559\,\% on this sample (\cref{t3gen:tab:graine}).
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabular}{l r r r}
+\toprule
+$(C, P, K)$, generator & rate & measured error & prediction of \cref{t3gen:lem:beta} \\
+\midrule
+(8, 3, 16), mixer & 4.00 & 1.41\,\% & 0.79\,\% \\
+(8, 3, 16), LFSR & 4.00 & 1.58\,\% & 0.79\,\% \\
+(10, 3, 16) & 3.20 & 3.89\,\% & 2.98\,\% \\
+(12, 4, 16) & 3.00 & 4.89\,\% & 3.82\,\% \\
+(8, 1, 16), shape-gain & 3.00 & 7.34\,\% & 5.35\,\% \\
+(12, 3, 16) & 2.67 & 7.51\,\% & 6.32\,\% \\
+(14, 4, 16) & 2.57 & 8.24\,\% & 7.07\,\% \\
+(16, 5, 16) & 2.50 & 9.10\,\% & 7.84\,\% \\
+(12, 2, 16) & 2.33 & 11.76\,\% & 9.99\,\% \\
+(16, 4, 16) & 2.25 & 12.15\,\% & 10.74\,\% \\
+\bottomrule
+\end{tabular}
+\caption[The seed measured against theory]{The seed measured on the real weights, against \cref{t3gen:lem:beta} \mes~\calc. Data: \fichier{mesures/genome/genome/graines.jsonl}, \fichier{csv/graine-mesure-theorie.csv}.}
+\label{t3gen:tab:graine}
+\end{table}
+
+The lemma holds on the real weights: the measurement follows the prediction, plus the quantisation of the coefficients (0.6 to 2 points). Real blocks of weights behave, for the seed, like uniform directions: no concentration that the best of $2^{16}$ subspaces could have seized. At the error of the base, the seed needs \textbf{3.06 bits per weight} (interpolation in the log of the error between (12, 4) and (10, 3); linearly, 3.07 \calc), against 2.64: \textbf{it does not beat the frontier}, by 0.42 bit. It does not even beat lossless coding (1.4\,\% error for 4 bits, when 3.84 bits restore the weights exactly). The generator does not matter: LFSR and mixer give 1.58 and 1.41\,\%, the gap coming from the correlation of the successive states of an LFSR, which shift the same bits by one place.
+
+\section{The seed that grows: the strand read through codons}\label{t3gen:sec:brin}
+
+\subsection{The idea}
+
+If the defect of the seed is its dimension, one needs a seed \emph{as long as the row}, and a way to search for it. Messenger RNA is read by the ribosome three bases at a time, from a fixed starting point, without commas~\cite{genome-crick1961}, and each codon is translated by a fixed and degenerate table~\cite{genome-crick1968}. Transposed, as an analogy of construction:
+\begin{itemize}
+\item the \textbf{strand}: a sequence of bits stored on the disk, one per row of a matrix;
+\item the \textbf{reading window}: $l$ bits; it advances by $k_b$ bits at each step and returns $v$ weights. Two neighbouring steps share $l - k_b$ bits: the codons overlap, and that is where the strand differs from RNA;
+\item the \textbf{genetic code}: the window $s \in \{0, \ldots, 2^l - 1\}$ is translated into $v$ values by $\texttt{table}[\texttt{hache}(s, j) \gg (32 - q)]$, $j < v$: a bit mixer chooses a cell of a table of $2^q$ values; $2^l$ windows for $2^q$ meanings, a degenerate code like the real one;
+\item the \textbf{adaptation of the organism}: the table is learnt on the weights of the tensor (Lloyd: each cell takes the weighted mean of the weights it serves).
+\end{itemize}
+Rate: $k_b / v$ bits per weight, plus the first window ($l$ bits per row). It is a trellis code, the ``bit-shift'' trellis of Mao and Gray, taken up with computed codes by QTIP~\cite{genome-mao2010,genome-qtip}; trellis-coded quantisation goes back to Marcellin and Fischer~\cite{marcellin1990,genome-fischer1991}. \emph{They pose the problem thus}: an i.i.d. Gaussian source, after a random rotation. \emph{What we lacked}, and what is derived here: its use on a model born in 4 bits against a base already nested in the format; the distribution of the bits between rows by their energy, measured and decomposed; the complete accounting against the frontier F1 of the \texttt{.trc} format. The code is written from scratch (\fichier{outils/genome/recette/src/codons.rs}).
+
+\subsection{The best strand: Viterbi, and why it is exact}
+
+The state at step $p$ is the window $s_p$ ($l$ bits). The transition $s \to s'$ is allowed if and only if the $l - k_b$ high bits of $s'$ are the $l - k_b$ low bits of $s$, that is $s' = ((s \ll k_b) \mid b) \bmod 2^l$ for some $b < 2^{k_b}$.
+
+\begin{lemme}[The predecessors in the bit-shift trellis]\label{t3gen:lem:pred}
+The predecessors of $s'$ are exactly the $s = (t \ll (l - k_b)) \mid u$, $t < 2^{k_b}$, with $u = s' \gg k_b$. They depend on $s'$ only through $u$.
+\end{lemme}
+
+\begin{proof}
+The transition writes $s' = ((s \ll k_b) \mid b) \bmod 2^l$: the $l - k_b$ high bits of $s'$ are the $l - k_b$ low bits of $s$, and its $k_b$ low bits are $b$. So $s' \gg k_b = s \bmod 2^{l - k_b}$: $u$ fixes the $l - k_b$ low bits of $s$, and its $k_b$ high bits, $t$, are free. Conversely, every $s$ of this form leads to $s'$ with $b = s' \bmod 2^{k_b}$.
+\end{proof}
+
+\begin{proposition}[Exactness of the Viterbi]\label{t3gen:prop:viterbi}
+Let $C_p(s)$ be the minimal cost $\sum_{i \le p}\sum_j \omega_{i,j}\,(x_{i,j} - \hat x_{i,j})^2$ of a strand whose window at step $p$ is $s$. Then $C_0(s) = d_0(s)$ and
+\begin{equation}\label{t3gen:eq:viterbi}
+C_p(s') = M_p(s' \gg k_b) + d_p(s'), \qquad M_p(u) = \min_{t < 2^{k_b}} C_{p-1}\bigl((t \ll (l - k_b)) \mid u\bigr),
+\end{equation}
+with $d_p(s') = \sum_j \omega_{p,j}\,(x_{p,j} - \texttt{table}[\texttt{hache}(s', j)])^2$. The strand of minimal cost is obtained by keeping the argmin $t$ of each $M_p(u)$ and tracing back from $\argmin_s C_{P-1}(s)$.
+\end{proposition}
+
+\begin{proof}
+The cost is additive by step, and the term of step $p$ depends only on the window $s_p$: this is Bellman's principle of optimality, on which the Viterbi algorithm rests~\cite{viterbi1967}. An optimal path ending in $s'$ at step $p$ is made of an optimal path ending in a predecessor of $s'$ at step $p-1$, then of $d_p(s')$; \cref{t3gen:lem:pred} gives the exact set of these predecessors, which depends only on $u = s' \gg k_b$. Recurrence~\eqref{t3gen:eq:viterbi} follows, and tracing back the argmins rebuilds the path.
+\end{proof}
+
+\paragraph{The cost.} Per step, $2^l$ comparisons (the minimum over $t$, by contiguous slices of $2^{l-k_b}$ thanks to the lemma) and $2^l \cdot v$ evaluations; traceback memory: $2^{l-k_b}$ bytes per step. For $l = 12$: 4\,096 states, about $2.3\cdot10^5$ weights per second and per shape on the 16 threads of the i7-13620H \mes.
+
+\paragraph{The controls.} T2 (accounting of the bits): the strand written (\texttt{ecrire\_brin}) then read back by the decoder alone (\texttt{lire\_brin}, which knows only the strand and the table) reproduces exactly the reconstruction whose error is counted (tests \texttt{brin\_ecrit\_puis\_lu\_*}). T1 (known source): on 128 i.i.d. Gaussian rows, $l = 12$, $k_b = 2$, $v = 1$, $q = 8$, a Gaussian table without learning, the error is \textbf{0.073\,05} (\fichier{gauss-T1.json}), within the declared interval $[0.0625,\ 0.080]$. The bottom of the interval is the Shannon bound $2^{-2\cdot 2}$: beating it would expose an accounting fault; the top is the midpoint between the published trellis at $l = 16$ (0.069, QTIP) and the best published vector quantiser of dimension 8 (0.089). Break (zero table): 0.996, the control fails (\fichier{gauss-T1-casse.json}) \mes.
+
+\begin{figure}[tbp]
+\centering
+\GrapheGenGauss
+\LegendeFigure{GenGauss}
+\label{fig:t3-gen-gauss}
+\end{figure}
+
+\paragraph{The strand on a true Gaussian.} \Cref{fig:t3-gen-gauss} gives the curve of the strand alone on 64 Gaussian rows (32 at $l = 16$, except the shape (2, 1), on 64). The gap to the Shannon bound stays between 0.46 and 1.66\,dB at $l = 12$, between 0.29 and 1.08\,dB at $l = 16$ \mes~\calc~(\fichier{memoire/figures/tome3/donnees/genome-nombres.csv}). At 2 bits, the window length buys most of the gap: 0.0880; 0.0785; 0.0728; 0.0694; 0.0675 for $l = 8$, 10, 12, 14, 16, against the bound 0.0625. The cheap mixer (4 operations) gives 0.0721 against 0.0728 for the strong one; the size of the table matters little ($q = 6$: 0.0732; $q = 10$: 0.0728). These two facts fix the setting of the rest of the chapter: $l = 12$, $q = 8$.
+
+\subsection{The rotation: spreading the information of each weight}
+
+A row $w$ of 2\,880 weights is rotated in pieces of 64: $y = \frac18 H_{64} D\, w$, $D = \mathrm{diag}(\pm1)$ drawn from a seed (no bit stored), $H_{64}$ the Hadamard matrix of order 64.
+
+\begin{proposition}[The rotation preserves the product and the error]\label{t3gen:prop:rotation}
+Let $R$ be the block-diagonal matrix of the $\frac18 H_{64} D_m$. Then $R$ is orthogonal; $Wx = (WR^\top)(Rx)$; and for every reconstruction $\hat W' $ of the rotated rows $W' = WR^\top$, the error is preserved: $\|W - \hat W' R\|_F = \|W' - \hat W'\|_F$.
+\end{proposition}
+
+\begin{proof}
+$H_{64} H_{64}^\top = 64\, I$ and $D_m D_m^\top = I$, so $(\frac18 H_{64} D_m)(\frac18 H_{64} D_m)^\top = \frac{1}{64}\, H_{64} D_m D_m^\top H_{64}^\top = I$: each block is orthogonal, and so is $R$. Then $W R^\top R x = W x$. Finally $W - \hat W' R = (W' - \hat W') R$, and the Frobenius norm is invariant under right multiplication by an orthogonal matrix: $\|AR\|_F^2 = \mathrm{tr}(A R R^\top A^\top) = \|A\|_F^2$.
+\end{proof}
+
+One therefore stores the rotated rows, and rotates the activation \emph{once per token}: $64 \times 6$ additions per piece (the fast Hadamard transform), that is 6 additions per input element, shared by all the rows of all the matrices that read this input. The tool nevertheless measures the error in the original domain, after the inverse rotation (\texttt{detourner}): that is the second path of this identity. Why rotate: an outlier weight (an E8M0 scale far above the median of its row) can be reached by the strand only by sacrificing its neighbours, which share its window. After rotation, it is spread over 64 positions, and the source becomes Gaussian, which is what the trellis is made for. It is, as an image, the holographic memory of Stone's list: the information of each element spread over all. Each rotated row is divided by its standard deviation $\sigma$ (kept on 16 bits): the coded source is $x = y/\sigma$, of variance 1.
+
+\subsection{Distributing the bits between rows}
+
+A row $r$ has, for each shape $k$, an error $D_r(k)$ and a cost $R_r(k)$ (bits of the strand, first window, 3 bits of shape index, 16 bits of $\sigma$). We minimise $\sum_r D_r(k_r)$ under $\sum_r R_r(k_r) \le R$.
+
+\begin{proposition}[The Lagrangian choice is optimal for its budget]\label{t3gen:prop:everett}
+For every $\lambda \ge 0$, the choice $k_r(\lambda) = \argmin_k D_r(k) + \lambda R_r(k)$, made row by row, is optimal for the budget $R(\lambda) = \sum_r R_r(k_r(\lambda))$ it spends.
+\end{proposition}
+
+\begin{proof}
+If another choice $k'$ spent at most $R(\lambda)$ with a smaller error, then $\sum_r D_r(k'_r) + \lambda \sum_r R_r(k'_r) < \sum_r D_r(k_r) + \lambda \sum_r R_r(k_r)$, which contradicts the minimality of each term of the sum. (The result bears Everett's name, 1963; the source is not reread here and does not enter the bibliography.)
+\end{proof}
+
+The rate--distortion curve of the recipe is the set of points $(R(\lambda), D(\lambda))$ for 400 values of $\lambda$; the bits at equal error are read by linear interpolation in $\log(\text{error})$ between two neighbouring points.
+
+\begin{proposition}[The gain of the distribution, at high rate]\label{t3gen:prop:remplissage}
+For Gaussian rows of variances $\sigma_r^2$, with distortions $D_r = \sigma_r^2\, 2^{-2R_r}$ (high rate, $D_r < \sigma_r^2$), the optimal distribution of the bits at mean rate $\bar R$ gains, at equal mean error,
+\begin{equation}\label{t3gen:eq:remplissage}
+\Delta R = \frac12 \log_2 \frac{\mathrm{AM}(\sigma_r^2)}{\mathrm{GM}(\sigma_r^2)} \quad \text{bits per weight}
+\end{equation}
+over the uniform distribution, AM and GM being the arithmetic and geometric means of the $\sigma_r^2$.
+\end{proposition}
+
+\begin{proof}
+With $n$ rows, we minimise
+\[ \frac1n\sum_r \sigma_r^2 2^{-2R_r} \quad \text{under} \quad \frac1n\sum_r R_r = \bar R . \]
+The Lagrangian gives $2\ln 2\ \sigma_r^2 2^{-2R_r} = \mu$ for every $r$: all the rows end at the same distortion $D$ (the reverse water-filling of~\cite[§\,10.3.3]{cover2006}). Then $R_r = \frac12 \log_2(\sigma_r^2/D)$, and the mean gives $\bar R = \frac12 \log_2 \mathrm{GM} - \frac12 \log_2 D$, that is $D_{\mathrm{opt}} = \mathrm{GM}\cdot 2^{-2\bar R}$. The uniform distribution ($R_r = \bar R$) gives $D_{\mathrm{unif}} = \mathrm{AM}\cdot 2^{-2\bar R}$. At equal error, the uniform one therefore needs $\frac12\log_2(\mathrm{AM}/\mathrm{GM})$ more bits. By the arithmetic--geometric mean inequality, the gain is non-negative, zero if all the variances are equal.
+\end{proof}
+
+The base of B takes none of it: it puts 2.64 bits everywhere. \Cref{t3gen:sec:structure} computes this gain on the real tensors: from 0.009 to 1.27 bits.
+
+\section{The accounting, to the bit}\label{t3gen:sec:compta}
+
+Everything the recipe reads from the disk is counted (\cref{t3gen:tab:compta}), by a second path in Python (\fichier{outils/genome/recette/analyse.py}) which gives the verdict. The frontier F1 of each tensor is read in \fichier{f1-par-tenseur.csv}: base $+ \delta + 8/2\,880 + 0.000\,07$.
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X r r@{}}
+\toprule
+Item & bits & per weight \\
+\midrule
+strand of a row of $n$ weights & $l + (n/v - 1)\,k_b$ & $\approx k_b/v$ \\
+shape index of the row & 3 & 0.0010 \\
+$\sigma$ of the row (rotated source) & 16 & 0.0056 \\
+tables: 5 shapes $\times$ 256 values $\times$ 16 bits, for 32 experts & 20\,480 & 0.000\,08 \\
+E8M0 scales (raw source only): $\delta$ of F1 + 8/2\,880 of medians & & 0.036 to 0.043 \\
+alignment of each expert matrix on 4\,096 bytes, at worst & 32\,768 & 0.0040 \\
+exceptions of $S^{*}$: count (8 bits) + $3 \times$ (column 12 + code 4 + scale 8) per row & 80 & 0.028 \\
+\bottomrule
+\end{tabularx}
+\caption[The accounting of the recipe]{Everything the recipe reads from the disk, item by item \calc. Per weight: divided by 2\,880 for an item per row (for example $80/2\,880 = 0.028$), by 8\,294\,400 for an item per matrix ($32\,768/8\,294\,400 = 0.0040$). Source: \fichier{genome/genome.md} §\,4.}
+\label{t3gen:tab:compta}
+\end{table}
+
+An under-accounting is stated: the Rust log (\fichier{codons-*-l12.json}) counts only \emph{one} table per tensor instead of five (0.000\,06 bit per weight less); the second path counts all five, and it is the one that judges. The two differ by less than 0.0002 bit per tensor.
+
+\section{The results on the real weights}\label{t3gen:sec:resultats}
+
+\paragraph{Control S0: the frontier redone.} The command \texttt{genome} \texttt{frontiere} recounts the 12 whole tensors (3\,185\,049\,600 weights), recomputes the class centres (0.237\,166; 1.424\,298; 3.418\,577; 6.0 in E2M1 units) and recovers the published error 0.042\,919\,745\,124\,980 to within $5.8\cdot10^{-15}$ (\fichier{frontiere.json}). Break (each class reads the centre of the next): 1.2128, the control fails (\fichier{frontiere-casse.json}) \mes.
+
+\paragraph{Verdict W.} Reading through codons, $l = 12$, $q = 8$, 2 Lloyd iterations on the first 48 sampled rows of each expert, five shapes $(k_b, v) = (2, 1), (7, 3), (5, 2), (8, 3), (3, 1)$, that is 2; 2.33; 2.5; 2.67; 3 bits per weight. Second path: \fichier{verdict-*-l12-second-chemin.json}, equal to the Rust log to within $10^{-4}$ bit. \Cref{fig:t3-gen-courbes} plots the curves, \cref{t3gen:tab:verdict} the gains.
+
+\begin{figure}[tbp]
+\centering
+\GrapheGenCourbes
+\LegendeFigure{GenCourbes}
+\label{fig:t3-gen-courbes}
+\end{figure}
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabular}{l r r r r r}
+\toprule
+Tensor & error of the base & frontier (bits) & rotated strand at equal error & gain (bits) & gain \\
+\midrule
+blk.0.ffn\_gate & 4.394\,\% & 2.6234 & 2.4005 & 0.223 & 8.5\,\% \\
+blk.0.ffn\_up & 4.389\,\% & 2.6422 & 2.4291 & 0.213 & 8.1\,\% \\
+blk.0.ffn\_down & 4.137\,\% & 2.6558 & 2.0604 & 0.595 & 22.4\,\% \\
+blk.8.ffn\_gate & 4.022\,\% & 2.6597 & 2.2410 & 0.419 & 15.7\,\% \\
+blk.8.ffn\_up & 4.068\,\% & 2.6424 & 2.4391 & 0.203 & 7.7\,\% \\
+blk.8.ffn\_down & 4.631\,\% & 2.6445 & 2.4130 & 0.231 & 8.8\,\% \\
+blk.16.ffn\_gate & 4.227\,\% & 2.6569 & 2.2660 & 0.391 & 14.7\,\% \\
+blk.16.ffn\_up & 4.089\,\% & 2.6653 & 2.3905 & 0.275 & 10.3\,\% \\
+blk.16.ffn\_down & 4.203\,\% & 2.6302 & 2.2920 & 0.338 & 12.9\,\% \\
+blk.23.ffn\_gate & 4.323\,\% & 2.6406 & 2.2203 & 0.420 & 15.9\,\% \\
+blk.23.ffn\_up & 4.254\,\% & 2.6256 & 2.3768 & 0.249 & 9.5\,\% \\
+blk.23.ffn\_down & 4.260\,\% & 2.6434 & 2.3691 & 0.274 & 10.4\,\% \\
+\midrule
+\textbf{mean of the 12} & & \textbf{2.6442} & \textbf{2.3248} & \textbf{0.319} & \textbf{12.1\,\%} \\
+\bottomrule
+\end{tabular}
+\caption[Verdict W, tensor by tensor]{Verdict W, rotated source: bits of the strand at the error of the base measured on the same rows \mes. Data: \fichier{mesures/genome/genome/csv/verdict-par-tenseur.csv}; \fichier{verdict-tourne-l12-second-chemin.json}.}
+\label{t3gen:tab:verdict}
+\end{table}
+
+\textbf{12 tensors out of 12: criterion W holds} for the rotated source. Globally (a single $\lambda$ for the 34\,560 rows, cumulative error 4.257\,\%), 2.049 bits against 2.644; this number is dominated by the high-energy rows, and the mean per tensor is the one to retain. On the \textbf{raw source} (E8M0 scales kept, without rotation), 11 tensors out of 12 win, by 0.15 to 0.57 bit, but \textbf{blk.8.ffn\_down fails}: even at 3 bits everywhere, the recipe leaves 6.43\,\% error there, where the base leaves 4.63\,\% at 2.64 bits. Its rows carry blocks whose scale is far above the median; the strand can reach them only by sacrificing their neighbours. The rotation settles exactly this case (0.231 bit gained on this tensor): that is why it was retained.
+
+\paragraph{Where the gain comes from: space filling against distribution.} The fixed shapes (all rows at the same shape) give, by interpolation between neighbouring shapes, the gain of \emph{space filling alone} (\fichier{codons-tourne-l12.json}, field \texttt{fixes}): 0.14 to 0.18 bit on 11 tensors (0.135 on average over the 12), and $-0.14$ bit on blk.8.ffn\_down, where the distribution is indispensable. The distribution between rows brings the rest: from 0.03 bit (blk.0.ffn\_up) to 0.43 bit (blk.0.ffn\_down) \mes. The errors of the fixed shapes on the rotated weights of blk.0.ffn\_gate (0.0739; 0.0529; 0.0402; 0.0364; 0.0201) are those of the strand on a true Gaussian (0.0728; 0.0522; 0.0394; 0.0358; 0.0198) to within 1.5\,\%: \textbf{after rotation, the weights are, for the strand, indistinguishable from Gaussian noise}. This is the split announced in \cref{t3que:sec:frontiere}: the gain is the space filling of a trellis code, which the scalar base does not have, and the spread of the energies, which it ignores.
+
+\section{Where the noise is, where the structure is}\label{t3gen:sec:structure}
+
+\fichier{outils/genome/recette/structure.py} computes the singular values of expert 0 of each tensor ($2\,880 \times 2\,880$ matrix, in exact f64), against a control: the same matrix with its entries randomly permuted, which destroys any rank structure (the spectrum then follows the Marchenko--Pastur law; \cref{t3gen:tab:structure}).
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X@{}}
+\toprule
+Tensor & energy of the first 144 directions & 1\textsuperscript{st} direction & kurtosis & distribution gain \\
+& real / permuted & real / permuted & of the rows & (high rate, \calc) \\
+\midrule
+blk.0.ffn\_gate & 27.4 / 17.2\,\% & 0.81 / 0.14\,\% & 4.0 & 0.019 \\
+blk.0.ffn\_up & 23.2 / 17.2\,\% & 0.29 / 0.14\,\% & 3.8 & 0.009 \\
+blk.0.ffn\_down & 67.7 / 18.9\,\% & 8.48 / 0.38\,\% & 347.7 & 1.272 \\
+blk.8.ffn\_gate & 45.2 / 17.3\,\% & 1.62 / 0.14\,\% & 12.9 & 0.572 \\
+blk.8.ffn\_up & 30.0 / 17.2\,\% & 0.41 / 0.14\,\% & 4.9 & 0.111 \\
+blk.8.ffn\_down & 43.1 / 18.5\,\% & 7.00 / 0.44\,\% & 343.2 & 0.250 \\
+blk.16.ffn\_gate & 54.2 / 18.1\,\% & 4.60 / 0.39\,\% & 182.9 & 0.645 \\
+blk.16.ffn\_up & 30.4 / 17.2\,\% & 0.72 / 0.14\,\% & 6.3 & 0.160 \\
+blk.16.ffn\_down & 43.3 / 17.4\,\% & 1.54 / 0.21\,\% & 42.0 & 0.343 \\
+blk.23.ffn\_gate & 42.0 / 17.3\,\% & 2.27 / 0.14\,\% & 17.2 & 0.426 \\
+blk.23.ffn\_up & 33.5 / 17.2\,\% & 1.01 / 0.14\,\% & 7.9 & 0.130 \\
+blk.23.ffn\_down & 33.3 / 17.7\,\% & 3.45 / 0.19\,\% & 79.7 & 0.089 \\
+\bottomrule
+\end{tabularx}
+\caption[The structure of the matrices: real against permuted]{The structure of the expert matrices (expert 0 of each tensor): share of energy of the first 5\,\% of the singular directions and of the first one, against the same matrix permuted; kurtosis of the rows; distribution gain by \cref{t3gen:prop:remplissage} \mes~\calc. Data: \fichier{mesures/genome/genome/structure-spectre.json}, \fichier{csv/spectre.csv}.}
+\label{t3gen:tab:structure}
+\end{table}
+
+\paragraph{The noise.} Inside a row, once rotated and normalised, there is nothing to take beyond the variance: the strand does there exactly what it does on a true Gaussian, the neighbouring codes share only 0.005 bit, and the seed of dimension 8 to 16 finds what it would find in noise. \textbf{No short recipe generates these weights}: that is the answer, negative, to the question ``are the weights recipe-able?''.
+
+\paragraph{The structure} is at second order, and it is large. The energy concentrates on a few directions (5\,\% of the directions carry 23 to 68\,\% of the energy, against 17 to 19\,\% for the same matrix permuted; a single direction carries up to 8.5\,\%, 22 times chance), hence on certain rows (kurtosis up to 348, computed distribution gain up to 1.27 bits). It is this structure that the distribution of the bits between rows cashes in, and that the base of B, which puts the same number of bits everywhere, leaves on the table.
+
+\paragraph{What remains to be taken.} The Gaussian bound with ideal distribution between rows (\fichier{borne-shannon-par-tenseur.json}) is 1.07 to 2.25 bits at the error of the base; the measured recipe is 0.19 to 0.99 bit above. The gap comes from the strand at $l = 12$, 0.3 to 0.8\,dB from the bound, and from the smallest shape, 2 bits: ideal water-filling would give 0 or 1 bit to the weakest rows. A ``zero'' shape (row not stored), costed on the same CSVs, would bring the global rate down to 0.36 bit \emph{at equal cumulative error}, which mainly shows that the cumulative error on the weights lets itself be fooled by the distribution (a handful of very high-energy rows dominate it); it is not retained. The rank structure (a few dominant directions) is not exploited: storing $r$ directions ($u$, $v$ in f16) costs $r \cdot 5\,760 \cdot 16 / 8\,294\,400 = 0.011\,r$ bit per weight; for blk.0.ffn\_down, the first direction (8.5\,\% of the energy) would save $\frac12\log_2(1/0.915) = 0.064$ bit at equal error for 0.011 bit of cost; for the up tensors (0.3 to 1\,\%), nothing \calc.
+
+\paragraph{Shared patterns, combined.} \texttt{genome motifs} (\fichier{motifs-*.json}): a block of $d$ weights is the sum of $M$ patterns, each drawn from a dictionary of $2^b$ patterns shared by the 32 experts of the tensor, learnt by weighted $k$-means stage by stage (residual quantisation). Control: the 4-level scalar quantiser of a Gaussian gives 0.1175~\cite{max1960}. At the error of the base (4.257\,\%), the patterns need \textbf{2.90 bits} at best (between $(8, 12, 1)$ at 1.54 bits for 18.2\,\% and $(8, 12, 2)$ at 3.05 bits for 3.65\,\%): \textbf{they do not beat the frontier}. A dictionary learnt in dimension 4 to 8 is a vector quantiser of small dimension: even the best lattice of dimension 8 (0.089 at 2 bits on a Gaussian, QTIP) remains far from the strand (0.073). Sharing the dictionary between experts costs nothing (0.002 bit) and saves nothing more: the experts have no patterns of their own that the common dictionary would miss.
+
+\section{The recipe and the base + complement split}\label{t3gen:sec:complement}
+
+\begin{lemme}[The exact complement gains nothing for free]\label{t3gen:lem:complement}
+Let $X$ be the MXFP4 codes of a tensor and $Y$ the bits of the recipe, a deterministic function of $X$. For every coding of the complement that conditions each code $X_i$ on a function $Z_i$ of $Y$,
+\begin{equation}\label{t3gen:eq:complement}
+R_Y + \sum_i H(X_i \mid Z_i) \;\ge\; H(Y) + H(X \mid Y) \;=\; H(X).
+\end{equation}
+\end{lemme}
+
+\begin{proof}
+$H(X, Y) = H(X) + H(Y \mid X) = H(X)$ since $Y$ is a function of $X$; and $H(X, Y) = H(Y) + H(X \mid Y)$. Hence the equality on the right. Then $H(X \mid Y) \le \sum_i H(X_i \mid Y)$ (subadditivity), $H(X_i \mid Y) \le H(X_i \mid Z_i)$ (conditioning on less, $Z_i$ being a function of $Y$, does not reduce entropy), and $R_Y \ge H(Y)$ (no lossless code goes below the entropy).
+\end{proof}
+
+What the combination loses is $(R_Y - H(Y)) + (\sum_i H(X_i\mid Z_i) - H(X\mid Y))$: the information on $X$ that the bits of the strand carry \emph{together} and that a weight-by-weight context does not see. \textbf{Measured} (\fichier{codons-*-l12.json}, field \texttt{H\_code\_sachant\_recette}: $Z_i$ the reconstruction of the recipe brought back to the scale of the block, in 65 bins of 0.375): recipe + complement + scales = \textbf{4.05 to 4.37 bits} for the rotated source (4.09 to 4.90 for the raw one), against 3.80 to 3.83 lossless for the same tensors. The loss, 0.21 to 0.53 bit, is the second term. Criterion L fails, as the lemma announced.
+
+\paragraph{What the combination gives all the same.} In architecture B, level 0 is read at each cache miss and the complement only for the admitted experts. Replacing the base by the recipe at level 0 divides the bytes of a miss by $2.644/2.325 = 1.14$ at equal weight error, or, at the rate of the frontier of each tensor, gives an error of 2.07 to 3.82\,\% instead of 4.02 to 4.63\,\% (interpolated on \fichier{courbes-tourne-l12.csv}); the complement that follows then costs 0.21 to 0.53 bit more than with the base \calc. These numbers are in weight error; the next section says what they are worth.
+
+\section{The output of the experts: fidelity, and \texorpdfstring{$S^{*}$}{S*}}\label{t3gen:sec:sortie}
+
+\paragraph{The inputs and the measurement.} The normalised states and the routing of the f64 reference, captured by the scout: ``calib'' (windows 10 to 21, tuning only) and ``eval'' (windows 0 to 9, those of the \texttt{.kld} of R1, measurement only). For expert $e$ of layer $\ell$, the first 512 positions routed to it (fewer if the expert is rare). Output of the expert: $y = W_{\text{down}}\,\mathrm{SwiGLU}_{\text{oai}}(W_{\text{gate}} h + b, W_{\text{up}} h + b) + b$ in f64, exact weights, base or recipe; relative error $\sum\|y - \hat y\|^2 / \sum\|y\|^2$.
+
+\paragraph{At point W, the recipe loses at the output.} Layer 0, expert 0 (499 positions): weight error 4.25\,\% (base 4.27\,\%), but output error \textbf{7.63\,\%} against \textbf{6.77\,\%} for the base, the recipe winning on only 146 positions out of 499 (\fichier{sortie-tourne-point-W-interrompu.log}) \mes. Criterion O, declared at this point, \textbf{fails} on this first expert; the pass was stopped there to measure what really decides, fidelity as a function of rate (protocol F, declared before its pass in \fichier{00-seuils-declares.md}). \emph{The squared error on the weights does not measure fidelity}: at equal weight error, the error of the base does less damage at the output than that of the strand.
+
+\paragraph{The weighting.} By \cref{t3gen:prop:rotation}, the output of a row is $\sum_c \Delta w_c x_c = \sum_{c'} \Delta w'_{c'} x'_{c'}$ with $x' = Rx$. Its expected square is $\sum_{c', c''} \E[\Delta w'_{c'} \Delta w'_{c''}]\, \Sigma'_{c'c''}$, $\Sigma' = R\Sigma R^\top$, $\Sigma = \E[xx^\top]$ of the real inputs. For a \emph{white} error in the rotated domain ($\E[\Delta w'_{c'}\Delta w'_{c''}] = 0$ for $c' \ne c''$), there remains
+\begin{equation}\label{t3gen:eq:ponderation}
+\E\,\|\Delta w^\top x\|^2 = \sum_{c'} h_{c'}\, \E\bigl[\Delta w'^{\,2}_{c'}\bigr], \qquad h = \mathrm{diag}\bigl(R\,\Sigma\,R^\top\bigr) .
+\end{equation}
+Weighting the Viterbi by $h$ (the weights $\omega$ of \cref{t3gen:prop:viterbi}) therefore minimises the expected output error under this hypothesis (\fichier{outils/genome/recette/src/fidelite.rs}, header) \calc; it is the diagonal of the Hessian of the quadratic layer loss, the move of GPTQ reduced to what the trellis can do.
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X@{}}
+\toprule
+Layer, expert (positions) & base & uniform at 2.64 b & weighted at 2.64 b & bits at equal output (unif. / weight.) \\
+\midrule
+0, 0 (499) & 6.77\,\% & 5.25\,\% & 5.18\,\% & 2.41 / 2.38 \\
+0, 16 (512) & 5.13\,\% & 3.88\,\% & 3.82\,\% & 2.38 / 2.39 \\
+8, 0 (512) & 8.30\,\% & 8.80\,\% & 7.91\,\% & 2.68 / 2.60 \\
+8, 16 (131) & 7.45\,\% & 8.93\,\% & 9.41\,\% & 2.87 / $> 2.9$ \\
+16, 0 (127) & 5.72\,\% & 6.02\,\% & 5.40\,\% & 2.68 / 2.58 \\
+16, 16 (150) & 4.81\,\% & 11.04\,\% & --- & $> 2.9$ / --- \\
+\bottomrule
+\end{tabularx}
+\caption[The output fidelity of the strand]{The output fidelity of the strand, uniform and weighted by~\eqref{t3gen:eq:ponderation}, pass F stopped after five and a half experts, the verdict being settled \mes. Data: \fichier{mesures/genome/genome/fidelite.log}, \fichier{verdict-fidelite.json}, \fichier{csv/fidelite.csv}.}
+\label{t3gen:tab:fidelite}
+\end{table}
+
+\paragraph{Verdict F fails} (\cref{t3gen:tab:fidelite}): the weighting wins on 4 experts out of 5, the uniform one on 2 out of 6; two experts lose in both variants. The diagnosis (\fichier{erreur\_colonnes.py}, \fichier{erreur-colonnes-ponderee-264.json}): the error of the strand is not spread over the columns like that of a white noise, and the hypothesis of~\eqref{t3gen:eq:ponderation} is false where it counts. In blk.8.ffn\_down (expert 16), column 1011 carries \textbf{144 times} the mean energy of a column and receives \textbf{334 times} the mean error; the columns of rank 0 modulo 64 receive 7.6 times their share \mes. The mechanism: a massive column is spread, by the rotation, into 64 large values in each row; the table (256 values, quantiles of the source) clips them; the clipping errors, of the same sign in all the rows, come back through the inverse rotation \emph{onto the massive column}. Now a massive column of down reads a unit of the intermediate activation, and a massive column of gate or up an input channel: where the error does most harm. The base, for its part, makes the largest weights of each block almost exact (its class $\{6\}$ is exact). Of the 15 matrices analysed, 5 have a column whose error exceeds 10 times the mean, and in 4 of them it is the most energetic column of the matrix; the fifth (gate, layer 16, expert 0, column 2\,744, $\times 29.9$) is the most energetic column of the up matrix of the same expert, which reads the same input.
+
+\paragraph{The remedy, and the system $S^{*}$.} Keep \emph{apart, exact}, the 3 weights of largest magnitude of each row (0.1\,\%; $8 + 3 \times 24$ bits per row, 0.028 bit per weight, counted): they are, row after row, the entries of the massive columns. Layer 8, expert 16, uniform: the output error goes from 8.93\,\% to 6.20\,\% (base 7.45\,\%), the weight error from 4.63\,\% to 3.16\,\% (\fichier{fidelite-exceptions.log}). The strand, the rotation, the weighting and these exceptions form $S^{*}$, declared before its pass.
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X@{}}
+\toprule
+Layer, expert (positions) & base & $S^{*}$ at 2.64 b & positions where $S^{*}$ wins & $S^{*}$ at 2.4 b & bits of $S^{*}$ at equal output \\
+\midrule
+0, 0 (499) & 6.77\,\% & \textbf{5.09\,\%} & 440 / 499 & 6.56\,\% & 2.37 \\
+0, 16 (512) & 5.13\,\% & \textbf{3.65\,\%} & 432 / 512 & 4.74\,\% & 2.34 \\
+8, 0 (512) & 8.30\,\% & \textbf{7.79\,\%} & 333 / 512 & 10.05\,\% & 2.58 \\
+8, 16 (131) & 7.45\,\% & \textbf{6.72\,\%} & 93 / 131 & 8.50\,\% & 2.54 \\
+16, 0 (127) & 5.72\,\% & \textbf{4.57\,\%} & 122 / 127 & 5.92\,\% & 2.43 \\
+16, 16 (150) & 4.81\,\% & \textbf{3.26\,\%} & 149 / 150 & 4.30\,\% & 2.30 \\
+23, 0 (150) & 5.68\,\% & \textbf{3.15\,\%} & 148 / 150 & 4.10\,\% & 2.09 \\
+23, 16 (106) & 3.97\,\% & \textbf{2.56\,\%} & 106 / 106 & 3.36\,\% & 2.23 \\
+\midrule
+\textbf{mean} & & \textbf{ratio 0.747} & & & \textbf{2.36} \\
+\bottomrule
+\end{tabularx}
+\caption[$S^{*}$ at the output of the experts]{$S^{*}$ (rotation, weighting, exceptions 0.1\,\%) at the output of the experts, held-out inputs \mes. Experts (16, 16), (23, 0) and (23, 16) had served in no choice. Data: \fichier{mesures/genome/genome/fidelite-sstar.log}, \fichier{fidelite-sstar.json}, \fichier{verdict-fidelite-sstar.json}, \fichier{csv/fidelite-sstar.csv}.}
+\label{t3gen:tab:sstar}
+\end{table}
+
+\paragraph{Verdict F($S^{*}$) holds} (\cref{t3gen:tab:sstar}): at 2.64 bits, $S^{*}$ makes less output error than the base on \textbf{8 experts out of 8} (sign test, $2^{-8} \approx 0.004$), and on each expert the majority of the positions confirms it (from 333 out of 512 to 106 out of 106; the binomial law gives $p < 10^{-5}$ for each). At equal output error, $S^{*}$ reads 2.09 to 2.58 bits, 2.36 on average, against 2.64: 0.28 bit less per weight read (10.8\,\%). That is less than the 0.32 bit of criterion W: the weight error exaggerated the gain, and the output judges it. The deliverable of the subject drew from it ``$\times 1.12$ tokens per second at the roof of the disk for the experts read at level 0''; that is a computation at equal output error, and the next section says that the KL does not confirm it.
+
+\section{The KL against the reference: \texorpdfstring{$S^{*}$}{S*} is equal to the base}\label{t3gen:sec:kl}
+
+\paragraph{The protocol (P2 of the round).} The scout's fork, extended with substitution in F32 (\fichier{outils/genome/recette-kl/}); the 8 experts of \cref{t3gen:tab:sstar} replaced (layers 0, 8, 16, 23 $\times$ experts 0 and 16: 8 out of 768), base against $S^{*}$ at 2.64 bits, and \texttt{juge comparer} of lot R, which pairs the two KLs position by position against the same truth (\fichier{ref-openai-20b.kld}). Rule of the judge: equal if $|\bar d| \le 2\sigma(\bar d)$; better if $\bar d + 2\sigma(\bar d) < 0$. Control of the fork: with no expert substituted, one window, KL at most $10^{-9}$ (\fichier{kl/temoin-vide*.json}).
+
+\paragraph{What was published, and what replaced it.} The first pass covered 3 windows (765 positions; \fichier{mesures/genome/genome/kl/comparer-base-contre-recette.json}): KL 0.0226 for the base, 0.0301 for $S^{*}$, ratio \barre{1.335} (a three-window ratio, which the K10 pass brings down to 1.018, $0.020\,93/0.020\,57$ \calc, \cref{t3gen:tab:k10}), paired difference $+0.0076 \pm 0.0047$ (1.6\,$\sigma$), first choice 91.4 against 90.3\,\% \mes. The synthesis of the round had first concluded from it ``$S^{*}$ has 25\,\% less expert error and \barre{33\,\% more KL}'' and ``\barre{fails}'', then struck it out (\fichier{genome/05-synthese.md} §§\,0, 1.2, 2.4): the K10 pass, declared beforehand, redid the comparison on the \textbf{10 windows} of R1 (2\,550 positions; \fichier{kl/comparer10-base-contre-recette.json}, commit \texttt{39e9aa4}). It is the one that counts (reserve R4 of the volume).
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabular}{l r r}
+\toprule
+P2, 10 windows, 2\,550 positions, 8 experts out of 768 & base & $S^{*}$ \\
+\midrule
+mean KL ($\pm$ uncertainty) & 0.020\,57 $\pm$ 0.002\,12 & 0.020\,93 $\pm$ 0.002\,35 \\
+median KL & 0.001\,84 & 0.001\,52 \\
+KL, 90\textsuperscript{th} percentile & 0.0311 & 0.0275 \\
+KL, 99\textsuperscript{th} percentile & 0.411 & 0.338 \\
+KL, 99.9\textsuperscript{th} percentile & 1.367 & 1.588 \\
+maximal KL & 3.008 & 3.216 \\
+identical first choice & 91.88\,\% & 91.92\,\% \\
+perplexity (reference 460.24) & 461.62 & 468.71 \\
+\midrule
+paired KL difference, $S^{*}$ minus base & \multicolumn{2}{c}{$+0.000\,36 \pm 0.001\,86$: \textbf{equal}} \\
+paired difference of first choice & \multicolumn{2}{c}{$+0.04 \pm 0.56$ point: equal} \\
+\bottomrule
+\end{tabular}
+\caption[$S^{*}$ against the base, the KL on ten windows]{$S^{*}$ against the base, the end-to-end KL on 10 windows (K10 pass) \mes. Verdicts of the judge: statistical, equal in KL and in first choice; literal, the KL of $S^{*}$ is a little above. Data: \fichier{mesures/genome/genome/kl/comparer10-base-contre-recette.json} (and \texttt{.csv}, \texttt{.txt}).}
+\label{t3gen:tab:k10}
+\end{table}
+
+\paragraph{$S^{*}$ is equal to the base} (\cref{t3gen:tab:k10}): $+0.000\,36 \pm 0.001\,86$, KL ratio 1.018 \calc. What changed between the two passes is the number of positions, multiplied by more than three: the gap of the first 3 windows was within the noise, and it dissolved into it. The shape of the two distributions says why the mean does not move. $S^{*}$ reduces the smooth part of the KL (median $\div 1.21$, 99\textsuperscript{th} percentile from 0.411 to 0.338) and thickens the extreme of its tail (99.9\textsuperscript{th} percentile from 1.37 to 1.59, maximum from 3.01 to 3.22): the two compensate \mes. \textbf{25\,\% less expert error, 0\,\% less KL.} \Cref{t3syn:ch} makes it property (c) of the round (the output error of an expert does not predict the KL) and puts forward a hypothesis, stated as such: the weighting of $S^{*}$ is \emph{diagonal}~\eqref{t3gen:eq:ponderation}, it does not see the correlation, in the rotated domain, between the 64 positions that carry the same massive channel, whereas the base leaves the contribution of the massive channels almost intact, and with it the margins of the router of the following layers.
+
+\section{The transcription}\label{t3gen:sec:transcription}
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabular}{l r}
+\toprule
+Step of the decoder of a weight (shape $v = 1$) & operations \\
+\midrule
+window: 64-bit register shifted by $k_b$, new bits inserted, mask of $l$ bits & 3 \\
+strong mixer (xor, then three times multiplication and shift-xor) & 9 (the short one: 3) \\
+table index (shift) & 1 \\
+table read (256 values in shared memory) & 1 \\
+multiply-add with the rotated activation & 1 \\
+\midrule
+\textbf{total per weight} & \textbf{15} (the short one: \textbf{9}) \\
+\bottomrule
+\end{tabular}
+\caption[The transcription cost of the strand]{The transcription cost of the strand, in operations per weight \calc. For $v = 2$ or 3, the window is shared between the $v$ weights of the step: $(3 + 12\,v)/v$ operations per weight with the strong mixer. Source: \fichier{genome/genome.md} §\,8.4.}
+\label{t3gen:tab:transcription}
+\end{table}
+
+\paragraph{The budget} \calc. At 2.32 bits per weight (the mean of verdict W), a weight costs 0.29 byte read, hence $214 \times 0.29 = 62$ operations of budget (269 at the throughput of the disk according to the correction of Volume~II): the decoder takes 15 of them (\cref{t3gen:tab:transcription}), \textbf{a quarter} (6\,\% at the throughput of the disk). Per row, a multiplication by $\sigma$ is added; per token, the rotation of the activation, 6 additions and a sign change per input element, shared by the 2\,880 rows that read it, that is 0.002 operation per weight. The rANS decoder of study 03 costs about 12 operations per 4-bit code: the strand is of the same order as the lossless decoder already measured.
+
+\paragraph{Measured on the CPU} (\texttt{genome decoder}, \fichier{decodeur-*.json}). A whole expert (8\,294\,400 weights, blk.16.ffn\_up, expert 0) read back from its 2\,880 strands by the decoder alone, in ABBA series of 8 against the MXFP4 dequantisation of the same expert by the same path, with the machine loaded by the three other teams: shape (5, 2) with the strong mixer, $9.6\cdot10^7$ weights per second against $10.2\cdot10^7$ (ratio 0.94); with the short one, $7.5\cdot10^7$ against $6.3\cdot10^7$ (1.20); shape (2, 1) strong, $6.9\cdot10^7$ against $7.1\cdot10^7$ (0.97) \mes. The strand goes as fast as the dequantisation of the native format on the same path; the spread of the passes under load (0.05 to 0.17\,s) is of the order of the gap, and the absolute throughputs are worth nothing under this load: only the ratio counts. On the card, nothing is measured.
+
+\section{What remains}\label{t3gen:sec:reste}
+
+\begin{enumerate}
+\item \textbf{The kernel on the card}: a GEMV that reads the strand (sliding window in a 64-bit register, mixer, table in shared memory), rotates the activation in pieces of 64 and accumulates; to be measured against the 2.82\,GB/s of the disk and against the MXFP4 kernel of the engine.
+\item \textbf{The format}: a ``STRAND'' stream kind in \texttt{.trc} (per matrix, the shape index and $\sigma$ of each row, then the strands end to end; the resident tables; the seed of the rotation, a constant of the format).
+\item \textbf{Error feedback between columns} combined with the strand (the LDLQ of QuIP and QTIP, or the synonymous mutation of \cref{t3ecl:ch}): the strand won the space filling and the distribution, the exceptions the massive columns; feedback would win the correlation of the inputs, and it is the prediction that would decide the hypothesis of \cref{t3gen:sec:kl}. It is not measured and does not enter the construction lots.
+\item \textbf{The window $l = 16$} and finer shapes: 0.03 to 0.08 bit more on a Gaussian, at the price of a coding 16 times slower (offline, once).
+\item \textbf{The rank structure}: 1 to 8 dominant directions stored apart, up to 0.05 bit net on the down matrices.
+\item \textbf{gpt-oss-120b}: redo W and F; and \textbf{the KL with all the experts coded}: 19.1 billion weights at $2.3\cdot10^5$ weights per second and per shape, about 23 processor hours for one shape per row, 115 for the five \calc; or a coder on the card.
+\end{enumerate}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{The error on the weights is not the quality}, and the output error is not either. Criterion W is in cumulative error on the weights, which the distribution can fool; criterion F is in expert output error, which $S^{*}$ passed 8 times out of 8 without moving the KL. Only the KL judges, and it substitutes only 8 experts out of 768.
+\item \textbf{The sample}: 4 experts out of 32, one row in 4, 12 tensors out of 72, gpt-oss-20b alone; the 120b is not measured (the entropies of the codes of the two models differ by 0.001 bit, which makes a large gap unlikely, without proving it).
+\item \textbf{The tables are learnt on the sample} (48 rows per expert) and evaluated also on these rows; their cost is counted, but slight overfitting is possible. The output applies them to whole experts and to inputs they have never seen.
+\item \textbf{$S^{*}$ was chosen after seeing 5 experts out of 8} (the two remedies come from the measured failures); the other 3 had served for nothing and win too, but the risk of having tuned $S^{*}$ on its own judges remains. The KL, which is not fooled, makes it equal to the base.
+\item \textbf{Few positions} for some experts (106 to 150 in layers 16 and 23, 131 for (8, 16)): each verdict per expert remains significant by the binomial law, but the size of the effect is less precise. The weighting is estimated on at most 1\,024 routed positions: for a rare expert, $h$ is noisy.
+\item \textbf{The interpolation in $\log(\text{error})$} between two points of the Lagrangian curve assumes the curve locally exponential; with 400 values of $\lambda$, the interpolation error is below $10^{-3}$ bit.
+\item \textbf{The frontier F1} is measured by a real coder; the recipe is counted bit by bit, with no tile header other than the worst-case alignment. A format that imposed finer tiles on the strand would add their headers.
+\item \textbf{The transcription is not measured on the card}; the rotation of the activation is computed to be negligible, not measured in the engine (for down, the input differs per expert and is rotated for each active expert).
+\item \textbf{The hypothesis that explains the tail of $S^{*}$} (diagonal weighting against massive channels) is not measured.
+\item \textbf{SeedLM and QTIP} are read at the source; their numbers on Llama are not reproduced and serve only as a landmark (QTIP publishes 0.069 at 2 bits on a Gaussian, found here at 0.0675 for $l = 16$ and 0.0731 for $l = 12$).
+\end{itemize}
+\end{faux}

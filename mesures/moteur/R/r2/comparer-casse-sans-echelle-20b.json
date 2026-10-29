@@ -1,0 +1,84 @@
+{
+  "a_contre_verite": {
+    "dp_rms": 0.015399104768959072,
+    "kl_incertitude": 0.0017104597386825079,
+    "kl_max": 1.9678565097585616,
+    "kl_mediane": 0.002929223658395661,
+    "kl_min": 0.0001539944627353545,
+    "kl_moyenne": 0.022605733427487767,
+    "kl_p90": 0.04045933622747251,
+    "kl_p99": 0.38228454259156347,
+    "kl_p999": 0.9940761841185524,
+    "ln_rapport_ppl": -0.017049065758199866,
+    "ln_rapport_ppl_incertitude": 0.006054730312503532,
+    "meme_premier": 0.8960784313725491,
+    "meme_premier_incertitude": 0.006044229427875742,
+    "meme_premier_wilson95": [
+      0.8836324311361681,
+      0.9073328784068881
+    ],
+    "n": 2550,
+    "ppl_p": 460.24497527909875,
+    "ppl_q": 452.46473976042927
+  },
+  "apparie": {
+    "kl_difference_b_moins_a": 0.22017699064199195,
+    "kl_ecart_type": 0.00840423901995008,
+    "premier_difference_b_moins_a": -0.31450980392156863,
+    "premier_ecart_type": 0.010493724448212198
+  },
+  "b_contre_verite": {
+    "dp_rms": 0.0757698520194233,
+    "kl_incertitude": 0.008766648755792892,
+    "kl_max": 9.84184558750968,
+    "kl_mediane": 0.12062444502839963,
+    "kl_min": 0.0029401659184835386,
+    "kl_moyenne": 0.2427827240694799,
+    "kl_p90": 0.50570598123013,
+    "kl_p99": 2.1699263395119113,
+    "kl_p999": 4.450284719919465,
+    "ln_rapport_ppl": -0.3748327049554563,
+    "ln_rapport_ppl_incertitude": 0.019866241622141904,
+    "meme_premier": 0.5815686274509804,
+    "meme_premier_incertitude": 0.009770745179543835,
+    "meme_premier_wilson95": [
+      0.5623133915552845,
+      0.6005784741723943
+    ],
+    "n": 2550,
+    "ppl_p": 460.24497527909875,
+    "ppl_q": 316.3743605624457
+  },
+  "commande": [
+    "~\\dev\\cibles\\troncons-R\\release\\juge.exe",
+    "comparer",
+    "--verite",
+    "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+    "--a",
+    "~/dev/essais/troncons/lot-R/r0/carte_cmoe.kld",
+    "--b",
+    "~/dev/essais/troncons/lot-R/r1/ref-openai-sans-echelle-20b.kld",
+    "--fils",
+    "4",
+    "--json",
+    "mesures/moteur/R/r2/comparer-casse-sans-echelle-20b.json"
+  ],
+  "duree_s": 9.691006,
+  "fenetres": 10,
+  "fin_unix": 1792110163,
+  "kl_inverse": {
+    "a": 0.0228314953495921,
+    "b": 0.2541000542007793,
+    "difference": 0.23126855885118805,
+    "ecart_type": 0.009912819631800874
+  },
+  "outil": "juge comparer",
+  "positions": 2550,
+  "regle": "littéral : KL_B ≤ KL_A et premier_B ≥ premier_A ; statistique : d̄ ≤ 2σ(d̄) et ē ≥ −2σ(ē) (différences appariées, mêmes positions, même vérité)",
+  "verdicts": {
+    "litteral_kl": false,
+    "litteral_premier": false,
+    "statistique_kl": false,
+    "statistique_premier": false
+  }
+}

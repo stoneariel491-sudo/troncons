@@ -1,0 +1,21 @@
+\chapter{Journaux et reproduction des figures}\label{ann:journaux}
+
+Ce qui produit un chiffre publié est commité : outils et journaux. Cette annexe dit où sont les journaux et quelle donnée lit chaque graphe. Les deux tables sont engendrées par \fichier{memoire/outils/annexes.py}.
+
+\section{Reconstruire le mémoire}
+
+Depuis \fichier{memoire/}, dans Git Bash, avec MiKTeX (lualatex, biber, latexmk) et Python 3.13 sans dépendance :
+\begin{lstlisting}[language=bash, numbers=none]
+./construire.sh          # données des figures, annexes, puis les deux PDF
+./construire.sh fr       # une seule langue
+./construire.sh propre   # efface les fichiers intermédiaires
+\end{lstlisting}
+Chaque graphe pgfplots lit un CSV commité ; chaque schéma TikZ est un fichier de \fichier{memoire/figures/schemas/} ; les commandes des figures sont communes aux deux langues, qui ne diffèrent que par leurs textes (\verb|\EF{anglais}{français}|). Le texte d'un mémoire se lit en parallèle de l'autre : mêmes chapitres, mêmes étiquettes, mêmes figures.
+
+\section{Les journaux}
+
+\input{\Racine/annexes/journaux}
+
+\section{Les données de chaque graphe}
+
+\input{\Racine/annexes/figures}

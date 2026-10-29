@@ -1,0 +1,12 @@
+[package]
+name = "trc-format"
+description = "Le format de fichier .trc de troncons, au bit près (ARCHITECTURE.md § 4) : structures, lecture vérifiée, écriture, empreintes. Lot F."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+# Couture D (§ 2.4) : sha2 0.10.9 (MIT ou Apache-2.0), thiserror 2.0.21 (MIT ou Apache-2.0).
+[dependencies]
+sha2.workspace = true
+thiserror.workspace = true

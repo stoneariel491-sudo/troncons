@@ -1,0 +1,76 @@
+% Sources du lot F (format .trc, codec rANS, codeur, vérification C1).
+% Toutes sont des références que le lot F a appliquées sans les relire en ligne le 2026-10-15
+% (aucune requête réseau faite par ce lot) : « consulté » dit donc « non reconsulté ». Le
+% rédacteur du mémoire vérifie l'adresse et la version avant de citer (SOCLE, L'INSTANT T).
+
+% duda2013ans : entrée unique dans 03-entropie.bib (chargé avant ce fichier) ;
+% doublon retiré par l'intégrateur du Tome II le 2026-10-16 (biber « Duplicate »).
+
+% giesen2014interleaved : entrée unique dans 03-entropie.bib (chargé avant ce fichier) ;
+% doublon retiré par l'intégrateur du Tome II le 2026-10-16 (biber « Duplicate »).
+
+@misc{ggml_gguf,
+  author       = {{ggml-org}},
+  title        = {{GGUF}: file format specification},
+  howpublished = {\url{https://github.com/ggml-org/ggml/blob/master/docs/gguf.md}},
+  note         = {Licence MIT (dépôt ggml) ; paires clé-valeur, types 0 à 12, descriptions des tenseurs, alignement \texttt{general.alignment} ; lu et réécrit de zéro par trc-format et trc-codeur ; non reconsulté par le lot F le 2026-10-15},
+}
+
+@techreport{ocp_mx_v1,
+  author       = {{Open Compute Project}},
+  title        = {{OCP} Microscaling Formats ({MX}) Specification, Version 1.0},
+  year         = {2023},
+  url          = {https://www.opencompute.org/documents/ocp-microscaling-formats-mx-v1-0-spec-final-pdf},
+  note         = {MXFP4 : blocs de 32 éléments E2M1 et une échelle E8M0 ; non reconsulté par le lot F le 2026-10-15},
+}
+
+@techreport{fips180_4,
+  author       = {{National Institute of Standards and Technology}},
+  title        = {Secure Hash Standard ({SHS}), {FIPS} {PUB} 180-4},
+  year         = {2015},
+  url          = {https://doi.org/10.6028/NIST.FIPS.180-4},
+  note         = {SHA-256 ; empreinte64 = ses 8 premiers octets en petit-boutiste ; vecteur de test « abc » vérifié par le test empreinte64\_connue ; non reconsulté le 2026-10-15},
+}
+
+@misc{hinnant_dates,
+  author       = {Hinnant, Howard},
+  title        = {chrono-Compatible Low-Level Date Algorithms},
+  howpublished = {\url{https://howardhinnant.github.io/date_algorithms.html}},
+  note         = {Conversion jours depuis 1970 vers date civile (date des journaux de trc-codeur) ; non reconsulté le 2026-10-15},
+}
+
+@misc{ms_file_buffering,
+  author       = {{Microsoft}},
+  title        = {File Buffering ({FILE\_FLAG\_NO\_BUFFERING})},
+  howpublished = {\url{https://learn.microsoft.com/en-us/windows/win32/fileio/file-buffering}},
+  note         = {Contraintes d'alignement des lectures sans tampon, raison de l'alignement de 4\,096 octets du format ; non reconsulté le 2026-10-15},
+}
+
+@misc{rustcrypto_sha2,
+  author       = {{RustCrypto}},
+  title        = {sha2 0.10.9 (crate Rust)},
+  howpublished = {\url{https://crates.io/crates/sha2}},
+  note         = {Licence MIT ou Apache-2.0 ; dépendance de trc-format et trc-codeur (couture D)},
+}
+
+@misc{rayon_crate,
+  author       = {Stone, Josh and Matsakis, Niko},
+  title        = {rayon 1.12.0 (crate Rust)},
+  howpublished = {\url{https://crates.io/crates/rayon}},
+  note         = {Licence MIT ou Apache-2.0 ; parallélisme du codeur et de la vérification (couture D)},
+}
+
+@software{llamacpp_b11515_gguf,
+  author       = {{ggml-org}},
+  title        = {llama.cpp b11515 : lecteur GGUF de ggml (gguf\_init\_from\_file, ggml-base.dll)},
+  url          = {https://github.com/ggml-org/llama.cpp},
+  version      = {b11515},
+  note         = {Licence MIT (vérifiée par l'étude 06). Binaire Windows CUDA 12.4 de la machine, empreinte vérifiée (attendu-llama.txt). Fonctions publiques appelées par ctypes depuis second\_chemin\_c1.py le 2026-10-15 (gguf\_get\_n\_tensors, gguf\_get\_tensor\_name, \_offset, \_type, \_size, gguf\_get\_data\_offset, gguf\_get\_alignment) : troisième lecture des décalages des tenseurs, aucune ligne copiée},
+}
+
+@misc{python_hashlib_313,
+  author       = {{Python Software Foundation}},
+  title        = {hashlib --- Secure hashes and message digests (Python 3.13)},
+  url          = {https://docs.python.org/3.13/library/hashlib.html},
+  note         = {SHA-256 du second chemin de C1, adossé à OpenSSL 3.0.18 sur la machine (relevé par l'outil le 2026-10-15) ; un calcul de SHA-256 indépendant de la crate sha2 du premier chemin ; page non reconsultée en ligne le 2026-10-15},
+}

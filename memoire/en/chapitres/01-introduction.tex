@@ -1,0 +1,82 @@
+\chapter{Introduction and motivation}\label{ch:intro}
+
+\section{The mission}\label{sec:mission}
+
+This thesis answers a request written by Stone on 15 October 2026. Here it is in his exact words, in French, mistakes included, because they are what is authoritative and everything else is only a reading of them:
+
+\begin{quote}\itshape\selectlanguage{french}
+j'ai aussi une mission je veux de la recherche scientique et de l'implémentation prend les meilleurs avancées au monde en stockage optimisation et domaine connexes ( enfin les plus utiles) et fait en sorte de tout les assemblées dans le but de produire et d'implémenter une vrai solution pour prendre un modele ultra lourd quelcoque d'une ai le faire tourner proprement sans ram ni rien en fait un moyen de compresser à l'extreme puis décompresser en un temps record au besoin à l'instant exacte du noeud bref tu sais ce qui manque et tu sais quoi faire je ne veux pas que des recherches déja existante je veux que tu fasse une vrai recherche de spécialiste puis tu implémente la solution fonctionnelle avec une team d'ingénieur si ce qu'on cherche n,existe pas alors tant mieux creer le ceci est ta mission principale on vas continuer la suite relais plus tard on doit faire tomber se levier d'abord
+\end{quote}
+
+In English, faithfully: \emph{\enquote{I also have a mission: I want scientific research and implementation. Take the world's best advances in storage, optimization and related fields (well, the most useful ones) and assemble them all in order to produce and implement a real solution to take any ultra-heavy AI model and run it cleanly without RAM or anything; in fact, a way to compress to the extreme, then decompress in record time when needed, at the exact instant of the node. In short, you know what is missing and you know what to do. I do not want only existing research; I want you to do real specialist research, then implement the working solution with a team of engineers. If what we are looking for does not exist, so much the better: create it. This is your main mission; we will continue with relais later, we must bring down this lever first.}}
+
+It has an older source, in two sentences of 2 and 4 October 2026, rendered here in English: \emph{\enquote{does it exist, otherwise we could invent a kind of instant call, in other words a new way to compress data so that it appears right when we need it and disappears afterwards}}; and \emph{\enquote{I am thinking a bit of chunks like in Minecraft, a kind of ultra-advanced engineering that can make the load of an AI disappear when it is no longer useful and reload another one instantly, I mean running an AI only when it is needed and not everything at once, an AI taking up space only when active}}.
+
+The image of Minecraft's \enquote{chunks} is exact and gives the project its name. In that game, the world is cut into sections of $16 \times 16$ columns; only those around the player are loaded in memory, the others sleep on disk, and the engine loads and unloads continuously as the player moves. A language model is a world of weights that computation traverses layer after layer, token after token: \emph{troncons} (French for \enquote{sections}) wants to load, around the point where computation is, the section of weights it needs, and nothing else.
+
+\section{Where we start}\label{sec:depart}
+
+\paragraph{The machine.} An ordinary laptop: an Intel i7-13620H processor, \textbf{16\,GB of RAM on a single module}, an NVIDIA RTX~4060 Laptop card with \textbf{8\,GB}, a 1\,TB NVMe disk with 404\,GB free, encrypted by BitLocker. After the system, the display and the context, about 6.5\,GB of VRAM and 11\,GB of RAM remain for weights, 17.5\,GB in total. \Cref{ch:machine} measures each stage.
+
+\paragraph{The models.} The open models that matter in 2025--2026 are mixtures of experts from 20 billion to 2.8 trillion parameters (\cref{ch:modeles}). The first target, gpt-oss-120b, weighs 63.4\,GB in its original format: \textbf{3.6 times} all the usable memory of the machine. Others weigh five to twenty times more.
+
+\paragraph{What exists.} The engines that run a model larger than memory (\cref{ch:etat}) know how to move weights, but they reason with data-sheet throughputs, on workstations with 128 or 192\,GB of RAM, with formats decoded by CUDA, and almost all under Linux. None is made for a 16\,GB Windows laptop whose encrypted disk delivers less than half its advertised throughput.
+
+\section{What \enquote{without RAM or anything} means}\label{sec:lecture}
+
+Taken literally, the request is impossible: every computation reads its operands from a memory, and a matrix product requires the matrix to be, at least in pieces, in the registers of the unit that computes. The reading retained, to be confirmed by Stone and never substituted for him, is the following.
+
+\begin{definition}[Bounded-window execution]\label{def:fenetre}
+An execution of a model with $P$ bytes of weights is \emph{bounded-window} if its peak memory (RAM and VRAM) is bounded by a constant $M_{\text{window}}$ that does not depend on $P$, but only on the size of the largest section of weights a computation needs at once and on the prefetch depth.
+\end{definition}
+
+Under this reading, \enquote{without RAM} means that \textbf{the memory in use no longer depends on the size of the model}. The difficulty then changes nature: it is no longer to make the model fit, but to move, at every token, the bytes it needs through the slowest of the stages that separate it from the compute units. The judge is physics, quantified by \cref{thm:toit}:
+\[
+\text{tokens/s} \;\le\; \min_i \frac{W_i}{O_i},
+\]
+where $W_i$ is the measured throughput of stage $i$ and $O_i$ the number of bytes a token must move through it. The four levers of this thesis each act on one term of this inequality: compressing to the extreme reduces $O_i$ (\cref{ch:quant}), and lossless coding reduces it further by a rate $r$ upstream of the decoder (\cref{ch:entropie}); decompressing on the card changes the stage the compressed bytes cross (\cref{sec:toit}); a cache that hits keeps bytes in a faster stage (\cref{ch:chargement}); speculative decoding returns several tokens per read (\cref{ch:sparsite}).
+
+\section{The research question}
+
+\begin{center}
+\begin{tcolorbox}[enhanced, width=0.92\linewidth, colback=Fond, colframe=Accent, boxrule=0.6pt, arc=1pt]
+\emph{On a consumer machine whose memory is several times smaller than the model, which assembly of weight representation, placement, loading and compute maximizes tokens per second at measured quality, and what does the world lack to reach it?}
+\end{tcolorbox}
+\end{center}
+
+\enquote{I do not want only existing research}: the state of the art is read thoroughly, but the deliverable is a contribution, an assembly or a mechanism that does not yet exist, proven by measurement, and a program that works. This first part lays the foundations; the architecture, the implementation and the results will come in the chapters announced in \cref{ch:avenir}.
+
+\section{What this first part contributes}\label{sec:contributions}
+
+\begin{enumerate}
+\item \textbf{A measured, and proven, roof.} Every stage of the machine is measured with a control that can fail (\cref{ch:machine}): the disk delivers 2.82\,GB/s, 47\,\% of its advertised rate, because the volume is encrypted and goes through Intel RST VMD; the host-to-device link 12.2\,GB/s; the VRAM 251.3\,GB/s. We prove the throughput bound of a chain of stages, its steady state through a flow-shop lemma with identical jobs, and two corollaries that settle the architecture: beyond a compression factor $r^\star = 4.33$, compressing is wasted if the processor decompresses, and never if the card decompresses.
+\item \textbf{The battery regime.} On battery, the machine is another machine: card power limit lowered from 80 to 52.6\,W, card memory at 6\,GHz instead of 8, and everything that goes through the processor divided by 4 to 6. No published inference benchmark records the power source.
+\item \textbf{The first portable trellis decoder.} A shift-register trellis, the code family closest to the Shannon bound at 2 bits, decoded in a Vulkan shader at 124\,GB/s equivalent, as fast as 4-bit scalar while reading half the bytes (\cref{ch:quant}).
+\item \textbf{A rule for splitting bits by stage}, proven through the Lagrangian, then corrected with the measured throughputs: a VRAM-resident matrix deserves 2.18 more bits than a matrix read over the link, 3.24 more than one read from disk.
+\item \textbf{The equal-bytes measurement of the llama.cpp ladder on Qwen3.5}: with the best portable 2-bit format, shrinking beats compressing up to about 3.2 bits per weight.
+\item \textbf{The MXFP4 scales, coded by the median of their row}: a field-wise lossless coding, decoded exactly, that yields a rate of 1.1026 over the 60.9\,GB of experts of gpt-oss-120b where zstd takes 1.04; an interleaved rANS decoder, proved exact, at 70\,GB/s under Vulkan and 82 under CUDA; the measurement that decoding inside the product is 3.7 times slower, hence the rule of decoding on arrival of the chunk; and the exact calculation that explains the 3.86 bits of 4-bit codes and refutes, for small-group formats, the published ``0.6 to 1 bit'' entropies (\cref{ch:entropie}).
+\item \textbf{The cache hit rate implied by a published measurement}, which reads locality in a measurement that does not publish it (\cref{ch:chargement}).
+\item \textbf{The amortization theorem of speculation} and the exact condition under which it pays for a mixture of experts read from disk, which independent routing never satisfies; and the measurement that activation sparsity and speculation do not compose on a SwiGLU model (\cref{ch:sparsite}).
+\item \textbf{An inventory of 49 models read from their headers} and a judging protocol in which one measurement has already corrected an assumption (\cref{ch:modeles}).
+\item \textbf{The token equation and its elasticities}, proven: on this machine the disk holds the maximum, and any lever that does not touch the bytes read from disk is ornament; the condition for speculation corrected by expert reuse, $\alpha > 1 - \rho$ (\cref{ch:formulation}).
+\item \textbf{The exact refinement of a native 4-bit code}, which costs nothing in entropy and whose base beats truncation by 0.27 bit; three candidate architectures, the correction of a wrongly announced gain, and the decision to build the exact architecture first (\cref{ch:avenir}).
+\end{enumerate}
+
+\section{The method}\label{sec:methode}
+
+The required standard fits in a few rules, applied to every number (\cref{ann:protocoles}):
+\begin{itemize}
+\item every measurement has its \textbf{control}, a case whose answer is known in advance, and every new control must be able to fail: its condition is forced to be false, we check that the instrument fails, then restore it;
+\item a \textbf{threshold} is never set by eye: it derives from a named quantity and is declared before the measurement;
+\item a cost never rests on a single pass: \textbf{ABBA series}, with the gap of a program to itself as reference noise;
+\item every number we depend on is redone through an independent \textbf{second path};
+\item when a measurement contradicts a published number, even ours, \textbf{the sentence is crossed out} and we say what changed: never a silent retraction; this thesis keeps several of them, \barre{like this one}, in place;
+\item every number carries its provenance: \mes{} measured here, \calc{} computed, \litt{} literature not reproduced;
+\item whatever produces a published number is committed, tools and logs, and every figure is regenerated from its data by a committed script (\cref{ann:journaux}).
+\end{itemize}
+
+Each chapter opens with what was acquired at the start, what it establishes and what remains, and closes with what could be wrong.
+
+\section{Outline}
+
+The first part states the problem: the state of the art (\cref{ch:etat}), the machine and its physics (\cref{ch:machine}), the formulation of the problem in equations (\cref{ch:formulation}). The second measures the levers one by one: extreme quantization (\cref{ch:quant}), lossless compression at the speed of compute (\cref{ch:entropie}), on-demand loading (\cref{ch:chargement}), sparsity and speculative decoding (\cref{ch:sparsite}), the target models (\cref{ch:modeles}). The third prepares the system: what comes next (\cref{ch:avenir}), discussion and limits (\cref{ch:discussion}), future work (\cref{ch:futurs}). The appendices give the measurement protocols, the tools and the logs.

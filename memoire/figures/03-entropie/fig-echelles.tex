@@ -1,0 +1,27 @@
+% Entropie des échelles E8M0 des 72 tenseurs d'experts de gpt-oss-20b, selon le contexte :
+% ordre 0, sachant l'échelle du bloc de gauche, sachant la médiane de la ligne (coût de la
+% médiane compris). Données : fondations/journaux/03-entropie/csv/fig-echelles-gptoss20b.csv
+% (vers_csv.py, depuis mxfp4-contexte-gptoss20b.json).
+% Compilation seule : lualatex fig-echelles.tex (depuis ce dossier).
+\documentclass[tikz,border=4pt]{standalone}
+\usepackage{fontspec}
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
+\pgfplotsset{compat=1.18}
+\providecommand{\donnees}{../../../fondations/journaux/03-entropie/csv}
+\begin{document}
+\pgfplotstableread[col sep=comma]{\donnees/fig-echelles-gptoss20b.csv}\table
+\begin{tikzpicture}
+\begin{axis}[
+  width=13cm, height=6.5cm, xmin=-1, xmax=72, ymin=0, ymax=2.5,
+  xlabel={tenseur d'experts (couche × \{down, gate, up\})}, ylabel={bits par échelle (sur 8)},
+  legend style={at={(0.5,-0.22)}, anchor=north, font=\small, legend columns=3},
+  ymajorgrids, grid style={gray!25}, mark size=1.2pt,
+]
+\addplot[only marks, mark=o, gray] table[x=indice, y=H_e] {\table};
+\addplot[only marks, mark=triangle*, orange!80!black] table[x=indice, y=H_e_gauche] {\table};
+\addplot[only marks, mark=*, blue!70!black] table[x=indice, y=H_e_mediane] {\table};
+\legend{ordre 0, sachant le bloc de gauche, sachant la médiane de ligne}
+\end{axis}
+\end{tikzpicture}
+\end{document}

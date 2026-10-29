@@ -1,0 +1,147 @@
+{
+  "alimentation": {
+    "ACLineStatus": 1,
+    "BatteryFlag": 1,
+    "BatteryLifePercent": 80,
+    "secteur": true
+  },
+  "base": "~/dev/essais/troncons/epreuve-J1/base-invite-708.kld",
+  "commande": "evaluer --modele ~/dev/modeles/trc/gpt-oss-120b.trc --base ~/dev/essais/troncons/epreuve-J1/base-invite-708.kld --fenetres 1 --positions 708 --kv-f32 --trace ~/dev/essais/troncons/lot-O/ronde/ikb120.trace --sortie ~/dev/essais/troncons/lot-O/ronde/justesse-2026-10-16/04-IkB120.kld --empreintes ~/dev/essais/troncons/lot-O/ronde/justesse-2026-10-16/04-IkB120-empreintes.csv --journal ~/dev/essais/troncons/lot-O/ronde/justesse-2026-10-16/04-IkB120.json",
+  "compteurs": {
+    "acces": 101952,
+    "defauts_disque": 56863,
+    "emplacements": 314,
+    "evictions": 56549,
+    "experts_decodes": 56863,
+    "experts_verifies": 0,
+    "flux_conflits_evites": 0,
+    "garde_attente_s": 2.4058793999999994,
+    "garde_lignes": 708,
+    "garde_octets": 683744822448,
+    "garde_octets_ouverture": 615333888,
+    "garde_troncons": 56863,
+    "h_vram": 0.44225714061519145,
+    "lectures_enchassement": 708,
+    "lectures_troncons": 56863,
+    "ms_copie_carte": 82174.07795059681,
+    "ms_decodage_carte": 63067.40296897292,
+    "octets_copies_cache": 683861770240,
+    "octets_disque_cache": 683861770240,
+    "octets_dma": 683861770240,
+    "octets_lus": 686168580096,
+    "octets_lus_enchassement": 5799936,
+    "octets_lus_troncons": 683861770240,
+    "pas": 708,
+    "pf_emis": 0,
+    "pf_octets": 0,
+    "pf_utiles": 0,
+    "s_attente_routeur": 86.15035379999982,
+    "s_fin_jeton": 7.180494699999999,
+    "s_lectures": 355.6258635000007,
+    "s_pas": 453.7052827000003,
+    "succes_ram": 0,
+    "succes_vram": 45089,
+    "tiedes": 0
+  },
+  "date_utc": "2026-10-16T11:19:18Z",
+  "disque": {
+    "octets_comptes_moteur": {
+      "chargement_residents": 1685676032,
+      "lecteur": 686168580096,
+      "ouverture_tamponnee": 13565650,
+      "total": 687867821778
+    },
+    "processus": {
+      "lectures": 57725,
+      "octets_ecrits": 142367095,
+      "octets_lus": 686187219667,
+      "octets_lus_depuis_le_depart": 686191444969
+    }
+  },
+  "empreinte_csv_sha256": "f20b968e6781d57cd4895fb0a5024916386071308185a504e8f7ab5fe0126a58",
+  "fenetres": 1,
+  "flux": false,
+  "flux_experts": 0,
+  "flux_positions": 0,
+  "moteur": {
+    "arrivees": 12,
+    "brut": false,
+    "carte": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "casser_garde": null,
+    "chargement": {
+      "empreintes_verifiees": 470,
+      "lectures": 101,
+      "octets_lus": 1685676032,
+      "octets_tenseurs": 1685668608,
+      "secondes": 1.8316815,
+      "tenseurs": 470
+    },
+    "contexte": 4096,
+    "couches": 36,
+    "couches_d_avance": 3,
+    "emplacements": 314,
+    "enchassement_en_ram": false,
+    "etapes_memoire": [
+      {
+        "ensemble_travail": 4997120,
+        "etape": "avant"
+      },
+      {
+        "ensemble_travail": 18710528,
+        "etape": "fichier"
+      },
+      {
+        "ensemble_travail": 128557056,
+        "etape": "contexte_flux"
+      },
+      {
+        "ensemble_travail": 129642496,
+        "etape": "noyaux"
+      },
+      {
+        "ensemble_travail": 130994176,
+        "etape": "modele"
+      },
+      {
+        "ensemble_travail": 131215360,
+        "etape": "luts"
+      },
+      {
+        "ensemble_travail": 283938816,
+        "etape": "fenetre_et_tampons"
+      },
+      {
+        "ensemble_travail": 284491776,
+        "etape": "emplacements_cache_evenements"
+      }
+    ],
+    "experts": 128,
+    "fichier": "~/dev/modeles/trc/gpt-oss-120b.trc",
+    "garde": true,
+    "k": 4,
+    "kv_f32": true,
+    "longueur_arrivee": 12251136,
+    "longueur_lecture": null,
+    "octets_emplacement": 13254144,
+    "octets_epingles": 147841024,
+    "octets_vram_moteur": 6313967408,
+    "ouverture_s": 2.9744433,
+    "prechargement": false,
+    "profondeur_es": 4,
+    "ram_tiede_go": 0.0,
+    "temoin": false,
+    "tiedes": 0,
+    "vocab": 201088,
+    "vram_plafond_mio": 7179
+  },
+  "n_ctx": 708,
+  "outil": "troncons evaluer",
+  "pas": 708,
+  "pas_s": 1.5513935369656962,
+  "positions_notees": 353,
+  "positions_par_fenetre": 708,
+  "ppl_positions_notees": 1221.8062637642552,
+  "secondes": 456.3638968,
+  "sortie": "~/dev/essais/troncons/lot-O/ronde/justesse-2026-10-16/04-IkB120.kld",
+  "version": "0.1.0"
+}

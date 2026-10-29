@@ -1,0 +1,100 @@
+\chapter{Discussion et limites}\label{ch:discussion}
+
+\begin{origine}
+\textbf{Au départ}, neuf chapitres qui mesurent, démontrent et décident chacun de leur côté.
+\textbf{Ce chapitre établit} ce qu'ils disent ensemble ; ce qui y est solide et ce qui y est fragile ; les idées que les nombres ont tuées ; les chiffres qu'il a fallu barrer, rassemblés au même endroit ; et les limites de la méthode elle-même.
+\textbf{Il reste} à le confronter au programme : chaque fragilité nommée ici a sa mesure prévue au \cref{ch:futurs}.
+\end{origine}
+
+\section{Ce que la première partie établit}\label{sec:bilan}
+
+\begin{enumerate}
+\item \textbf{Le juge est un maximum, et sur cette machine c'est le disque qui le tient.} Pour gpt-oss-120b dans le scénario de localité retenu, le disque prend 157\,ms par jeton, le lien 58, la carte 36 (\cref{sec:exemple-pose}). Tout levier qui ne touche pas $h_s B_e/(r_d W_{\mathrm{D}})$ est, ici, de l'ornement (\cref{cor:ornement}).
+\item \textbf{Le disque livre 47\,\% de son annonce}, parce que le volume est chiffré par BitLocker et passe par Intel RST VMD (\cref{ch:machine}) : le plus gros levier de la machine n'est pas un logiciel.
+\item \textbf{Chaque bit retiré vaut autant que chaque octet de débit gagné} (élasticités $\pm 0{,}98$, \cref{prop:elasticites}) ; la quantification extrême et la compression sans perte agissent sur le même terme, et la borne de Shannon dit ce qu'il reste à prendre (\cref{ch:quant}).
+\item \textbf{Le taux de succès du cache décide de tout pour un mélange d'experts} (\cref{ch:chargement}) : entre le routage uniforme et un LRU calé, le plafond de A change d'un facteur 3.
+\item \textbf{La spéculation ne se juge pas sans la réutilisation des experts} : la condition $\alpha > 1 - \rho$ (\cref{prop:spec-rho}) remplace la conclusion « jamais » du \cref{ch:sparsite} ; sur gpt-oss-20b, $\rho = 0{,}577$ (\cref{sec:premieres-mesures}).
+\item \textbf{La mémoire peut cesser de dépendre du modèle} : A0 sert un modèle de 63,4\,Go avec 1,9\,Go de RAM de pointe, et la fenêtre minimale descend à 0,64\,Go (\cref{sec:fenetre-chiffree}).
+\item \textbf{Un mécanisme neuf existe, plus étroit qu'annoncé} : le raffinement exact d'un code 4 bits natif ne coûte rien en entropie (\cref{prop:raffinement}) et sa base perd 0,27 bit de moins que la troncature à erreur égale ; mais une fois les compléments comptés, son gain de débit n'est réel qu'au prix d'une part réglable de précision (\cref{sec:correction-b1}).
+\end{enumerate}
+
+\section{Ce qui est solide, ce qui est fragile}\label{sec:solide-fragile}
+
+\paragraph{Solide.} Les débits d'étage, chacun mesuré avec un témoin qui peut tomber, en séries ABBA, et refait par un second chemin (compteur du système pour le disque, API de chiffrement pour BitLocker) ; les théorèmes et leurs démonstrations (\cref{thm:toit,thm:amortissement}, \cref{prop:raffinement,prop:elasticites}) ; l'exactitude du décodeur rANS sur les 108 tenseurs de gpt-oss-120b ; l'inventaire des modèles lu dans leurs en-têtes, refait sur le fichier local.
+
+\paragraph{Fragile.} Tout ce qui dépend de la localité : les plafonds de A et B reposent sur une loi de puissance calée en un point (\cref{hyp:beta}) dont la forme est déjà contredite sur gpt-oss-20b ; la base llama.cpp de gpt-oss-120b, encore estimée ; la qualité de B, seulement estimée par une linéarité valable pour de petites erreurs ; plusieurs travaux voisins, lus au résumé seulement.
+
+\section{Les idées tuées par les nombres}\label{sec:idees-tuees}
+
+Le SOCLE demande de tuer une idée par les nombres, pas par l'opinion. Le \cref{tab:idees-tuees} les rassemble.
+
+\begin{table}[ht]
+\centering\small
+\caption[Les idées tuées par les nombres]{Les idées tuées par les nombres, et le nombre qui les tue.}
+\label{tab:idees-tuees}
+\begin{tabular}{@{}p{0.34\linewidth}p{0.46\linewidth}l@{}}
+\toprule
+Idée & Le nombre qui la tue & Où \\
+\midrule
+Décoder dans le produit (fusion rANS + GEMV) & 3,7 fois plus lent que le produit brut, pas plus rapide que deux passes \mes & \cref{ch:entropie} \\
+Treillis « sans multiplication » sur la carte & 52 contre 121\,Go/s : les comptages de bits coûtent plus que la multiplication \mes & \cref{ch:quant} \\
+Décoder sur le processeur & 0,075\,Go/s par fil \mes & étude 03, § 4.4 \\
+Sparsité des activations sous vérification & l'union de 4 jetons touche 89,5\,\% des poids ; un masque commun (bloc de 4, 50\,\%) multiplie la perplexité par 16,9 \mes & \cref{tab:masque-commun} \\
+Spéculation sur un MoE fin sous l'indépendance & il faudrait $\alpha > 0{,}969$ pour gpt-oss-120b \calc ; nuancé par $\rho$ & \cref{prop:spec-rho} \\
+DirectX 12 par wgpu & ni f16 ni sous-groupes ; 32\,Go/s en 4 bits contre 122 \mes & étude 01, § 5.3 \\
+IoRing au lieu d'IOCP & écart de 0 à 5\,\%, sous le bruit \mes & \cref{ch:machine} \\
+Noyaux plus rapides en régime disque & élasticité nulle, moins de 2\,\% \calc & \cref{cor:ornement} \\
+Calculer les experts tièdes sur le processeur & le lien (58\,ms) ne tient pas le maximum (disque 157\,ms) \calc & \cref{sec:archi-a} \\
+Base de B à 1 bit de magnitude & 16,4\,\% d'erreur, douze fois le bruit propre du format \mes & \cref{tab:bases} \\
+C (un dense de 70B lu du disque, en arbre) & 2,50 jetons/s au mieux contre 6,24 pour A, et 28,3\,Go à télécharger \calc & \cref{sec:archi-c} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Les chiffres barrés}\label{sec:chiffres-barres}
+
+Quand une mesure a contredit un chiffre publié, même le nôtre, la phrase a été barrée à sa place et l'on a dit ce qui avait changé. Ce mémoire en garde la liste (\cref{tab:barres}) : c'est la trace que la méthode a fonctionné.
+
+\begin{table}[ht]
+\centering\small
+\caption[Les chiffres barrés]{Les chiffres barrés pendant les fondations, et ce qui les a remplacés.}
+\label{tab:barres}
+\begin{tabular}{@{}p{0.32\linewidth}p{0.42\linewidth}p{0.18\linewidth}@{}}
+\toprule
+Barré & Remplacé par, et pourquoi & Où \\
+\midrule
+\barre{Plafond de gpt-oss-120b sans cache : 5,5 jetons/s} & $\approx 2$ jetons/s : 5,5 supposait le disque au plafond de son lien, il en livre 36\,\% & \cref{sec:toit} \\
+\barre{$r^\star$ vaut 1,05 bit stocké pour 4,5 servis} & 1,17 bit : le Q4\_K\_M sert 5,08 bits, pas 4,5 & \cref{sec:toit} \\
+\barre{Une matrice résidente mérite 2,6 bits de plus} & 2,18 bits (lien) et 3,24 bits (disque), avec les débits mesurés & \cref{ch:quant} \\
+\barre{Témoin du cache disque : la relecture en cache dépasse le lien} & la copie depuis le cache de Windows est bornée par un fil (3,1\,Go/s) ; remplacé par le compteur du système & \cref{ann:protocoles} \\
+\barre{Justesse d'un moteur sans perte : mêmes jetons que llama.cpp} & llama.cpp diverge de lui-même selon le moteur ; budget KL 0,0055 & \cref{sec:protocole-jugement} \\
+\barre{Taux sans perte sur le cache : $+14{,}4\,\%$} & $+13{,}1\,\%$ : la carte garde ses experts décodés & \cref{sec:temoins-equation} \\
+\barre{B1 : 8,88 jetons/s, $\times 1{,}42$ sur A} & 6,16 (série 4,83) : les compléments n'étaient pas comptés & \cref{sec:correction-b1} \\
+\barre{B1 bat A dès que 4,2\,\% des défauts sont servis par la base} & B1 ne bat jamais A au plafond, seulement en série & \cref{sec:correction-b1} \\
+\barre{$k$ optimal $= 0$ pour un MoE lu du disque} & dépend de $\rho$ ; $\alpha > 0{,}42$ suffirait sur gpt-oss-20b & \cref{prop:spec-rho} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Les limites de la méthode}\label{sec:limites-methode}
+
+\begin{itemize}
+\item \textbf{Une seule machine.} Tout est mesuré sur le portable de Stone ; c'est la cible, mais les conclusions sur l'étage limitant changent avec un autre disque (un volume non chiffré fait passer la main au lien, \cref{ch:futurs}).
+\item \textbf{Une machine partagée.} D'autres agents mesuraient en même temps ; les débits « au mieux » sont des bornes inférieures du repos, et chaque passe journalise la charge étrangère.
+\item \textbf{Deux machines en une.} Sur batterie, la carte, le lien et le processeur changent de régime (\cref{sec:batterie}) ; toutes les mesures retenues sont sur secteur, et l'état de l'alimentation est noté à chaque passe (\cref{ann:protocoles}).
+\item \textbf{Un juge de qualité calé sur un autre modèle.} Le budget $\kappa = 0{,}0055$ vient de Qwen3.5-4B ; il doit être remesuré sur gpt-oss.
+\item \textbf{La littérature au résumé.} Plusieurs voisins de B (TRACE, MatGPTQ, AnyBCQ) ne sont lus qu'au résumé : rien ne se publie avant leur lecture complète.
+\item \textbf{Un choix d'outillage qui ferme une porte.} J1 sera en CUDA (\cref{sec:decision}) : le programme exigera une carte NVIDIA jusqu'au portage Vulkan.
+\end{itemize}
+
+\section{La lecture de « sans RAM ni rien »}\label{sec:lecture-discussion}
+
+La lecture retenue (\cref{def:fenetre}) n'a jamais été substituée à la demande de Stone : elle est à lui confirmer. Les nombres la rendent concrète. Une RAM nulle est impossible ; une RAM qui ne dépend pas du modèle est atteignable, et son prix se lit sur la \cref{fig:plafond-ram} : chaque Go de RAM rendu au système coûte environ 0,24 jeton/s dans le scénario LRU calé. « Sans RAM » devient un réglage, que Stone peut tourner selon ce qu'il fait d'autre sur sa machine.
+
+\begin{faux}
+\begin{itemize}
+\item Le bilan hérite de toutes les fragilités des chapitres : d'abord la localité, ensuite la base estimée, enfin la qualité de B.
+\item La liste des idées tuées vaut pour ce régime (disque chiffré, lot de un) ; plusieurs reviennent si le disque cesse de limiter.
+\item La liste des chiffres barrés n'est complète que pour ce que les études ont publié ; un chiffre faux encore non contredit n'y figure pas, par définition.
+\end{itemize}
+\end{faux}

@@ -1,0 +1,97 @@
+% Volume~III, introduction (English version). Translated on 2026-10-29 by translator EN1 from
+% memoire/tome3/fr/chapitres/00-introduction.tex (writer D, corrected), number for number, same labels.
+% Stone's words (SOCLE.md, idees/biomimetisme-genome-des-poids.md) are quoted in French as he wrote them, mistakes
+% included, with an English rendering beside them.
+
+\chapter{Introduction}\label{t3int:ch}
+
+\begin{origine}
+\textbf{The starting point} is the first two volumes. Volume~I measured Stone's machine and showed that, on it, the disk is the slowest stage: what counts is the number of bits a token must read. Volume~II built troncons, which runs gpt-oss-120b (\SI{63.4}{\Go}) with \SI{384}{\Mo} of memory, exactly (bit-identical logits between the coded file and the raw file), at \num{2.22} times the best measured baseline; its expert weights were read at \num{3.84} bits per weight losslessly, and the base of the ``base + complement'' split at \num{2.64} bits, lossy.
+\textbf{This volume establishes} what Stone's biomimetic idea, the genome of the weights, has yielded: a round of four teams that put it to the test and said, numbers in hand, why almost everything falls; three mechanisms that win, all three ``synonyms'' in the sense of the genetic code; their construction in the format and the engine, and the judge that redid it; six leads borrowed from other disciplines; two mathematical leads, the tropical geometry of the router and the spectra of the matrices.
+\textbf{What remains} is gathered by the discussion (\cref{t3dis:ch}): the tail of the KL, which nothing targets yet; the 120b served by its synonym base; another corpus; the read pattern that makes the speed of this disk.
+\end{origine}
+
+\begin{enbref}
+An AI model is a very long text of numbers. Stone proposed to learn from life, which does not store an organism but a genome, a recipe from which the organism is built. This volume tells what that idea became once it was judged by measurement. The first answer is harsh: once the scale of their block is known, the weights of gpt-oss behave like noise, and noise cannot be summarised; the seed, the shared patterns, the kinship between experts and the lossless recipe all fall for that reason. But life has a move other than the recipe: the redundancy of the genetic code, where several codons designate the same amino acid. The three mechanisms that win are of that kind. The first erases a piece of information that the computation never reads (the sign of a zero), losslessly, and makes the 120b read \SI{1.80}{\Go} less. The second uses what the coder already knows (the energy class of each input column). The third, the synonymous mutation, chooses an approximation of the weights whose error falls where the real inputs do not look: served alone, the base of the 768 experts of the 20b halves the KL of the fixed base of Volume~II. The volume also says what does not work, as precisely as what does: the fast mode does not bring the announced speed, the tropical guard does not see the cascading flips, the spectra do not follow a power law, and none of the six borrowed leads clearly holds under its judge.
+\end{enbref}
+
+\section{The question, asked by Stone and by the machine}\label{t3int:sec:question}
+
+\paragraph{The mission.} Stone wrote it on 15 October 2026, and Volume~I quotes it in full: to run ``un modele ultra lourd quelcoque d'une ai […] sans ram ni rien'' (any ultra-heavy AI model, with no RAM or anything), in a word ``compresser à l'extreme puis décompresser en un temps record au besoin à l'instant exacte du noeud'' (compress to the extreme, then decompress in record time when needed, at the exact instant of the node). The first two volumes took the second half of the sentence literally: the \texttt{.trc} format and the engine decompress each expert at the exact moment the computation asks for it, then release it. This volume takes the first half: compress further.
+
+\paragraph{The idea.} The same day, Stone added a lead of his own:
+\begin{quote}\itshape
+J'ai penser à du biomimetisme informatique par exemple simjler une forme de molecule d'adn virtuel qui peut stocker une grande qua tutoriel d'informations en quelque sorte creer une nouvelle convention differentes du bit une transcription et implémentation
+\end{quote}
+(I thought of computer biomimicry, for example simulating a form of virtual DNA molecule that can store a great quantity of information, in a way creating a new convention different from the bit, a transcription and implementation), then, the next day, his instruction for the study: ``le but est de concevoir un systeme fonctionnel et si il ne voye rien de convaincaint vers l'ADN au terme ils recherche le moyen biomimétique le plus prométeur jusqu'à trouver'' (the goal is to design a working system, and if they see nothing convincing towards DNA in the end, they search for the most promising biomimetic means until they find it) (\fichier{idees/biomimetisme-genome-des-poids.md}). Stone's conviction (``j'ai la certitude que ce qu'on cherche se trouve dans du biomimetisme'', I am certain that what we are looking for lies in biomimicry) is the working hypothesis of the volume; measurement judges it, and the volume reports both.
+
+\paragraph{What the machine makes of it.} A new convention of symbols creates no room: DNA writes with four letters, that is two bits per letter, and no alphabet goes below the entropy of the message \parencite{shannon1948,cover2006}. The strength of life is not its alphabet but its mechanisms. And the machine says which ones count: the disk is the slowest stage (\SI{2.82}{\Go\per\second} measured in Volume~I), and the card waits while it reads, with, according to the computation of the idea, on the order of 214 operations available per compressed byte. A genome of the weights therefore spends computation to save bytes, the very trade this machine asks for. The question of the volume, in its judgeable form, is this:
+
+\begin{center}
+\begin{tcolorbox}[enhanced, width=0.92\linewidth, colback=Fond, colframe=Accent, boxrule=0.6pt, arc=1pt]
+\emph{Is there a mechanism, inspired by life, that makes the disk read fewer bits per expert weight than the frontier of Volume~II (\num{3.84} bits losslessly; \num{2.64} bits for the base, lossy), at a fidelity judged by the KL on text against the exact reference, and that transcribes on the card faster than the disk reads what it replaces?}
+\end{tcolorbox}
+\end{center}
+
+The question is judged at every step by a threshold declared before the measurement (appendix~\ref{t3ann:protocoles}), and by a judge that did not do the work.
+
+\section{What ``genome'' means here}\label{t3int:sec:genome}
+
+The word is an analogy, and the volume says so each time it uses it. In living things, a sequence of bases is read in triplets, the \emph{codons}, and the genetic code translates them into amino acids \parencite{genome-crick1961}. This code is degenerate: 64 codons for some twenty amino acids and a stop signal, so that several \emph{synonymous} codons designate the same one. A mutation that changes a codon into a synonym has no effect on the protein; and the natural code is arranged so that the most probable errors fall on similar amino acids \parencite{genome-crick1968,freeland1998}. \Cref{t3int:tab:analogie} gives what the volume transposes, and where.
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[The genome analogy, and what it designates here]{The genome analogy, and what it designates in this volume. An analogy chooses a direction of research; it proves nothing.}
+\label{t3int:tab:analogie}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.27\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.16\linewidth}@{}}
+\toprule
+In living things & In troncons & Chapter \\
+\midrule
+the genome, a recipe rather than a result & a seed and coefficients, or a strand of bits read through a table, from which the weights are rebuilt & \cref{t3gen:ch} \\
+the ribosome reading the RNA codon after codon & a 12-bit window sliding along the strand and returning weights through a table & \cref{t3gen:ch} \\
+gene duplication & an expert coded as a mutation of a parent expert & \cref{t3dup:ch} \\
+predictive coding, synaptic pruning & coding only the deviation from a prediction; removing the useless weights & \cref{t3pre:ch} \\
+the synonymous codon & the sign of an MXFP4 zero, which the computation never reads & \cref{t3cod:ch} \\
+the synonymous mutation & a base of the weights whose error falls where the real inputs do not look & \cref{t3sno:ch} \\
+expression on demand & the expert decoded at the moment of the computation, then released (already built in Volume~II) & --- \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Two warnings hold for the whole volume. Life tolerates errors that a language model perhaps does not; and a beautiful analogy is not an argument: each mechanism is judged by measurement, not by the beauty of the image (\fichier{idees/biomimetisme-genome-des-poids.md}, § 6). The volume also borrows from disciplines other than biology (climate, the physics of spin glasses, statistics, the cortex); these borrowings are stated as such in \cref{t3mim:ch}.
+
+\section{The path of the volume}\label{t3int:sec:chemin}
+
+The volume has three parts, like Volume~II.
+
+\paragraph{The question and the round.} \Cref{t3que:ch} asks the question in the terms of the machine: the MXFP4 block to the bit, the frontier, the rate--distortion bound in the domain of the weights, and the twelve ``genomic'' families of the literature. \Cref{t3ecl:ch} gives the scout, which found where the noise and the structure are, and designed the first two synonym mechanisms. \Cref{t3gen:ch,t3dup:ch,t3pre:ch} give the other three teams of the round: the recipe (the strand read through codons, the seed), gene duplication, predictive coding and pruning. \Cref{t3mim:ch} gives mimicry, six leads coming from other disciplines towards the path of the bytes. \Cref{t3syn:ch} gathers the round on a single axis, the KL on text, and says why each mechanism wins or falls.
+
+\paragraph{The construction.} \Cref{t3cod:ch} gives lot A: the zero-synonym codon in the \texttt{.trc} format, version 1.2, lossless. \Cref{t3sno:ch} gives lot B: the synonymous genome on the 768 experts and the fast mode of the engine. \Cref{t3jug:ch} gives the judge that redid both lots by its own paths.
+
+\paragraph{The leads and the assessment.} \Cref{t3tro:ch} gives the tropical geometry of the router and its guard; \cref{t3spe:ch} the spectra of the matrices; \cref{t3dis:ch} the discussion, the verdicts gathered, what could be wrong at the scale of the volume, and future work. The appendices give the protocols (declared thresholds and controls), the tools and the logs.
+
+\paragraph{What went to Volume~II.} The construction met a question that is not the genome's: why two files of the same model read at different speeds on this disk. The disk-placement stream and its judge answered it (the pattern of read requests that the format imposes, \fichier{genome/JUGEMENT-placement.md}); by the decision of that judge, their work goes to Volume~II, in a chapter ``The disk stage''. This volume keeps only its consequence, reserve R1, which fixes how to read the speed gain of the format v1.2 (\cref{t3jug:sec:r1}).
+
+\section{What this volume contributes}\label{t3int:sec:apports}
+
+\begin{enumerate}
+\item \textbf{The reason for the failures, measured.} Once the scale of the block is known, the weights are noise (the neighbouring code brings only \num{0.005} bit; the rotated rows are Gaussian to within \SI{1.5}{\percent}; two matched experts have the cosine of two experts drawn at random); a few giant columns carry the structure; and the output error of an expert does not predict the KL, which has a smooth part and a tail of routing flips (\cref{t3syn:ch}).
+\item \textbf{Three synonym mechanisms that win}: the zero codon, lossless (\num{3.8434} $\to$ \num{3.7064} bits per weight on the reference tensors, in the A\_flux accounting, that of the codec of study 03; \num{3.8431} $\to$ \num{3.7061} in that of the codes, A\_ctx, which \cref{t3que:ch,t3ecl:ch} give; \SI{1.80}{\Go} less to read on the 120b); the column context, lossless (\num{3.6844} bits); the synonymous mutation, lossy (\cref{t3ecl:ch,t3syn:ch}).
+\item \textbf{An exact format v1.2}, built, of which a decoder written by the judge from the description alone recovers each drawn expert to the bit, up to the sign of the zeros, and whose logits are bit-identical on ten windows nobody had seen; on this disk, the J1 of the 120b gains $\times 1.44$ with it, through the pattern of its read requests (\cref{t3cod:ch,t3jug:ch}).
+\item \textbf{A fast mode served by the engine}: the 768 experts of the 20b served by their synonym base ($\lambda = 0$), \num{2.67} bits per weight, KL \num{0.1318} against \num{0.2640} for the fixed base, recovered outside R1 by the judge, and served by the card as faithfully as by the f64 reference (\cref{t3sno:ch}).
+\item \textbf{Ideas killed by the numbers}, each with the property that decided it: the seed, the patterns, duplication, the lossless recipe, the Hebbian rule, pruning, the tropical guard, the power law of the spectra; and two speed gains struck out as gains of the fast mode (\cref{t3dis:ch}).
+\end{enumerate}
+
+\section{How to read this volume}\label{t3int:sec:lire}
+
+\paragraph{The judge: the KL.} Almost all the verdicts of the volume are given by a single number, the Kullback--Leibler divergence (the KL) between the next-token law given by the modified model and that of the exact f64 reference of Volume~II, averaged over positions of text. It is set out in five sentences in \cref{t3ecl:sec:kl}, before its first use, and taken up again with its two parts in \cref{t3syn:sec:juge}. The other names of the work (the R1 windows, the lots, the protocols P0 to P3, A\_ctx and A\_flux\dots) are in the table of notation, at the start of the volume.
+
+\paragraph{The provenance of the numbers.} Every number carries its provenance: \mes{} measured here, with a committed tool and log; \calc{} computed from named numbers; \litt{} literature, not reproduced; and, when needed, [hyp.] for a stated hypothesis. Every number comes from a committed file, cited by its path (\fichier{like this}); none is copied from memory.
+
+\paragraph{The struck-out sentences.} When a measurement has contradicted a published number or sentence, even our own, the sentence is struck out \barre{like this} where it stood, and we say what replaced it. The volume carries many of them: they are the trace that the judges did their work.
+
+\paragraph{The figures.} The figures in the style of the volume have a number in the inventory of the figures (III-$x$.$y$, the chapter of the inventory and the rank, \fichier{memoire/tome3/INVENTAIRE-figures.md}); the text uses it only for a figure planned and not drawn, and calls the others by their printed number, which follows the chapters of the PDF (the introduction is chapter~1 there). Each is drawn from the committed data by a committed script, and its caption, judged, opens on the idea of the figure in one sentence. The figures of mimicry and the slice of the router are included as their leads drew them, outside the common style, and their caption says so; those of the spectra come from a separate document of their lead.
+
+\paragraph{The reserves.} Six reserves of the inventory of the figures run through the volume; so as not to confuse them with the ten evaluation windows that Volume~II calls R1, the volume always writes ``reserve R1''. Reserve R1: the $\times 1.44$ gain of the J1 comes from the format v1.2 through the pattern of its read requests, specific to this disk, never from ``the state of the file''. R3: the measurements made with 32 substituted experts and those made with 768 are joined by no line. R4: the KL ratio of S\textsuperscript{*} comes from the ten-window pass; the old three-window number is struck out. R5: the figures outside the common style are stated as such. R6: the second draw of P3, in progress in another session, gives no number to the volume. (R2 concerns Volume~II.)
+
+\paragraph{What could be wrong.} Each chapter closes on its own section; that of the whole volume is in \cref{t3dis:sec:faux}.

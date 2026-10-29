@@ -1,0 +1,384 @@
+% Tome~III, chapitre 2 : l'éclaireur (version française).
+% Rédacteur A, 2026-10-29. Plan et réserves : memoire/tome3/PLAN-redaction.md § 02.
+% Chaque nombre vient d'un fichier commité, nommé à côté de lui : genome/01-eclaireur.md,
+% genome/etat-de-l-art-pour-le-memoire.md § 2, mesures/genome/etat-de-l-art/journaux/ et passes/,
+% genome/05-synthese.md §§ 0 et 1.3 (la correction de l'attribution de la KL, la différence appariée).
+% Figure (jugée, non modifiée) : III-2.1 \GrapheEclZeros. III-2.2 et III-2.3 ne sont pas tracées :
+% leurs chiffres sont en tableaux, tirés de borne-rd-passe1.json, diagnostic-L0-E0.json, choix-delta.json.
+\chapter{L'éclaireur : où est le bruit, où est la structure}\label{t3ecl:ch}
+
+\begin{origine}
+\textbf{Au départ}, la frontière du \cref{t3que:ch} : 3,8431 bits par poids sans perte, la base de 2,6441 bits à 4,29\,\% d'erreur sur les poids, et des codes presque indépendants sachant leur échelle (0,005 bit pour le voisin). La lecture avait désigné une case vide : choisir les symboles d'une base emboîtée par rétroaction d'erreur sur les entrées réelles, sous contrainte d'entropie, sans toucher au décodeur.
+\textbf{Ce chapitre établit}, avant de concevoir, où sont le bruit et la structure des poids : le signe d'un zéro est une pièce parfaite, et l'énergie se concentre dans quelques blocs, si bien que la métrique des poids n'est pas un juge. Puis deux mécanismes, chacun avec sa démonstration et sa mesure. Le premier, le \emph{codon synonyme du zéro}, bat la frontière sans perte de valeur : 3,7061 bits au lieu de 3,8431 sur les 12 tenseurs de référence, logits de la référence f64 identiques au bit. Le second, la \emph{mutation synonyme}, échoue d'abord par sur-apprentissage, puis, régularisée et sous contrainte d'entropie, bat la frontière avec perte au critère déclaré : 2,563 bits au lieu de 2,642, et une erreur de sortie d'expert divisée par trois à quatre sur des entrées tenues à l'écart. De bout en bout, sa variante sans contrainte d'entropie fait baisser la KL contre la référence de 27\,\%.
+\textbf{Il reste} une variante qui soit à la fois sous la frontière en bits et sous elle en KL (aucune ne l'est : la KL n'a été mesurée que sur la variante $\lambda = 0$, plus chère de 0,011 bit) ; le portage du codon du zéro dans le format, que fait le \cref{t3cod:ch} ; le génome synonyme comme second fichier, que fait le \cref{t3sno:ch}.
+Sources : \fichier{genome/01-eclaireur.md} ; \fichier{genome/etat-de-l-art-pour-le-memoire.md} §\,2 ; \fichier{genome/05-synthese.md} §§\,0 et 1.3 ; \fichier{mesures/genome/etat-de-l-art/journaux/} (\texttt{zero-compte-*}, \texttt{zero-canonique}, \texttt{temoin-*}, \texttt{diagnostic-L0-E0}, \texttt{choix-delta}, \texttt{kl-*}) et \fichier{passes/} ; \fichier{mesures/genome/construction/synthese/apparie-eclaireur.json} ; outils sous \fichier{outils/genome/eclaireur/}.
+\end{origine}
+
+\begin{enbref}
+Une mutation synonyme change un codon sans changer la protéine (\cref{t3int:sec:genome}). L'éclaireur a cherché, dans les poids de gpt-oss, l'équivalent de cette redondance, en gardant l'analogie pour ce qu'elle est : une image qui guide, pas un argument. Il en a trouvé deux. La première est dans le format lui-même : MXFP4 a seize codes pour quinze valeurs, parce que $+0$ et $-0$ sont le même nombre ; le signe d'un zéro est une information que le calcul ne lit jamais, comme une partie du génome qui ne code rien, et la retirer rend 3,6\,\% des octets sans changer un seul bit des logits. La seconde est dans la manière de se tromper : une erreur de poids dans une direction que les entrées réelles de l'expert n'excitent pas est invisible à sa sortie. Choisir les symboles de la base pour y ranger l'erreur coûte zéro au décodeur et divise l'erreur de sortie par trois à quatre.
+\end{enbref}
+
+\section{Les instruments et leurs témoins}\label{t3ecl:sec:instruments}
+
+Chaque instrument a son témoin, déclaré avant sa première mesure, dont la réponse est connue d'avance, et sa cassure, qui force le témoin à tomber (\cref{t3ecl:tab:instruments}). Les journaux sont sous \fichier{mesures/genome/etat-de-l-art/journaux/}, les outils sous \fichier{outils/genome/eclaireur/}. Trois noms du tableau viennent du Tome~II : \texttt{trc-reference} est la référence exacte, le programme qui calcule gpt-oss en double précision (f64) pour juger tous les autres ; une \emph{fourche} en est une copie modifiée pour un besoin de la ronde (ici, capturer les entrées des experts, ou leur substituer une base) ; YaRN~\cite{peng2023yarn} est la mise à l'échelle des fréquences de position par laquelle gpt-oss étend son contexte, que la cassure du premier témoin retire, pour vérifier que la comparaison au bit sait tomber.
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.4cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+Outil & Rôle & Témoin (déclaré avant) & Résultat \mes \\
+\midrule
+\texttt{capture/} (Rust, fourche de \texttt{trc-reference}) & capture les entrées réelles des experts et le routage, substitue des bases, réécrit un code & logits de la fourche égaux à ceux de \texttt{trc-reference} au bit (24 jetons) ; cassure : YaRN sans échelle & 0 logit différent ; cassure : 4\,826\,112 (\texttt{temoin-fourche*.json}) \\
+\texttt{synonyme.py} & la base frontière et la mutation synonyme ; erreurs de poids et de sortie & T0 : erreur de la frontière sur les 12 tenseurs $= 0{,}042\,919\,745$ à $10^{-6}$ ; T1 : $H = I$, $\lambda = 0$ rend la frontière ; T2 : $H_0 = 2{,}642$ à 0,001 & T0 0,042\,919\,745\,124\,98 (cassure 0,4246) ; T1 0 symbole différent (avec le $H$ réel : 1\,789\,132) ; T2 2,6415 (\texttt{temoins*.json}) \\
+\texttt{zero-synonyme/} (Rust, fourche de la mesure F1) & codeur rANS réel, décodage exact, avec ou sans $-0 \to +0$ & sans le drapeau, redonne F1 au bit & toutes les grandeurs de F1 égales (A\_ctx 3,843\,137 ; \texttt{zero-temoin-sans-drapeau.json}) \\
+\texttt{zero\_\allowbreak compte.py} & comptes exacts des $\pm0$ & $H(\text{code})$ des 12 tenseurs $= 3{,}860$ à 0,001 ; cassure (code 1 compté comme zéro) : l'écart bouge de plus de 0,05 & 3,8598 ; cassure : 0,1369 $\to$ 0,3514 \\
+\texttt{borne\_rd.py} & la borne $R(D)$ du \cref{t3que:sec:frontiere} & B1 : les bouts de la courbe ; B2 : une gaussienne à 0,05 bit & passe 1 : B1 tombe ; B2 tient ($10^{-5}$ bit) ; cassure tombe ; correction déclarée après (\cref{t3que:sec:frontiere}) \\
+\bottomrule
+\end{tabularx}
+\caption[Les instruments de l'éclaireur et leurs témoins]{Les instruments de l'éclaireur, leurs témoins et leurs cassures \mes. Source : \fichier{genome/01-eclaireur.md} §\,1 ; journaux sous \fichier{mesures/genome/etat-de-l-art/journaux/}.}
+\label{t3ecl:tab:instruments}
+\end{table}
+
+\paragraph{Les entrées réelles.} La fourche de la référence f64 a capturé, à chaque couche, l'état normalisé qui entre dans les experts (en f32) et le routage, sur wiki.test découpé par \texttt{trc-jetons} ; ses dix premières fenêtres égalent celles du fichier de logits \texttt{.kld} du jugement R1 du Tome~II (vérifié par l'outil, \fichier{journaux/capture-*.json}). La \textbf{calibration} est faite des fenêtres 10 à 21 (6\,132 positions), l'\textbf{évaluation tenue à l'écart} des fenêtres 0 à 9 (5\,110 positions, celles de R1). Chaque position envoie son entrée à 4 experts sur 32 par couche : en moyenne 766 entrées de calibration et 639 d'évaluation par expert \mes. Ce nombre, petit devant la dimension 2\,880, décide du premier échec de la \cref{t3ecl:sec:mutation}.
+
+\section{Où est le bruit, où est la structure}\label{t3ecl:sec:bruit}
+
+\subsection{Le signe des zéros : du bruit pur}
+
+Les comptes exacts des $+0$ (code 0) et des $-0$ (code 8) sur tous les tenseurs d'experts des deux modèles donnent le \cref{t3ecl:tab:zeros} et la \cref{fig:t3-ecl-zeros}. Sur gpt-oss-20b, 12,8\,\% des codes sont des zéros, moitié $+0$, moitié $-0$ ; l'entropie du signe d'un zéro vaut 0,999\,999\,996\,7 bit, à $3\cdot10^{-9}$ d'une pièce parfaite \mes.
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabular}{l r r r r r r}
+\toprule
+& $+0$ (code 0) & $-0$ (code 8) & $H(\text{signe}\mid\text{zéro})$ & $H(\text{code})$ & $H(\text{valeur})$ & écart \\
+\midrule
+gpt-oss-20b, 72 tenseurs & 6,3920\,\% & 6,3929\,\% & 0,999\,999\,996\,7 & 3,8638 & 3,7360 & \textbf{0,1278} \\
+12 tenseurs de référence & 6,8464\,\% & 6,8475\,\% & 0,999\,999\,99 & 3,8598 & 3,7228 & 0,1369 \\
+gpt-oss-120b, 108 tenseurs & 6,2779\,\% & 6,2789\,\% & 0,999\,999\,995\,1 & 3,8667 & 3,7411 & \textbf{0,1256} \\
+\bottomrule
+\end{tabular}
+\caption[Le signe des zéros]{Le signe des zéros dans les codes MXFP4 des experts \mes. Entropies en bits par poids (le signe : en bits par zéro). 20b : 19\,110\,297\,600 poids ; 120b : 114\,661\,785\,600. L'écart $H(\text{code}) - H(\text{valeur})$ est ce qu'un codeur sans perte paie pour un signe que le calcul ne voit pas. Données : \fichier{mesures/genome/etat-de-l-art/journaux/zero-compte-20b.json}, \fichier{zero-compte-120b.json}, \fichier{zero-compte-20b-12.json}.}
+\label{t3ecl:tab:zeros}
+\end{table}
+
+\begin{figure}[tbp]
+\centering
+\GrapheEclZeros
+\LegendeFigure{EclZeros}
+\label{fig:t3-ecl-zeros}
+\end{figure}
+
+La \cref{fig:t3-ecl-zeros} montre l'écart tenseur par tenseur : il va de 0,117 à 0,196 bit par poids sur le 20b, de 0,115 à 0,239 sur le 120b, au plus haut à la couche 0, et ne descend nulle part sous 0,11 bit. La ligne « tout le modèle » est tracée sous les barres : une première version la posait par-dessus avec un halo blanc qui cachait le sommet de 37 barres, et le juge de la troisième passe des figures l'a fait tomber (GJ1, \fichier{memoire/tome3/JUGEMENT-figures3.md} §\,6) avant qu'elle soit redessinée (commit \texttt{bb01679}). Aucun bloc n'a ses 32 codes nuls (0 sur 597\,196\,800 pour le 20b, 0 sur 3\,583\,180\,800 pour le 120b) : l'échelle d'un bloc n'est jamais elle-même un synonyme.
+
+\paragraph{Pourquoi le signe d'un zéro est aléatoire} \calc. Un quantificateur MXFP4 arrondit au plus près. Un poids d'origine de petite magnitude devient $\pm0$ selon son propre signe, et les signes des petits poids sont équiprobables. Le format garde ce signe parce que E2M1 code le signe à part~\cite{ocpmx2023} ; le calcul ne le voit jamais, puisque $K[8] = -0 = K[0]$. C'est de l'information héritée de la quantification, le signe d'un poids BF16 qui n'existe plus, sans aucun effet sur la valeur.
+
+\subsection{L'énergie est concentrée}
+
+La métrique de la frontière est l'erreur relative \emph{poolée} sur les poids. Or l'énergie des 12 tenseurs de référence est concentrée dans quelques exposants de bloc (\cref{t3ecl:tab:exposants}) : les blocs d'exposant 129 portent 54,8\,\% de l'énergie pour 5,3\,\% des poids ; 129 et 130 ensemble, 74,2\,\% pour 5,8\,\% ; les huit exposants les plus lourds, 96,9\,\% pour 14,6\,\% \mes~\calc.
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabular}{r r r r r}
+\toprule
+rang & exposant $e$ & part des poids & part de l'énergie & énergie cumulée \\
+\midrule
+1 & 129 & 5,29\,\% & 54,80\,\% & 54,8\,\% \\
+2 & 130 & 0,47\,\% & 19,37\,\% & 74,2\,\% \\
+3 & 128 & 3,44\,\% & 8,90\,\% & 83,1\,\% \\
+4 & 127 & 5,37\,\% & 3,48\,\% & 86,6\,\% \\
+5 à 8 & 133, 134, 131, 136 & 0,01\,\% & 10,37\,\% & 96,9\,\% \\
+\bottomrule
+\end{tabular}
+\caption[L'énergie des poids par exposant de bloc]{L'énergie des poids des 12 tenseurs de référence, par exposant E8M0 de bloc, rangée par énergie décroissante \mes~\calc. Énergie d'un exposant : nombre de poids $\times\, 4^{\,e-128}$, rapporté au total (la loi des codes est la même d'un exposant à l'autre au premier ordre). Données : \fichier{mesures/genome/etat-de-l-art/journaux/borne-rd-passe1.json}, champ \texttt{exposants} (3\,185\,049\,600 poids) ; la figure cumulative proposée (III-2.2) n'est pas tracée.}
+\label{t3ecl:tab:exposants}
+\end{table}
+
+La conséquence est un avertissement que toute la ronde a vérifié à ses dépens. Une allocation du débit qui ne servirait que les blocs lourds « battrait » la frontière dans la métrique poolée tout en détruisant 85\,\% des poids. \textbf{La métrique des poids n'est pas un juge.} D'où le juge de la \cref{t3ecl:sec:mutation} (l'erreur de sortie des experts sur des entrées tenues à l'écart), puis celui de la \cref{t3ecl:sec:kl} (la KL de bout en bout).
+
+\subsection{La borne d'un codeur sans mémoire}
+
+Le troisième regard est la borne distorsion-débit du \cref{t3que:sec:frontiere} : à l'erreur de la frontière, un codeur idéal qui ne regarde que les poids lirait au plus 2,168 bits, soit 0,476 bit de moins ; ce gain est dans la forme du quantificateur, pas dans une structure des poids. Les trois regards disent la même chose : vu de lui-même, un poids MXFP4 est du bruit autour de son échelle. Les deux mécanismes qui suivent n'ajoutent donc aucune structure aux poids : le premier retire ce que le calcul ne lit pas, le second déplace l'erreur là où les entrées ne regardent pas.
+
+\section{Mécanisme 1 : le codon synonyme du zéro}\label{t3ecl:sec:zero}
+
+\subsection{Le mécanisme}
+
+Avant le codage entropique, chaque demi-octet 8 ($-0$) devient 0 ($+0$). Le décodeur ne change pas : il rend le code canonique, et la table du flux n'a plus de fréquence pour 8 (dans l'alphabet octet de A\_ctx, les 256 symboles deviennent 225 possibles, $15 \times 15$). Le coût de transcription est nul. L'analogie est celle de l'ADN non codant : une partie du fichier, 0,128 bit par poids, porte un signe que personne ne lit.
+
+\subsection{Pourquoi les produits ne changent pas}
+
+\begin{proposition}[Exactitude au bit d'un produit scalaire après $-0 \to +0$]\label{t3ecl:prop:zero}
+Soit $y = \mathrm{fl}(\cdots\mathrm{fl}(\mathrm{fl}(t_1 + t_2) + t_3)\cdots + t_n)$ une somme IEEE~754 en arrondi au plus près~\cite{ieee754}, dans un ordre fixé, de termes $t_j = \mathrm{fl}(w_j x_j)$ avec des $x_j$ finis, et $w'$ égal à $w$ sauf $w'_j = +0$ là où $w_j = -0$. Si au moins un terme $t_j$ est non nul, alors $y' = y$ au bit. Si tous sont nuls, $y, y' \in \{+0, -0\}$ et $y = y'$ en valeur.
+\end{proposition}
+
+\begin{proof}
+On a $t'_j = t_j$ si $w_j \ne -0$, et $t_j, t'_j \in \{+0, -0\}$ sinon, puisque $(\pm0)\cdot x_j = \pm0$ pour $x_j$ fini. Soit $S_k$ et $S'_k$ les sommes partielles. Hypothèse de récurrence : $S_k = S'_k$ au bit, ou bien $S_k, S'_k \in \{\pm0\}$. Elle vaut pour $k = 1$. Au pas $k+1$, trois cas. (i) Si $t_{k+1} = t'_{k+1}$ est non nul : quand $S_k = S'_k$, les opérandes sont égaux et la somme aussi ; quand $S_k, S'_k \in \{\pm0\}$, $\mathrm{fl}(\pm0 + t) = t$ exactement pour $t \ne 0$, donc $S_{k+1} = S'_{k+1} = t_{k+1}$. (ii) Si $t_{k+1}, t'_{k+1} \in \{\pm0\}$ et $S_k = S'_k \ne 0$ : $\mathrm{fl}(S \pm 0) = S$ des deux côtés. (iii) Si les deux sommes partielles et les deux termes sont nuls, les deux sommes restent dans $\{\pm0\}$ : seul le signe d'un zéro peut différer, puisque $(+0) + (-0) = +0$ mais $(-0) + (-0) = -0$. Au premier terme non nul, (i) recolle les deux suites, et (ii) les garde égales ensuite. Si aucun terme n'est non nul, seul (iii) s'applique.
+\end{proof}
+
+Dans un noyau entier (valeurs E2M1 doublées en entiers signés), $-0$ et $+0$ sont déjà le même entier. Le cas d'un produit de 2\,880 termes tous nuls n'arrive pas dans gpt-oss, où aucun bloc n'est nul ; s'il arrivait, seul le signe d'un zéro de sortie changerait, puis disparaîtrait au biais, non nul, de l'expert. Pour la référence f64, la même récurrence s'applique à chacun de ses huit accumulateurs, puis à leur réduction en arbre.
+
+La proposition laisse ouvert le signe d'une somme partielle nulle. La \emph{proposition A1} du \cref{t3cod:ch} le ferme pour le noyau GEMV du moteur : un accumulateur qui part de $+0$ et avance par FMA en arrondi au plus près ne vaut jamais $-0$ (une somme exacte nulle de deux termes qui ne sont pas tous deux $-0$ s'arrondit à $+0$), si bien qu'un pas sur un code nul y est le même dans les deux calculs, et que l'égalité au bit vaut à chaque pas, même pour une somme entièrement nulle. La proposition de ce chapitre suffit à la référence ; A1 est ce qu'il faut au moteur.
+
+\subsection{Les mesures}
+
+Le seuil était déclaré avant la passe, en tête de \fichier{outils/genome/eclaireur/zero-synonyme/src/main.rs} : le codon bat la frontière si A\_ctx descend d'au moins 0,05 bit par poids. Le \cref{t3ecl:tab:zero} donne les mesures, toutes par le codeur rANS réel de F1, chaque flux décodé exactement.
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X@{}}
+\toprule
+Mesure (12 tenseurs de référence) & sans le codon (F1) & avec & écart \\
+\midrule
+A\_ctx, tout compris (bits par poids) & 3,843\,137 & \textbf{3,706\,142} & $-0{,}136\,995$ ($-3{,}56\,\%$) \\
+codes A\_ctx seuls & 3,805\,616 & 3,668\,621 & $-0{,}136\,995$ \\
+A\_flux (format de l'étude 03) & 3,843\,442 & 3,706\,406 & $-0{,}137\,036$ \\
+tronçon moyen (20b, aligné sur 4\,Kio) & 11\,990\,368\,o & 11\,564\,160\,o & $-3{,}55\,\%$ \\
+base seule (niveau 0 de B) & 2,606\,647 & 2,559\,045 & $-0{,}047\,602$ \\
+demi-octets réécrits & — & 218\,097\,443 sur 3\,185\,049\,600 & 6,85\,\% \\
+\bottomrule
+\end{tabularx}
+\caption[Le codon synonyme du zéro, mesuré]{Le codon synonyme du zéro, mesuré par le codeur rANS réel \mes. Données : \fichier{mesures/genome/etat-de-l-art/journaux/zero-canonique.json} et \fichier{zero-temoin-sans-drapeau.json} ; \fichier{genome/01-eclaireur.md} §\,4.3. Le codeur rend l'écart d'entropie à 0,000\,04 bit près (0,136\,995 contre 0,1369).}
+\label{t3ecl:tab:zero}
+\end{table}
+
+\textbf{Mesuré : 0,137 bit, pour un seuil de 0,05. Le codon synonyme du zéro bat la frontière sans perte.} Sur les 72 tenseurs d'experts du 20b, l'écart d'entropie vaut 0,1278 bit ; le chapitre suivant de la ronde le mesure aussi au codec réel sur les deux modèles entiers (\cref{t3pre:sec:codons}).
+
+\paragraph{La preuve au bit.} Sur 24 jetons de la référence f64, avec les 759\,416\,633 demi-octets $-0$ réécrits en $+0$ dans tous les experts lus, \textbf{0 logit sur 4\,826\,112} diffère au bit, écart absolu maximal 0 (\fichier{journaux/temoin-zero.json}) ; la cassure fait différer les 4\,826\,112 (\fichier{temoin-zero-casse.json}). De bout en bout sur les 2\,550 positions des dix fenêtres de R1, le fichier de logits du modèle canonique est \textbf{identique octet pour octet} à celui de la référence : même empreinte SHA-256, \texttt{d97fc421\ldots 5362a38} (\fichier{journaux/kl-zero-canonique.sha256}) \mes.
+
+\paragraph{Sur gpt-oss-120b} \calc. 0,1256 bit par poids sur 114\,661\,785\,600 poids d'experts font
+\[ 114\,661\,785\,600 \times 0{,}1256 / 8 = 1{,}800\cdot10^{9} \ \text{octets :} \] \textbf{1,80\,Go} qu'aucun calcul ne lit, sur les 60,9\,Go du fichier sans perte (03), soit $-3{,}0\,\%$. Le codeur réel n'a été passé par l'éclaireur que sur le 20b ; le \cref{t3pre:ch} l'a passé sur le 120b entier.
+
+\paragraph{Le toit} \calc. Les octets d'experts lus par jeton baissent de 3,56\,\% ; à disque limitant, le toit~\eqref{t3que:eq:toit} monte de $1/(1 - 0{,}0356) - 1 = 3{,}7\,\%$, sans rien changer d'autre. Le \cref{t3cod:ch} mesure ce que le moteur en fait sur le disque de Stone, et pourquoi le chiffre mesuré n'est pas celui-là.
+
+\subsection{Le même codon dans la base}
+
+Dans la base (signe et classe), un zéro garde son signe : la classe $\{0;\,0{,}5\}$ se reconstruit en $\pm0{,}237\,s$. Sur le code canonique, ce signe n'est plus stocké ($-0{,}0476$ bit, \cref{t3ecl:tab:zero}) ; le décodeur peut le \emph{tirer d'un hachage de la position} (\texttt{splitmix64} de $rC + c$) sans lire un bit. L'erreur sur les poids est la même au poids près, puisque $|0 - (\pm0{,}237\,s)|$ ne dépend pas du signe. Une suite de Weyl comme hachage échoue (des rangées voisines presque égales) ; \texttt{splitmix64} tient (corrélation 0,01, au niveau du bruit). L'erreur de \emph{sortie} de cette variante n'a pas été mesurée : sa passe a été arrêtée après 4 experts (\fichier{passes/frontiere0-ARRETEE-4-experts.log}). Elle reste « égale en erreur sur les poids à $-0{,}048$ bit, non jugée sur la sortie ».
+
+\section{Mécanisme 2 : la mutation synonyme}\label{t3ecl:sec:mutation}
+
+\subsection{Le vivant, et ce qu'on en transpose}
+
+Le code génétique n'est pas une fonction quelconque des codons vers les acides aminés : parmi un million de codes possibles, le code naturel est l'un des meilleurs pour que les erreurs probables tombent sur des acides aminés semblables~\cite{freeland1998}. Le neurone, lui, code un signal continu en impulsions en reportant son erreur sur la suite, à la manière d'un modulateur sigma-delta~\cite{yoon2017sigmadelta}. Transposé, comme analogie : le « phénotype » d'une matrice d'expert est sa sortie $Wx$ sur les entrées que le modèle lui donne vraiment ; une erreur de poids dans une direction que ces entrées n'excitent pas est une mutation synonyme. Le mécanisme choisit les symboles de la base pour que l'erreur y aille.
+
+\subsection{La dérivation}
+
+\paragraph{L'erreur de sortie.} Pour une matrice $W$ de $R$ lignes et $C$ colonnes, ses entrées $x$ et le poids de routeur $g$ de l'expert, l'erreur de sortie d'une reconstruction $\hat W$ vaut, par~\eqref{t3que:eq:sortie},
+\begin{equation}\label{t3ecl:eq:erreur}
+\E\bigl[g^2 \|(W - \hat W) x\|^2\bigr] = \E[g^2]\ \mathrm{tr}\bigl((W - \hat W)\, H\, (W - \hat W)^\top\bigr), \qquad H = \frac{\E[g^2 x x^\top]}{\E[g^2]} .
+\end{equation}
+La trace est une somme sur les lignes : les lignes de $W$ se traitent indépendamment. Pour une ligne $w$, on cherche $\min_q (w - q)^\top H (w - q)$, $q$ parcourant les reconstructions permises colonne par colonne, $q_j = \pm c_k\, s_{b(j)}$, $c_k$ l'un des quatre centres de la base et $s_{b(j)}$ l'échelle E8M0 du bloc de la colonne $j$.
+
+\begin{lemme}[Rétroaction d'erreur optimale]\label{t3ecl:lem:obs}
+Soit $w$ la ligne courante (erreur déjà reportée comprise), $j$ une colonne et $F$ l'ensemble des colonnes encore libres, $j \in F$, $H_F$ la sous-matrice de $H$ sur $F$. Si l'on fixe la colonne $j$ à $q_j$ et qu'on laisse les autres colonnes de $F$ s'ajuster, l'accroissement minimal de l'erreur quadratique $\delta^\top H_F \delta$ est
+\begin{equation}\label{t3ecl:eq:obs}
+\frac{(w_j - q_j)^2}{[H_F^{-1}]_{jj}}, \qquad \text{atteint par } \delta = -\frac{w_j - q_j}{[H_F^{-1}]_{jj}}\ H_F^{-1} e_j ,
+\end{equation}
+où $\delta$ est la modification de $w$ sur $F$ ; sur les colonnes libres autres que $j$, la correction vaut $\delta_{F\setminus j} = -(w_j - q_j)\,[H_F^{-1}]_{F\setminus j,\,j} / [H_F^{-1}]_{jj}$.
+\end{lemme}
+
+\begin{proof}
+On minimise $\delta^\top H_F \delta$ sous la contrainte $e_j^\top (w + \delta) = q_j$, c'est-à-dire $e_j^\top \delta = q_j - w_j$. Le lagrangien est $L(\delta, \mu) = \delta^\top H_F \delta + \mu\,(e_j^\top \delta - (q_j - w_j))$. Son gradient en $\delta$, $2 H_F \delta + \mu e_j$, s'annule en $\delta = -\frac{\mu}{2} H_F^{-1} e_j$. La contrainte donne $-\frac{\mu}{2}\,[H_F^{-1}]_{jj} = q_j - w_j$, soit $\frac{\mu}{2} = -\frac{q_j - w_j}{[H_F^{-1}]_{jj}}$, d'où $\delta = \frac{q_j - w_j}{[H_F^{-1}]_{jj}} H_F^{-1} e_j$, qui est l'expression annoncée. L'accroissement vaut $\delta^\top H_F \delta = \frac{(q_j - w_j)^2}{[H_F^{-1}]_{jj}^2}\, e_j^\top H_F^{-1} H_F H_F^{-1} e_j = \frac{(q_j - w_j)^2}{[H_F^{-1}]_{jj}}$. $H_F$ étant définie positive, c'est un minimum. C'est le lemme d'Optimal Brain Surgeon~\cite{hassibi1992obs}, appliqué à la quantification par OBC et GPTQ~\cite{frantar2022obc,frantar2022gptq}.
+\end{proof}
+
+\paragraph{La règle séquentielle, par un seul facteur.} Dans l'ordre des colonnes $1, \ldots, C$, l'ensemble libre au pas $j$ est $F_j = \{j, \ldots, C\}$. Les quantités $[H_{F_j}^{-1}]_{jj}$ et $[H_{F_j}^{-1}]_{F_j j}$ sont lues dans le facteur de Cholesky supérieur $U$ de $H^{-1}$ ($U^\top U = H^{-1}$) : $[H_{F_j}^{-1}]_{jj} = U_{jj}^2$, et la correction des colonnes suivantes vaut $-\frac{w_j - q_j}{U_{jj}}\, U_{j, F_j}$ (GPTQ). Le facteur se calcule par une seule factorisation.
+
+\begin{lemme}[Le facteur de Cholesky de $H^{-1}$ par renversement]\label{t3ecl:lem:chol}
+Soit $P$ la permutation qui renverse l'ordre des colonnes. Si $PHP = LL^\top$, $L$ triangulaire inférieure à diagonale positive, alors $U = P L^{-1} P$ est triangulaire supérieure à diagonale positive et $U^\top U = H^{-1}$ : c'est le facteur de Cholesky supérieur de $H^{-1}$.
+\end{lemme}
+
+\begin{proof}
+$P = P^\top = P^{-1}$. De $PHP = LL^\top$ vient $H = (PLP)(PLP)^\top = VV^\top$ avec $V = PLP$, triangulaire \emph{supérieure} (renverser l'ordre des lignes et des colonnes d'une matrice triangulaire inférieure la rend supérieure). Alors $H^{-1} = V^{-\top} V^{-1} = U^\top U$ avec $U = V^{-1} = P L^{-1} P$, triangulaire supérieure comme inverse d'une triangulaire supérieure, de diagonale $1/L_{C+1-i,\,C+1-i} > 0$. Le facteur de Cholesky à diagonale positive est unique : c'est $U$.
+\end{proof}
+
+Le coût est $n^3/3$ (Cholesky) plus $n^3/3$ (inverse triangulaire), au lieu de $n^3$ (inverse) plus $n^3/3$ \calc ; l'outil l'a vérifié contre le calcul direct, écart relatif $7\cdot10^{-14}$ (\fichier{outils/genome/eclaireur/synonyme.py}, \texttt{facteur\_inverse}) \mes.
+
+\paragraph{La contrainte d'entropie.} Le symbole $k$ de la colonne $j$ minimise
+\begin{equation}\label{t3ecl:eq:lagrange}
+\bigl(|w_j| - c_k\, s_{b(j)}\bigr)^2 + \lambda\, \bar c\, U_{jj}^2\, \ell(k), \qquad \ell(k) = -\log_2 p(k),
+\end{equation}
+$p$ la loi des symboles de la base frontière du tenseur, $\bar c$ l'erreur moyenne par poids de la frontière dans les unités de $H$. Divisé par $U_{jj}^2$, c'est, par~\eqref{t3ecl:eq:obs}, « accroissement de l'erreur de sortie $+\,\lambda\,\bar c$ bits » : $\lambda$ est le prix d'un bit en unités d'erreur de frontière. Avec $\lambda = 0$, c'est la rétroaction seule.
+
+\paragraph{Le décodeur ne change pas.} Mêmes huit symboles, mêmes quatre centres, mêmes échelles : le mécanisme vit tout entier dans le codeur, et son coût de transcription est nul.
+
+\begin{proposition}[Le témoin qui sait tomber : $H = I$ rend la frontière]\label{t3ecl:prop:temoin}
+Si $H = I$ et $\lambda = 0$, la mutation synonyme choisit, pour chaque poids, le symbole de la base frontière.
+\end{proposition}
+
+\begin{proof}
+Avec $H = I$, $H^{-1} = I$ et $U = I$ : aucune correction n'est reportée, et chaque poids choisit le centre le plus proche de $|w_j|/s_{b(j)}$, avec le signe de $w_j$. Les centres sont les centres de gravité d'une partition \emph{contiguë} des magnitudes, $\{0;\,0{,}5\}$, $\{1;\,1{,}5;\,2\}$, $\{3;\,4\}$, $\{6\}$, de centres $0{,}237$ ; $1{,}424$ ; $3{,}419$ ; $6$. Les frontières de Voronoï, milieux de deux centres voisins, sont $0{,}831$ ; $2{,}421$ ; $4{,}709$ \calc. Chaque magnitude tombe dans la cellule de sa classe : $0{,}5 < 0{,}831 < 1$, $2 < 2{,}421 < 3$, $4 < 4{,}709 < 6$. Le symbole choisi est donc celui de la fonction frontière.
+\end{proof}
+
+Mesuré (témoin T1) : 0 symbole différent sur 8\,294\,400 ; avec le $H$ réel, 1\,789\,132 \mes.
+
+\subsection{Le protocole}
+
+Experts : couches 0, 8, 16 et 23, experts 0, 4, \ldots, 28 (96 matrices, 796 millions de poids) ; des passes plus tardives sur des sous-ensembles déclarés avant elles. Calibration : fenêtres 10 à 21 ; évaluation tenue à l'écart : fenêtres 0 à 9 ; erreurs de sortie pondérées par $g^2$. L'erreur de sortie d'\emph{expert} remplace les trois matrices à la fois, avec entre elles la SwiGLU bornée de gpt-oss. \textbf{Critère, déclaré avant} (tête de \texttt{synonyme.py}) : débit au plus celui de la frontière, au même estimateur, \emph{et} erreur de sortie d'expert plus basse sur chacune des deux moitiés de l'évaluation et dans chacune des quatre couches.
+
+\subsection{Le premier échec, et son pourquoi : le sur-apprentissage}
+
+La passe déclarée ($\lambda = 0$, $\delta = 0{,}01$, l'amortissement de GPTQ : $H + \delta\,\overline{\mathrm{diag}\,H}\, I$) \textbf{ne bat pas} la frontière : débit 2,6789 bits ($H_0$) contre 2,6381, et, sur l'évaluation, la couche 0 est pire (0,094 et 0,067 d'erreur de sortie d'expert, moitiés 1 et 2, contre 0,059 et 0,052 ; \fichier{passes/synonyme-lam0-damp0.01.json}) \mes.
+
+Le diagnostic, hypothèse et prédictions déclarées avant (\fichier{journaux/diagnostic-L0-E0.json}), l'explique par un nombre. Chaque expert ne reçoit qu'environ 766 entrées de calibration en dimension 2\,880 : la covariance estimée est de rang au plus 766, et la rétroaction pousse l'erreur dans les quelque 2\,100 directions que l'échantillon ne voit pas, mais que l'évaluation excite. Le \cref{t3ecl:tab:diagnostic} le montre sur la matrice gate de l'expert 0, couche 0.
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X@{}}
+\toprule
+Matrice gate, couche 0, expert 0 & entrées de calibration & erreur de sortie, calibration & erreur de sortie, évaluation \\
+\midrule
+base frontière & — & 3,40\,\% & 3,49\,\% \\
+synonyme, $\delta = 0{,}01$ & 762 & 0,21\,\% & 4,38\,\% \\
+synonyme, $\delta = 0{,}1$ & 762 & 0,28\,\% & 3,27\,\% \\
+synonyme, $\delta = 1$ & 762 & 0,72\,\% & 2,74\,\% \\
+synonyme, $\delta = 10$ & 762 & 1,70\,\% & 2,82\,\% \\
+synonyme, $\delta = 0{,}01$, demi-calibration & 381 & 1,61\,\% & 4,01\,\% \\
+synonyme, $\delta = 1$, demi-calibration & 381 & 1,39\,\% & 2,82\,\% \\
+\bottomrule
+\end{tabularx}
+\caption[Le diagnostic du sur-apprentissage]{Le diagnostic du sur-apprentissage, matrice gate de l'expert 0, couche 0 (499 positions d'évaluation) \mes. Données : \fichier{mesures/genome/etat-de-l-art/journaux/diagnostic-L0-E0.json} (la figure proposée III-2.3 n'est pas tracée).}
+\label{t3ecl:tab:diagnostic}
+\end{table}
+
+Les prédictions (1) et (2) tiennent : l'écart entre calibration et évaluation existe, et il se resserre quand $\delta$ croît. La prédiction (3) \textbf{tombe} : avec la moitié des entrées, l'évaluation n'empire pas (4,01\,\% contre 4,38\,\% à $\delta = 0{,}01$ ; 2,82\,\% contre 2,74\,\% à $\delta = 1$). Le défaut n'est donc pas d'abord le nombre d'entrées, c'est le manque de régularisation de $H$ : à $\delta = 0{,}01$, la rétroaction fait confiance à des directions mal estimées, quelle que soit la taille de l'échantillon dans cette gamme. Sur les 96 matrices, le rapport médian synonyme sur frontière vaut 0,044 en calibration et 0,84 en évaluation. \emph{Le synonyme d'un échantillon n'est pas le synonyme de la loi.}
+
+\paragraph{Le choix de $\delta$ sans regarder l'évaluation.} Procédure déclarée avant (\fichier{journaux/choix-delta.json}) : l'expert 2 des quatre couches, hors des experts mesurés ; la calibration coupée en deux (fenêtres 10 à 15 pour ajuster, 16 à 21 pour juger) ; $\delta \in \{0{,}1;\ 0{,}3;\ 1;\ 3;\ 10\}$. Rapport moyen d'erreur de sortie, synonyme sur frontière : 0,623 ; 0,563 ; \textbf{0,538} ; 0,553 ; 0,589 \mes. D'où $\delta^\ast = 1$ : $H + \overline{\mathrm{diag}\,H}\, I$, la covariance mesurée rapprochée de l'isotropie à poids égal.
+
+\subsection{Les résultats}
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabular}{l r r l}
+\toprule
+& Frontière & Synonyme $\lambda = 0$ & Rapport \\
+\midrule
+débit $H_0$ des symboles (bits) & 2,6381 & 2,6488 & $+0{,}011$ \\
+débit $H(\text{symbole}\mid\kappa)$ & 2,5953 & 2,6079 & $+0{,}013$ \\
+erreur relative sur les poids (gate, up, down) & 4,40 / 4,25 / 4,40\,\% & 4,71 / 4,55 / 4,76\,\% & $\times 1{,}07$ \\
+erreur de sortie des matrices, évaluation & 3,16 / 3,60 / 2,89\,\% & 1,72 / 1,99 / 2,21\,\% & médiane $\times 0{,}59$ \\
+erreur de sortie d'expert, moitiés 1 / 2 & 3,03 / 2,53\,\% & \textbf{0,84 / 0,65\,\%} & $\times 0{,}28$ / $\times 0{,}26$ \\
+\quad couche 0 & 5,85 / 5,19\,\% & 5,10 / 4,12\,\% & \\
+\quad couche 8 & 13,57 / 15,19\,\% & 5,96 / 6,62\,\% & \\
+\quad couche 16 & 7,87 / 8,47\,\% & 3,65 / 3,69\,\% & \\
+\quad couche 23 & 3,01 / 2,51\,\% & 0,83 / 0,64\,\% & \\
+experts améliorés & — & 32 sur 32 & médiane $\times 0{,}67$ \\
+\bottomrule
+\end{tabular}
+\caption[La mutation synonyme sans contrainte d'entropie]{La mutation synonyme, $\lambda = 0$, $\delta^\ast = 1$, 8 experts par couche \mes. Données : \fichier{mesures/genome/etat-de-l-art/passes/synonyme-lam0-damp1.json} et \texttt{.csv}.}
+\label{t3ecl:tab:lam0}
+\end{table}
+
+\paragraph{$\lambda = 0$.} L'erreur de sortie baisse partout (\cref{t3ecl:tab:lam0}), mais le débit monte de 0,011 bit : au critère strict déclaré (débit au plus celui de la frontière), $\lambda = 0$ ne bat pas encore. D'où la contrainte d'entropie.
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedright\arraybackslash}X@{}}
+\toprule
+& Frontière (mêmes experts) & \textbf{Synonyme $\lambda = 1$} & Écart \\
+\midrule
+débit $H_0$ des symboles (bits) & 2,6415 & \textbf{2,5634} & $\mathbf{-0{,}078}$ \\
+débit $H(\text{symbole}\mid\kappa)$ & 2,5989 & 2,5232 & $-0{,}076$ \\
+débit lu, $H_0$ + échelles (0,0375) & 2,679 & \textbf{2,601} & $-0{,}078$ \\
+erreur relative sur les poids & 4,26 / 4,20 / 4,44\,\% & 4,83 / 4,59 / 5,20\,\% & plus haute \\
+erreur de sortie des matrices, évaluation & 3,18 / 3,48 / 2,72\,\% & 1,78 / 1,94 / 2,09\,\% & médiane $\times 0{,}60$ (43 sur 48) \\
+erreur de sortie d'expert, moitiés 1 / 2 & 3,94 / 3,14\,\% & \textbf{1,18 / 0,74\,\%} & $\times 0{,}30$ / $\times 0{,}24$ \\
+\quad couche 0 & 5,50 / 4,87\,\% & 5,32 / 4,29\,\% & $\times 0{,}97$ / $\times 0{,}88$ \\
+\quad couche 8 & 26,80 / 25,11\,\% & 10,70 / 10,44\,\% & $\times 0{,}40$ / $\times 0{,}42$ \\
+\quad couche 16 & 4,92 / 5,14\,\% & 2,98 / 3,11\,\% & $\times 0{,}61$ / $\times 0{,}61$ \\
+\quad couche 23 & 3,92 / 3,12\,\% & 1,17 / 0,73\,\% & $\times 0{,}30$ / $\times 0{,}23$ \\
+experts améliorés & — & 14 sur 16 & médiane $\times 0{,}73$, pire $\times 1{,}10$ \\
+complément exact $H(\text{code}\mid\text{symbole})$ & 1,219 & 1,689 & $+0{,}47$ \\
+\bottomrule
+\end{tabularx}
+\caption[La mutation synonyme sous contrainte d'entropie]{La mutation synonyme, $\lambda = 1$, $\delta^\ast = 1$, experts 0, 8, 16 et 24 de chaque couche (sous-ensemble déclaré avant la passe), contre la frontière refaite sur les mêmes experts \mes. Données : \fichier{passes/synonyme-lam1-damp1-e0\_8\_16\_24.json}, \fichier{passes/frontiere-lam0-damp0.01-e0\_8\_16\_24.json}.}
+\label{t3ecl:tab:lam1}
+\end{table}
+
+\paragraph{$\lambda = 1$.} Au critère déclaré avant (\cref{t3ecl:tab:lam1}), \textbf{8 cases sur 8} (deux moitiés, quatre couches), à 0,078 bit de moins : \textbf{la mutation synonyme bat la frontière avec perte}. La marge la plus mince est la couche 0 ($\times 0{,}97$ sur la moitié 1).
+
+\paragraph{Ce que cela dit de la structure.} L'erreur sur les poids \emph{monte} (de 4,3 à 4,9\,\%) pendant que l'erreur de sortie est divisée par trois à quatre. La structure exploitable n'est pas dans les poids, elle est dans les \emph{entrées} ; les poids sont du bruit vus d'eux-mêmes, et une base dont l'erreur est rangée dans les directions muettes des entrées en coûte moins. C'est la conclusion du \cref{t3que:sec:prediction}, mesurée.
+
+\paragraph{Le prix, en un chiffre.} Le complément exact derrière la base coûte 1,689 bit au lieu de 1,219 : la base n'est plus une fonction du code ($H(\text{base}\mid\text{code}) > 0$). Lu en deux niveaux, l'expert exact coûterait $2{,}564 + 1{,}689 = 4{,}25$ bits au lieu de 3,86 \calc : \emph{la mutation synonyme n'est pas un niveau 0 de la découpe base + complément}. Son usage est celui d'un \textbf{second génome} : un fichier exact (le code canonique, 3,706 bits) et une base synonyme séparée (2,60 bits lus), le disque payant la place des deux (environ 6,3 bits par poids stockés), le moteur n'en lisant qu'un par défaut d'expert. C'est le « mode rapide et mode exact » de l'idée de Stone ; le \cref{t3sno:ch} le construit.
+
+\paragraph{L'expert aberrant.} Couche 8, expert 24 : erreurs de matrices modestes (frontière de 2,4 à 3,9\,\%), mais erreur de sortie d'expert de \textbf{67,6\,\%} ; synonyme $\lambda = 0$ : 18,9\,\% \mes. La sortie de cet expert est petite devant ses termes intermédiaires (compensation entre la SwiGLU et down) : une petite erreur relative en amont devient grande en aval. Il pèse lourd dans la couche 8 et il est le premier candidat à rester exact.
+
+\paragraph{ECSQ sans rétroaction, et la piste à 1 bit.} Un quantificateur scalaire à contrainte d'entropie sans rétroaction ($\lambda = 0{,}5$) glisse le long de la courbe : 2,615 bits ($H_0$), erreur de sortie d'expert 3,18 / 2,72\,\% contre 3,03 / 2,53 ; il ne bat pas (\fichier{passes/ecsq-lam0.5-damp0.01.json}). La mutation synonyme à un bit de magnitude (4 symboles, environ 1,96 bit) a été lancée puis \emph{arrêtée après 2 experts} pour laisser la machine à la KL : 20,5 et 19,5\,\% d'erreur de sortie d'expert (couche 0, experts 0 et 8) contre 25,7 et 25,1\,\% pour la frontière à 1 bit sur les mêmes experts (\fichier{passes/synonyme1-ARRETEE-2-experts.log}). Deux experts ne font pas une mesure : elle est à refaire en entier.
+
+\section{Le jugement de bout en bout : la KL contre la référence f64}\label{t3ecl:sec:kl}
+
+\paragraph{Le juge, en cinq phrases.} À chaque position $t$ d'un texte, un modèle de langue rend une loi de probabilité sur le jeton suivant ; soient $p_t$ celle de la référence f64 du lot R du Tome~II (le modèle exact, calculé en double précision) et $q_t$ celle du modèle dont on a remplacé des experts. La \textbf{KL de la position} est la divergence de Kullback-Leibler~\cite{kullback1951}
+\begin{equation}\label{t3ecl:eq:kl}
+\mathrm{KL}_t = \sum_i p_{t,i} \log \frac{p_{t,i}}{q_{t,i}} \quad \text{(en nats)},
+\end{equation}
+nulle quand les deux lois sont égales, et sinon égale, au terme de coupe près, au surcoût moyen, en nats par jeton, de prédire avec $q_t$ un texte tiré de $p_t$. L'instrument \texttt{juge kl} ne somme que les jetons $i$ tels que $\log p_{t,i} > -16$ : ceux auxquels la référence donne moins de $e^{-16} \approx 1{,}1\cdot10^{-7}$ \calc{} sont laissés de côté, partout et pour tous les modèles ; sans renormalisation, la somme ainsi coupée peut être très légèrement négative. La \textbf{KL d'une passe} est la moyenne de $\mathrm{KL}_t$ sur les positions notées ; ici, sur les dix fenêtres d'évaluation de wiki.test que le Tome~II appelle R1, soit 2\,550 positions (255 par fenêtre). C'est le juge de tout le tome : une erreur sur les poids ou à la sortie d'un expert n'en est qu'un indice, et la \cref{t3syn:def:kl} la reprend avec ses deux parts, la part lisse et la queue des bascules de routage (\cref{t3syn:sec:juge}).
+
+\paragraph{Le protocole (P1 de la ronde).} La sous-commande \texttt{kl} de la fourche, puis \texttt{juge kl} du lot R du Tome~II : les 10 fenêtres de R1 (2\,550 positions notées), la référence f64, les experts 0, 4, \ldots, 28 des couches 0, 8, 16 et 23 remplacés par leur base, soit \textbf{32 experts sur 768}, chacun servi à chaque position qui le route, contre \texttt{ref-openai-20b.kld}. La divergence~\cite{kullback1951} se lit position par position, en nats ; le premier choix identique se donne avec son intervalle de Wilson~\cite{wilson1927},
+\begin{equation}\label{t3ecl:eq:wilson}
+\frac{\hat p + \frac{z^2}{2n} \pm z\sqrt{\frac{\hat p (1-\hat p)}{n} + \frac{z^2}{4n^2}}}{1 + \frac{z^2}{n}}, \qquad z = 1{,}96 ;
+\end{equation}
+pour $\hat p = 0{,}8714$ et $n = 2\,550$, il donne $[0{,}8578 ;\ 0{,}8838]$ \calc, l'intervalle que porte le journal. Seuil, déclaré avant : la mutation synonyme est meilleure de bout en bout si sa KL moyenne est sous celle de la frontière \emph{et} si son taux de premier choix identique est au-dessus.
+
+\paragraph{Quelle variante a été jugée.} La passe a été écrite avant le résultat de $\lambda = 1$ : elle juge la variante $\lambda = 0$, $\delta^\ast = 1$, à débit $+0{,}011$ bit, dont les erreurs de sortie sont du même ordre. La KL a été mesurée sur la variante $\lambda = 0$, à 2,649 bits ; $\lambda = 1$ (2,563 bits) n'a été jugée qu'à l'erreur de sortie d'expert. La synthèse de la ronde a dû corriger une attribution de cette KL à $\lambda = 1$ (\cref{t3syn:sec:frontiere}). \textbf{Aucune variante de la mutation synonyme n'est donc mesurée à la fois sous la frontière en bits et sous elle en KL.}
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabular}{l r r r}
+\toprule
+2\,550 positions, 32 experts sur 768 remplacés & Base frontière & \textbf{Synonyme $\lambda = 0$} & Écart \\
+\midrule
+KL moyenne ($\pm$ incertitude du juge) & 0,0360 $\pm$ 0,0029 & \textbf{0,0262 $\pm$ 0,0026} & $-27\,\%$ \\
+KL médiane & 0,0088 & \textbf{0,0038} & $-56\,\%$ \\
+KL, 90\textsuperscript{e} centile & 0,061 & 0,037 & $-40\,\%$ \\
+KL, 99\textsuperscript{e} centile & 0,495 & 0,410 & $-17\,\%$ \\
+KL, 99,9\textsuperscript{e} centile & 1,59 & 1,70 & $+7\,\%$ \\
+premier choix identique (Wilson 95\,\%) & 87,1\,\% [85,8 ; 88,4] & \textbf{90,9\,\% [89,7 ; 91,9]} & disjoints \\
+perplexité (référence 460,2) & 485,9 ($+5{,}4\,\%$) & \textbf{468,3 ($+1{,}8\,\%$)} & $\div 3$ \\
+\bottomrule
+\end{tabular}
+\caption[La KL de bout en bout, base contre mutation synonyme]{La KL de bout en bout contre la référence f64 (protocole P1) \mes. Données : \fichier{mesures/genome/etat-de-l-art/journaux/kl-frontiere-juge.json}, \fichier{kl-synonyme-d1-juge.json} ; position par position : \fichier{kl-*-positions.csv}.}
+\label{t3ecl:tab:kl}
+\end{table}
+
+\paragraph{Le seuil déclaré tient} (\cref{t3ecl:tab:kl}) : KL moyenne plus basse, premier choix plus haut, intervalles de Wilson disjoints. L'éclaireur avait comparé les deux moyennes sans les apparier (écart de 0,0098, environ 3,6 fois l'incertitude d'une moyenne). La synthèse les a appariées position par position, depuis les CSV commités (\fichier{mesures/genome/construction/synthese/apparie-eclaireur.json}) \calc~sur \mes. Son témoin, déclaré avant, recalcule chaque KL moyenne à $10^{-12}$ près (0,036\,013\,763\,948 des deux côtés, écart $1{,}8\cdot10^{-13}$) et sa cassure (une ligne retirée) tombe. La différence appariée, synonyme moins base, vaut \textbf{$-0{,}009\,845$} ; écart-type naïf 0,001\,90 (5,2\,$\sigma$), écart-type par blocs de fenêtres, qui respecte la corrélation des positions d'une même fenêtre (elles partagent leur passé, donc leurs bascules), \textbf{0,003\,34, soit 2,9\,$\sigma$}. 2\,060 positions sur 2\,550 (80,8\,\%) ont moins de KL avec la mutation synonyme ; le premier choix identique monte de $3{,}73 \pm 0{,}59$ points. La dérivation des deux incertitudes est au \cref{t3jug:ch}.
+
+\paragraph{Ce que la queue dit.} Le 99,9\textsuperscript{e} centile ne baisse pas (1,59 $\to$ 1,70). Les positions les plus touchées sont celles où le routage bascule (le jugement R1 du Tome~II : les bascules de routage sont le premier amplificateur d'une perturbation), et une base meilleure ne les supprime pas. Le \cref{t3syn:ch} en fait la seconde part de la KL, et le \cref{t3tro:ch} la mesure.
+
+\paragraph{Ce que la KL dit de la frontière elle-même.} Remplacer 32 experts sur 768 (4\,\% des experts, dans 4 couches sur 24) par la base de 2,64 bits coûte déjà une KL de 0,036, six fois le seuil de l'architecture B (0,0055, fondations/07 §\,4.2) ; la mutation synonyme la ramène à 0,026, encore quatre fois au-dessus. La base, même synonyme, est un \textbf{mode rapide} ou un \textbf{brouillon}, pas un remplaçant silencieux du mode exact.
+
+\section{Le verdict}\label{t3ecl:sec:verdict}
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{3.3cm} >{\raggedright\arraybackslash}p{2.6cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{2.6cm}}
+\toprule
+Mécanisme & Bits par poids lus & Erreur & Verdict au seuil déclaré \\
+\midrule
+frontière sans perte (F1) & 3,8431 & 0 & référence \\
+\textbf{codon synonyme du zéro} & \textbf{3,7061} (rANS réel, 12 tenseurs) ; $-0{,}128$ sur tout le 20b, $-0{,}126$ sur tout le 120b & \textbf{0} : logits identiques au bit ; \texttt{.kld} égal octet pour octet & \textbf{bat la frontière sans perte} (seuil 0,05) \\
+base frontière (07, F1) & 2,6441 (rANS) ; 2,679 ($H_0$ + échelles) & poids 4,29\,\% ; sortie d'expert 3,9 / 3,1\,\% (16 experts) & référence \\
+base frontière sur code canonique, signe haché & 2,5965 (rANS réel) & poids 4,29\,\% ; sortie non mesurée & égale en poids à $-0{,}048$ bit ; non jugée \\
+ECSQ $\lambda = 0{,}5$, sans rétroaction & 2,615 ($H_0$) & sortie d'expert 3,18 / 2,72\,\% contre 3,03 / 2,53 & ne bat pas \\
+synonyme $\lambda = 0$, $\delta = 0{,}01$ (déclarée) & 2,679 ($H_0$) & sortie d'expert 1,03 / 0,79\,\% ; couche 0 pire & \textbf{ne bat pas} \\
+synonyme $\lambda = 0$, $\delta^\ast = 1$ & 2,649 ($H_0$) & sortie d'expert 0,84 / 0,65\,\% ; KL 0,0262 contre 0,0360 & bat en erreur et en KL ; pas au critère strict ($+0{,}011$ bit) \\
+\textbf{synonyme $\lambda = 1$, $\delta^\ast = 1$} & \textbf{2,563 ($H_0$), $-0{,}078$} & \textbf{sortie d'expert 1,18 / 0,74\,\% contre 3,94 / 3,14\,\%}, 8 cases sur 8 ; KL non mesurée & \textbf{bat la frontière avec perte} \\
+\bottomrule
+\end{tabularx}
+\caption[Le verdict de l'éclaireur]{Le verdict de l'éclaireur \mes. Source : \fichier{genome/01-eclaireur.md} §\,7, avec la correction de \fichier{genome/05-synthese.md} §\,0 (la KL appartient à $\lambda = 0$).}
+\label{t3ecl:tab:verdict}
+\end{table}
+
+Vu des poids, gpt-oss est du bruit : codes indépendants à 0,005 bit près, signe des zéros à 1,0000 bit d'entropie, et une borne distorsion-débit que seuls un meilleur quantificateur ou un code vectoriel approchent, sans rien à « générer ». Les deux mécanismes qui gagnent (\cref{t3ecl:tab:verdict}) n'ajoutent aucune structure aux poids : le premier \textbf{retire de l'information que le calcul ne lit jamais}, le second \textbf{déplace l'erreur là où les entrées réelles ne la voient pas}. Les deux sont, au sens de l'analogie, des synonymes : des différences de code sans différence de phénotype. La suite de la ronde les a pris tous les deux : le premier entre dans le format (\cref{t3cod:ch}), le second devient un second fichier (\cref{t3sno:ch}).
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{Le codon du zéro et l'empreinte des experts.} Le format \texttt{.trc} vérifie l'empreinte de chaque expert décodé contre les octets du GGUF ; un expert canonique a d'autres octets. Il faut une empreinte du code canonique : une décision de format, que le \cref{t3cod:ch} prend.
+\item \textbf{L'exactitude au bit} est démontrée pour un produit scalaire IEEE à ordre fixé et mesurée sur la référence f64 (24 jetons au logit, 2\,550 positions à l'empreinte du \texttt{.kld}) ; pour les noyaux du moteur, c'est la proposition A1 du \cref{t3cod:ch} et sa mesure.
+\item \textbf{Le sous-ensemble.} 4 couches sur 24, 8 puis 4 experts sur 32 par couche ; le gain de la mutation synonyme varie beaucoup d'une couche à l'autre ($\times 0{,}97$ à $\times 0{,}23$) ; une couche où il s'inverserait n'est pas exclue. La KL ne substitue que 32 experts sur 768.
+\item \textbf{L'estimateur de débit} de la mutation synonyme est l'entropie ($H_0$ ou $H\mid\kappa$), pas un codeur réel. Pour la frontière, le codeur réel rend 2,6441 contre $2{,}6066$ + échelles ; rien n'indique que l'écart soit différent pour les symboles synonymes, mais ce n'est pas mesuré.
+\item \textbf{$\delta^\ast$} a été choisi sur l'expert 2 des quatre couches : d'autres experts que ceux qui sont mesurés, mais des mêmes couches.
+\item \textbf{La calibration et l'évaluation} viennent du même corpus (wiki.test), fenêtres disjointes ; une évaluation sur un autre domaine (code, dialogue) pourrait réduire le gain.
+\item \textbf{Les deux comparaisons} se font sur des sous-ensembles différents ($\lambda = 1$ sur 4 experts par couche, $\lambda = 0$ sur 8), chacune contre sa propre frontière.
+\item \textbf{La KL juge $\lambda = 0$, pas $\lambda = 1$} : le gain de 0,078 bit de $\lambda = 1$ n'est jugé qu'à l'erreur de sortie d'expert, et la ronde a montré que cette erreur ne prédit pas la KL (\cref{t3syn:ch}).
+\item \textbf{La borne du \cref{t3que:sec:frontiere}} suppose les codes indépendants sachant l'échelle ; une dépendance non mesurée la ferait baisser.
+\end{itemize}
+\end{faux}

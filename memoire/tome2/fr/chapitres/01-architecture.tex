@@ -1,0 +1,372 @@
+% Tome~II, chapitre 1 : architecture et structure du programme (version française).
+% Figures : memoire/figures/tome2/{schemas,graphes}/architecture.tex ; données :
+% memoire/figures/donnees/tome2/caisses.csv (memoire/outils/tome2_format.py).
+\input{\Racine/figures/tome2/schemas/architecture}
+\input{\Racine/figures/tome2/graphes/architecture}
+\lstdefinelanguage{Rust}{morekeywords={pub,fn,struct,enum,impl,trait,use,mod,let,mut,const,
+  type,where,for,in,if,else,match,return,self,Self,dyn,unsafe,as,u8,u16,u32,u64,usize,f32,f64,
+  bool,Option,Result,Vec,Box,String,Some,None,Ok,Err,true,false,crate},
+  sensitive=true, morecomment=[l]{//}, morecomment=[s]{/*}{*/}, morestring=[b]"}
+
+\chapter{Architecture et structure du programme}\label{t2arch:ch}
+
+\begin{origine}
+\textbf{Au départ}, le Tome~I s'achevait sur une décision et une spécification : construire \textbf{troncons}, un moteur à nous, en Rust avec des noyaux CUDA, dont le premier jalon (J1) sert gpt-oss-120b (63,4\,Go) \emph{exactement}, experts codés sans perte, lus du disque à la taille d'un expert, dans une fenêtre de mémoire qui ne dépend pas de la taille du modèle. La spécification (\fichier{decisions/ARCHITECTURE.md}, commit \texttt{f0b0fea}) fixait les modules, leurs interfaces et cinq lots d'ingénieurs aux fichiers disjoints ; aucune ligne du programme n'existait.
+\textbf{Ce chapitre établit} ce qui a été construit : quatorze membres d'un espace de travail Rust (onze bibliothèques, trois exécutables, 15\,655 lignes de code, 2\,194 de témoins, 2\,151 d'outils), vingt noyaux CUDA chargés par le seul pilote, six coutures gelées entre les lots et ce qu'elles sont devenues ; il démontre que l'égalité au bit des logits entre fichier codé et fichier brut (le critère C3) n'est pas une chance mais la conséquence de quatre contrats de couture (\cref{t2arch:thm:chaine}), et il dit ce que l'épreuve indépendante a changé à l'architecture (une garde d'intégrité, une sortie sur erreur, un cache KV en f32 en option).
+\textbf{Il reste} les décisions de l'arbitre que la ronde de corrections lui a portées (couture N pour le cache KV en f32 ; précisions du format ; critères C7 et C8), le terme de la fenêtre qui croît avec le modèle (0,9\,Mo non expliqués), et la cause première du blocage G1.
+Sources : \fichier{decisions/ARCHITECTURE.md} §\,0 à 6 ; \fichier{moteur/Cargo.toml} et les \fichier{Cargo.toml} des membres ; \fichier{moteur/O-pour-le-memoire.md} (parties II et III) ; \fichier{moteur/E-pour-le-memoire.md} ; \fichier{moteur/K-pour-le-memoire.md} ; \fichier{mesures/epreuve-J1.md}.
+\end{origine}
+
+\begin{enbref}
+Un programme qui fait tourner un modèle cinq fois plus gros que la mémoire de la machine se découpe en \emph{qui sait quoi}. Le format sait où est chaque octet ; le chemin des octets sait le transporter du disque à la carte sans l'abîmer ; les noyaux savent calculer avec, toujours dans le même ordre ; le cache sait \emph{où} est un expert, jamais \emph{ce qu'il contient} ; le juge sait mesurer sans croire personne. Chaque savoir est un lot, chaque frontière une couture écrite à l'avance. C'est cette découpe qui rend l'exactitude démontrable : on ne prouve pas un programme de vingt mille lignes, on prouve que ses frontières transmettent l'égalité.
+\end{enbref}
+
+\section{Les exigences, et la décision qui en sort}\label{t2arch:sec:exigences}
+
+Les mots de Stone (SOCLE, 2026-10-15) demandent « une vrai solution pour prendre un modele ultra lourd quelcoque d'une ai le faire tourner proprement », et « je ne veux pas que des recherches déja existante ». L'arbitre en a tiré trois exigences qui doivent tenir ensemble (\fichier{ARCHITECTURE.md} §\,1.1) :
+\begin{description}
+\item[E1, une solution qui marche :] un programme qui sert un modèle bien plus gros que la mémoire, proprement : sortie juste, mémoire bornée, vitesse au-dessus de la base connue ;
+\item[E2, une contribution :] un mécanisme ou un assemblage qui n'existe pas encore, prouvé par la mesure ;
+\item[E3, vite un premier programme qui marche,] sans fermer la porte à E2.
+\end{description}
+L'ordre choisi (réponse par délégation du 2026-10-15, réversible) est \textbf{A exact d'abord} (J1), la qualité de la contribution B mesurée en parallèle sans moteur, puis B dans le moteur au jalon J2. Le Tome~I en donne les chiffres ; ce chapitre décrit ce qu'est devenu A.
+
+\subsection{Pourquoi Rust et CUDA, par les mesures}
+
+Le choix de la langue n'est pas un goût. Les briques déjà mesurées du projet (codeur rANS, banc disque IOCP, lecteur GGUF) étaient en Rust ; un programme qui jongle avec des tampons alignés, des files d'entrées-sorties asynchrones et des pointeurs de carte gagne à ce que le compilateur refuse les durées de vie fausses. Le choix de CUDA contre Vulkan, lui, est tranché par des mesures (\cref{t2arch:tab:cuda}) : le recouvrement du disque, du lien et du calcul, que suppose le maximum de l'équation du jeton, n'avait été mesuré sur cette machine que par des flux CUDA.
+
+\begin{table}[ht]
+\centering\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{3.6cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+Question & Vulkan (wgpu 30) & CUDA 13.1 \\
+\midrule
+Décodeur rANS v4, même flux, ABBA & 70,2 et 71,6\,Go/s & \textbf{80,8 et 82,1\,Go/s} (+14,9\,\%) \mes \\
+GEMV 4 bits en VRAM & 249\,Go/s & 231 à 237\,Go/s (carte partagée) : à égalité \mes \\
+Recouvrement copie-calcul & non mesuré & part cachée 0,98 à 1,01 \mes \\
+Mémoire épinglée & tampon du pilote, 12,2\,Go/s & \texttt{cuMemHostAlloc}, +21\,\% sur la paginable \mes \\
+Lecture du disque directement dans la mémoire que lit la DMA & impossible sans import de mémoire hôte (absent de wgpu) & mémoire épinglée alignée, donnée telle quelle à \texttt{ReadFile} \\
+Copie et calcul sur deux files & une seule file par périphérique & flux et moteur de copie \\
+\bottomrule
+\end{tabularx}
+\caption[CUDA contre Vulkan : ce qui a décidé]{CUDA contre Vulkan, les mesures qui ont décidé de la langue des noyaux (\fichier{ARCHITECTURE.md} §\,2.3, d'après les études 01 à 04 du Tome~I). Le prix, dit dès la décision : le programme exige une carte NVIDIA ; les noyaux WGSL mesurés restent le second chemin, et un portage Vulkan s'ouvre après J2.}
+\label{t2arch:tab:cuda}
+\end{table}
+
+Les noyaux sont compilés \emph{à la construction} par \texttt{nvcc} et embarqués dans l'exécutable ; à l'exécution, le pilote seul les charge (\cref{t2arch:fig:construction}). La page du manuel de l'API du pilote (v13.4, mise à jour le 2026-10-12, consultée le 2026-10-16) dit que \texttt{cuModuleLoadData} accepte une image cubin ou fatbin produite par \texttt{nvcc}, ou du PTX terminé par un octet nul \cite{nvidia2026modulemgmt} : c'est ce qui permet de ne livrer \emph{aucune} DLL d'exécution de CUDA. L'image contient le cubin \texttt{sm\_89} (Ada, la RTX~4060 de la machine) et le PTX \texttt{compute\_89}, que le pilote peut recompiler pour une carte plus récente. Pas de cuBLAS (aucune multiplication de matrices pleines en J1), pas de NVRTC.
+
+\begin{figure}[ht]
+\centering
+\TdArchConstruction
+\caption[La chaîne de construction des noyaux]{La chaîne de construction des noyaux. Le \texttt{build.rs} de \texttt{trc-noyaux} (options \texttt{-O3 -std=c++17}, \emph{sans} \texttt{--use\_fast\_math}, pour que les échelles E8M0 sous-normales restent exactes et que le binaire calcule ce que le banc a mesuré) produit un fatbin ; \texttt{include\_bytes!} le place dans l'exécutable ; \texttt{trc\_cuda::Module::charger} le donne au pilote. Source : \fichier{moteur/crates/trc-noyaux/build.rs}.}
+\label{t2arch:fig:construction}
+\end{figure}
+
+\subsection{Les dépendances, et pourquoi si peu}
+
+La couture D (\cref{t2arch:sec:coutures}) gèle les dépendances et leurs versions exactes. Le \cref{t2arch:tab:deps} les donne avec leur licence ; toutes sont dans le cache cargo de la machine, et la construction se fait hors ligne (\texttt{--offline}). Un espace de travail Cargo partage un \texttt{Cargo.lock} et un dossier de sortie, et ses membres héritent les versions de la table \texttt{[workspace.dependencies]} par \texttt{workspace = true} \cite{cargo2026workspaces} : une version ne s'écrit qu'à un endroit.
+
+\begin{table}[ht]
+\centering\small
+\begin{tabularx}{\linewidth}{l l l >{\raggedright\arraybackslash}X}
+\toprule
+Crate & Version & Licence & Usage \\
+\midrule
+\texttt{rayon} & 1.12.0 & MIT ou Apache-2.0 & parallélisme du codeur, de la vérification, de la référence \\
+\texttt{sha2} & 0.10.9 & MIT ou Apache-2.0 & SHA-256 et empreinte64 \\
+\texttt{windows-sys} & 0.61.2 & MIT ou Apache-2.0 & IOCP, \texttt{VirtualAlloc}, PDH, mémoire du processus \\
+\texttt{half} & 2.7.1 & MIT ou Apache-2.0 & f16 de la référence \\
+\texttt{libloading} & 0.8.9 & ISC & chargement de \texttt{llama.dll} (découpage en jetons) \\
+\texttt{serde}, \texttt{serde\_json} & 1.0.229, 1.0.151 & MIT ou Apache-2.0 & journaux \\
+\texttt{anyhow}, \texttt{thiserror} & 1.0.104, 2.0.21 & MIT ou Apache-2.0 & erreurs \\
+\bottomrule
+\end{tabularx}
+\caption[Les dépendances (couture D)]{Les dépendances (couture D), versions lues dans \fichier{moteur/Cargo.toml}. Aucune autre sans décision écrite ; pas de xxHash (absent du cache) : le préfixe de SHA-256, accéléré par les instructions SHA du processeur, suffit à un témoin. \texttt{llama.dll} b11515 (MIT) ne sert qu'au découpage en jetons, par son API publique, et comme base de comparaison.}
+\label{t2arch:tab:deps}
+\end{table}
+
+\section{L'espace de travail : quatorze membres, un graphe sans cycle}\label{t2arch:sec:caisses}
+
+Le moteur vit sous \fichier{moteur/}, un espace de travail Cargo dont les membres sont trouvés par deux motifs, \texttt{crates/*} et \texttt{bins/*}. Une règle de construction en est sortie, écrite par le lot O en tête de \fichier{moteur/Cargo.toml} après l'avoir mesurée avec cargo 1.98.1 : Cargo refuse l'espace de travail \emph{entier} tant qu'un dossier qui répond au motif n'a pas de \texttt{Cargo.toml} ; chaque lot écrit donc le \texttt{Cargo.toml} de sa crate avant tout autre fichier. Le lot F l'a appris à ses dépens : tant que \texttt{crates/trc-noyaux/} n'avait pas son manifeste, il a dû construire par un espace de brouillon hors du dépôt (\fichier{moteur/REPRISE-F.md}).
+
+\begin{figure}[p]
+\centering
+\TdArchCaisses
+\caption[Le graphe des dépendances internes]{Le graphe des dépendances internes de l'espace de travail, relevé dans les \texttt{Cargo.toml} (\fichier{memoire/figures/donnees/tome2/caisses.csv}). Six feuilles sans dépendance interne, cinq niveaux, aucun cycle. Deux faits structurels s'y lisent. \textbf{Le moteur ne dépend pas du codec processeur} : \texttt{trc-ordo} et \texttt{trc-modele} n'importent pas \texttt{trc-codec} ; le décodeur de la carte (\texttt{trc-noyaux}) est un second décodeur, écrit depuis la spécification, et son égalité avec \texttt{trc-codec} est un témoin, pas une évidence. \textbf{La référence ne dépend pas du format} : \texttt{trc-reference} lit le GGUF d'origine par son propre lecteur, ce qui fait d'elle un chemin indépendant pour juger le moteur.}
+\label{t2arch:fig:caisses}
+\end{figure}
+
+Le \cref{t2arch:tab:caisses} dit ce que fait chaque membre et qui le possède ; la \cref{t2arch:fig:lignes} en donne la taille. Le décompte vient d'un outil commité (\fichier{memoire/outils/tome2\_format.py}) qui compte les lignes des fichiers \texttt{.rs}, \texttt{.cu} et \texttt{.cuh} et les range en code, témoins (dossier \texttt{tests/}, fichier \texttt{tests.rs}) et outils (\texttt{banc/}, \texttt{examples/}, \texttt{src/bin/}) : 15\,655 lignes de code, 2\,194 de témoins, 2\,151 d'outils, 20\,000 en tout \calc.
+
+\begin{table}[ht]
+\centering\small
+\begin{tabularx}{\linewidth}{l c >{\raggedright\arraybackslash}X r}
+\toprule
+Membre & Lot & Rôle & Code \\
+\midrule
+\texttt{trc-format} & F & structures du fichier \texttt{.trc}, lecture vérifiée, écriture, empreintes & 1\,303 \\
+\texttt{trc-codec} & F & rANS processeur (codeur, décodeur à contexte), reconstruction d'un expert : l'oracle & 907 \\
+\texttt{trc-codeur} & F & exécutable : GGUF $\to$ \texttt{.trc}, compagnon \texttt{.vocab.gguf}, vérification C1 & 1\,141 \\
+\texttt{trc-cuda} & E & l'API du pilote CUDA, enveloppée ; seule crate qui appelle \texttt{nvcuda.dll} & 897 \\
+\texttt{trc-es} & E & lectures sans tampon par port de complétion (IOCP) & 314 \\
+\texttt{banc-chemin} & E & exécutable : essais E0, banc de bout en bout E2 (disque $\to$ VRAM décodée) & 2\,341 \\
+\texttt{trc-noyaux} & K & vingt noyaux CUDA, leurs enveloppes, leur banc & 2\,219 \\
+\texttt{trc-reference} & R & passe avant de gpt-oss en f64 sur le processeur, lue dans le GGUF & 1\,592 \\
+\texttt{trc-jetons} & R & découpage en jetons par \texttt{llama.dll} & 145 \\
+\texttt{trc-juge} & R & logits, KL, compteurs du système, séries ABBA & 874 \\
+\texttt{trc-cache} & O & cache d'experts, politiques, simulateur \texttt{rejouer} (même code) & 752 \\
+\texttt{trc-modele} & O & gpt-oss : hyperparamètres, tampons de carte, couches & 737 \\
+\texttt{trc-ordo} & O & le moteur : ordonnanceur de couche, préremplissage, garde & 1\,750 \\
+\texttt{troncons} & O & exécutable : \texttt{generer}, \texttt{evaluer}, \texttt{mesurer}, \texttt{disque} & 683 \\
+\bottomrule
+\end{tabularx}
+\caption[Les membres de l'espace de travail]{Les quatorze membres, leur lot (\fichier{ARCHITECTURE.md} §\,6.1 : chaque lot est seul propriétaire de ses fichiers) et leurs lignes de code \calc. Les témoins et outils sont à la \cref{t2arch:fig:lignes}.}
+\label{t2arch:tab:caisses}
+\end{table}
+
+\begin{figure}[ht]
+\centering
+\TdArchGrapheLignes
+\caption[Lignes de code, de témoins et d'outils par membre]{Lignes de code, de témoins et d'outils par membre de l'espace de travail \calc. \texttt{trc-noyaux} est le plus gros : ses noyaux, leurs enveloppes, 780 lignes de témoins sur la carte et un banc de 1\,376 lignes. Les crates sans témoin dans leur dossier (\texttt{trc-modele}, \texttt{trc-ordo}, \texttt{trc-reference}) sont jugées par des témoins extérieurs (chaîne K3, critères C3 et C4, témoin O2), commités sous \fichier{mesures/moteur/}. Données : \fichier{memoire/figures/donnees/tome2/caisses.csv}.}
+\label{t2arch:fig:lignes}
+\end{figure}
+
+\section{Le schéma d'ensemble}\label{t2arch:sec:ensemble}
+
+La \cref{t2arch:fig:ensemble} met les membres à leur place dans le temps et sur la machine. \textbf{Hors ligne}, une fois par modèle, \texttt{trc-codeur} réécrit le GGUF d'origine en un fichier \texttt{.trc} autonome (le chapitre suivant le décrit au bit près) et vérifie, expert par expert, que le décodage redonne l'original (C1). \textbf{En ligne}, à chaque jeton, \texttt{troncons} appelle le moteur de \texttt{trc-ordo}, qui demande au cache où sont les quatre experts choisis par le routeur de chaque couche, lit les absents par \texttt{trc-es}, les fait copier et décoder par \texttt{trc-cuda} et \texttt{trc-noyaux}, puis lance la couche par \texttt{trc-modele}.
+
+\begin{figure}[ht]
+\centering
+\TdArchEnsemble
+\caption[Le schéma d'ensemble]{Le schéma d'ensemble : le codeur hors ligne, le moteur en ligne, et la machine dessous (pointillés : quelle crate parle à quel organe). Un tronçon lu du disque arrive dans la RAM épinglée, que le disque écrit et que le moteur de copie de la carte lit : c'est la même page physique, sans copie par le processeur. La carte n'a qu'un moteur de copie sous WDDM (attribut \texttt{ASYNC\_ENGINE\_COUNT} = 1, relevé par le lot E \mes) : copies aller et retour forment une seule file.}
+\label{t2arch:fig:ensemble}
+\end{figure}
+
+\paragraph{Trois flux de carte et un fil d'hôte.} Le moteur ordonne la carte par trois flux CUDA : \emph{calcul} (priorité haute), \emph{copie}, \emph{décodage}. Ils ne se rencontrent que par des événements. L'hôte, lui, attend une fois par couche l'événement « routeur $\ell$ » enregistré juste après le noyau \texttt{routeur\_topk}, lit les quatre indices dans une boîte aux lettres en mémoire projetée (protocole de l'essai E0\,c du lot E : numéro de séquence écrit en dernier, après une barrière système), demande au cache, soumet les lectures des défauts et met en file copies et décodages. Le coût de cette synchronisation est mesuré : 18,5\,µs par couche sous charge, 0,67\,ms par jeton du 120b, 23 fois sous le seuil déclaré de 15,7\,ms \mes~(\fichier{moteur/E-pour-le-memoire.md}, D2\,bis).
+
+\begin{lemme}[L'ordre des trois flux est sûr]\label{t2arch:lem:ordre}
+Sous les hypothèses (H1) un flux exécute ses opérations dans l'ordre et sans recouvrement ; (H2) une attente d'événement sur un flux retient tout ce qui y est mis ensuite jusqu'à la fin de ce que l'événement a capturé ; (H3) l'hôte ne décide la couche $\ell$ qu'après avoir vu fini l'événement « routeur $\ell$ » ; (H4) un expert demandé par la couche $\ell$ reste épinglé jusqu'à \texttt{liberer}$(\ell)$, appelé après la mise en file de la fin de la couche, et une victime d'éviction n'est jamais épinglée ni en vol ; aucun emplacement d'expert n'est lu par une GEMV pendant qu'un décodage l'écrit, et aucun tampon d'arrivée n'est récrit avant la fin de la copie ou du décodage qui le lisait.
+\end{lemme}
+
+\begin{proof}
+Soit $s$ un emplacement décodé pour la couche $\ell'$ et évincé par une demande de la couche $\ell$, plus tardive dans le flux des couches. Par (H4), l'éviction suit \texttt{liberer}$(\ell')$, donc la mise en file de la fin de la couche $\ell'$ sur le flux de calcul ; le nouveau décodage dans $s$ est mis en file après la décision de la couche $\ell$, donc, par (H3), après que l'hôte a vu fini « routeur $\ell$ », lui-même mis en file après la fin de $\ell'$ sur le même flux : par (H1), toutes les GEMV qui lisaient $s$ sont finies quand le décodage commence. Réciproquement, les GEMV de la couche $\ell$ qui lisent $s$ sont mises en file après l'attente de l'événement « décodé » de $s$ (H2). Pour les tampons d'arrivée, chaque réutilisation suit la décision d'une couche, donc la fin des couches précédentes, qui ont attendu leurs décodages, qui ont attendu leurs copies ; des attentes explicites (copie après décodage précédent du même tampon, lecture après copie du même tampon épinglé) le rendent vrai même sans (H3). Démonstration complète du lot O : \fichier{moteur/O-pour-le-memoire.md} §\,6.1.
+\end{proof}
+
+La ronde de corrections a trouvé que ce raisonnement ne couvrait pas le \emph{préremplissage par flux} (J1+), où plusieurs lectures d'un paquet sont en vol en même temps : le tampon de la $s$-ième lecture était $s \bmod 12$, et une lecture lente pouvait encore écrire son tampon quand la douzième suivante le reprenait. La règle corrigée prend le tampon libre suivant ; elle est démontrée (lemme 4\,bis du lot O), et le cas ne s'est pas produit dans la passe rejouée sous la charge de l'épreuve (0 conflit) \mes. C'est l'une des deux causes possibles du blocage G1 ; la cause première n'est pas établie (\cref{t2arch:sec:epreuve}).
+
+\section{Les coutures : ce qui est gelé entre les lots}\label{t2arch:sec:coutures}
+
+Cinq lots ont construit troncons en parallèle, chacun propriétaire de ses fichiers (\cref{t2arch:fig:lots}). Ce qui les relie est écrit à l'avance, dans la spécification, et ne change que par une décision datée de l'arbitre : ce sont les \emph{coutures} (\cref{t2arch:tab:coutures}). Une couture peut s'\emph{étendre} sans décision (une fonction ajoutée, un champ ajouté) si rien d'existant ne change ; elle ne change jamais dans un commit de code.
+
+\begin{figure}[ht]
+\centering
+\TdArchLots
+\caption[Les cinq lots et leurs coutures]{Les cinq lots et leurs coutures gelées (version 1, 2026-10-15 ; \fichier{ARCHITECTURE.md} §\,6.2). Repli prévu par la spécification : à quatre ingénieurs, F et R fusionnent ; à trois, \{F, R\}, \{E, O\}, \{K\}, le lot K restant seul parce que la passe avant est le plus long pôle.}
+\label{t2arch:fig:lots}
+\end{figure}
+
+\begin{table}[ht]
+\centering\small
+\begin{tabularx}{\linewidth}{c l >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+& Entre & Ce qui est gelé & Ce qu'elle est devenue (au 2026-10-16) \\
+\midrule
+F & F $\to$ E, K, O, R & le format \texttt{.trc} au bit près & aucun octet changé ; neuf précisions du lot F et trois imprécisions relevées par l'épreuve (m4), toutes compatibles avec les fichiers écrits, en attente de l'arbitre (chapitre suivant) \\
+C & E $\to$ K, O & l'API de \texttt{trc-cuda} & étendue sans rien changer (contexte avec mode d'attente, attributs, \texttt{Flux::fini}, \texttt{Evenement::nouveau\_bloquant}, \texttt{MemoireCarte::remplir}, \texttt{HoteEpingle::\allowbreak lire\_volatil\_u32}, \texttt{copier\_carte\_carte}…) \\
+N & K $\to$ O & interface binaire des noyaux, disposition des tampons, règle de déterminisme & tenue ; le cache KV en f32 (constat M5) est ajouté \emph{hors couture}, en option (\texttt{--kv-f32}, deux noyaux neufs), sans toucher aux noyaux f16 ; la décision est à l'arbitre \\
+A & O $\leftrightarrow$ R & API de \texttt{trc-cache}, format des traces & inchangée ; le simulateur est le code même du cache \\
+J & O, E $\to$ R & format des journaux de mesure & étendue (compteurs d'entrées-sorties du processus, journal d'erreur \texttt{<journal>.erreur.json}) \\
+D & tous & dépendances et versions & inchangée (\cref{t2arch:tab:deps}) \\
+\bottomrule
+\end{tabularx}
+\caption[Les coutures et leur histoire]{Les six coutures et ce qu'elles sont devenues. Sources : \fichier{ARCHITECTURE.md} §\,6.2 ; \fichier{moteur/REPRISE-F.md} ; \fichier{moteur/E-pour-le-memoire.md} §\,2.3 ; \fichier{moteur/O-pour-le-memoire.md} §\,14 ; \fichier{mesures/epreuve-J1.md}, constat m4.}
+\label{t2arch:tab:coutures}
+\end{table}
+
+\subsection{La règle de déterminisme, ou pourquoi l'égalité au bit a un sens}
+
+La couture N contient une règle qui n'est pas une interface mais une discipline : \emph{aucun noyau n'utilise d'addition atomique en virgule flottante ; toute réduction suit un arbre fixe qui ne dépend que des tailles}. L'addition flottante n'est pas associative : $(a + b) + c$ et $a + (b + c)$ diffèrent en général d'un arrondi. Une réduction par atomiques additionne dans l'ordre où les fils arrivent, qui change d'une exécution à l'autre ; deux passes identiques rendraient des logits différents, et le critère C3 (« zéro bit différent ») n'aurait plus de sens. Avec un arbre fixe, chaque noyau est une \emph{fonction} des octets qu'il lit. Le lot K l'a éprouvé jusqu'au détail : le noyau \texttt{combiner} emploie \texttt{\_\_fmul\_rn} et \texttt{\_\_fadd\_rn}, jamais contractés en fma ; une fma remise à la place fait tomber l'égalité avec la même somme sur l'hôte dès l'élément 649 (\fichier{moteur/K-pour-le-memoire.md}, §\,7.3.6) \mes. Un arrondi de moins change des bits.
+
+\section{Les interfaces, telles qu'elles sont}\label{t2arch:sec:interfaces}
+
+Les listings qui suivent sont des extraits du code commité, raccourcis (commentaires résumés, corps omis) ; ils montrent ce qu'un lot \emph{promet} aux autres.
+
+\paragraph{Le format (\texttt{trc-format}, lot F).} Un \texttt{Fichier} s'ouvre en vérifiant tout ce qui peut l'être sans lire les tronçons : en-tête, empreintes des sections, sommes des tables, rangs du répertoire, taille du fichier. Le reste du programme ne lit jamais un octet du \texttt{.trc} sans passer par ses structures.
+
+\begin{lstlisting}[language=Rust, caption={[L'interface de \texttt{trc-format}]L'interface de \texttt{trc-format} (extrait de \fichier{moteur/crates/trc-format/src/lib.rs}).}, label={t2arch:lst:format}]
+pub const MAGIE: [u8; 8] = *b"TRONCONS";
+pub const ALIGNEMENT: u64 = 4096;
+pub const VERSION_MAJEURE: u16 = 1;   // un lecteur 1.x lit toute 1.y, y <= 1
+pub const VERSION_MINEURE: u16 = 1;
+impl Fichier {
+    pub fn ouvrir(chemin: &Path) -> Result<Fichier, ErreurFormat>; // tout se vérifie
+    pub fn entete(&self) -> &Entete;
+    pub fn residents(&self) -> &[TenseurResident];
+    pub fn table(&self, couche: u16, matrice: u8, sorte: Sorte, contexte: u8) -> Option<&Table>;
+    pub fn entree(&self, couche: u16, expert: u16) -> &EntreeRepertoire;
+}
+pub fn lire_partie(octets: &[u8]) -> Result<Partie<'_>, ErreurFormat>;
+pub fn empreinte64(octets: &[u8]) -> u64;   // 8 premiers octets de SHA-256, petit-boutiste
+\end{lstlisting}
+
+\paragraph{Le codec (\texttt{trc-codec}, lot F).} Il contient le codeur et le décodeur processeur du rANS, et surtout \emph{la reconstruction de référence d'un expert} : l'oracle que le décodeur de la carte doit égaler octet pour octet. Le contexte d'un symbole est une fonction que le décodeur sait calculer avant de le décoder (\texttt{None} : symbole sauté).
+
+\begin{lstlisting}[language=Rust, caption={[L'interface de \texttt{trc-codec}]L'interface de \texttt{trc-codec} (extrait de \fichier{moteur/crates/trc-codec/src/lib.rs} et \fichier{rans.rs}).}, label={t2arch:lst:codec}]
+pub fn coder(source: &[u8], geometrie: u8, contexte: &dyn Fn(usize) -> Option<u8>,
+             tables: &[TableRans]) -> Vec<u8>;            // flux serialise
+pub fn decoder(flux: &[u8], contexte: &mut dyn FnMut(usize, &[u8]) -> Option<u8>,
+               tables: &[TableRans]) -> Result<Vec<u8>, ErreurCodec>; // voies hors de L : erreur
+pub fn reconstruire(fichier: &Fichier, couche: u16, expert: u16, parties: &[&[u8]],
+                    exact: bool) -> Result<ExpertDecode, ErreurCodec>;
+impl ExpertDecode { pub fn octets_origine(&self) -> Vec<u8>; pub fn empreinte(&self) -> u64; }
+\end{lstlisting}
+
+\paragraph{Le chemin des octets (\texttt{trc-cuda}, \texttt{trc-es}, lot E).} \texttt{trc-cuda} charge \texttt{nvcuda.dll} depuis System32 et en enveloppe chaque point d'entrée par son nom exporté exact (une macro \texttt{table!} nomme au chargement tout symbole absent) ; aucune autre crate n'appelle le pilote. \texttt{trc-es} lit sans tampon (\texttt{FILE\_FLAG\_NO\_BUFFERING | FILE\_FLAG\_OVERLAPPED}) : décalage, longueur et adresse de destination doivent être multiples de 4\,096, ce qui fixe l'alignement du format \cite{microsoft2025filebuffering}.
+
+\begin{lstlisting}[language=Rust, caption={[Les interfaces de \texttt{trc-cuda} et \texttt{trc-es}]Les interfaces de \texttt{trc-cuda} et \texttt{trc-es} (couture C ; extraits).}, label={t2arch:lst:es}]
+impl HoteEpingle { pub fn allouer(c: &Contexte, octets: usize, projetee: bool) -> Result<Self>; }
+pub fn copier_vers_carte(dst: VueCarte, src: &HoteEpingle, decalage: usize, octets: usize,
+                         f: &Flux) -> Result<()>;
+impl Evenement { pub fn enregistrer(&self, f: &Flux) -> Result<()>; pub fn fini(&self) -> Result<bool>; }
+impl Flux { pub fn attendre(&self, e: &Evenement) -> Result<()>; }
+pub struct Requete { pub jeton: u64, pub decalage: u64, pub longueur: u32, pub destination: *mut u8 }
+impl Lecteur {
+    pub fn ouvrir(chemin: &Path, profondeur: usize) -> Result<Self>;
+    pub fn soumettre(&self, r: Requete) -> Result<()>;   // multiples de 4 096
+    pub fn recolter(&self, attente_ms: u32, sortie: &mut Vec<Achevement>) -> Result<()>;
+}
+\end{lstlisting}
+
+\paragraph{Le cache (\texttt{trc-cache}, lot O, couture A).} Le cache rend une \emph{décision} par expert demandé : succès (l'emplacement où il est), défaut servi par la RAM tiède, ou défaut servi par le disque. Un expert demandé par la couche en cours est épinglé jusqu'à \texttt{liberer}. Le simulateur \texttt{rejouer} est le même code, appelé sur une trace : le témoin « compte du moteur = compte du simulateur, à l'unité » est alors possible, et il a tenu sur 5\,120 pas du 20b (454\,210 succès, 37\,310 défauts, 36\,948 évictions des deux côtés ; cassure : 427\,984 / 63\,536 / 63\,174) \mes~(\fichier{moteur/O-pour-le-memoire.md} §\,6.4).
+
+\begin{lstlisting}[language=Rust, caption={[L'interface de \texttt{trc-cache}]L'interface de \texttt{trc-cache} (couture A, \fichier{ARCHITECTURE.md} §\,5.7).}, label={t2arch:lst:cache}]
+pub enum Decision {
+    Succes { emplacement: u32 },
+    DefautRam { emplacement: u32, tiede: u32 },        // troncon code deja en RAM epinglee
+    DefautDisque { emplacement: u32, tiede: Option<u32> } }
+impl<P: Politique> Cache<P> {
+    pub fn demander(&mut self, couche: u16, experts: &[u16], t: u64) -> Vec<Decision>;
+    pub fn pret(&mut self, emplacement: u32);           // decodage termine
+    pub fn liberer(&mut self, couche: u16);             // fin des GEMV : desepingle
+}
+pub fn rejouer<P: Politique>(trace: &Trace, emplacements: u32, tiedes: u32, vram: P, ram: P) -> Compteurs;
+\end{lstlisting}
+
+\paragraph{Le moteur (\texttt{trc-ordo}, lot O).} Sa configuration montre l'architecture mieux qu'un long texte : chaque champ après \texttt{brut} est une extension, ajoutée sans rien changer, et presque chacune porte le nom d'une mesure ou d'un constat (\cref{t2arch:lst:config}).
+
+\begin{lstlisting}[language=Rust, caption={[La configuration du moteur]La configuration du moteur (\fichier{moteur/crates/trc-ordo/src/lib.rs}, commentaires résumés).}, label={t2arch:lst:config}]
+pub struct Config {
+    pub fichier: PathBuf,
+    pub ram_tiede_go: f64,          // 0 : mode A0, aucun cache en RAM
+    pub enchassement_en_ram: bool,  // sinon une ligne de token_embd lue par jeton
+    pub profondeur_es: usize,       // lectures confiees au systeme a la fois (4)
+    pub couches_d_avance: usize,    // d : fenetre de d * k tampons d'arrivee (3)
+    pub prechargement: bool,        // J1+ : mesure, tue (-11 %)
+    pub contexte: u32,              // 4 096 positions en J1
+    pub temoin: bool,               // chaque expert decode redescend et se compare
+    pub brut: bool,                 // fichier brut exige (drapeau bit 2)
+    // ---- extensions
+    pub emplacements: Option<u32>,  // sinon : autant que le plafond de VRAM le permet
+    pub vram_plafond_mio: u64,      // 8 188 - 909 - 100 (critere C10)
+    pub longueur_lecture: Option<u32>, // 12 Mio : regime rapide du disque (lot E)
+    pub chronogramme: bool,
+    pub battement: bool,            // constat G1 : dater un blocage
+    pub garde: bool,                // constat M1 : vrai par defaut
+    pub casser: Option<(String, u64)>, // temoin de la garde, rien en production
+    pub kv_f32: bool,               // constat M5 : hors couture N, faux par defaut
+}
+impl Moteur {
+    pub fn nouveau(c: &Config) -> Result<Moteur>;
+    pub fn pas(&mut self, jeton: u32, position: u32, logits: Option<&mut [f32]>) -> Result<u32>;
+    pub fn preremplir(&mut self, jetons: &[u32], logits: Option<&mut dyn FnMut(usize, &[f32]) -> Result<()>>) -> Result<u32>;
+}
+\end{lstlisting}
+
+\paragraph{Les noyaux (\texttt{trc-noyaux}, lot K, couture N).} Vingt noyaux \texttt{extern "C"} : le décodeur en deux temps (\texttt{decoder\_echelles} puis \texttt{decoder\_codes}, et leurs versions par lot), \texttt{copier\_brut}, trois GEMV (MXFP4, Q8\_0, f32, plus une GEMV MXFP4 par lot), \texttt{rmsnorm}, \texttt{rope\_yarn}, \texttt{ecrire\_kv} et \texttt{attention} (et leurs variantes f32 de la ronde), \texttt{routeur\_topk}, \texttt{swiglu\_oai}, \texttt{combiner}, \texttt{ligne\_q8\_0}, \texttt{argmax} \calc~(relevé dans \fichier{moteur/crates/trc-noyaux/noyaux/*.cuh}). La disposition qu'ils se transmettent, l'emplacement d'expert, est gelée au chapitre suivant (\cref{t2fmt:sec:emplacement}).
+
+\section{La chaîne d'exactitude}\label{t2arch:sec:chaine}
+
+Le critère C3 du jalon demandait que les logits du fichier codé et ceux du fichier brut, dans le même moteur, ne diffèrent d'\emph{aucun bit} sur 5\,120 pas. C'est une exigence étrange au premier regard : deux calculs en virgule flottante sur des chemins différents (un décodeur entropique d'un côté, une copie de l'autre) rendent-ils vraiment les mêmes bits ? La réponse est oui, et elle ne repose sur aucune chance : elle se démontre à partir des coutures (\cref{t2arch:fig:chaine}).
+
+\begin{figure}[ht]
+\centering
+\TdArchChaine
+\caption[La chaîne d'exactitude]{La chaîne d'exactitude. En haut, la passe codée ; en bas, la passe brute (le même modèle écrit sans entropie, drapeau bit 2). Chaque flèche porte l'égalité qui la garde et le lot qui l'a prouvée. Les deux chemins se rejoignent à l'emplacement d'expert, qui porte les mêmes octets ; à partir de là, la règle de déterminisme rend l'égalité des logits inévitable.}
+\label{t2arch:fig:chaine}
+\end{figure}
+
+\begin{theoreme}[La chaîne d'exactitude]\label{t2arch:thm:chaine}
+Supposons :
+\begin{enumerate}
+\item[(C1)] pour tout expert $x$, la reconstruction processeur du tronçon de $x$ égale l'expert d'origine du GGUF, octet pour octet ;
+\item[(K1)] le décodeur de la carte écrit dans l'emplacement exactement les octets (codes, échelles, biais) de la reconstruction processeur, et \texttt{copier\_brut} y écrit les flux bruts dans la même disposition ;
+\item[(C2)] les octets d'un tronçon arrivés en VRAM sont ceux du fichier ;
+\item[(N)] chaque noyau est une fonction déterministe des octets qu'il lit et de ses paramètres ;
+\item[(L)] aucun emplacement n'est lu pendant qu'on l'écrit (\cref{t2arch:lem:ordre}) ;
+\item[(A)] le cache ne choisit que \emph{où} est un expert, jamais \emph{quels octets} il porte.
+\end{enumerate}
+Alors, pour toute suite de jetons, les logits rendus par le moteur sur le fichier codé et sur le fichier brut sont égaux au bit, quels que soient le nombre d'emplacements, la politique du cache et l'ordre d'achèvement des lectures.
+\end{theoreme}
+
+\begin{proof}
+\emph{Les emplacements.} Soit $x$ un expert et $E_c(x)$, $E_b(x)$ les octets de son emplacement après décodage (passe codée) et après copie (passe brute). Par (C2), le décodeur et la copie lisent les octets du fichier. Par (K1) et (C1), $E_c(x)$ est la disposition SoA des codes, échelles et biais de l'expert d'origine ; les flux bruts du fichier brut sont, par construction du codeur (\texttt{flux\_bruts}), les mêmes échelles, codes et biais, que \texttt{copier\_brut} range dans la même disposition : $E_b(x) = E_c(x)$.
+\emph{Les autres entrées.} Les tenseurs résidents sont recopiés tels quels dans les deux fichiers ; le cache KV ne dépend que des calculs précédents ; les paramètres des noyaux (positions, tailles) ne dépendent pas du fichier.
+\emph{Récurrence.} Ordonnons les calculs par (jeton $t$, couche $\ell$). Supposons les états (résidu, cache KV) égaux au bit dans les deux passes avant $(t, \ell)$. Les noyaux de l'attention et du routeur lisent des octets égaux : par (N), ils rendent les mêmes bits, donc les mêmes quatre indices et les mêmes poids. Par (A), les emplacements choisis peuvent différer d'une passe à l'autre, mais chacun porte $E(x)$ pour l'expert $x$ demandé, et, par (L), ces octets sont ceux du décodage fini au moment de la lecture. Les GEMV des experts lisent donc des octets égaux et rendent les mêmes bits ; \texttt{combiner} les additionne dans l'ordre $i = 0, 1, 2, 3$ du routeur, qui est le même, pas dans l'ordre des emplacements. L'état après $(t, \ell)$ est égal au bit. La sortie (norme, GEMV de l'enchâssement de sortie, argmax) ne lit que le résidu final.
+\end{proof}
+
+Le théorème dit pourquoi C3 est \emph{attendu}, pas toléré : une seule différence de bit est un défaut, à chercher. Il dit aussi ce qu'il ne dit pas : il ne juge pas la justesse du modèle (c'est le critère C4, contre une référence f64), seulement que le codage entropique ne change rien au calcul.
+
+\paragraph{Ce qui a été mesuré.} Sur gpt-oss-20b et gpt-oss-120b, 10 fenêtres de 512 jetons (5\,120 pas) : 0 empreinte de logits différente entre codé et brut, fichiers \texttt{.kld} égaux octet pour octet, perplexité 461,978277060145 (20b) et 422,20558522791305 (120b) des deux côtés \mes. Les passes n'avaient pas le même nombre d'emplacements (362 contre 361 sur le 20b, 325 contre 326 sur le 120b), donc pas la même suite de défauts : la partie « quel que soit le cache » est observée, pas seulement déduite (\fichier{moteur/O-pour-le-memoire.md} §\,6.3). L'épreuve indépendante l'a refait depuis un clone propre, par le préremplissage par flux au lieu de la boucle de pas : ses \texttt{.kld} égalent ceux du lot O octet pour octet (SHA-256 \texttt{5b212fe9…}) \mes~(\fichier{mesures/epreuve-J1.md} §\,0).
+
+\section{La fenêtre bornée, propriété de l'architecture}\label{t2arch:sec:fenetre}
+
+« sans ram ni rien », a demandé Stone. La lecture retenue par le projet (SOCLE) : \emph{la mémoire occupée ne dépend plus de la taille du modèle}, seulement d'une fenêtre de travail bornée. Cette propriété n'est pas une mesure heureuse : elle se lit dans la structure.
+
+\begin{proposition}[La mémoire de l'hôte, terme par terme]\label{t2arch:prop:fenetre}
+En mode A0 (aucun cache tiède), la mémoire de l'hôte du moteur vaut
+\[
+M = M_{\mathrm{fixe}} + d \cdot k \cdot \ell_{\mathrm{al}} + M_{\mathrm{rép}},
+\]
+où $M_{\mathrm{fixe}}$ ne dépend pas du modèle (contexte CUDA, image des noyaux, bibliothèques), $d \cdot k$ est le nombre de tampons d'arrivée épinglés ($d = 3$ couches d'avance, $k = 4$ experts actifs) de longueur $\ell_{\mathrm{al}}$ (le plus grand tronçon arrondi à 4\,096, ou une longueur de lecture fixe), et $M_{\mathrm{rép}}$ regroupe ce qui croît comme le nombre d'experts $L \cdot E$ (répertoire, longueurs du cache, tables, trace).
+\end{proposition}
+
+\begin{proof}
+Les poids d'experts ne séjournent dans la mémoire de l'hôte que le temps de leur copie vers la carte, dans les $d \cdot k$ tampons d'arrivée (\cref{t2arch:lem:ordre} : un tampon n'est réutilisé qu'après la copie qui le lisait) ; les emplacements décodés sont en VRAM. Les tenseurs résidents sont montés en VRAM à l'ouverture, sauf l'enchâssement d'entrée (\texttt{token\_embd}, 0,615\,Go), dont la ligne d'un jeton est lue du disque dans un tampon de 8\,Kio. Le fichier ouvert ne garde en mémoire que ses structures : en-tête, tables, répertoire, table des résidents. Seuls le répertoire et les objets par expert croissent avec $L \cdot E$.
+\end{proof}
+
+\paragraph{Ce qui a été mesuré, et ce que la proposition a mal compté.} Pointe de l'ensemble de travail : \textbf{384,2\,Mo} pour gpt-oss-120b (63,4\,Go) et 380,5\,Mo pour gpt-oss-20b (12,1\,Go), contre 10,9 et 9,42\,Go pour llama.cpp sur les mêmes modèles \mes~(\fichier{moteur/O-pour-le-memoire.md} §\,5 et §\,6.6) ; la configuration la plus rapide de llama.cpp sur le 120b, \texttt{fit -t 16}, balayée par la ronde, en tient 11,4 (\cref{t2res-sec:memoire}). Un modèle 5,2 fois plus gros coûte 1\,\% de mémoire de plus. Le plafond déclaré de C7 (1,9\,Go) tient, avec une marge de cinq (386,8\,Mo au plus, garde comprise). Mais l'\emph{écart} 120b $-$ 20b, déclaré à 0,5\,Mo plus deux fois le bruit, est mesuré à 3,70\,Mo (lot O) et 2,94\,Mo (épreuve) : \textbf{il tombe}. La proposition avait oublié des termes : la fenêtre elle-même croît avec le plus grand tronçon (12 $\times$ (12\,251\,136 $-$ 12\,144\,640) = 1\,277\,952\,o), les événements horodatés par défaut possible (657 à 660\,o chacun), le répertoire tenu deux fois. La somme des termes nommés fait $\approx 2{,}05$\,Mo ; il reste $\approx 0{,}9$\,Mo que ces termes n'expliquent pas (granularité des petites allocations) : \textbf{le modèle à termes nommés n'est pas fermé} (\fichier{moteur/O-pour-le-memoire.md} §\,13.6). La physique reste : la mémoire ne suit pas la taille du modèle ; ce qui était mal posé, c'est la tolérance.
+
+\section{Ce que l'épreuve indépendante a changé à l'architecture}\label{t2arch:sec:epreuve}
+
+L'épreuve (\fichier{mesures/epreuve-J1.md}, 2026-10-16) a été tenue par un juge qui n'avait écrit ni la spécification ni une ligne du code. Elle a confirmé la spécification et les critères d'exactitude ; elle a aussi trouvé deux constats graves et un moyen qui touchaient l'architecture, non le calcul. La ronde de corrections les a traités (\cref{t2arch:tab:ronde}).
+
+\begin{table}[ht]
+\centering\small
+\begin{tabularx}{\linewidth}{c >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+& Constat & Correction & Témoin et coût \\
+\midrule
+G1 & une passe peut se figer sans fin et sans message : sur une erreur, la destruction du moteur tournait dans \texttt{nvcuda64.dll} & l'erreur est écrite avant toute destruction (\texttt{<journal>.erreur.json}), puis le processus se termine sans détruire le contexte ; battement par couche du préremplissage ; tampons d'arrivée du flux corrigés & l'ancien binaire attend 90\,s les tuyaux, le nouveau rend en 1,5 à 4,9\,s ; cause première non reproduite \\
+G2 & après une erreur, un \texttt{nvidia-smi} orphelin garde les tuyaux du parent & l'enfant est tué par \texttt{Drop} et par une tâche « tuer à la fermeture » ; entrée nulle ; poignées standard non héritables & trois cas, 0 orphelin (l'ancien : un par cas) \\
+M1 & la production ne garde pas les flux bruts d'un tronçon (MEDIANES, BIAIS : 0,36\,\% des octets) ni la ligne d'enchâssement : une corruption passe sans erreur & une \textbf{garde} : l'empreinte64 des octets utiles de chaque tronçon lu est comparée au répertoire par quatre fils, avant de rendre un jeton ; chaque ligne lue est comparée à une table bâtie à l'ouverture & erreur nommée sur la copie corrompue (couche 0, expert 30) ; $-1{,}6\,\%$ de jetons/s à débit de disque égal, 5,2 à 5,4\,ms d'attente par jeton, +0,95\,s à l'ouverture, +1,9\,Mo \\
+M5 & le cache KV en f16 décide du premier jeton du texte de C12 & cache KV en f32 en option (\texttt{--kv-f32}), hors couture N & troncons égal à la vérité f64 au format près sur le 120b (KL au plancher du format, 100\,\% de premiers choix) ; 326 $\to$ 314 emplacements \\
+\bottomrule
+\end{tabularx}
+\caption[Ce que la ronde de corrections a changé]{Les constats de l'épreuve qui touchaient l'architecture, et leur correction (\fichier{moteur/O-pour-le-memoire.md} partie III ; journaux sous \fichier{mesures/moteur/O/corrections/}).}
+\label{t2arch:tab:ronde}
+\end{table}
+
+\paragraph{La garde, une conséquence du format.} La garde n'a demandé aucun octet de plus : le répertoire portait déjà l'empreinte64 des octets utiles de chaque partie (champ 32, chapitre suivant). Son coût se pose avant de se mesurer : un pas du 120b lit $B \approx 0{,}71$\,Go de tronçons ; l'empreinte va à 1,07 à 1,10\,Go/s par fil \mes~(\fichier{examples/debit\_empreinte.rs}), soit $\approx 0{,}65$\,s de cœur par pas, étalées sur quatre fils ($\approx 0{,}17$\,s de mur, sous les $\approx 0{,}5$\,s d'un pas) ; au chemin critique ne reste que le hachage de la dernière lecture, au plus $12{,}25\,\mathrm{Mo} / 1{,}07\,\mathrm{Go/s} \approx 11{,}4$\,ms \calc. Mesuré : 5,2 à 5,4\,ms d'attente par jeton sur les quatre passes gardées de la ronde, et $-1{,}6\,\%$ de jetons/s à débit de disque égal \mes~(\fichier{mesures/moteur/O/corrections/csv/vitesse-2026-10-16-passes.csv}). La note du lot O écrivait \barre{5,2 à 5,3\,ms} et \barre{$-1{,}7\,\%$} : la passe 07 (5,42\,ms) n'y était pas comptée, et $-1{,}7\,\%$ venait des débits arrondis (\cref{t2res-sec:garde}).
+
+\paragraph{La vitesse contre la base, refaite.} Le jalon J1+ (C6) comparait troncons à la meilleure configuration mesurée de llama.cpp. Le chiffre a changé deux fois, et chaque fois il est barré, pas retiré. Le lot O avait publié \barre{$\times$\,3,85} contre \texttt{fit -t 6} (0,568\,j/s), une base sous-réglée ; l'épreuve a trouvé \texttt{-t 10} meilleure et écrit \barre{$\times$\,2,79 à 2,89} ; la ronde a balayé la base (\fichier{mesures/moteur/O/corrections/csv/base-2026-10-16-passes.csv}, onze passes, palindrome déclaré) : la meilleure est \texttt{fit -t 16}, \textbf{0,884\,j/s} (0,900 et 0,867), qui bat \texttt{-t 6} de 54\,\% \mes. Contre elle, troncons \emph{garde comprise} fait \textbf{1,965\,j/s} en moyenne sur quatre passes (1,703 ; 1,900 ; 2,126 ; 2,131 ; bruit 10,97\,\%, \fichier{csv/vitesse-2026-10-16-passes.csv}) : \textbf{$\times$\,2,22}, au-delà du seuil de la règle (2 $\times$ 10,97\,\% + 3\,\% = 24,9\,\%) \mes. C6 tient. La base peut encore être meilleure (plus de 16 fils, \texttt{--mlock}) : non balayée.
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{Le théorème de la chaîne suppose (N) pour tous les noyaux.} Il est vérifié noyau par noyau (chaque appel fait deux fois, sorties égales au bit, lot K) et par C3 de bout en bout, pas démontré pour le compilateur : un \texttt{nvcc} qui contracterait une opération autrement d'une construction à l'autre changerait des bits. Les trois images fatbin construites avec et sans \texttt{vcvars} sont égales octet pour octet (constat m2), ce qui borne ce risque pour une version de \texttt{nvcc}, pas pour une autre.
+\item \textbf{La cause première de G1 n'est pas établie} : le défaut des tampons d'arrivée est démontré possible, pas observé ; l'ancien binaire, rejoué sous la même charge, a fini aussi (338\,s).
+\item \textbf{Le modèle de la fenêtre laisse 0,9\,Mo inexpliqués}, et l'écart 120b $-$ 20b de C7 tombe tant que l'arbitre n'a pas tranché (fenêtre de taille fixe proposée : 0,99\,Mo d'écart mesurés).
+\item \textbf{Le décompte des lignes} classe un fichier par sa place (\texttt{tests/}, \texttt{banc/}…), pas par son contenu : un module de test logé dans \texttt{src/} compte comme code.
+\item \textbf{Le coût de la garde} repose sur une paire de passes à disque égal ; la série déclarée dit $-12{,}3\,\%$ sous un seuil de 26,8\,\% (bruit 11,9\,\%), non réel (\cref{t2res-sec:garde}).
+\item \textbf{Le choix de CUDA} repose sur le décodeur (+14,9\,\%) et sur deux fonctions absentes de wgpu, pas sur une mesure du chemin complet sous Vulkan ; un Vulkan sans wgpu (avec import de mémoire hôte et une file de transfert) aurait peut-être fait aussi bien.
+\end{itemize}
+\end{faux}

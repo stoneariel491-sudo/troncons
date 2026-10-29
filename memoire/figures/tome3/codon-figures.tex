@@ -1,0 +1,739 @@
+% Figures du chapitre « Un codon synonyme dans le format » du Tome III (lot A de la construction,
+% genome/06-codon-v1-2.md). Gardé par \ifdefined\GrapheCodonTheoreme. Données : \Racine/figures/tome3/
+% donnees/codon-*.csv et codon-nombres.tex, écrits par memoire/outils/tome3_codon.py depuis les fichiers
+% commités (mesures/genome/construction/codon/, .../juge/, .../synthese/, mesures/disque/placement/juge/seance/,
+% mesures/genome/predictif-elagage/, mesures/genome/etat-de-l-art/journaux/). Styles préfixés « codon ».
+%
+% Second flux (2026-10-27) : couleurs du dictionnaire du Tome III (palette-tome3.tex) et convention unique de
+% légende G9 (legende-tome3.tex) : chaque figure <Nom> a \Titre{<Nom>}, \Legende{<Nom>} et \Source{<Nom>} ;
+% le chapitre écrit \Graphe<Nom> puis \LegendeFigure{<Nom>}. Mode d'emploi : memoire/tome3/CONVENTIONS-figures.md.
+%   III-8.1 CodonRoue           III-8.2 CodonOctets        III-8.3 CodonTheoreme
+%   III-8.4 CodonAccumulateur   III-8.5 CodonColonne       III-8.6 CodonJalon     III-8.6 bis CodonJalonBis
+%   III-8.7 CodonFormat (dessin : \SchemaCodonFormat)
+
+\ifdefined\GrapheCodonTheoreme\else
+\input{\Racine/figures/tome3/legende-tome3}
+\providecommand{\CodonDonnees}{\Racine/figures/tome3/donnees}
+\input{\CodonDonnees/codon-nombres}
+% Un nombre du mémoire : séparateur décimal de la langue, décimales non groupées.
+\providecommand{\CodonNum}[1]{\num[group-digits=integer]{#1}}
+
+\pgfplotsset{
+  % L'échelle de III-8.2 : du blanc à l'encre, en gris, comme une densité (troisième passe, GD1 du juge de
+  % design : le bleu y disait « fréquence », un sens de plus pour la couleur du synonyme).
+  colormap={codon}{color(0)=(white) color(0.3)=(black!22) color(0.7)=(black!62) color(1)=(Encre)},
+}
+\tikzset{
+  codon guide/.style={black!12, line width=0.5pt},
+  codon note/.style={t3 sans cesure, font=\sffamily\scriptsize, text=black!70, align=center},
+  codon etat/.style={t3 sans cesure, draw=Encre, line width=0.8pt, rounded corners=6pt, minimum width=2.1cm,
+    minimum height=0.95cm, font=\sffamily\small, fill=white},
+  codon fleche/.style={-{Stealth[length=2.4mm]}, line width=0.8pt, Encre},
+  codon champ/.style={t3 sans cesure, draw=black!45, line width=0.4pt, minimum height=0.66cm, inner sep=1.5pt,
+    font=\sffamily\scriptsize, align=center, fill=white},
+  % Troisième passe (GD1, DN3 du juge de design) : ce qui change à la v1.2 prend la couleur de la v1.2 ; le refus se
+  % dit par un contour tireté (les hachures sont réservées au hors domaine).
+  codon neuf/.style={fill=CouleurVunDeux!15, draw=CouleurVunDeux!85!black, line width=0.8pt},
+  codon refus/.style={draw=Encre!70, dash pattern=on 2pt off 1.5pt, line width=0.6pt},
+  % Points du J1 : v1.0 cercle gris cerclé d'encre, v1.2 losange orange (dictionnaire : CouleurVunZero, CouleurVunDeux).
+  codon vunzero point/.style={mark=*, mark size=2.3pt,
+    mark options={solid, fill=CouleurVunZero, draw=Encre!75, line width=0.5pt}},
+  codon vundeux point/.style={mark=diamond*, mark size=3pt,
+    mark options={solid, fill=CouleurVunDeux, draw=CouleurVunDeux!70!black, line width=0.5pt}},
+  codon passe/.style={mark=*, mark size=1.6pt, mark options={solid, fill=Encre, draw=Encre}},
+  % La colonne de III-8.5 à l'encre moyenne (troisième passe, GD1) ; le codon du zéro garde l'orange de la v1.2.
+  codon colonne point/.style={mark=square*, mark size=1.9pt,
+    mark options={solid, fill=CodonColonne, draw=Encre}},
+  codon colonne creux/.style={mark=square, mark size=1.9pt, mark options={solid, draw=CodonColonne, line width=0.6pt}},
+}
+\colorlet{CodonColonne}{Encre!60}
+\pgfplotstableread{\CodonDonnees/codon-roue.csv}\CodonRoueTable
+
+% =============================================================================================================
+% III-8.3 (F3). Le théorème, tenseur par tenseur : (a) gain mesuré contre 2 × (part des −0) ; (b) le résidu.
+\newcommand{\GrapheCodonTheoreme}{%
+\begin{tikzpicture}
+\begin{axis}[t3 graphe, t3 points, t3 decimales x=2, t3 decimales y=2, name=a, width=0.8\linewidth, height=6.6cm,
+  xmin=0.108, xmax=0.245, ymin=0.108, ymax=0.245, xticklabels={},
+  title={(a) \EF{measured gain against predicted gain}{le gain mesuré contre le gain prédit}},
+  ylabel={\EF{measured gain (bit/weight)}{gain mesuré (bit/poids)}}, legend pos=north west]
+\addplot[t3 seuil, domain=0.108:0.245, samples=2, forget plot] {x};
+\addplot[only marks, t3 vingtb point, fill opacity=0.75, draw opacity=0.9]
+  table[x=x, y=y] {\CodonDonnees/codon-theoreme-20b.csv};
+\addlegendentry{gpt-oss-20b (72 \EF{tensors}{tenseurs})}
+\addplot[only marks, t3 centvingtb point, fill opacity=0.75, draw opacity=0.9]
+  table[x=x, y=y] {\CodonDonnees/codon-theoreme-120b.csv};
+\addlegendentry{gpt-oss-120b (108 \EF{tensors}{tenseurs})}
+\node[t3 nombre=CouleurCentVingtB!80!black, anchor=east] at (axis cs:0.229,0.236) {\EF{layer 0}{couche 0}};
+\node[t3 etiquette, anchor=south east, text=black!65] at (axis cs:0.243,0.112) {\EF{dashed: the diagonal}{tirets : la diagonale}};
+\end{axis}
+\begin{axis}[t3 graphe, t3 points, t3 decimales x=2, at={(a.south west)}, anchor=north west, yshift=-0.85cm,
+  width=0.8\linewidth, height=3.6cm, xmin=0.108, xmax=0.245, ymin=-2.5, ymax=2.5, ytick={-2,-1,0,1,2},
+  title={(b) \EF{measured minus predicted ($10^{-4}$ bit/weight)}{mesuré moins prédit ($10^{-4}$ bit/poids)}},
+  xlabel={\EF{$2\times$ share of $-0$ codes (predicted gain, bit/weight)}{$2\times$ part des codes $-0$ (gain prédit, bit/poids)}}]
+\addplot[t3 seuil, domain=0.108:0.245, samples=2, forget plot] {0};
+\addplot[only marks, t3 vingtb point, mark size=1.4pt, fill opacity=0.75] table[x=x, y=residu] {\CodonDonnees/codon-theoreme-20b.csv};
+\addplot[only marks, t3 centvingtb point, mark size=1.8pt, fill opacity=0.75] table[x=x, y=residu] {\CodonDonnees/codon-theoreme-120b.csv};
+\node[t3 etiquette, anchor=north east] at (axis cs:0.243,2.35)
+  {\EF{gap to the diagonal:}{écart à la diagonale :} \CodonNum{\CodonNEcartMin} \EF{to}{à} \CodonNum{+\CodonNEcartMax} bit};
+\end{axis}
+\end{tikzpicture}}
+\Titre{CodonTheoreme}{The gain theorem, tensor by tensor}{Le théorème du gain, tenseur par tenseur}
+\Legende{CodonTheoreme}{\mes\,\calc}
+  {The \CodonNTenseurs\ expert tensors of the two models sit on the diagonal that the corollary predicts.}
+  {Les \CodonNTenseurs\ tenseurs d'experts des deux modèles tombent sur la diagonale que prédit le corollaire.}
+  {(a) Measured gain of the fold (bits per expert weight, coded chunks) against twice the share of $-0$ codes. Under a
+   fair coin the $-0$ are half of the zeros, and the corollary predicts the diagonal (dashed); the two points of
+   layer~0 of the 120b are the richest in zeros. (b) The same points, measured minus predicted, in $10^{-4}$ bit per
+   weight: the context $\kappa$ and the byte alphabet of the coder move no tensor further than
+   \CodonNum{\CodonNEcartMin} to \CodonNum{+\CodonNEcartMax} bit.}
+  {(a) Gain mesuré du fondu (bits par poids d'expert, tronçons codés) contre deux fois la part des codes $-0$. Sous une
+   pièce juste, les $-0$ sont la moitié des zéros, et le corollaire prédit la diagonale (tirets) ; les deux points de
+   la couche~0 du 120b sont les plus riches en zéros. (b) Les mêmes points, mesuré moins prédit, en $10^{-4}$ bit par
+   poids : le contexte $\kappa$ et l'alphabet octet du codeur n'écartent aucun tenseur de plus de
+   \CodonNum{\CodonNEcartMin} à \CodonNum{+\CodonNEcartMax} bit.}
+\Source{CodonTheoreme}{\fichier{mesures/genome/construction/codon/tailles-par-tenseur.csv}\Pv\ \EF{script}{script}
+  \fichier{memoire/outils/tome3_codon.py}.}
+
+% =============================================================================================================
+% III-8.2 (F2). La carte des 256 octets avant et après le fondu (table CODES_CTX, κ = 1, 120b, couche 18, up).
+\pgfmathsetmacro\CodonLogDeux{log10(2)}
+\pgfmathsetmacro\CodonLogTrenteDeux{log10(32)}
+\newcommand{\CodonCarte}[4]{% #1 fichier, #2 titre, #3 étiquette de l'axe vertical, #4 octets nuls (x/y, …)
+\begin{axis}[t3 graphe, width=6.3cm, height=6.3cm, axis equal image, enlargelimits=false, grid=none,
+  xmin=-0.5, xmax=15.5, ymin=-0.5, ymax=15.5, y dir=reverse,
+  xtick={0,...,15}, ytick={0,...,15}, tick label style={font=\scriptsize\ttfamily}, tick style={draw=none},
+  xticklabels={0,1,2,3,4,5,6,7,8,9,A,B,C,D,E,F}, yticklabels={0,1,2,3,4,5,6,7,8,9,A,B,C,D,E,F},
+  xlabel={\EF{low nibble}{demi-octet faible}}, ylabel={#3}, label style={font=\scriptsize}, title={#2},
+  colormap name=codon, point meta min=0, point meta max=1.8, #4]
+\addplot[matrix plot*, mesh/cols=16, point meta=explicit] table[x=x, y=y, meta=v] {\CodonDonnees/codon-octets-#1.csv};
+\end{axis}}
+% Les octets d'effectif nul : une case blanche bordée d'encre, « absent » (troisième passe, DN3 du juge de design,
+% qui retire sa demande D11 : un octet absent est une mesure, pas un hors domaine ; les hachures restent au hors
+% domaine). La liste vient du script ; \edef fige chaque case avant le dessin.
+\newcommand{\CodonNuls}[1]{%
+  \ifx#1\empty\else
+  \foreach \x/\y in #1 {\edef\CodonFaire{\noexpand\fill[white] (axis cs:\x-0.5,\y-0.5) rectangle (axis cs:\x+0.5,\y+0.5);
+    \noexpand\draw[Encre!80, line width=0.45pt] (axis cs:\x-0.38,\y-0.38) rectangle (axis cs:\x+0.38,\y+0.38);}%
+    \CodonFaire}\fi}
+\newcommand{\GrapheCodonOctets}{%
+\begin{tikzpicture}
+\CodonCarte{v10}{(a) v1.0\Dp\ \CodonNOctetsSymbolesA\ \EF{symbols}{symboles}}{\EF{high nibble}{demi-octet fort}}{}
+\begin{scope}[xshift=6.75cm]
+\begin{axis}[t3 graphe, width=6.3cm, height=6.3cm, axis equal image, enlargelimits=false, grid=none,
+  xmin=-0.5, xmax=15.5, ymin=-0.5, ymax=15.5, y dir=reverse,
+  xtick={0,...,15}, ytick={0,...,15}, tick label style={font=\scriptsize\ttfamily}, tick style={draw=none},
+  xticklabels={0,1,2,3,4,5,6,7,8,9,A,B,C,D,E,F}, yticklabels={0,1,2,3,4,5,6,7,8,9,A,B,C,D,E,F},
+  xlabel={\EF{low nibble}{demi-octet faible}}, label style={font=\scriptsize},
+  title={(b) v1.2\Dp\ \CodonNOctetsSymbolesB\ \EF{symbols}{symboles}},
+  colormap name=codon, point meta min=0, point meta max=1.8,
+  colorbar right, colorbar style={width=0.25cm, ytick={0,\CodonLogDeux,1,\CodonLogTrenteDeux},
+    yticklabels={0,1,9,31}, yticklabel style={font=\scriptsize}, ylabel={\EF{frequency $f$ (out of 4\,096)}{fréquence $f$ (sur 4\,096)}},
+    ylabel style={font=\scriptsize}}]
+\addplot[matrix plot*, mesh/cols=16, point meta=explicit] table[x=x, y=y, meta=v] {\CodonDonnees/codon-octets-v12.csv};
+\CodonNuls{\CodonNOctetsNulsB}
+\end{axis}
+\end{scope}
+\draw[-{Stealth[length=2.5mm]}, line width=0.9pt, Encre] (4.95cm,2.4cm) -- node[above, codon note, text=Encre] {$8\to0$} (6.1cm,2.4cm);
+\end{tikzpicture}}
+\Titre{CodonOctets}{The 256 bytes before and after the fold}{Les 256 octets avant et après le fondu}
+\Legende{CodonOctets}{\mes}
+  {After the fold, row and column 8 go out: \CodonNOctetsSymbolesB\ bytes remain of \CodonNOctetsSymbolesA.}
+  {Après le fondu, la ligne et la colonne 8 s'éteignent : il reste \CodonNOctetsSymbolesB\ octets sur \CodonNOctetsSymbolesA.}
+  {The CODES\_CTX table ($\kappa=1$) of gpt-oss-120b, layer 18, up matrix, as a $16\times16$ grid (high nibble in
+   rows, low nibble in columns); grey level $\log_{10}(1+f)$, $f$ the frequency out of 4\,096 (scale on the right),
+   like a density. White cells framed in ink: the bytes of zero frequency, absent. Their mass moves onto row and
+   column 0. Rows 7 and F are pale in both panels because the codes $\pm6$ ($\pm12$ in the llama.cpp table) are
+   rare: pale is rare, framed white is absent. One table of one layer; the others are in the same file.}
+  {La table CODES\_CTX ($\kappa=1$) de gpt-oss-120b, couche 18, matrice up, en grille $16\times16$ (demi-octet fort
+   en ligne, faible en colonne) ; niveau de gris $\log_{10}(1+f)$, $f$ la fréquence sur 4\,096 (échelle à droite),
+   comme une densité. Cases blanches bordées d'encre : les octets de fréquence nulle, absents. Leur masse passe sur
+   la ligne et la colonne 0. Les lignes 7 et F sont pâles dans les deux panneaux parce que les codes $\pm6$ ($\pm12$
+   dans la table de llama.cpp) sont rares : pâle veut dire rare, blanc bordé veut dire absent. Une table d'une
+   couche ; les autres sont dans le même fichier.}
+\Source{CodonOctets}{\fichier{mesures/genome/construction/codon/tables-octets.csv}\Pv\ \EF{script}{script}
+  \fichier{memoire/outils/tome3_codon.py}.}
+
+% =============================================================================================================
+% III-8.1 (F1 + synthèse F6). La roue des seize codons E2M1, avant et après le fondu.
+% Rayons : épaisseur affine en la part mesurée du code (0,4 pt + 44 pt × part) ; angle : les quinze valeurs
+% rangées à pas égal (24°) sur un cercle (0 en haut, positifs à droite, négatifs à gauche, ±6 voisins en bas).
+% Les rayons du zéro ont un liseré d'encre (D10 : l'orange et le rouge se rapprochent en vision deutéranope).
+\newcommand{\CodonRoue}[2]{% #1 = avant | apres ; #2 = 1 pour tracer aussi le code 8
+\draw[codon guide] (0,0) circle (2.2cm);
+\foreach \i in {0,...,15}{%
+  \pgfplotstablegetelem{\i}{angle_#1}\of\CodonRoueTable\let\CodonA\pgfplotsretval
+  \pgfplotstablegetelem{\i}{part_#1}\of\CodonRoueTable\let\CodonP\pgfplotsretval
+  \pgfplotstablegetelem{\i}{pourcent_#1}\of\CodonRoueTable\let\CodonQ\pgfplotsretval
+  \pgfplotstablegetelem{\i}{valeur_ocp}\of\CodonRoueTable\let\CodonV\pgfplotsretval
+  \pgfplotstablegetelem{\i}{bit_signe}\of\CodonRoueTable\let\CodonS\pgfplotsretval
+  \pgfplotstablegetelem{\i}{bits_magnitude}\of\CodonRoueTable\let\CodonM\pgfplotsretval
+  \pgfplotstablegetelem{\i}{apres}\of\CodonRoueTable\let\CodonG\pgfplotsretval
+  \pgfplotstablegetelem{\i}{sorte}\of\CodonRoueTable\let\CodonK\pgfplotsretval
+  \ifnum\numexpr#2+\CodonG\relax>0
+    % zéro : l'orange du rayon fondu ; positif : l'encre moyenne (troisième passe, GD1) ; négatif : le rouge du signe
+    \ifcase\CodonK\colorlet{CodonCouleur}{Echelle}\or\colorlet{CodonCouleur}{Encre!55}\or\colorlet{CodonCouleur}{Signe}\fi
+    \pgfmathsetmacro\CodonL{0.4+44*\CodonP}%
+    \ifnum\CodonK=0
+      \pgfmathsetmacro\CodonLL{\CodonL+0.8}%
+      \draw[Encre, line width=\CodonLL pt, line cap=round] (\CodonA:0.66cm) -- (\CodonA:2.2cm);
+    \fi
+    \draw[CodonCouleur, line width=\CodonL pt, line cap=round] (\CodonA:0.66cm) -- (\CodonA:2.2cm);
+    \ifnum\CodonK>0
+      \node[t3 sans cesure, font=\sffamily\scriptsize, align=center, inner sep=0pt, text=black!80] at (\CodonA:2.9cm)
+        {\texttt{\textcolor{Signe}{\CodonS}\CodonM}\\[-1.5pt]$\CodonNum{\CodonV}$\\[-1.5pt]\textcolor{black!55}{\Pourcent{\CodonQ}}};
+    \fi
+  \fi
+}
+\fill[white] (0,0) circle (0.55cm);
+\draw[black!35, line width=0.5pt] (0,0) circle (0.55cm);
+\node[font=\sffamily\scriptsize\bfseries, text=Encre] at (0,0) {E2M1};
+}
+\newcommand{\GrapheCodonRoue}{%
+\begin{tikzpicture}
+% avant : seize codes, deux au même point
+\begin{scope}
+\CodonRoue{avant}{1}
+\draw[Echelle!80!black, line width=0.7pt, {Stealth[length=1.6mm]}-{Stealth[length=1.6mm]}]
+  (83:2.38cm) arc[start angle=83, end angle=97, radius=2.38cm];
+\draw[Echelle!80!black, line width=0.4pt] (90:2.42cm) -- (90:3.12cm);
+\node[codon note, text=black!80, anchor=south, fill=white, inner sep=1.5pt] at (90:3.12cm)
+  {\EF{synonyms}{synonymes}\\[-1pt]\texttt{\textcolor{Signe}{0}000} $+0$ \textcolor{black!55}{\Pourcent{\CodonNRoueZeroPlus}}\quad
+   \texttt{\textcolor{Signe}{1}000} $-0$ \textcolor{black!55}{\Pourcent{\CodonNRoueZeroMoins}}};
+\node[t3 titre panneau, anchor=base] at (0,-3.8) {\EF{(a) before: 16 codes, 15 values}{(a) avant : 16 codes, 15 valeurs}};
+\end{scope}
+\draw[codon fleche, line width=1pt] (3.55,0) -- node[above, codon note, text=Encre] {$8\to0$}
+  node[below, codon note] {\EF{fold}{fondu}} (4.45,0);
+% après : quinze codes
+\begin{scope}[xshift=8.0cm]
+\CodonRoue{apres}{0}
+\draw[Echelle!80!black, line width=0.4pt] (90:2.42cm) -- (90:3.12cm);
+\node[codon note, text=black!80, anchor=south, fill=white, inner sep=1.5pt] at (90:3.12cm)
+  {\texttt{0000} $0$\\[-1pt]\textcolor{black!55}{\Pourcent{\CodonNRoueZeroPlus} $+$ \Pourcent{\CodonNRoueZeroMoins}}};
+\node[t3 titre panneau, anchor=base] at (0,-3.8) {\EF{(b) after: 15 codes, 15 values}{(b) après : 15 codes, 15 valeurs}};
+\end{scope}
+% la pièce du signe des zéros
+\begin{scope}[shift={(2.45,-4.85)}]
+\fill[Echelle!18] (0,0) circle (0.36cm);
+\draw[Echelle!80!black, line width=0.7pt] (0,0) circle (0.36cm);
+\draw[Echelle!80!black, line width=0.5pt] (0,-0.36) -- (0,0.36);
+\node[font=\sffamily\small\bfseries, text=Echelle!60!black] at (-0.17,0) {$+$};
+\node[font=\sffamily\small\bfseries, text=Echelle!60!black] at (0.17,0) {$-$};
+\node[codon note, anchor=west, align=left] at (0.55,0)
+  {\EF{the sign of a zero is a fair coin:}{le signe d'un zéro est une pièce juste :}
+   $H(S\mid V=0)=\CodonNum{\CodonNPiece}$~bit\\
+   $P(+0)=\Pourcent{\CodonNPiecePlus}$, $P(-0)=\Pourcent{\CodonNPieceMoins}$
+   (\EF{the same}{les mêmes} \CodonNPieceTenseurs\ \EF{tensors of the 20b}{tenseurs du 20b})};
+\end{scope}
+\end{tikzpicture}}
+\Titre{CodonRoue}{The wheel of the sixteen E2M1 codons}{La roue des seize codons E2M1}
+\Legende{CodonRoue}{\mes}
+  {The fold $8\to0$ removes one of the two codes of zero: sixteen codes for fifteen values, then fifteen codes.}
+  {Le fondu $8\to0$ retire l'un des deux codes du zéro : seize codes pour quinze valeurs, puis quinze codes.}
+  {The fifteen values of E2M1 are ranked at equal steps (24°) around a circle: $0$ at the top, positive values
+   clockwise, $\pm6$ meeting at the bottom. Values are those of the OCP standard; the llama.cpp table doubles them,
+   the factor 2 going into the scale. The red bit is the sign bit. The width of a ray grows with the measured
+   share of its code in the \CodonNRoueTenseurs\ expert tensors of gpt-oss-20b (\CodonNum{\CodonNRouePoids}
+   weights); the width is affine in the share (0.4\,pt $+$ 44\,pt $\times$ share), so the zero ray thickens by
+   $\times\,\CodonNum{\CodonNRoueEpaisseur}$ at the fold, not $\times\,2$. Before: two codes, \texttt{0000} ($+0$)
+   and \texttt{1000} ($-0$), for one value; after: fifteen codes, the zero ray carries both shares (outlined in
+   ink). The count of \texttt{1000} equals the $-0$ folded by the coder of lot A, a second tool. The coin is
+   measured on the same tensors: nothing predicts the sign of a zero, so the rANS coder recovers almost a whole bit
+   per zero. Analogy, not proof: the synonymous codons of the genetic code (GGU, GGC, GGA, GGG all give glycine).
+   Neither the context classes $\kappa$ nor the byte alphabet of the coder are drawn; their effect on the gain is
+   the subject of \cref{fig:t3-codon-theoreme}.}
+  {Les quinze valeurs d'E2M1 sont rangées à pas égal (24°) sur un cercle : $0$ en haut, valeurs positives dans le
+   sens horaire, $\pm6$ voisins en bas. Ce sont les valeurs de la norme OCP ; la table de llama.cpp les double, le
+   facteur 2 passant dans l'échelle. Le bit rouge est le bit de signe. L'épaisseur d'un rayon croît avec la part
+   mesurée de son code dans les \CodonNRoueTenseurs\ tenseurs d'experts de gpt-oss-20b (\CodonNum{\CodonNRouePoids}
+   poids) ; elle est affine en la part (0,4\,pt $+$ 44\,pt $\times$ part) : le rayon du zéro s'épaissit donc de
+   $\times\,\CodonNum{\CodonNRoueEpaisseur}$ au fondu, et non de $\times\,2$. Avant : deux codes, \texttt{0000}
+   ($+0$) et \texttt{1000} ($-0$), pour une valeur ; après : quinze codes, le rayon du zéro porte les deux parts
+   (liseré d'encre). Le compte de \texttt{1000} égale celui des $-0$ fondus par le codeur du lot A, un second
+   outil. La pièce est mesurée sur les mêmes tenseurs : rien ne prédit le signe d'un zéro, et le codeur rANS
+   récupère presque un bit entier par zéro. Analogie, non preuve : les codons synonymes du code génétique (GGU,
+   GGC, GGA, GGG donnent tous la glycine). Ni les classes de contexte $\kappa$ ni l'alphabet octet du codeur ne
+   sont dessinés ; leur effet sur le gain est l'objet de la \cref{fig:t3-codon-theoreme}.}
+\Source{CodonRoue}{\fichier{mesures/genome/predictif-elagage/histo-toutes-gptoss20b.npz},
+  \fichier{mesures/genome/etat-de-l-art/journaux/zero-compte-20b.json}\Pv\ \EF{control}{témoin}
+  \fichier{mesures/genome/construction/codon/tailles.json}\Pv\ \EF{script}{script} \fichier{memoire/outils/tome3_codon.py}.}
+
+% =============================================================================================================
+% III-8.4 (F4). La machine à états de l'accumulateur (proposition A1) et les 8 640 lignes mesurées.
+% Les comptes du test A1 (8 640 lignes, 2 486 216 demi-octets 8) ne sont que dans 06 § 1 et ARCHITECTURE
+% § 4.16 (pas dans un journal chiffré) : la légende cite ces documents et le journal du test (« ok »).
+\newcommand{\GrapheCodonAccumulateur}{%
+\begin{tikzpicture}
+\node[t3 titre panneau] at (-1.95,2.25) {\EF{(a) the states of the accumulator}{(a) les états de l'accumulateur}};
+\node[codon etat, fill=black!6] (P) at (0,0) {$s=+0$};
+\node[codon etat] (N) at (4.4,0) {$s\neq0$};
+\node[codon etat, draw=black!35, dashed, text=black!40, fill=black!3] (M) at (0,-2.5) {$s=-0$};
+\node[codon note, anchor=west, align=left] at ($(M.east)+(0.2,0)$)
+  {\EF{unreachable: it would take}{inatteignable : il faudrait}\\$(-0)+(-0)$, \EF{and $s$ is never $-0$}{et $s$ n'est jamais $-0$}};
+\draw[codon fleche] (-1.95,0) -- node[above, codon note] {\EF{start}{départ}} (P.west);
+\draw[codon fleche] (P) to[out=115, in=65, looseness=5]
+  node[above, codon note] {$v=\pm0$\Dp\ $\mathrm{RN}(\pm0+(+0))=+0$} (P);
+\draw[codon fleche] (P.north east) to[bend left=18] node[above, codon note] {$v\neq0$} (N.north west);
+\draw[codon fleche] (N) to[out=115, in=65, looseness=5]
+  node[above, codon note] {$v=\pm0$\Dp\ $s'=s$\\$v\neq0$, \EF{exact sum}{somme exacte} $\neq0$} (N);
+\draw[codon fleche] (N.south west) to[bend left=18]
+  node[below, codon note, pos=0.5] {$v\neq0$, \EF{exact sum}{somme exacte} $=0$\Dp\ $\mathrm{RN}\to+0$} (P.south east);
+\node[codon note, anchor=north, text width=6.9cm] at (2.2,-3.3)
+  {\EF{$s'=\mathrm{RN}(v\cdot x+s)$ (FMA). A step on code 8 ($v=-0$) and a step on code 0 ($v=+0$) lead to the
+   same state with the same bits: replacing 8 by 0 changes no bit of $s$.}
+   {$s'=\mathrm{RN}(v\cdot x+s)$ (FMA). Un pas sur le code 8 ($v=-0$) et un pas sur le code 0 ($v=+0$) mènent au
+   même état, aux mêmes bits : remplacer 8 par 0 ne change aucun bit de $s$.}};
+% (b) les lignes mesurées : 96 × 90 = 8 640 cases, une par ligne de sortie
+\begin{scope}[shift={(6.45,-2.45)}]
+\node[t3 titre panneau] at (0,4.7) {\EF{(b) 8\,640 output rows, 0 differs}{(b) 8\,640 lignes de sortie, 0 différente}};
+% « égal au bit » en gris clair (troisième passe, DN5 du juge de design : le vert y prenait un troisième sens).
+\fill[black!8] (0,0) rectangle (3.84,3.6);
+\draw[white, line width=0.08pt, step=0.04] (0,0) grid (3.84,3.6);
+\draw[Encre!50, line width=0.5pt] (0,0) rectangle (3.84,3.6);
+\node[codon note, anchor=north west, text width=3.84cm, align=left] at (0,-0.1)
+  {\EF{card GEMV, an expert with 2\,486\,216 nibbles 8, against its canonical copy}
+   {GEMV de la carte, un expert à 2\,486\,216 demi-octets 8, contre sa copie canonique}};
+\end{scope}
+% la cassure : la même grille, un code 0 mis à 1 dans la copie ; la ligne 0 diffère (D13 : marquée d'une croix)
+\begin{scope}[shift={(10.75,-0.6)}]
+\fill[black!8] (0,0) rectangle (1.4,1.4);
+\draw[white, line width=0.08pt, step=0.04] (0,0) grid (1.4,1.4);
+\fill[Encre] (0,1.36) rectangle (0.04,1.4);
+\draw[Encre!50, line width=0.5pt] (0,0) rectangle (1.4,1.4);
+\path[t3 cassure point] plot coordinates {(0.02,1.38)};
+% La case de la ligne 0, nommée (DN17 du juge de design) : une case par ligne de sortie, une seule diffère.
+\draw[t3 rappel] (0.06,1.42) -- (0.32,1.66);
+\node[t3 etiquette, anchor=west, inner sep=0.8pt] at (0.32,1.66) {\EF{row 0}{ligne 0}};
+\node[codon note, anchor=north west, text width=2.45cm, align=left] at (0,-0.1)
+  {\EF{break: one code 0 set to 1 in the copy; row 0 differs ($\times$)}
+      {cassure : un code 0 mis à 1 dans la copie ; la ligne 0 diffère ($\times$)}};
+\end{scope}
+\end{tikzpicture}}
+\Titre{CodonAccumulateur}{Why the GEMV returns the same bits}{Pourquoi la GEMV rend les mêmes bits}
+\Legende{CodonAccumulateur}{\schema\,\mes}
+  {Replacing code 8 by code 0 changes no bit of the GEMV, and the instrument that says so can fail.}
+  {Remplacer le code 8 par le code 0 ne change aucun bit de la GEMV, et l'instrument qui le dit sait tomber.}
+  {Proposition A1. (a) Diagram: the states of the accumulator $s$ of the engine's GEMV, which starts at $+0$ and
+   advances by $s'=\mathrm{RN}(v\cdot x+s)$ in a fixed order; $-0$ is never reached, since IEEE~754
+   round-to-nearest returns $+0$ for an exact zero sum unless both terms are $-0$. (b) Measurement (test
+   \texttt{gemv\_lit\_le\_code\_8\_comme\_0}, \texttt{ok}; counts from 06 §~1): a synthetic expert of gpt-oss size
+   (three $2\,880\times2\,880$ matrices), inputs with full mantissas, exponents from $2^{-10}$ to $2^{10}$ and zeros
+   of both signs, non-exact sums; one cell per output row. The small grid is the break (one code 0 set to 1 in the
+   copy): row 0 differs, crossed. The proof assumes finite inputs; with $\pm\infty$ or NaN both outputs are NaN.}
+  {Proposition A1. (a) Schéma : les états de l'accumulateur $s$ de la GEMV du moteur, qui part de $+0$ et avance
+   par $s'=\mathrm{RN}(v\cdot x+s)$ dans un ordre fixe ; $-0$ n'est jamais atteint, car l'arrondi au plus près
+   d'IEEE~754 rend $+0$ pour une somme exacte nulle sauf si les deux termes valent $-0$. (b) Mesure (test
+   \texttt{gemv\_lit\_le\_code\_8\_comme\_0}, \texttt{ok} ; comptes de 06 §~1) : un expert synthétique aux dimensions de
+   gpt-oss (trois matrices $2\,880\times2\,880$), des entrées à mantisses pleines, exposants de $2^{-10}$ à $2^{10}$
+   et zéros des deux signes, des sommes non exactes ; une case par ligne de sortie. La petite grille est la
+   cassure (un code 0 mis à 1 dans la copie) : la ligne 0 diffère, marquée d'une croix. La démonstration suppose
+   des entrées finies ; avec $\pm\infty$ ou NaN, les deux sorties valent NaN.}
+\Source{CodonAccumulateur}{\texttt{trc-noyaux/tests/carte.rs::gemv\_lit\_le\_code\_8\_comme\_0},
+  \fichier{mesures/genome/construction/codon/essais-espace-2026-10-17-a.log}\Pv\ \EF{counts}{comptes}
+  \fichier{genome/06-codon-v1-2.md} §~1, \fichier{decisions/ARCHITECTURE.md} §~4.16.}
+
+% =============================================================================================================
+% III-8.5 (F5). Pourquoi la colonne reste dehors : (a) gain du contexte de colonne, 12 tenseurs du 20b ;
+% (b) le modèle entier ; (c) l'axe sans perte tenseur par tenseur (reçu de III-7.1 au second flux, G10).
+% Couleurs : ~~la colonne en Accent (hors dictionnaire, dite en légende)~~ la colonne à l'encre moyenne
+% (CodonColonne ; troisième passe, GD1 du juge de design) ; le codon du zéro en CouleurVunDeux (c'est la v1.2) ;
+% la frontière F1 en CouleurFrontiereMarque (losange).
+\newcommand{\GrapheCodonColonne}{%
+\begin{tikzpicture}
+\begin{axis}[t3 graphe, t3 decimales y=2, name=colonne, width=0.64\linewidth, height=5.6cm, ybar=0pt, t3 barres,
+  bar width=9pt, xmin=-0.7, xmax=11.7, ymin=-0.012, ymax=0.16, xtick={0,...,11}, xmajorgrids=false,
+  xticklabels from table={\CodonDonnees/codon-colonne.csv}{etiquette}, xticklabel style={font=\scriptsize\ttfamily},
+  title={(a) \EF{gain of the column context, per tensor}{gain du contexte de colonne, par tenseur}},
+  ylabel={\EF{gain (bit/weight)}{gain (bit/poids)}}]
+\addplot[fill=CodonColonne, draw=Encre, line width=0.4pt, bar shift=0pt, unbounded coords=discard]
+  table[x=rang, y expr={\thisrow{retenu}>0 ? \thisrow{gain} : nan}] {\CodonDonnees/codon-colonne.csv};
+\addplot[fill=CodonColonne!35, draw=CodonColonne, line width=0.4pt, bar shift=0pt, unbounded coords=discard]
+  table[x=rang, y expr={\thisrow{retenu}>0 ? nan : \thisrow{gain}}] {\CodonDonnees/codon-colonne.csv};
+\draw[t3 seuil] (axis cs:-0.7,\CodonNColonneSeuil) -- (axis cs:11.7,\CodonNColonneSeuil);
+\node[t3 etiquette, anchor=south east] at (axis cs:11.6,\CodonNColonneSeuil)
+  {\EF{threshold of the plan:}{seuil du cahier :} \CodonNum{\CodonNColonneSeuil} bit};
+\draw[black!50, line width=0.4pt] (axis cs:-0.7,0) -- (axis cs:11.7,0);
+\end{axis}
+\begin{axis}[t3 encart, at={(colonne.east)}, anchor=west, xshift=1.3cm, width=0.36\linewidth, height=3.9cm,
+  xbar=0pt, t3 barres, t3 decimales x=2, bar width=9pt, xmin=0, xmax=0.18, xtick={0,0.05,0.10,0.15},
+  ymin=-0.6, ymax=1.6, ytick={0,1}, yticklabels={\EF{column}{colonne}, \EF{zero}{zéro}}, ymajorgrids=false,
+  title={(b) \EF{whole 20b, same units}{20b entier, mêmes unités}},
+  xlabel={\EF{bit/weight}{bit/poids}}, nodes near coords, nodes near coords style={font=\sffamily\scriptsize, anchor=west},
+  point meta=explicit symbolic]
+\addplot[fill=CodonColonne, draw=Encre, bar shift=0pt] coordinates {(\CodonNColonneModele,0) [\CodonNum{\CodonNColonneModele}]};
+\addplot[fill=CouleurVunDeux, draw=CouleurVunDeux!70!black, bar shift=0pt] coordinates {(\CodonNZeroGain,1) [\CodonNum{\CodonNZeroGain}]};
+\end{axis}
+% (c) l'axe sans perte, tenseur par tenseur, aligné sur (a)
+\begin{axis}[t3 graphe, t3 points, t3 decimales y=1, at={(colonne.south west)}, anchor=north west, yshift=-1.75cm,
+  width=0.64\linewidth, height=6.0cm, xmin=-0.7, xmax=11.7, ymin=\CodonNSansPerteMin, ymax=\CodonNSansPerteMax,
+  ytick={3.5,3.6,3.7,3.8,3.9},
+  xtick={0,...,11}, xmajorgrids=false, xticklabels from table={\CodonDonnees/codon-sans-perte.csv}{etiquette},
+  xticklabel style={font=\scriptsize\ttfamily},
+  title={(c) \EF{the lossless axis, tensor by tensor (KL $=0$)}{l'axe sans perte, tenseur par tenseur (KL $=0$)}},
+  xlabel={\EF{tensor (layer, g = gate, u = up, d = down)}{tenseur (couche, g = gate, u = up, d = down)}},
+  ylabel={\EF{lossless bits per weight}{bits par poids sans perte}},
+  legend style={at={(1.04,0.5)}, anchor=west}]
+\draw[CouleurFrontiere, dashed, line width=0.6pt] (axis cs:-0.7,\CodonNSansPerteFun) -- (axis cs:11.7,\CodonNSansPerteFun);
+\draw[CouleurVunDeux, dashed, line width=0.6pt] (axis cs:-0.7,\CodonNSansPerteZero) -- (axis cs:11.7,\CodonNSansPerteZero);
+\draw[CodonColonne, dashed, line width=0.6pt] (axis cs:-0.7,\CodonNSansPerteColonne) -- (axis cs:11.7,\CodonNSansPerteColonne);
+\addplot[only marks, mark=*, mark size=1.9pt, mark options={solid, fill=CouleurVunDeux, draw=CouleurVunDeux!70!black},
+  error bars/.cd, y dir=plus, y explicit, error mark=none, error bar style={CouleurVunDeux, line width=2pt}]
+  table[x=rang, y=zero, y error expr=\thisrow{sans_perte}-\thisrow{zero}] {\CodonDonnees/codon-sans-perte.csv};
+\addlegendentry{\EF{zero codon}{codon du zéro}\Dp\ \CodonNum{\CodonNSansPerteZero}}
+\addplot[only marks, t3 frontiere point] table[x=rang, y=sans_perte] {\CodonDonnees/codon-sans-perte.csv};
+\addlegendentry{F1\Dp\ \CodonNum{\CodonNSansPerteFun}}
+\addplot[only marks, codon colonne creux, unbounded coords=discard]
+  table[x=rang, y expr={\thisrow{retenu}>0 ? nan : \thisrow{colonne}}] {\CodonDonnees/codon-sans-perte.csv};
+\addlegendentry{\EF{+ column}{+ colonne}\Dp\ \CodonNum{\CodonNSansPerteColonne}}
+\addplot[only marks, codon colonne point, unbounded coords=discard]
+  table[x=rang, y expr={\thisrow{retenu}>0 ? \thisrow{colonne} : nan}] {\CodonDonnees/codon-sans-perte.csv};
+\addlegendentry{\EF{column kept}{colonne retenue}}
+\addlegendimage{black!55, dashed, line width=0.6pt}
+\addlegendentry{\EF{mean of the 12}{moyenne des 12}}
+\end{axis}
+\end{tikzpicture}}
+\Titre{CodonColonne}{Why the column context stays out of v1.2}{Pourquoi la colonne reste hors de la v1.2}
+\Legende{CodonColonne}{\mes\,\calc}
+  {The column context gains on two tensors of layer~0; on the whole model it weighs little next to the zero codon.}
+  {Le contexte de colonne gagne sur deux tenseurs de la couche~0 ; sur le modèle entier, il pèse peu à côté du codon du zéro.}
+  {Twelve tensors of gpt-oss-20b (four depths only: 0, 8, 16, 23). (a) The rate gained by adding the input
+   column class to the byte context $\kappa$, in bits per weight (real codec: streams coded by the rANS coder and
+   decoded exactly; no \texttt{.trc} file written). This gain includes the cost of going from the byte alphabet to
+   the nibble alphabet, \CodonNum{\CodonNColonneAlphabetMin} to \CodonNum{\CodonNColonneAlphabetMax} bit on the
+   twelve tensors: the negative bars are mostly that cost. Only gate and up of layer 0 pass the threshold of \CodonNum{\CodonNColonneSeuil} bit per weight declared
+   by the plan (05 §~4.3); elsewhere the gain is at most a few thousandths, or negative. (b) In the same units, not
+   on the same length: those two tensors brought back to the whole model, \CodonNum{\CodonNColonneModele} bit per
+   weight (\CodonNum{\CodonNColonneMo}~MB), against the measured gain of the zero codon, \CodonNum{\CodonNZeroGain}
+   bit. (c) The lossless axis (KL $=0$ exactly, logits equal to the bit), real codec: grey diamonds, the F1
+   frontier; orange, after the zero codon (the bar is its gain); dark grey squares, with the column context, filled
+   where the rule keeps it; it loses on \CodonNSansPertePerd\ of 12. Dashed: the means of the 12, the three lossless
+   points of the common frontier of \cref{t3syn:ch}. These twelve include \CodonNSansPerteCouchesZero\ tensors of
+   layer~0 (\CodonNSansPerteCouchesZero\ of \CodonNRoueTenseurs\ in the model): on them the column gains \CodonNum{\CodonNSansPerteGainDouze} bit on average,
+   against \CodonNum{\CodonNColonneModele} for the whole model in (b). Not shown: the price on the other side, a new stream kind, a new decoding kernel and a second decoder to extend
+   (06 §~2).}
+  {Douze tenseurs de gpt-oss-20b (quatre profondeurs seulement : 0, 8, 16, 23). (a) Le débit gagné en ajoutant
+   la classe de la colonne d'entrée au contexte octet $\kappa$, en bits par poids (codec réel : flux codés par le
+   rANS et décodés exactement ; aucun fichier \texttt{.trc} écrit). Ce gain contient le coût du passage de
+   l'alphabet octet à l'alphabet demi-octet, de \CodonNum{\CodonNColonneAlphabetMin} à
+   \CodonNum{\CodonNColonneAlphabetMax} bit sur les douze tenseurs : les barres négatives sont surtout ce coût. Seules les matrices gate et up de la couche 0 passent le seuil de
+   \CodonNum{\CodonNColonneSeuil} bit par poids déclaré par le cahier (05 §~4.3) ; ailleurs le gain est de quelques
+   millièmes au plus, ou négatif. (b) Dans les mêmes unités, mais pas sur la même longueur : ces deux tenseurs
+   rapportés au modèle entier, \CodonNum{\CodonNColonneModele} bit par poids (\CodonNum{\CodonNColonneMo}~Mo), contre
+   le gain mesuré du codon du zéro, \CodonNum{\CodonNZeroGain} bit. (c) L'axe sans perte (KL $=0$ exactement, logits
+   égaux au bit), codec réel : losanges gris, la frontière F1 ; orange, après le codon du zéro (la barre est son
+   gain) ; carrés gris foncé, avec le contexte de colonne, pleins là où la règle le retient ; il perd sur
+   \CodonNSansPertePerd\ des 12. Tirets : les moyennes des 12, les trois points sans perte de la frontière commune
+   du \cref{t3syn:ch}. Ces douze comptent \CodonNSansPerteCouchesZero\ tenseurs de la couche~0 (\CodonNSansPerteCouchesZero\ sur \CodonNRoueTenseurs\ dans le
+   modèle) : la colonne y gagne \CodonNum{\CodonNSansPerteGainDouze} bit en moyenne, contre
+   \CodonNum{\CodonNColonneModele} pour le modèle entier en (b). Non montré : le prix de
+   l'autre côté, une sorte de flux neuve, un noyau de décodage neuf et un second décodeur à étendre (06 §~2).}
+\Source{CodonColonne}{\fichier{mesures/genome/construction/synthese/colonne-par-tenseur.csv},
+  \fichier{mesures/genome/construction/codon/tailles.json}\Pv\ \EF{control}{témoin}
+  \fichier{mesures/genome/construction/synthese/k10/frontiere.csv}\Pv\ \EF{script}{script} \fichier{memoire/outils/tome3_codon.py}.}
+
+% =============================================================================================================
+% III-8.6 (F6 + F-S7 + F-J1 + F-J2, refondues par la réserve R1), scindée en deux figures au second flux (G6 du
+% juge de design) : III-8.6 « ce que le J1 mesure » (a)(b), le 120b, une séance ; III-8.6 bis « d'où vient le
+% gain » (c) le motif croisé (20b) et son encart (120b), (d) la cascade (120b). Couleurs du dictionnaire :
+% v1.0 CouleurVunZero, v1.2 CouleurVunDeux, compagnon CouleurCompagnon.
+\newcommand{\GrapheCodonJalon}{%
+\begin{tikzpicture}
+% (a) les huit passes
+\begin{axis}[t3 graphe, t3 points, t3 decimales y=1, name=a, width=0.5\linewidth, height=5.4cm,
+  title={(a) \EF{eight passes, A B B A A B B A}{huit passes, A B B A A B B A}},
+  xlabel={\EF{pass (time order)}{passe (ordre du temps)}}, ylabel={\EF{tokens/s}{jetons/s}},
+  xtick={1,...,8}, xticklabels={1A,2B,3B,4A,5A,6B,7B,8A}, xticklabel style={font=\scriptsize},
+  xmin=0.5, xmax=8.5, ymin=1.55, ymax=3.15, xmajorgrids=false,
+  legend style={at={(0.98,0.62)}, anchor=east}, legend columns=2]
+\fill[CouleurVunZero!45] (axis cs:0.5,\CodonNJiBandeBas) rectangle (axis cs:8.5,\CodonNJiBandeHaut);
+\draw[Encre!55, dashed, line width=0.5pt] (axis cs:0.5,\CodonNJiMedA) -- (axis cs:8.5,\CodonNJiMedA);
+\draw[CouleurVunDeux, dashed, line width=0.5pt] (axis cs:0.5,\CodonNJiMedB) -- (axis cs:8.5,\CodonNJiMedB);
+\addplot[only marks, codon vunzero point] table[x=passe, y=jetons_s] {\CodonDonnees/codon-j1-v10.csv};
+\addlegendentry{v1.0}
+\addplot[only marks, codon vundeux point] table[x=passe, y=jetons_s] {\CodonDonnees/codon-j1-v12.csv};
+\addlegendentry{v1.2}
+\node[t3 etiquette, anchor=north west] at (axis cs:0.6,\CodonNJiBandeBas)
+  {$\pm2\sigma$ \EF{of v1.0}{des v1.0}, $\sigma=\Pourcent{\CodonNJiSigma}$};
+\node[t3 etiquette, anchor=west] at (axis cs:0.6,2.5) {$r=\CodonNum{\CodonNJiR}$};
+\end{axis}
+% (b) octets lus par jeton contre jetons/s
+\begin{axis}[t3 graphe, t3 points, t3 decimales y=1, name=b, at={(a.east)}, anchor=west, xshift=1.3cm,
+  width=0.5\linewidth, height=5.4cm,
+  title={(b) \EF{bytes per token and speed}{octets par jeton et vitesse}},
+  xlabel={\EF{chunk MB read per token}{Mo de tronçons lus par jeton}}, ylabel={\EF{tokens/s}{jetons/s}},
+  xmin=678, xmax=718, ymin=1.55, ymax=3.15]
+\addplot[black!50, dashed, line width=0.7pt] table[x=mo_par_jeton, y=jetons_s] {\CodonDonnees/codon-j1-iso.csv};
+\addplot[only marks, codon vunzero point] table[x=mo_par_jeton, y=jetons_s] {\CodonDonnees/codon-j1-v10.csv};
+\addplot[only marks, codon vundeux point] table[x=mo_par_jeton, y=jetons_s] {\CodonDonnees/codon-j1-v12.csv};
+\addplot[only marks, mark=diamond, mark size=3.2pt, mark options={solid, draw=CouleurVunDeux!80!black, line width=0.8pt}]
+  coordinates {(\CodonNJiMoB,\CodonNJiPreditB)};
+\draw[-{Stealth[length=2mm]}, CouleurVunDeux!80!black, line width=0.7pt]
+  (axis cs:\CodonNJiMoB,\CodonNJiPreditB+0.07) -- (axis cs:\CodonNJiMoB,\CodonNJiMedB-0.08);
+\node[t3 note, anchor=south west] at (axis cs:\CodonNJiMoB+1.2,2.12)
+  {\EF{dashed: if only bytes counted,}{tirets : si seuls les octets comptaient,}\\$\times\,1/\CodonNum{\CodonNJiOctets}$ (+\Pourcent{\CodonNJiToit})};
+\node[t3 nombre=CouleurVunDeux!75!black, anchor=west] at (axis cs:\CodonNJiMoB+1.2,2.72)
+  {\EF{measured:}{mesuré :} $\times\,\CodonNum{\CodonNJiR}$};
+\end{axis}
+\end{tikzpicture}}
+\Titre{CodonJalon}{What the J1 milestone measures}{Ce que le jalon J1 mesure}
+\Legende{CodonJalon}{\mes}
+  {On the 120b, v1.2 runs $\times\,\CodonNum{\CodonNJiR}$ faster than v1.0, and its bytes would give it only
+   $+\Pourcent{\CodonNJiToit}$ at most.}
+  {Sur le 120b, la v1.2 va $\times\,\CodonNum{\CodonNJiR}$ plus vite que la v1.0, et ses octets ne lui donneraient
+   que $+\Pourcent{\CodonNJiToit}$ au plus.}
+  {gpt-oss-120b, session s2 of lot A, quiet machine, eight fresh processes, the same 256 tokens in all. (a) The
+   passes in time order: medians \CodonNum{\CodonNJiMedA} (v1.0) and \CodonNum{\CodonNJiMedB} (v1.2) tokens/s,
+   dashed; grey band, $\pm2\sigma$ of the v1.0 passes. (b) The bytes read per token are deterministic,
+   $\times\,\CodonNum{\CodonNJiOctets}$; if only their amount counted, v1.2 would sit on the dashed curve, at the
+   hollow diamond ($+\Pourcent{\CodonNJiToit}$ at most). Where the rest comes from: \cref{fig:t3-codon-jalon-bis}.}
+  {gpt-oss-120b, séance s2 du lot A, machine calme, huit processus neufs, les mêmes 256 jetons dans tous. (a) Les
+   passes dans l'ordre du temps : médianes \CodonNum{\CodonNJiMedA} (v1.0) et \CodonNum{\CodonNJiMedB} (v1.2)
+   jetons/s, en tirets ; bande grise, $\pm2\sigma$ des passes v1.0. (b) Les octets lus par jeton sont déterministes,
+   $\times\,\CodonNum{\CodonNJiOctets}$ ; si leur quantité seule comptait, la v1.2 serait sur la courbe en tirets,
+   au losange creux ($+\Pourcent{\CodonNJiToit}$ au plus). D'où vient le reste : \cref{fig:t3-codon-jalon-bis}.}
+\Source{CodonJalon}{\fichier{mesures/genome/construction/codon/j1-s2-passes.csv}, \fichier{j1-s2-verdicts.json}\Pv{}
+  \EF{script}{script} \fichier{memoire/outils/tome3_codon.py}.}
+
+% --- III-8.6 bis --------------------------------------------------------------------------------------------
+\pgfplotstableread{\CodonDonnees/codon-j1-cascade.csv}\CodonCascadeTable
+\pgfplotstableread{\CodonDonnees/codon-j1-encart.csv}\CodonEncartTable
+\newcommand{\CodonMarche}[1]{% #1 rang de la cascade ; les valeurs sont développées avant le dessin
+  \pgfplotstablegetelem{#1}{bas}\of\CodonCascadeTable\let\CodonBas\pgfplotsretval
+  \pgfplotstablegetelem{#1}{haut}\of\CodonCascadeTable\let\CodonHaut\pgfplotsretval
+  \pgfplotstablegetelem{#1}{sorte}\of\CodonCascadeTable\let\CodonSorte\pgfplotsretval
+  \pgfplotstablegetelem{#1}{couleur}\of\CodonCascadeTable\let\CodonCoul\pgfplotsretval
+  \edef\CodonFaire{\noexpand\CodonBarre{#1}{\CodonBas}{\CodonHaut}{\CodonSorte}{\CodonCoul}}\CodonFaire}
+\newcommand{\CodonBarre}[5]{% rang, bas, haut, sorte (mesure | facteur | toit), couleur du dictionnaire
+  \def\CodonX{#4}\def\CodonMes{mesure}\def\CodonToit{toit}%
+  \ifx\CodonX\CodonMes
+    \draw[fill=#5, draw=Encre!70, line width=0.4pt] (axis cs:#1-0.34,#2) rectangle (axis cs:#1+0.34,#3);
+  \else\ifx\CodonX\CodonToit
+    \draw[pattern=north east lines, pattern color=#5!80!black, draw=#5!70!black, line width=0.4pt]
+      (axis cs:#1-0.34,#2) rectangle (axis cs:#1+0.34,#3);
+  \else
+    \draw[fill=#5!18, draw=#5!70!black, line width=0.5pt, densely dashed] (axis cs:#1-0.34,#2) rectangle (axis cs:#1+0.34,#3);
+  \fi\fi
+  \ifnum#1<5 \draw[black!40, densely dotted, line width=0.4pt] (axis cs:#1+0.34,#3) -- (axis cs:#1+0.66,#3);\fi}
+\newcommand{\CodonEncartBarre}[1]{% #1 rang de l'encart
+  \pgfplotstablegetelem{#1}{go_s}\of\CodonEncartTable\let\CodonG\pgfplotsretval
+  \edef\CodonFaire{\noexpand\draw[t3 vunzero barre] (axis cs:#1-0.32,0) rectangle (axis cs:#1+0.32,\CodonG);}\CodonFaire}
+\newcommand{\GrapheCodonJalonBis}{%
+\begin{tikzpicture}
+% (c) le motif croisé du juge du placement (20b, séance J-bis) : l'abscisse dit le fichier, la couleur le motif
+\begin{axis}[t3 graphe, t3 barres, t3 decimales y=1, name=c, width=0.52\linewidth, height=5.8cm,
+  title={(a) \EF{same file, other read pattern (20b)}{même fichier, autre motif (20b)}},
+  ylabel={\EF{disk stage, GB/s}{étage disque, Go/s}}, xmin=-0.6, xmax=3.6, ymin=0, ymax=3.7, ytick={0,1,2,3},
+  xtick={0.5,2.5}, xmajorgrids=false, xticklabels={\EF{file A20 (v1.0)}{fichier A20 (v1.0)}, \EF{file B20 (v1.2)}{fichier B20 (v1.2)}},
+  xticklabel style={font=\scriptsize}, legend style={at={(0.5,0.98)}, anchor=north}, legend columns=3]
+\addlegendimage{t3 vunzero barre}\addlegendentry{\EF{v1.0 pattern}{motif v1.0}}
+\addlegendimage{t3 vundeux barre}\addlegendentry{\EF{v1.2 pattern}{motif v1.2}}
+\addlegendimage{legend image code/.code={\fill[Encre] (0.16cm,0.03cm) circle (1.6pt);}}\addlegendentry{\EF{passes}{passes}}
+\draw[t3 vunzero barre] (axis cs:-0.32,0) rectangle (axis cs:0.32,\CodonNMotifAN);
+\draw[t3 vundeux barre] (axis cs:0.68,0) rectangle (axis cs:1.32,\CodonNMotifAC);
+\draw[t3 vundeux barre] (axis cs:1.68,0) rectangle (axis cs:2.32,\CodonNMotifBN);
+\draw[t3 vunzero barre] (axis cs:2.68,0) rectangle (axis cs:3.32,\CodonNMotifBC);
+\addplot[only marks, codon passe, forget plot] table[x expr=\thisrow{rang}-0.15, y=p1] {\CodonDonnees/codon-j1-motif.csv};
+\addplot[only marks, codon passe, forget plot] table[x expr=\thisrow{rang}-0.05, y=p2] {\CodonDonnees/codon-j1-motif.csv};
+\addplot[only marks, codon passe, forget plot] table[x expr=\thisrow{rang}+0.05, y=p3] {\CodonDonnees/codon-j1-motif.csv};
+\addplot[only marks, codon passe, forget plot] table[x expr=\thisrow{rang}+0.15, y=p4] {\CodonDonnees/codon-j1-motif.csv};
+\draw[-{Stealth[length=2mm]}, Encre, line width=0.6pt] (axis cs:0,\CodonNMotifAN+0.12) to[bend left=25]
+  node[t3 etiquette, above] {$\times\,\CodonNum{\CodonNMotifRA}$} (axis cs:1,\CodonNMotifAC+0.1);
+\draw[-{Stealth[length=2mm]}, Encre, line width=0.6pt] (axis cs:2,\CodonNMotifBN+0.1) to[bend left=25]
+  node[t3 etiquette, above] {$\times\,\CodonNum{\CodonNMotifRB}$} (axis cs:3,\CodonNMotifBC+0.12);
+\end{axis}
+% (c) encart : deux v1.0 égaux au bit (120b, étage disque) ; toutes les barres dont un rapport est écrit
+\begin{axis}[t3 encart, t3 decimales y=1, name=encart, at={(c.east)}, anchor=west, xshift=1.0cm,
+  width=0.4\linewidth, height=4.4cm, ymin=0, ymax=2.25, xmin=-0.6, xmax=4.6, xtick={0,...,4}, xmajorgrids=false,
+  ylabel={\EF{GB/s}{Go/s}},
+  xticklabels={{A\\s2}, {C\\s2}, {C\\J5}, {C\\J6\textsuperscript{1}}, {A\\J6\textsuperscript{1}}},
+  xticklabel style={font=\scriptsize, align=center}]
+\CodonEncartBarre{0}\CodonEncartBarre{1}\CodonEncartBarre{2}\CodonEncartBarre{3}\CodonEncartBarre{4}
+\draw[black!40, line width=0.4pt] (axis cs:1.5,0) -- (axis cs:1.5,2.25);
+\draw[-{Stealth[length=1.6mm]}, Encre, line width=0.5pt] (axis cs:2,\CodonNEncartCtire+0.06) to[bend left=30]
+  node[t3 etiquette, above, pos=0.4] {$\times\,\CodonNum{\CodonNEncartFrag}$} (axis cs:3,\CodonNEncartCun+0.06);
+\node[t3 etiquette, anchor=south] at (axis cs:3.5,\CodonNEncartAun+0.22) {\CodonNum{\CodonNEncartCsurA}};
+\draw[t3 rappel] (axis cs:3,\CodonNEncartCun+0.04) -- (axis cs:3,\CodonNEncartAun+0.2) -- (axis cs:4,\CodonNEncartAun+0.2) -- (axis cs:4,\CodonNEncartAun+0.04);
+\end{axis}
+\node[t3 titre encart, anchor=north west, align=left, text width=0.4\linewidth] at ($(encart.outer south west)+(0,-0.05)$)
+  {\EF{inset (120b, disk stage): A120 and C120, two v1.0 files equal to the bit; \textsuperscript{1}\,one-extent chunks only}
+      {encart (120b, étage disque) : A120 et C120, deux v1.0 égaux au bit ; \textsuperscript{1}\,tronçons d'un seul extent}};
+% (d) la cascade refaite (120b, séance à trois fichiers du juge de la construction)
+\begin{axis}[t3 graphe, t3 decimales y=1, name=d, at={(c.south west)}, anchor=north west, yshift=-2.35cm,
+  width=\linewidth, height=5.4cm,
+  title={(b) \EF{the speed decomposed (120b, three files in one session)}{la vitesse décomposée (120b, trois fichiers dans une séance)}},
+  ylabel={\EF{tokens/s}{jetons/s}}, xmin=-0.6, xmax=5.6, ymin=0, ymax=4.5,
+  xtick={0,...,5}, xmajorgrids=false, xticklabel style={font=\scriptsize, align=center},
+  xticklabels={{v1.0\\\EF{measured}{mesuré}}, {\EF{read pattern}{motif de lecture}\\\EF{of the format}{du format}}, {\EF{bytes}{octets}\\\EF{(ceiling)}{(toit)}},
+    {v1.2\\\EF{measured}{mesuré}}, {\EF{fast mode}{mode rapide}\\$r(R/B)$}, {\EF{frontier companion}{compagnon frontière}\\\EF{measured}{mesuré}}}]
+\CodonMarche{0}\CodonMarche{1}\CodonMarche{2}\CodonMarche{3}\CodonMarche{4}\CodonMarche{5}
+\node[t3 etiquette, anchor=south] at (axis cs:0,\CodonNCascA) {\CodonNum{\CodonNCascA}};
+\node[t3 etiquette, anchor=south] at (axis cs:1,\CodonNCascB-0.08) {$\ge\times\,\CodonNum{\CodonNCascMotif}$};
+\node[t3 etiquette, anchor=south] at (axis cs:2,\CodonNCascB+0.02) {$\le\times\,\CodonNum{\CodonNCascToit}$};
+\node[t3 etiquette, anchor=south] at (axis cs:3,\CodonNCascB) {\CodonNum{\CodonNCascB}};
+\node[t3 etiquette, anchor=south] at (axis cs:4,\CodonNCascR) {$\times\,\CodonNum{\CodonNCascRRB}$};
+\node[t3 etiquette, anchor=south] at (axis cs:5,\CodonNCascR) {\CodonNum{\CodonNCascR}};
+\end{axis}
+\end{tikzpicture}}
+\Titre{CodonJalonBis}{Where the J1 gain comes from}{D'où vient le gain du J1}
+\Legende{CodonJalonBis}{\mes}
+  {The gain comes from the read pattern that the v1.2 format imposes, on this disk; the 20b and the 120b share
+   the figure by panel.}
+  {Le gain vient du motif de lecture qu'impose le format v1.2, sur ce disque ; le 20b et le 120b se partagent la
+   figure par panneau.}
+  {The sequel of \cref{fig:t3-codon-jalon}. (a) gpt-oss-20b, disk stage alone, session J-bis of the judge of the
+   placement: the same file read with the request boundaries of the other format takes the speed of that format,
+   A20 $\times\,\CodonNum{\CodonNMotifRA}$, B20 $\times\,\CodonNum{\CodonNMotifRB}$ (bars: medians; dots: the four
+   passes of each case, none set aside; colour: the read pattern; abscissa: the file). Inset, gpt-oss-120b: A120
+   and C120 have the same content to the bit; in s2 C120 is slower because of its fragmentation
+   (\CodonNum{\CodonNExtentsC} extents against \CodonNum{\CodonNExtentsA}). On its one-extent chunks (J6,
+   \CodonNum{\CodonNEncartTiresJsix} chunks) it reads $\times\,\CodonNum{\CodonNEncartFrag}$ faster than on
+   \CodonNum{\CodonNEncartTiresJcinq} of its chunks drawn at random (J5; medians of \CodonNEncartPassesJcinq\ and
+   \CodonNEncartPassesJsix\ passes), and like A120 on the same chunks (ratio \CodonNum{\CodonNEncartCsurA} of the
+   medians; \CodonNum{\CodonNEncartCsurAMoy} of the means, the value the judge of the placement writes). The s2 bars
+   come from \texttt{troncons disque}, the J5 and J6 bars from the judge of the placement's Python reader, 2 to 5\%
+   slower (\fichier{genome/JUGEMENT-placement.md} §~5.2): each ratio written compares two bars of the same reader.
+   (b) The judge of the construction's balanced session with the three files of the 120b:
+   $r(B/A)=\CodonNum{\CodonNCascRBA}$ splits into the bytes (hatched, a ceiling) and the read pattern of the format,
+   a remainder and therefore a lower bound (the disk stage alone, in the same session, gives
+   $B/A=\CodonNum{\CodonNCascDisqueBA}$); the fast companion, the lossy frontier companion of the 120b (its KL,
+   \CodonNum{\CodonNCompagnonKL} $\pm$ \CodonNum{\CodonNCompagnonDeuxSigma}, $2\sigma$ by windows, is measured
+   against the 120b's exact engine, a proxy, not against the f64 reference; \cref{fig:t3-syno-variantes} shows the
+   variants of the 20b), adds $\times\,\CodonNum{\CodonNCascRRB}$ against v1.2. The J1 gain is a
+   gain of the v1.2 format on this machine, through the pattern of its read requests, not through its bytes; the
+   exact variable of the pattern is not isolated (J10, J11). It does not carry over to another disk without being
+   measured there again.}
+  {La suite de la \cref{fig:t3-codon-jalon}. (a) gpt-oss-20b, étage disque seul, séance J-bis du juge du
+   placement : le même fichier lu avec les frontières de requête de l'autre format prend la vitesse de ce format,
+   A20 $\times\,\CodonNum{\CodonNMotifRA}$, B20 $\times\,\CodonNum{\CodonNMotifRB}$ (barres : médianes ; points :
+   les quatre passes de chaque cas, aucune écartée ; couleur : le motif de lecture ; abscisse : le fichier). Encart,
+   gpt-oss-120b : A120 et C120 ont le même contenu au bit ; en s2, C120 est plus lent à cause de sa fragmentation
+   (\CodonNum{\CodonNExtentsC} extents contre \CodonNum{\CodonNExtentsA}). Sur ses tronçons d'un seul extent (J6,
+   \CodonNum{\CodonNEncartTiresJsix} tronçons), il se lit $\times\,\CodonNum{\CodonNEncartFrag}$ plus vite que sur
+   \CodonNum{\CodonNEncartTiresJcinq} de ses tronçons tirés au hasard (J5 ; médianes de \CodonNEncartPassesJcinq\ et
+   \CodonNEncartPassesJsix\ passes), et comme A120 sur les mêmes tronçons (rapport \CodonNum{\CodonNEncartCsurA}
+   des médianes ; \CodonNum{\CodonNEncartCsurAMoy} des moyennes, la valeur qu'écrit le juge du placement). Les
+   barres s2 viennent de \texttt{troncons disque}, les barres J5 et J6 du lecteur Python du juge du placement, plus
+   lent de 2 à 5\,\% (\fichier{genome/JUGEMENT-placement.md} §~5.2) : chaque rapport écrit compare deux barres du
+   même lecteur. (b) La séance équilibrée à trois fichiers du 120b du juge de la construction :
+   $r(B/A)=\CodonNum{\CodonNCascRBA}$ se partage entre les octets (hachuré : un toit) et le motif de lecture du
+   format, un reste, donc une borne basse (l'étage disque seul, dans la même séance, donne
+   $B/A=\CodonNum{\CodonNCascDisqueBA}$) ; le compagnon rapide, le compagnon frontière du 120b, avec perte (sa KL,
+   \CodonNum{\CodonNCompagnonKL} $\pm$ \CodonNum{\CodonNCompagnonDeuxSigma}, $2\sigma$ par fenêtres, est mesurée
+   contre le moteur exact du 120b, un proxy, pas contre la référence f64 ; la \cref{fig:t3-syno-variantes} montre
+   les variantes du 20b), ajoute $\times\,\CodonNum{\CodonNCascRRB}$ contre la v1.2. Le gain du J1 est un gain du format v1.2 sur cette machine, par le motif de ses requêtes de
+   lecture, non par ses octets ; la variable exacte du motif n'est pas isolée (J10, J11). Il ne se transporte pas à
+   un autre disque sans y être remesuré.}
+\Source{CodonJalonBis}{\fichier{mesures/disque/placement/juge/seance/Jb3-*}, \fichier{J5-*}, \fichier{J6-*},
+  \fichier{J1-cartes.json} (\fichier{genome/JUGEMENT-placement.md} §§~5.3, 5.9--5.10)\Pv{}
+  \fichier{mesures/genome/construction/codon/disque-s2.json}\Pv{}
+  \fichier{mesures/genome/construction/juge/figures/vitesse-passes.csv}, \fichier{disque-passes.csv}
+  (\fichier{genome/JUGEMENT-construction.md} §~6.2)\Pv\ \EF{script}{script} \fichier{memoire/outils/tome3_codon.py}.}
+
+% =============================================================================================================
+% III-8.7 (synthèse F8). Le format .trc v1.2 au bit près (schéma ; ARCHITECTURE §§ 4.3, 4.7, 4.16).
+% Seconde ligne de chaque case : le décalage en octets, puis le type (M6 du juge des chiffres).
+\newcommand{\CodonCase}[4]{% #1 x (cm), #2 largeur (cm), #3 texte, #4 style
+  \node[codon champ, #4, minimum width=#2cm, text width=#2cm-5pt, anchor=west] at (#1,0) {#3};}
+\newcommand{\CodonDec}[1]{\\[-1pt]{\color{black!60}#1}}
+\newcommand{\SchemaCodonFormat}{%
+\begin{tikzpicture}
+% (a) l'en-tête fixe, en deux rangées
+\node[t3 titre panneau] at (-0.05,0.62) {\EF{(a) the fixed header (4\,096 B)}{(a) l'en-tête fixe (4\,096 o)}};
+\begin{scope}
+\CodonCase{0}{1.9}{\texttt{TRONCONS}\CodonDec{0\Dp\ u8[8]}}{}
+\CodonCase{1.9}{1.5}{\EF{major}{majeure}\CodonDec{8\Dp\ u16}}{}
+\CodonCase{3.4}{2.0}{\EF{minor}{mineure}\CodonDec{10\Dp\ u16, $0\to\mathbf{2}$}}{codon neuf}
+\CodonCase{5.4}{1.75}{\EF{flags}{drapeaux}\CodonDec{12\Dp\ u32}}{codon neuf}
+\CodonCase{7.15}{1.95}{\EF{alignment}{alignement}\CodonDec{16\Dp\ u32}}{}
+\CodonCase{9.1}{1.75}{\EF{header size}{en-tête}\CodonDec{20\Dp\ u32}}{}
+\CodonCase{10.85}{1.75}{\EF{file size}{fichier}\CodonDec{24\Dp\ u64}}{}
+\CodonCase{12.6}{2.35}{SHA-256 GGUF\CodonDec{32\Dp\ u8[32]}}{}
+\end{scope}
+\begin{scope}[shift={(0,-0.78)}]
+\CodonCase{0}{1.9}{\EF{GGUF size}{taille GGUF}\CodonDec{64\Dp\ u64}}{}
+\CodonCase{1.9}{2.3}{L, E, k\dots\CodonDec{72\Dp\ u16 \EF{each}{chacun}}}{}
+\CodonCase{4.2}{1.5}{\EF{rows, cols}{lignes, col.}\CodonDec{80, 96}}{}
+\CodonCase{5.7}{1.2}{\dots}{draw=none}
+\CodonCase{6.9}{2.6}{\EF{sections}{sections}\CodonDec{136\Dp\ 8 × (u64, u64)}}{}
+\CodonCase{9.5}{1.6}{\EF{reserved}{réservé}\CodonDec{264}}{}
+\CodonCase{11.1}{0.9}{\dots}{draw=none}
+\CodonCase{12.0}{2.95}{\EF{hash64}{empreinte64}\CodonDec{4\,088\Dp\ u64}}{}
+\end{scope}
+% (b) le mot des drapeaux, bit à bit
+\begin{scope}[shift={(0,-2.35)}]
+\node[t3 titre panneau] at (-0.05,0.62) {\EF{(b) the flag bits (6 to 31 zero)}{(b) les bits des drapeaux (6 à 31 nuls)}};
+\CodonCase{0}{2.0}{\textbf{0} \EF{aligned}{aligné}}{}
+\CodonCase{2.0}{2.0}{\textbf{1} \EF{levels}{niveaux}}{}
+\CodonCase{4.0}{2.0}{\textbf{2} \EF{raw}{brut}}{}
+\CodonCase{6.0}{3.0}{\textbf{3} \EF{CANONICAL}{CANONIQUE} (v1.2)}{codon neuf}
+\CodonCase{9.0}{3.0}{\textbf{4} \EF{COLUMNS: refused}{COLONNES : refusé}}{codon refus}
+\CodonCase{12.0}{2.95}{\textbf{5} \EF{FAST (lot B)}{RAPIDE (lot B)}}{}
+\end{scope}
+\draw[CouleurVunDeux!85!black, line width=0.6pt, -{Stealth[length=1.6mm]}] (6.3,-0.36) .. controls (6.3,-1.3) and (7.4,-1.1) .. (7.45,-2.05);
+% (c) une entrée du répertoire
+\begin{scope}[shift={(0,-4.05)}]
+\node[t3 titre panneau] at (-0.05,0.62) {\EF{(c) the directory: one entry of 64 B per expert}{(c) le répertoire : une entrée de 64 o par expert}};
+\CodonCase{0}{1.55}{\EF{offset}{décalage}\CodonDec{0\Dp\ u64}}{}
+\CodonCase{1.55}{2.2}{\EF{lengths, useful}{longueurs, utiles}\CodonDec{8\Dp\ 4 × u32}}{}
+\CodonCase{3.75}{2.15}{\EF{origin hash}{empr. d'origine}\CodonDec{24\Dp\ u64}}{}
+\CodonCase{5.9}{2.35}{\EF{level hashes}{empr. des niveaux}\CodonDec{32\Dp\ 2 × u64}}{}
+\CodonCase{8.25}{2.05}{\EF{layer, expert}{couche, expert}\CodonDec{48\Dp\ 2 × u16}}{}
+\CodonCase{10.3}{1.15}{\EF{res.}{rés.}\CodonDec{52\Dp\ u32}}{}
+\CodonCase{11.45}{3.5}{\texttt{empreinte\_canonique}\CodonDec{56\Dp\ u64 (\EF{was reserved}{était réservé})}}{codon neuf}
+\end{scope}
+% (d) une table CODES_CTX et (e) le chemin d'un demi-octet
+\begin{scope}[shift={(0,-7.45)}]
+\node[t3 titre panneau] at (-0.05,2.05) {\EF{(d) the tables: one CODES\_CTX table}{(d) les tables : une table CODES\_CTX}};
+\foreach \h in {0,...,15}{\foreach \l in {0,...,15}{%
+  \pgfmathtruncatemacro\CodonHuit{(\h==8)||(\l==8)}%
+  % troisième passe (GD1, DN3) : les fréquences en gris, comme en III-8.2 ; les octets absents en blanc bordé d'encre
+  \ifnum\CodonHuit=1
+    \draw[Encre!80, line width=0.3pt] (\l*0.11+0.012,1.65-\h*0.11-0.012) rectangle ++(0.076,-0.076);
+  \else
+    \fill[black!35] (\l*0.11,1.65-\h*0.11) rectangle ++(0.1,-0.1);
+  \fi}}
+\node[codon note, anchor=north west, text width=3.9cm, align=left] at (1.9,1.7)
+  {\EF{256 u16 frequencies; the 31 bytes carrying a nibble 8 (row and column 8, white framed, as in \cref*{fig:t3-codon-octets}) have frequency 0: invariant checked when the file is opened}
+      {256 fréquences u16 ; les 31 octets qui portent un demi-octet 8 (ligne et colonne 8, en blanc bordé, comme à la \cref*{fig:t3-codon-octets}) ont la fréquence 0 : invariant vérifié à l'ouverture}};
+\node[t3 titre panneau] at (6.25,2.05) {\EF{(e) the path of one nibble}{(e) le chemin d'un demi-octet}};
+\node[codon champ, minimum width=1.6cm] (g) at (7.05,1.0) {GGUF\\[-1pt]\texttt{\textcolor{Signe}{1}000} $=-0$};
+\node[codon champ, codon neuf, minimum width=1.75cm] (c) at (9.35,1.0) {\EF{coder}{codeur}\\[-1pt]\texttt{-{}-canonique}};
+\node[codon champ, minimum width=1.6cm] (t) at (11.6,1.0) {\texttt{.trc} v1.2\\[-1pt]\texttt{\textcolor{Signe}{0}000}};
+\node[codon champ, minimum width=1.7cm] (d) at (13.9,1.0) {\EF{decoder}{décodeur}\\[-1pt]\EF{unchanged}{inchangé}};
+\node[codon champ, minimum width=1.6cm] (v) at (13.9,-0.3) {GEMV\\[-1pt]$+0.0$f};
+\node[codon champ, minimum width=2.3cm] (r) at (10.9,-0.3) {\EF{same bits as}{mêmes bits que}\\[-1pt]$-0.0$f (A1)};
+\draw[codon fleche] (g) -- (c); \draw[codon fleche] (c) -- (t); \draw[codon fleche] (t) -- (d);
+\draw[codon fleche] (d) -- (v); \draw[codon fleche, densely dashed] (v) -- (r);
+\node[codon note, anchor=north west, text width=8.6cm, align=left] at (6.25,-0.9)
+  {\EF{Scales, biases and the stream serialisation do not change; a v1.2 stream is a v1.0 stream whose effective alphabet has 225 bytes.}
+      {Échelles, biais et sérialisation des flux ne changent pas ; un flux v1.2 est un flux v1.0 dont l'alphabet effectif a 225 octets.}};
+\end{scope}
+\end{tikzpicture}}
+\Titre{CodonFormat}{The .trc v1.2 format, to the bit}{Le format \texttt{.trc} v1.2 au bit près}
+\Legende{CodonFormat}{\schema}
+  {Four fields change from v1.0 to v1.2, highlighted in the orange of v1.2; the rest of the file is unchanged.}
+  {Quatre champs changent de la v1.0 à la v1.2, surlignés de l'orange de la v1.2 ; le reste du fichier ne change pas.}
+  {Second line of each box: the byte offset, then the type. (a) The minor version (offset 10) set to 2 and (b)
+   bit 3 CANONICAL of the flags word; (c) the reserved field at offset 56 of each directory entry, which becomes
+   the hash of the canonical expert (\texttt{empreinte\_canonique} is the identifier of the code, kept as is);
+   (d) the CODES\_CTX tables, unchanged in form but built on canonical codes. In (a), the three sizes are the
+   alignment (16), the header size (20) and the file size (24); L, E, k, from offset 72, are the layers, the
+   experts per layer and the active experts; the rows and columns of the matrices are at 80 and 96, the table of
+   the eight sections, (offset, length) pairs, at 136. Bit 4 (the column context of the plan) stays out of v1.2 and is
+   refused (\cref{fig:t3-codon-colonne}); bit 5 is the fast companion of lot B, exclusive of bit 3. The origin
+   hash (offset 24 of an entry) stays the hash of the GGUF bytes: a v1.2 file keeps the proof of its provenance.
+   Field widths are not to scale.}
+  {Seconde ligne de chaque case : le décalage en octets, puis le type. (a) La version mineure (décalage 10) mise à
+   2 et (b) le bit 3 CANONIQUE du mot des drapeaux ; (c) le champ réservé du décalage 56 de chaque entrée du
+   répertoire, qui devient l'empreinte de l'expert canonique (\texttt{empreinte\_canonique} est l'identifiant du
+   code, gardé tel quel) ; (d) les tables CODES\_CTX, inchangées en forme mais bâties sur les codes canoniques.
+   En (a), les trois tailles sont l'alignement (16), la taille de l'en-tête (20) et celle du fichier (24) ; L, E,
+   k, dès le décalage 72, sont les couches, les experts par couche et les experts actifs ; les lignes et les
+   colonnes des matrices sont aux décalages 80 et 96, la table des huit sections, paires (décalage, longueur), au
+   décalage 136. Le bit 4 (le contexte de
+   colonne du cahier) reste hors de la v1.2 et est refusé (\cref{fig:t3-codon-colonne}) ; le bit 5 est le
+   compagnon rapide du lot B, exclusif du bit 3. L'empreinte d'origine (décalage 24 d'une entrée) reste celle des
+   octets du GGUF : un fichier v1.2 garde la preuve de sa provenance. Les largeurs des champs ne sont pas à
+   l'échelle.}
+\Source{CodonFormat}{\fichier{decisions/ARCHITECTURE.md} §§~4.3, 4.7, 4.16\Pv\ \fichier{genome/06-codon-v1-2.md} §~2.}
+\fi

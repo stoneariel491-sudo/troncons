@@ -1,0 +1,19 @@
+{
+  "_note": "Débits retenus pour le toit (outils/banc/toit.py). Chaque valeur cite le journal qui la produit. Mesures du 2026-10-15 sur la machine de Stone, partagée avec d'autres agents : bornes inférieures du repos.",
+  "disque": {"go_s": 2.82, "etiquette": "mesuré ici", "source": "disque-balayage.jsonl / disque-analyse.md : 16 Mio aléatoire QD 1, moyenne A,B 2,819 Go/s, bruit 1 %"},
+  "disque_annonce": {"go_s": 6.0, "etiquette": "littérature (éditeur, non reproduit)", "source": "communiqué Samsung PM9C1a, 6 000 Mo/s séquentiel"},
+  "pcie": {"go_s": 12.2, "etiquette": "mesuré ici", "source": "carte-lien-pcie-transferts.log et carte-complement.jsonl : h2d_hote_dma 64 Mio, 12,10 / 12,24 / 12,20 Go/s"},
+  "pcie_zero_copie_gemv": {"go_s": 11.75, "etiquette": "mesuré ici", "source": "carte.jsonl : GEMV q4 residence=hote"},
+  "vram": {"go_s": 251.3, "etiquette": "mesuré ici", "source": "carte.jsonl : op=vram, Vulkan, 512 Mio"},
+  "gemv_q4_carte": {"go_s": 122.0, "etiquette": "mesuré ici", "source": "carte-complement.jsonl : q4b, Vulkan"},
+  "decodage_carte": {"t_op_s": 2.61, "t_poids_s": 1.31, "etiquette": "mesuré ici", "source": "carte-complement.jsonl : alu deq4, Vulkan"},
+  "ram": {"go_s": null, "etiquette": "mesuré ici", "source": "memoire-2.log (à remplir)"},
+  "capacites": {"vram_poids_go": 6.5, "ram_poids_go": 11.0, "etiquette": "hypothèse dite (06-modeles.md, § 5.1)"},
+  "modeles": [
+    {"nom": "Qwen3.5-9B Q4_K_M", "fichier_go": 5.68, "octets_par_jeton_go": 5.10, "toujours_go": 5.10, "experts_go": 0.0, "source": "03-entropie.md § 0 (tout sauf token_embd) ; fichier mesuré"},
+    {"nom": "Qwen3.5-4B Q4_K_M", "fichier_go": 2.74, "octets_par_jeton_go": 2.73, "toujours_go": 2.73, "experts_go": 0.0, "source": "03-entropie.md § 0"},
+    {"nom": "gpt-oss-120b MXFP4", "fichier_go": 63.4, "octets_par_jeton_go": 3.60, "toujours_go": 1.69, "experts_go": 1.91, "source": "06-modeles.md § 0, routage uniforme"},
+    {"nom": "Qwen3.8-Flash-Next UD-Q2_K_XL", "fichier_go": 78.9, "octets_par_jeton_go": 4.44, "toujours_go": 3.54, "experts_go": 0.90, "source": "06-modeles.md § 0"},
+    {"nom": "Kimi-K2.6 UD-Q2_K_XL", "fichier_go": 340.5, "octets_par_jeton_go": 15.42, "toujours_go": 8.52, "experts_go": 6.90, "source": "06-modeles.md § 0"}
+  ]
+}

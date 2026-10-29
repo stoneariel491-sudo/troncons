@@ -1,0 +1,383 @@
+% Tome~II, chapter "The independent trial and the round of corrections" (writer "results").
+% Numbers: mesures/epreuve-J1.md, moteur/epreuve-J1-pour-le-memoire.md, moteur/O-pour-le-memoire.md
+% (part III), mesures/moteur/O/corrections/; recomputations in memoire/figures/tome2/donnees/res-chiffres.json.
+\ifdefined\GrapheResVitesse\else\input{\Racine/figures/tome2/resultats-figures}\fi
+
+\chapter{The independent trial and the round of corrections}\label{ch:t2-epreuve}
+
+\begin{origine}
+\textbf{Where we start}: a milestone declared held by the lots that built it, on their own instruments. The SOCLE demands more: ``the work is reviewed by a judge who did not do it''.
+\textbf{This chapter establishes} what an independent judge found in one night (16 October 2026, from 02:12 to 06:10): the specification decodes to the bit under a third implementer; the f64 reference is confirmed by a third computation, up to rounding; C3 holds from one build to another; C4 holds on the 120b; and eleven things nobody had seen, two of them serious. It then establishes what the round of corrections made of them the same morning: every finding with its correction, its control case, the break that makes the control fail, and its verdict.
+\textbf{What remains}: the root cause of the G1 hang (not reproduced), and the decisions handed to the arbiter.
+Sources: \fichier{mesures/epreuve-J1.md}, \fichier{moteur/epreuve-J1-pour-le-memoire.md}, \fichier{moteur/O-pour-le-memoire.md} (part III), \fichier{moteur/REPRISE-O.md}, \fichier{mesures/moteur/epreuve-J1/} and \fichier{mesures/moteur/O/corrections/}.
+\end{origine}
+
+\section{The protocol}\label{t2e-sec:protocole}
+
+The architecture wrote the trial's protocol before any construction (\fichier{decisions/ARCHITECTURE.md}, § 8). The judge is an agent who wrote neither the specification nor a line of the judged code; he works from a clean clone, on mains power, with a free card, and reads only the specification, the code and the logs. He follows seven steps: (1) write, \emph{from § 4 of the specification alone}, a decoder of the format and reproduce to the bit chunks drawn at random; (2) replay the breaks and check that every control fails, then holds; (3) redo the numbers in ABBA series; (4) check that the baseline is not badly tuned; (5) check that the memory instrument sees the window; (6) read the text; (7) write his verdict, with his own ``What could be wrong'' section.
+
+\paragraph{The conditions, recorded.} Mains power at every pass; free card at the start (\SI{346}{\Mio}); card lock taken at 02:26 and released at 04:44. Foreign load recorded and left alone: a \texttt{find} from another agent (one core), an \texttt{nvidia-smi} monitor running since the day before, and an orphan \texttt{nvidia-smi} born at 01:38 (it would become finding G2). Build from a clone at commit \texttt{527dff5}, in \SI{21}{\second}, \emph{without} the SOCLE's recipe (which broke: finding m2). The judge opened the format crates only \emph{after} step 1, and his decoder took nothing from them. \SI{128}{\Go} were left free on the disk.
+
+\section{Step 1: is the specification true?}\label{t2e-sec:geste1}
+
+\paragraph{The tool.} \fichier{decodeur\_s4.py} (Python 3.13, numpy): a GGUF v3 reader written from the public specification; the \texttt{.trc} header field by field; the META, RESIDENTS, TABLES and DIRECTORY sections compared with the GGUF; and, per chunk, the part header, the stream table, the rANS decoding of § 4.9.2, the per-lane table of § 4.9.3 and the exact reconstruction of § 4.11. Every rebuilt expert is compared with the original digest of the directory and with the GGUF bytes; two checks the decoder does not require are added (median equal to \texttt{sort[B/2]}, end of every tile equal to the start of the next).
+
+\paragraph{The vectorised decoder.} An rANS stream of the specification is cut into independent tiles of 32 lanes; an expert has 127 of them, and each stream decodes in \num{1024} sequential steps. The judge decodes the 127 tiles at once, lane by lane in parallel: \SI{0.8}{\second} per expert instead of minutes. One must then prove that this vectorised form is indeed the normative decoding, which reads the words ``for $l = 0$ to 31, in order''.
+
+\begin{lemme}[Vectorised rANS is the rANS of § 4.9.2]\label{t2e-lem:vectorise}
+Within a tile, let $k$ be the sub-step of macro-step $m$, $p$ the current position in the stream of 16-bit words, and for each lane $l$ the intermediate state $y_l$ after the decoding step. Normative decoding makes lane $l$ renormalise if and only if $y_l < L = 2^{16}$, reading one word. It is equivalent to compute $b_l = [y_l < L]$ for all 32 lanes at once, to make every renormalising lane read the word of index $p + \sum_{l' \le l} b_{l'} - 1$, and then to set $p \leftarrow p + \sum_l b_l$.
+\end{lemme}
+\begin{proof}
+In the normative order, lane $l$ reads, if it renormalises, the word following those read by lanes $l' < l$ in the same sub-step, i.e.\ word $p + \#\{l' < l : y_{l'} < L\} = p + \sum_{l' \le l} b_{l'} - 1$ when $b_l = 1$. It remains to see that no lane renormalises twice in the same sub-step, otherwise the normative order would read two words for one lane. Before the step the state satisfies $x \ge L$; the step gives $y = f_s \,(x \gg 12) + (x \bmod 2^{12}) - c_s$ with $f_s \ge 1$, hence $y \ge x \gg 12 \ge 2^{16} \gg 12 = 16$. If $y < L$, renormalisation gives $(y \ll 16) \mid w \ge 16 \cdot 2^{16} \ge L$: one word always suffices. Each tile has its own start and states, so tiles are independent.
+\end{proof}
+
+\paragraph{The results} (\cref{t2e-tab:geste1}). Nothing was missing from § 4 to decode to the bit.
+
+\begin{table}[ht]
+\centering\small
+\caption[Step 1: a third decoder from § 4 alone]{Step 1: the judge's decoder, written from § 4 alone, on the production files \mes.}
+\label{t2e-tab:geste1}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}Xll@{}}
+\toprule
+& gpt-oss-120b & gpt-oss-20b \\
+\midrule
+Chunks drawn (seed 20261016), equal to the GGUF to the bit & \textbf{20 / 20} & \textbf{20 / 20} \\
+Lanes off $L$; tiles whose end $\ne$ start of the next & 0; 0 & 0; 0 \\
+Medians equal to \texttt{sort[B/2]} & \num{172800} / \num{172800} rows & same \\
+Residents byte for byte (and digest) & \textbf{471 / 471} & \textbf{315 / 315} \\
+META: GGUF pairs byte for byte, plus 3 coder keys & yes (39 = 36 + 3) & yes \\
+TABLES: all summing to \num{4096}; digest & 432 tables; yes & 288; yes \\
+DIRECTORY: contiguous entries up to the end of the file & \num{4608}; yes & 768; yes \\
+Header: digest, size, source SHA-256 = download register & yes (\texttt{582bd40f}…) & yes (\texttt{27cd6c43}…) \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{mesures/moteur/epreuve-J1/journaux/s4-gptoss120b-20.json}, \fichier{s4-gptoss20b-20.json}.}
+\end{table}
+
+\paragraph{Does the decoder's control fail?} Each break is applied in memory to the first drawn chunk (layer 12, expert 54); the second (layer 25, expert 109) must hold (\cref{t2e-tab:cassures-dec}).
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[The breaks of the judge's decoder]{The breaks of the judge's decoder: each fails on the targeted chunk only \mes.}
+\label{t2e-tab:cassures-dec}
+\begin{tabular}{@{}lrrl@{}}
+\toprule
+Break & Lanes off $L$ & Wrong bytes & Second holds \\
+\midrule
+one bit flipped in the CODES\_CTX words & 32 (one tile) & \num{31122} & yes \\
+two frequencies of a table swapped & \num{4064} & \num{3624195} & yes \\
+one median changed by one unit & \textbf{0} & 90 (one row of scales) & yes \\
+one LUT slot corrupted & \num{4032} & \num{3262607} & yes \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{journaux/s4-gptoss120b-casse-\{mot,table,mediane,lut\}.json}.}
+\end{table}
+
+The wrong median leaves every lane on $L$: only the expert's digest sees it. This is the seed of finding M1.
+
+\paragraph{The lots' corrupted copies.} On lot E's copy (12 bits flipped at random in the 20b), the 12 touched chunks are detected, and the detail says who sees what: 6 through lanes off $L$, 2 through a format error, 2 through the part header (whose decoded bytes nevertheless equal the GGUF), and \textbf{only 2 through the expert's digest}: one byte of MEDIANS (layer 23, expert 4) and one byte of BIASES (layer 21, expert 24), which keep all their lanes on $L$. On lot O's copy with a wrong median, the expert is wrong and the lanes are on $L$.
+
+\paragraph{What writing it taught about § 4.} Three imprecisions, which fooled nobody but which a second implementer would have to guess (finding m4): the section lengths of the header are \emph{useful} lengths, without padding; the digest of the residents table is in the last 8 bytes of the section, not ``after the data area''; and ``the end of tile $t$ is the start of tile $t+1$'', true on \num{100}\,\% of decoded tiles, is a free check that § 4 does not make normative.
+
+\section{Do the controls fail?}\label{t2e-sec:temoins}
+
+\begin{table}[ht]
+\centering\small
+\caption[The breaks replayed by the judge]{The breaks replayed by the judge \mes.}
+\label{t2e-tab:temoins}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.34\linewidth}>{\raggedright\arraybackslash}p{0.2\linewidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+Break & Expected & Observed \\
+\midrule
+judge's decoder: word, table, median, LUT slot & targeted chunk fails, the other holds & yes, 4 of 4 \\
+judge's decoder on copies E2 (12 bits) and O3 (median) & 13 of 13 detected & yes \\
+engine, production, copy E2 & named fatal error & ``layer 2, expert 19: wrong decoding (32 lanes off L, 0 format errors, 1 wrong tile pointer)'' \\
+engine, production, copy O3 & nothing in production & the engine runs to the end, and its 32-token text \textbf{equals that of the sound file} (\texttt{48f70a45}…) \\
+engine, control mode, copy O3 & named digest & ``control: layer 0, expert 30: digest \texttt{2e3544c4}… instead of \texttt{c9f614cc}…'' \\
+C7: \SI{1}{\Go} of warm cache & $\approx +\SI{1}{\Go}$ & $+\SI{994}{\Mo}$ \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{mesures/epreuve-J1.md} § 4; \fichier{journaux/seances/complements-2026-10-16.json}.}
+\end{table}
+
+The judge did not replay the breaks of the kernels (K1 to K3), the reference (R0, R1), the cache (O1) and the byte path (E0, E2): their logs exist at the lots.
+
+\section{A third double-precision forward pass}\label{t2e-sec:numpy}
+
+\paragraph{Why a third computation.} C4 judges troncons against a ``truth'': lot R's f64 forward pass. Were that truth wrong, C4 would be worth nothing. The judge wrote another one, in numpy f64, from the model form published by OpenAI (reference implementation under Apache-2.0, \cite{openai2025gptossref}; nothing copied), without reading anything of lot R. It comprises the Q8\_0 embedding, RMSNorm, the projections and their biases, half-split RoPE with the real YaRN ramp and the concentration $0.1 \ln 32 + 1$, attention with 64 query heads and 8 key heads, the $1/8$ scale, the per-head sink in the denominator and a 128-key window on even layers, the top-4 router then the softmax over the four, the SwiGLU clamped at 7, the MXFP4 experts dequantised exactly, and the output head. The ramp bounds it finds, \num{8.09278} and \num{17.39802}, equal lot R's. Duration: \SI{6}{\minute} for the 20b, \SI{17}{\minute} for the 120b, over 511 positions.
+
+\begin{figure}[ht]
+\centering
+\SchemaResChemins
+\caption[The paths of the truth]{The paths of the truth: five programs, three independent implementers (lot R, the judge, llama.cpp) for the forward pass, two (lot F, the judge) for the format, and the measurement that ties each pair.}
+\label{t2e-fig:chemins}
+\end{figure}
+
+\paragraph{The reference against the judge's pass.} Over the 255 scored positions of window 0 of the 20b, and the \num{201088} tokens of each, the maximum gap of log-probabilities above the format's floor is \num{0.000123} nat, i.e.\ \textbf{\num{0.504} quantization step} (median step \num{2.44e-4}); 255 positions out of 255 under one step; \num{100}\,\% identical top choices \mes. This number has a theoretical bound.
+
+\begin{proposition}[The gap due to the format alone]\label{t2e-prop:format}
+A \texttt{.kld} file codes, per position, $\log q_i = \text{step} \cdot \text{code}_i + \log q_{\min}$ with an integer code rounded to nearest, and gives code 0 to every logit under the floor. If two computations return the same real $\log q_i$, the values read from their files differ by at most $\text{step}/2$ on every token above the floor, plus the f32 rounding of step and $\log q_{\min}$ (of the order of $10^{-6}$ relative).
+\end{proposition}
+\begin{proof}
+Rounding to nearest moves a value by at most half a step; the value read is $\text{step} \cdot \text{code} + \log q_{\min}$, computed from two f32 numbers stored in the file, whose rounding adds its own term.
+\end{proof}
+
+Measured: \num{0.504} step, i.e.\ $\text{step}/2$ plus \num{0.004} step. Lot R's reference thus equals the judge's pass \emph{up to the rounding of the format, and nothing else}. llama.cpp's ramp, for its part, departs from it by up to \SI{6.5}{nat} on some tokens.
+
+\paragraph{Why an exact KL is negative.} The tokens under the format's floor (about \num{85000} out of \num{201088}) all receive $\log \tilde q = \log q_{\min}$, larger than their true value: the distribution read, $\tilde q$, is not normalised, $\sum_i \tilde q_i = e^{\delta}$, with $\delta = \num{0.0020}$ on average \mes.
+
+\begin{lemme}[The KL of an exact computation against a file]\label{t2e-lem:kl-negative}
+For a computation identical to the truth, $\mathrm{KL}(p\,\|\,\tilde q) = \sum_i p_i (\log p_i - \log \tilde q_i)$ tends to $-\sum_{i \,\text{under the floor}} p_i\,(\log q_{\min} - \log p_i) < 0$.
+\end{lemme}
+\begin{proof}
+Above the floor, $\log \tilde q_i = \log p_i$ to within half a step (\cref{t2e-prop:format}), and these gaps, of mixed signs, cancel on average. Under the floor, $\log \tilde q_i = \log q_{\min} > \log p_i$, and every term $p_i(\log p_i - \log q_{\min})$ is negative.
+\end{proof}
+
+Measured: \num{-4.8e-4} for lot R's f64 reference against the judge's truth. This bias, common to all files, changes no ordering; it sets the zero of the instrument, and it is exactly the KL the f32 KV cache would later reach (\cref{t2res-sec:kv}).
+
+\paragraph{C4, at last judged on the 120b.} Against this truth, troncons does \num{0.00308} and \num{95.7}\,\% of top choices on window 0 of the 120b, llama.cpp \num{0.0607} and \num{80.4}\,\%; paired difference $-\num{0.0576} \pm \num{0.0120}$, disjoint Wilson intervals. The detail is in \cref{t2res-tab:c4}. On the same window, the YaRN ramp alone explains \num{55}\,\% of llama.cpp's gap on the 20b: lot O's ``six times closer'' is true, but it bears mostly on a modelling choice (finding m5).
+
+\section{The speed and memory session}\label{t2e-sec:seance}
+
+The judge's driver is independent of the lots': fresh processes, palindrome order declared before any pass (commit \texttt{4832184}), peaks held by the system and read on the handle after exit, available memory of the whole machine every \SI{100}{\milli\second}, VRAM every \SI{250}{\milli\second}, power state before and after. \Cref{t2e-fig:seance} draws the twelve passes.
+
+\begin{figure}[ht]
+\centering
+\GrapheResSeance
+\caption[The trial's session, pass by pass]{The trial's session \texttt{s1-2026-10-16}, in palindrome order \mes. Top, generation on the 120b: troncons (circle), with \SI{1}{\Go} of warm cache (diamond), llama.cpp at 6 threads (square) and at 10 threads (triangle). Bottom, per pass: peak working set, peak committed memory, and loss of available memory of the whole machine (logarithmic scale). The D (disk only) and T20 (20b) passes have no 120b generation.}
+\label{t2e-fig:seance}
+\sourcefig{\fichier{memoire/figures/tome2/donnees/res-epreuve-seance.csv}, drawn from \fichier{mesures/moteur/epreuve-J1/csv/s1-2026-10-16-passes.csv}.}
+\end{figure}
+
+\paragraph{Reproduction.} troncons does \num{2.03} tokens/s on average against \num{2.18} at lot O: a gap of \num{7.4}\,\%, under $2 \times 5.5\,\%$ of noise, \emph{reproduced}. llama.cpp \texttt{fit -t 6} does \num{0.627} against \num{0.568} published: \num{10.4}\,\%, under $2 \times 9.5\,\%$, \emph{reproduced}. The texts equal those of lot O and of the baseline.
+
+\paragraph{C5, and the trap of a cold disk (m1).} The first disk-only pass read \SI{0.725}{\Go\per\second} (90th percentile of \SI{172}{\milli\second} for a \SI{12}{\Mo} read), the second \SI{1.822}{\Go\per\second}; the engine was reading at \SI{1.79}{\Go\per\second} the next minute. Lot O's formula took the median of the two D passes: it moves the threshold by \SI{25}{\percent} (\numrange{1.10}{1.13} instead of \numrange{1.43}{1.48}). With the warm pass alone, for pass 01 \calc:
+\[
+t_{\text{serial}} = \underbrace{\frac{\SI{710.12}{\Mo}}{\SI{1.822}{\Go\per\second}}}_{\SI{389.7}{\milli\second}} + \underbrace{79.2}_{\text{PCIe}} + \underbrace{57.0}_{\text{dec.}} + \underbrace{\frac{\SI{1.686}{\Go} + 4 \cdot 36 \cdot \SI{13254144}{\octet}}{\SI{235}{\Go\per\second}}}_{\SI{15.3}{\milli\second}} + 3.5 = \SI{544.7}{\milli\second},
+\]
+a floor of \num{1.836} token/s and a threshold of \num{1.469}. The three T120 passes hold in both cases. The round corrected the formula: one discarded warm-up D pass.
+
+\paragraph{What the machine loses.} During a troncons pass, the available memory of the whole machine drops by \SIrange{0.46}{0.73}{\Go}; during a llama.cpp pass, by \SIrange{6.3}{11.6}{\Go} \mes. The declared threshold for a finding (twice the working set plus \SI{200}{\Mo}, \SI{0.97}{\Go}) is not crossed. troncons's \emph{committed} memory, \SI{6.93}{\Go}, is eighteen times its working set: C7 does not see it (finding m3).
+
+\paragraph{C8, by two instruments.} The criterion compared the bytes read according to the system's PDH counter with those the engine counts. The judge added the \emph{process} input-output counters (\texttt{GetProcessIoCounters}), checked by unbuffered reads of \SI{4}{\Kio} to \SI{64}{\Mio} counted to the byte (\cref{t2e-tab:c8}).
+
+\begin{table}[ht]
+\centering\small
+\caption[C8 by two instruments]{C8 by two instruments \mes: the system's global counter (PDH) and the process counters, against the engine's count.}
+\label{t2e-tab:c8}
+\begin{tabular}{@{}lrrll@{}}
+\toprule
+Pass & PDH $-$ engine & Declared bound & PDH & Process $-$ engine \\
+\midrule
+s1 01 T120 (first 120b pass) & $+\SI{2372.8}{\Mo}$ & \num{100.8} & fails & --- \\
+s1 06 T120 & $+\num{314.9}$ & \num{244.2} & fails & --- \\
+s1 08, 09 T20 & $+\num{96.5}$; $+\num{39.7}$ & \num{103.5}; \num{121.3} & holds & --- \\
+s1 10 T120 warm & $+\num{241.9}$ & \num{2689.4} & holds & --- \\
+s1 11 T120 & $+\num{125.4}$ & \num{154.4} & holds & --- \\
+c3 (coded; raw, 3 windows) & --- & --- & --- & $+\num{22.8}$; $+\SI{22.6}{\Mo}$ \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/moteur/epreuve-J1/journaux/c8-juge.json}, \fichier{temoin-compteurs-es.json}.}
+\end{table}
+
+The engine counts right: the process reads \SI{22.8}{\Mo} more, the buffered reads at opening (META, tables, directory, $\approx \SI{13.5}{\Mo}$) and about \SI{9}{\Mo} of others. The large PDH gaps are outside the process: on a cold first pass, $+\SI{2.37}{\Go}$, very probably the images of the libraries (CUDA, llama) loaded through page faults, which PDH sees and \texttt{ReadFile} does not count [hyp.]. Finding M3: C8 as written measures the machine.
+
+\section{Is the baseline honest?}\label{t2e-sec:base}
+
+The judge ran the best published configuration (\texttt{fit}, 6 threads) and another of his choice, \texttt{fit -t 10}, in the same session; his reason, declared beforehand: under \texttt{mmap}, every thread in a page fault is a read in flight, so more threads make a deeper queue on the disk. Result: \num{0.627} token/s at 6 threads (noise \SI{3.0}{\percent}), \textbf{\num{0.702}} at 10 threads (noise \SI{0.6}{\percent}); a gap of \num{11.9}\,\%, real; same texts. The published baseline underestimated llama.cpp, and lot O's $\times 3.85$ had to be struck out (finding M2). The judge himself wrote what he had not done: neither 12 nor 16 threads, nor \texttt{--n-cpu-moe}. The round did it; the result is in \cref{t2res-sec:base}: at 16 threads, \num{0.884}, and the gap was \num{54}\,\%, not 12.
+
+\section{Is the text right?}\label{t2e-sec:texte}
+
+\paragraph{C12.} The 256 greedy tokens of the 120b start with ``am'', then a coherent and accurate summary of the prompt text (Robert Boulter, \emph{The Bill} in 2000, \emph{Herons} at the Royal Court in 2001), before falling, after about a hundred tokens, into a loop (``Here is a summary'' shortened down to a repeated ``Here''). llama.cpp's greedy output on the same prompt loops too, on simulated tool calls: this is the behaviour of greedy decoding on this model, not a visible defect of the engine.
+
+\paragraph{The first token, settled by the truth.} The two engines differ from the first token: troncons says ``am'' (313), llama.cpp ``...'' (1008). The judge passed the 708 prompt tokens through his f64 pass of the 120b; the engine replayed them by stream and by loop (equal to the bit), and position 707 indeed returns token 313.
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[The first token of C12]{The first token of C12 (position 707 of the prompt) according to each computation \mes.}
+\label{t2e-tab:premier}
+\begin{tabular}{@{}llll@{}}
+\toprule
+Computation & argmax & true $\log p$ of 313 (``am'') & true $\log p$ of 1008 (``...'') \\
+\midrule
+f64 truth & \textbf{1008} & $-10.03$ & $-1.46$ \\
+llama.cpp & 1008 & & \\
+troncons (f16 KV) & \textbf{313} & & \\
+f64 truth with only the KV rounded to f16 & \textbf{313} & $-1.47$ (under the imitation) & $-3.84$ (under the imitation) \\
+troncons (f32 KV, round) & \textbf{1008} & & \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{journaux/premier-jeton-c12-120b.json}, \fichier{premier-jeton-kvf16-120b.json}; \fichier{mesures/moteur/O/corrections/journaux/m5-invite-120b-f32.json}.}
+\end{table}
+
+It is not a break at 512: the PPL of positions 354 to 706 is \num{1200.3} for troncons and \num{1221.8} for the truth, this passage is hard for the model itself; and \texttt{--contexte 1024} like \texttt{--emplacements 200} leave the 708 digests unchanged. It is a cascade of routing flips: at position 707, 20 layers out of 36 route differently from the truth, from layer 12 on; at position 706, none. The f16 KV cache is the sufficient cause, and the main one: in an experiment declared before its pass (commit \texttt{549b38b}), the truth with only the KV rounded to f16 makes the same error, and troncons is far closer to that truth (routing equal at \num{99.3} and \num{97.9}\,\% against \num{96.9} and \num{93.1}\,\%): rounding carries about \SIrange{70}{77}{\percent} of the flips. Finding M5. What followed, the f32 cache that makes troncons equal to the truth, is in \cref{t2res-sec:kv}.
+
+\paragraph{The harmony conversation} (published, not judged): an answer in French, structured in tables, on inference of a mixture of experts with offloading; the \texttt{analysis} channel precedes \texttt{final}, as the format requires \cite{openai2025harmony}. The substance contains approximations of the model, not of the engine; characters split between two tokens come out as ``\textsf{?}'' (a text assembly defect, known to lot O).
+
+\section{The findings}\label{t2e-sec:constats}
+
+The judge ranked his findings by severity; each says where, what is found, the evidence and a proposed correction (\cref{t2e-tab:constats}). Every correction is a proposal; the seams change only through the arbiter.
+
+\begin{table}[p]
+\centering\small
+\caption[The trial's findings, and what the round made of them]{The trial's findings, and what the round of corrections made of them.}
+\label{t2e-tab:constats}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.07\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.17\linewidth}@{}}
+\toprule
+& Trial's finding & Round's correction and control & Verdict \\
+\midrule
+\textbf{G1} serious & a pass under load hangs forever without a message: the engine's destruction spins in \texttt{nvcuda64.dll} & error written before any destruction, exit without destroying, heartbeat per layer; stream arrival buffers corrected (\cref{t2e-lem:tampons}) & corrected; root cause not reproduced \\
+\textbf{G2} serious & after an error, an orphan \texttt{nvidia-smi} holds the driver's pipes, which waits forever & \texttt{Drop} that kills the child, ``kill on close'' job, null input, non-inheritable handles; 3 cases, 0 orphans & corrected \\
+\textbf{M1} & production does not guard raw streams: a wrong median gives a text identical to the sound one & production guard (\cref{t2e-prop:garde}); copy O3: named error & corrected, $-1.6\,\%$ at equal disk \\
+\textbf{M2} & baseline under-tuned; $\times 3.85$ to strike out & baseline swept: \texttt{fit -t 16}, \num{0.884}; C6 $\times 2.22$ & done \\
+\textbf{M3} & C8 measures the machine & process counters in the log: constant gap of \SI{19.92}{\Mo} & instrument done; criterion to the arbiter \\
+\textbf{M4} & C7-gap still fails & bound with named terms (\cref{t2res-tab:termes}) & not closed; to the arbiter \\
+\textbf{M5} & the f16 KV decides the first token of C12 & option \texttt{--kv-f32}: equal to the truth up to the format & measured; seam N to the arbiter \\
+m1 & C5's threshold depends on a cold D pass & discarded warm-up D pass & done \\
+m2 & the SOCLE's recipe breaks the build & \texttt{build.rs} calls \texttt{nvcc} without \texttt{cmd} & corrected \\
+m3 & C7 does not see committed memory & published: \SIrange{6.92}{6.97}{\Go}; machine loss \SIrange{0.47}{0.63}{\Go} & published, not judged \\
+m4, m6 & three imprecisions of § 4; where the verdict goes & sentences proposed & to the arbiter \\
+m5 & ``six times closer'' needs its reason & requalified: including the YaRN ramp & done \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{mesures/epreuve-J1.md} § 8; \fichier{moteur/O-pour-le-memoire.md} § 14; \fichier{moteur/REPRISE-O.md}, final state of the round.}
+\end{table}
+
+\section{The round of corrections}\label{t2e-sec:ronde}
+
+The round declared its first threshold on 16 October at 06:12 (commit \texttt{ca5d338}), seven minutes after the last commit of the trial's report; its final state is dated 10:15 (\fichier{moteur/REPRISE-O.md}, commit \texttt{30d8165}). Its rules were the project's, applied to every finding: \emph{reproduce first} the defect with the previous binary (kept, a frozen copy of commit \texttt{7b288a6}), declare the threshold before the pass (\fichier{mesures/moteur/O/corrections/seuils-declares.md}, one block committed per finding), correct, then show that the control fails with the old binary and holds with the new one. The break of the control is the old binary.
+
+\subsection{G1: the hung pass}\label{t2e-sec:g1}
+
+\paragraph{What the judge saw.} The \texttt{evaluer --flux --brut} pass over the ten windows of the 120b, launched at 03:33 while the judge's numpy pass was reading \SI{61}{\Go} and occupying the processor, never finished. After \SI{35}{\minute}: no further read in \SI{10}{\second} (\num{1863} reads, \SI{18.06}{\Go}), card at \SI{0}{\percent}, main thread at \SI{100}{\percent}, and not one line on the error output. The judge sampled the main thread's instruction pointer 300 times (300 out of 300 in \texttt{nvcuda64.dll}) then named its stack through the symbols: \texttt{troncons::principal} $\to$ destruction of the \texttt{Moteur} $\to$ \texttt{Arc<Interne>::drop\_slow} $\to$ destruction of the CUDA events $\to$ \texttt{nvcuda64.dll}. The engine had left its loop, very probably on an error, and its destruction was waiting for work left queued on the card; the error itself was never written. Relaunched alone, the same command finishes in \SI{287}{\second}.
+
+\paragraph{The corrected exit} (\cref{t2e-fig:sortie}). On any error, the engine first writes the error (on the error output and in a \fichier{<journal>.erreur.json}), then ends its own process with \texttt{TerminateProcess} \cite{ms-terminateprocess}, without destroying the engine or the CUDA context: the driver frees everything at the end of the process. A heartbeat per prefill layer dates any future hang.
+
+\begin{figure}[ht]
+\centering
+\SchemaResSortie
+\caption[The exit on error, before and after the round]{The exit on error, before and after the round (findings G1 and G2). Before: the engine's destruction waits for the card forever, and the \texttt{nvidia-smi} child, which inherited the driver's pipes, keeps them open. After: the error is written first, nothing is destroyed, and the child dies with its parent.}
+\label{t2e-fig:sortie}
+\end{figure}
+
+\paragraph{A probable cause, found by reading the code.} In stream prefill, the reads of a batch took their pinned arrival buffers round robin, $s \bmod (d \cdot k)$ with $d \cdot k = 12$, with at most $\min(d\cdot k, 2 \cdot \text{depth}) = 8$ reads in flight, handed to the system four at a time (\cref{t2e-fig:tampons}).
+
+\begin{figure}[ht]
+\centering
+\SchemaResTampons
+\caption[The round robin of arrival buffers]{The round robin of arrival buffers in stream prefill, and the counterexample of \cref{t2e-lem:tampons}: read $s-12$ stays in flight while $s-11, \dots, s-1$ go through and are reaped; read $s$ would take its buffer.}
+\label{t2e-fig:tampons}
+\end{figure}
+
+\begin{lemme}[The arrival buffers of stream prefill]\label{t2e-lem:tampons}
+(i) With the rule from before the round, a read could write into a buffer that another read was still writing. (ii) With the corrected rule (take the round-robin buffer if it holds no read in flight, otherwise the next that holds none), no read writes into a buffer $i$ while (a) another read is writing it, (b) the copy to the card that was reading it has not finished, (c) a hash of the guard is still reading it.
+\end{lemme}
+\begin{proof}
+(i) Counterexample. Completions arrive out of order. Let read $s-12$ stay in the system while $s-11, \dots, s-1$ go through the three other places and are reaped: the local list of reads in flight then holds only $s-12$, of length $1 < 8$, and read $s$ is submitted into buffer $s \bmod 12 = (s-12) \bmod 12$, which the disk is still writing. The copy launched when $s-12$ is reaped then reads a mixture: wrong lane check (fatal error, followed by G1's destruction) or, if only raw bytes are touched, a wrong expert without an error. It suffices that one read lags the others by about $11 \times \SI{6.6}{\milli\second} / 3 \approx \SI{24}{\milli\second}$ (\SI{12}{\Mo} at \SI{1.8}{\Go\per\second}, three places) \calc; the 90th percentile of a cold read recorded by the judge, \SI{172}{\milli\second}, exceeds it.
+(ii) Existence: at the moment of the choice, at most $\min(d\cdot k, 2 \cdot \text{depth}) - 1 < d \cdot k$ reads are in flight, so at least one buffer holds none. (a) follows from the rule. (b): submission waits for the event of the buffer's previous copy, queued when it was reaped. (c): submission first waits for the end of the zone's hashes. The corresponding VRAM buffer is rewritten only after the end of the decode that was reading it.
+\end{proof}
+
+\begin{lstlisting}[language=RustRes, caption={The choice of an arrival buffer in stream prefill, after the round (\fichier{moteur/crates/trc-ordo/src/lib.rs}, excerpt; the code's comments are in French).}, label=t2e-lst:tampon]
+// Le tampon du tourniquet, sauf s'il porte encore une lecture en vol : les
+// lectures s'achèvent dans le désordre ; avant la ronde de corrections, la
+// nouvelle lecture écrasait alors l'ancienne dans le même tampon (cause
+// probable de G1). Il y a toujours un tampon libre : au plus
+// min(d · k, 2 · profondeur) − 1 < d · k lectures sont en vol ici.
+let candidat = prochaine_arrivee % self.n_arrivees;
+let mut i_arr = candidat;
+while en_vol.iter().any(|&(_, b)| b == i_arr) {
+    i_arr = (i_arr + 1) % self.n_arrivees;
+}
+if i_arr != candidat {
+    self.compteurs.flux_conflits_evites += 1;   // le cas du lemme, compté
+}
+prochaine_arrivee = i_arr + 1;
+self.ev_copie[i_arr].attendre()?;               // (b) la copie précédente est finie
+\end{lstlisting}
+
+\paragraph{Replayed under the same load.} Block 4 of the declared thresholds replayed the hung pass under the trial's load (the f64 numpy pass of the 120b, \SI{61}{\Go} read, launched first). The new binary finishes in \SI{361}{\second}, with 360 heartbeats, a \texttt{.kld} equal to lot O's and \textbf{0 arrival conflicts}: the lemma's case did not occur. The old binary, under the same load, \textbf{also finishes} (\SI{338}{\second}, equal \texttt{.kld}). The trial's hang is thus not reproduced: it depends on an order of completions or a machine state that two replays did not recover. What is known: the destruction could wait forever (named stack); the new binary destroys nothing on an error and writes it first; the round robin could overwrite a read in flight (proved). What is not known: the original error.
+
+\subsection{G2: the orphan that holds the pipes}\label{t2e-sec:g2}
+
+The engine's VRAM sampler launched \texttt{nvidia-smi -lms 250} and killed it only in its normal stop; no destruction did. Any error left the child alive. And it inherited the engine's handles, hence the driver's output pipes: the driver, which waits for the outputs to close, waited as long as the orphan lived, that is, forever. In the trial, two passes finished in a few seconds ``gave back control'' only after 518 and \SI{630}{\second}, when the judge killed their orphans; an orphan born at 01:38 from a lot O pass was still running at 04:40.
+
+\paragraph{The correction, in four moves.} (1) A destruction of the sampler that kills and waits for the child; (2) the child placed in a Windows ``kill on close'' job \cite{ms-jobobject-limit}, which kills it even if the parent dies by \texttt{TerminateProcess}, which the destruction does not see; (3) a null standard input; (4) the parent's standard handles made non-inheritable, because a true \texttt{bInheritHandles} gives the child every inheritable handle \cite{ms-createprocess}, the driver's pipes among them.
+
+\paragraph{The control.} \fichier{corrections/temoin\_sortie.py} launches three cases as the drivers do (missing file, corrupted file, killed process), outputs in pipes, and waits for them to close. Declared threshold: return within \SI{30}{\second}, code 1, error written, no \texttt{nvidia-smi} alive \SI{2}{\second} later. The old binary \textbf{fails} on all three (return at the \SI{90}{\second} timeout, one orphan each); the new one \textbf{holds} (\num{1.5}, \num{4.9} and \SI{4.9}{\second}, 0 orphans). The control itself had two defects before it was valid, published: the first pass killed the process before the child was born (it proved nothing); the second did not drain the pipes, and the child blocked on its full error output (two reader threads corrected it).
+
+\subsection{M1: the production guard}\label{t2e-sec:garde}
+
+\paragraph{The hole.} In production, the only check on a chunk was the return of the rANS lanes to $L$. It guards only the \emph{coded} streams: the raw streams of a part (MEDIANS, BIASES: about \SI{43}{\kilo\octet} out of \SI{12}{\Mo}, \SI{0.36}{\percent}) and, in mode A0, the embedding row read at every token were guarded by nothing. On the copy with a wrong median, the text produced was \emph{identical} to that of the sound file: a corruption invisible down to the output.
+
+\paragraph{The guard} (\cref{t2e-fig:garde}). At every completed read, the useful bytes of the chunk are hashed by a worker thread and compared with the digest the directory already holds (no seam touched); hashing runs at the same time as the copy and the decode, which only read the buffer; the step waits for all its hashes before returning its token. Embedding rows are compared with a table of digests built at opening by reading \texttt{token\_embd} once, its whole digest checked on the way.
+
+\begin{figure}[ht]
+\centering
+\SchemaResGarde
+\caption[The production guard]{The production guard: hashing runs in parallel with the copy and the decode, on four threads; a barrier joins it before the step returns its token.}
+\label{t2e-fig:garde}
+\end{figure}
+
+\begin{proposition}[No output depends on an unchecked byte]\label{t2e-prop:garde}
+With the guard active, the token and logits returned by a step, or a prefill, depend only on bytes read whose 64-bit digest equals the directory's (chunks: useful bytes of level 0; rows: table built at opening), up to a collision of the 64-bit prefix of SHA-256 \cite{fips180-4}.
+\end{proposition}
+\begin{proof}
+(1) The decoder and the copy read only the useful bytes of a part; padding is read by no kernel. (2) Every completed read is handed to the guard before any other operation on its buffer. (3) No read writes that buffer before the hash ends (\cref{t2e-lem:tampons}, (c)): the digest covers the bytes the copy read. (4) The step and the prefill wait for all hashes before reading the token or the logits; a different digest is a named fatal error. (5) A warm entry served without a read was hashed when it was read; a later corruption of RAM is not covered. (6) Every row read is compared with its slot before it is copied to the card. Wrong content passes with probability $2^{-64}$ per check, if SHA-256 behaves as a random function.
+\end{proof}
+
+\begin{lstlisting}[language=RustRes, caption={The guard turns a wrong chunk into a named fatal error (\fichier{moteur/crates/trc-ordo/src/garde.rs}, excerpt; the message is in French).}, label=t2e-lst:garde]
+fn recevoir(&mut self, f: Fait) -> Result<()> {
+    let t = self.en_cours.remove(&f.ticket).expect("ticket de la garde");
+    if f.empreinte != t.attendu {                 // l'empreinte du répertoire
+        bail!(
+            "garde de production : couche {}, expert {} : empreinte des {} octets utiles lus {:016x} au lieu de {:016x} (répertoire)",
+            t.couche, t.expert, t.octets, f.empreinte, t.attendu
+        );
+    }
+    ...
+\end{lstlisting}
+
+\paragraph{The controls, and their breaks} (on the 20b). Copy with a wrong median: named fatal error ``production guard: layer 0, expert 30: digest of the \num{11836992} useful bytes read \texttt{17d8974e}… instead of \texttt{9aa7c5fb}…''; without the guard (the break), the pass runs to the end, with the sound file's text, as in the trial. Chunk broken after reading (\texttt{--casser-garde troncon:5}): named error; without the guard, text changed without an error. Broken row (\texttt{ligne:3}): named error; without the guard, text unchanged (one bit of a Q8\_0 row does not change these 32 tokens: invisible). Sound file: same text to the bit with and without the guard, 920 chunks checked out of 920 read, 739 rows out of 739. Lot E's copy: the guard names layer 2, expert 19, before the lane check. The cost is measured in \cref{t2res-sec:garde}: $-1.6\,\%$ at equal disk, \SIrange{5.2}{5.4}{\milli\second} of waiting per token. C2 becomes true in production.
+
+\subsection{M2 to M5, and the minor findings}\label{t2e-sec:m2-m5}
+
+\begin{description}
+\item[M2, the baseline.] Swept in a palindrome (\cref{t2res-tab:base}): \texttt{fit -t 16}, \num{0.884} token/s; C6 recomputed, guard included, $\times 2.22$; \barre{$\times 3.85$} struck out in lot O's notes, its resumption note and \fichier{mesures/gpt-oss.md}.
+\item[M3, C8.] The process counters, read on the handle after exit, are in the engine's log. Against the engine's count (reader, residents included, plus the buffered reads at opening, \SI{13.57}{\Mo}), the gap is \textbf{\SI{19.92}{\Mo}, constant to the byte} over the six f16-KV 120b passes of the session, including the vocabulary read by \texttt{llama.dll} (\SI{12.98}{\Mo}). Proposal to the arbiter: judge C8 by this instrument, bound equal to the vocabulary size plus \SI{100}{\Mo}, PDH published without being judged. On the way, the round found that the first version of the count added the loading of the residents twice ($+\SI{1.69}{\Go}$): corrected.
+\item[M4, C7-gap.] The bound with named terms (\cref{t2res-tab:termes}) is not closed; proposal: judge the gap at a fixed window size, against the terms outside the window ($\approx \SI{0.77}{\Mo}$) plus two noises plus \SI{0.5}{\Mo}. The verdict stays ``fails''.
+\item[M5, the KV cache.] Option \texttt{--kv-f32}, outside the seam: equal to the truth up to the format, 12 fewer slots (\cref{t2res-sec:kv}).
+\item[m1.] One discarded warm-up D pass at the head of the session: the kept pass reads \SI{1.893}{\Go\per\second}, the discarded one \num{1.874}, without a transient this time (90th percentile \SI{32.9}{\milli\second}); C5 thresholds \numrange{1.45}{1.52}, and the eight 120b passes hold.
+\item[m2.] The kernels' \texttt{build.rs} called \texttt{nvcc} through \texttt{cmd /C} with quotes that \texttt{Command::arg} protects with backslashes, which \texttt{cmd} does not read; it now calls \texttt{nvcc} directly. With and without vcvars the build succeeds, and the three \texttt{noyaux.fatbin} images are equal byte for byte (SHA-256 \texttt{aeae5bdc}…, \num{295864} bytes).
+\item[m3.] Committed memory (\SIrange{6.92}{6.97}{\Go}) and machine loss (\SIrange{0.47}{0.63}{\Go}) published next to C7.
+\item[m4, m6.] Three sentences proposed for § 4; where the verdict goes, to the arbiter.
+\item[m5.] ``Six times closer'' requalified everywhere: including the YaRN ramp.
+\end{description}
+
+\subsection{What remains for the arbiter}\label{t2e-sec:arbitre}
+
+The round handed twelve points to the arbiter, each marked ``answer by delegation of 2026-10-16, reversible'' (\fichier{moteur/REPRISE-O.md}, points 21 to 32). The heaviest: seam N (f32 KV cache by default, f16 as an option: C4 and C12 would become ``equal to the truth up to the format'', for \SI{155.7}{\Mo} of VRAM and 12 slots); a tail criterion for C4 (share of positions with KL $> 0.1$, KL at the 99th percentile, judged also beyond 512 positions; numbers to set it: f16 \SI{0.39}{\percent} and \num{0.075} on window 0, \SI{2.05}{\percent} and \num{0.196} on positions 512 to 706; f32: 0); the greedy sequence of the truth to publish next to C12 (not done: the numpy pass recomputes the whole prefix at each token, about \SI{20}{\minute} per position on the 120b, days for 256 tokens); C8 and C7 as above; the guard written into § 4.12 of the specification; warning the lots that any child launched under a driver with pipes must have non-inheritable handles or live in a job killed on close; and a lot O orphan \texttt{nvidia-smi} (PID 13652), left alive because neither the judge nor the round had launched it.
+
+\section{What the trial could not check}\label{t2e-sec:non-verifie}
+
+\begin{itemize}
+\item \textbf{C1 on the \num{4608} experts} by the third decoder: 40 drawn and 13 named, plus \num{3394} decodes checked by the engine's control; the rest rests on lot F and its two paths.
+\item \textbf{C2 end to end} by lot E's bench: not rerun.
+\item \textbf{C4 on the ten windows of the 120b}: neither lot R's f64 reference nor a ten-window llama.cpp baseline exists on the 120b; the judgement bears on one window of 255 positions, plus the 353 scored positions of the prompt.
+\item \textbf{The cause of G1}: the original error was never written.
+\item The breaks of lots K, R, O1 and E.
+\item \textbf{The speed session is one session}: three troncons passes, two of each baseline; the rule is judged only within it.
+\end{itemize}
+
+\begin{faux}\label{t2e-sec:faux}
+\begin{itemize}
+\item \textbf{The judge's numpy pass and lot R's reference read the same GGUF.} A dequantisation error common to both (nibble order, E8M0 scale) would pass. Safeguards: the judge's MXFP4 decoder follows ggml's convention (low nibbles for elements 0 to 15), and C3 like the texts tie everything else together to the bit; the convention of the format is judged only by agreement with llama.cpp, not by OpenAI.
+\item \textbf{They follow the same reading of the model} (real ramp, sinks, 128-wide window). Had OpenAI trained with another convention, both would be wrong together; OpenAI's \texttt{config.json} and reference implementation are the only sources of this reading.
+\item \textbf{C4 on the 120b rests on one window}; the intervals are disjoint, but one window is not ten.
+\item \textbf{The machine's memory loss is global}: other processes move it. It is clean in session \texttt{s1}; it was soiled (\SI{10.5}{\Go}, the numpy pass at the same time) in another pass the judge did not use.
+\item \textbf{The judge's instrument had two defects}, found and corrected before any verdict: a process handle passed as a 32-bit integer (a counter control that returned 0), and a first C8 calculation that counted the loading of the residents twice (``the engine counts \SI{1.4}{\Go} too many''), redone correctly and never published.
+\item \textbf{The cause of G1 is not established}: the buffer defect is proved possible, not observed (0 conflicts in two replays).
+\item \textbf{The guard assumes SHA-256 without a useful collision} on 64 bits; it covers neither warm RAM after its read, nor VRAM.
+\item \textbf{The time of one threshold was wrong} in the judge's file: \barre{02:40} 02:26, the commit's time, before the driver's trial run (02:26:35) and the first pass (02:27:40). The thresholds were indeed declared before any pass; only the written time was wrong.
+\end{itemize}
+\end{faux}

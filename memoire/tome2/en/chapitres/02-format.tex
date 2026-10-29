@@ -1,0 +1,610 @@
+% Volume~II, chapter 2: the .trc format to the bit (English version).
+% Figures: memoire/figures/tome2/{schemas,graphes}/format.tex; data: mesures/moteur/F/csv/
+% (lot F) and memoire/figures/donnees/tome2/ (memoire/outils/tome2_format.py).
+\input{\Racine/figures/tome2/schemas/format}
+\input{\Racine/figures/tome2/graphes/format}
+\lstdefinelanguage{Rust}{morekeywords={pub,fn,struct,enum,impl,trait,use,mod,let,mut,const,
+  type,where,for,in,if,else,match,return,self,Self,dyn,unsafe,as,u8,u16,u32,u64,usize,f32,f64,
+  bool,Option,Result,Vec,Box,String,Some,None,Ok,Err,true,false,crate,continue},
+  sensitive=true, morecomment=[l]{//}, morecomment=[s]{/*}{*/}, morestring=[b]"}
+
+\chapter{The \texttt{.trc} format to the bit}\label{t2fmt:ch}
+
+\begin{origine}
+\textbf{At the start}, the arbiter's specification (\fichier{decisions/ARCHITECTURE.md} §\,4) described to the bit a file that did not exist: one self-contained file per model, aligned on 4{,}096 bytes, one chunk per expert, rANS streams with the table chosen per lane. The arbiter's measurement F1 had fixed its coding (same rate as the three class streams of study 03, without reassembly); nobody had written the coder, nor a decoder of this format.
+\textbf{This chapter establishes} the format as the real files carry it: every field of every structure, drawn and filled with the values read in \texttt{gpt-oss-120b.trc} (57{,}730{,}662{,}400 bytes) and \texttt{gpt-oss-20b.trc}; the lemmas that make interleaved rANS an exact code, and why its two free checks do not guard the table; the exact reconstruction of an expert, proven; the bounded-memory coder and its two propositions (same bytes, memory independent of the model); criterion C1 held on 768 and 4{,}608 experts by two paths that share no line; and the gesture that tells whether a specification is true: a judge who wrote none of it decoded it, from the text alone, to the bit.
+\textbf{What remains}: version 1.1 with two levels (J2), reserved to the bit but not written; thirteen precisions of the text (nine from lot F, three from the trial's judge, one from the judge of Volume~II), compatible with the written files, which the arbiter must carry into the specification.
+Sources: \fichier{decisions/ARCHITECTURE.md} §\,3 and 4; \fichier{moteur/F-pour-le-memoire.md}, \fichier{moteur/REPRISE-F.md}; \fichier{mesures/moteur/F/derivations.md}, \fichier{verdicts.md}, \fichier{00-seuils-declares.md}, \fichier{journaux/}, \fichier{csv/}; \fichier{mesures/epreuve-J1.md} §\,2; \fichier{mesures/moteur/epreuve-J1/decodeur\_s4.py}.
+\end{origine}
+
+\begin{enbref}
+A \texttt{.trc} file is a book whose every page is an expert. The table of contents (the directory) says where each page starts, how much it weighs and which fingerprint it must have; each page is read in a single gesture, because it lies in one piece on disk; and each page is written in a shorthand (rANS) that thirty-two readers decipher at the same time, each knowing in advance, from the line it stands on, which alphabet to use. Nothing is guessed: every structure carries its size, its number of entries and its fingerprint, and a reader refuses what it does not know.
+\end{enbref}
+
+\section{The principles}\label{t2fmt:sec:principes}
+
+Six principles, each with its reason (\fichier{ARCHITECTURE.md} §\,4.1):
+\begin{enumerate}
+\item \textbf{One self-contained file per model}, written once from the original GGUF by \texttt{trc-codeur}. It contains everything the engine reads; a companion \texttt{<name>.vocab.gguf} carries the vocabulary for \texttt{llama.dll}. Reason (delegated answer of 2026-10-15, reversible): a general instrument has a single artefact per model; the cost is copying the always-read tensors (2.3\,GB on the 120b).
+\item \textbf{Little-endian} everywhere; strings in UTF-8; sizes in bytes.
+\item \textbf{Alignment on 4{,}096 bytes} for every section and everything read by an unbuffered read: Windows then requires offset, length and address to be multiples of the sector size \cite{microsoft2025filebuffering}, and 4{,}096 covers the machine's NVMe.
+\item \textbf{One chunk = one expert} (its three matrices and their biases), in one piece: a miss costs one request, one completion, one fingerprint, one slot. The throughput gain of one 12\,MiB read over three of 4.2\,MiB (+9\,\%) was below the decision threshold (20\,\%): the choice is made for simplicity, not speed.
+\item \textbf{Refinement levels}: a chunk is the sequence of its parts of level 0, 1, …; each part is aligned on 4{,}096, and any prefix that stops at the end of a part decodes on its own. Reader, cache and scheduler only know ``read up to the end of level $j$''.
+\item \textbf{Nothing is guessed}: a reader refuses an unknown major version, stream kind or flag.
+\end{enumerate}
+
+\section{The overall layout}\label{t2fmt:sec:disposition}
+
+A \texttt{.trc} file is a fixed header of 4{,}096 bytes followed by five sections, each aligned on 4{,}096 (\cref{t2fmt:fig:fichier}). The offsets and lengths of \cref{t2fmt:tab:sections} are those carried by the headers of the two real files, re-read by the second path of C1 (\cref{t2fmt:sec:cun}).
+
+\begin{figure}[ht]
+\centering
+\TdFmtFichier
+\caption[The .trc file, its sections]{The \texttt{.trc} file and its sections, at the real offsets of both files (in bytes; box heights not proportional). The bottom bar is to scale: on gpt-oss-120b, 96.0\,\% of the file are chunks. Data: \fichier{mesures/moteur/F/journaux/second-chemin-{20b,120b}.json}, field \texttt{entete.sections}.}
+\label{t2fmt:fig:fichier}
+\end{figure}
+
+\begin{table}[ht]
+\centering\small
+\begin{tabular}{l r r r r}
+\toprule
+& \multicolumn{2}{c}{gpt-oss-120b} & \multicolumn{2}{c}{gpt-oss-20b} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+Section & offset & length & offset & length \\
+\midrule
+0 META & 4{,}096 & 12{,}980{,}522 & 4{,}096 & 12{,}980{,}519 \\
+1 RESIDENTS & 12{,}988{,}416 & 2{,}301{,}059{,}336 & 12{,}988{,}416 & 1{,}917{,}714{,}696 \\
+2 TABLES & 2{,}314{,}051{,}584 & 224{,}656 & 1{,}930{,}706{,}944 & 149{,}776 \\
+3 DIRECTORY & 2{,}314{,}276{,}864 & 294{,}920 & 1{,}930{,}858{,}496 & 49{,}160 \\
+4 CHUNKS & 2{,}314{,}575{,}872 & 55{,}416{,}086{,}528 & 1{,}930{,}911{,}744 & 9{,}226{,}493{,}952 \\
+\midrule
+end of file & \multicolumn{2}{r}{57{,}730{,}662{,}400} & \multicolumn{2}{r}{11{,}157{,}405{,}696} \\
+\bottomrule
+\end{tabular}
+\caption[The sections of both files]{The sections of both files, in bytes (\fichier{memoire/figures/donnees/tome2/sections.csv}). Lengths are \emph{useful}: they count the section's final fingerprint, not the padding leading to the next section (lot F's precision, the trial's finding m4). Example: META of the 120b ends at $4{,}096 + 12{,}980{,}522 = 12{,}984{,}618$, and RESIDENTS starts at the next multiple of 4{,}096, $3{,}171 \times 4{,}096 = 12{,}988{,}416$. The last section ends exactly at the end of the file.}
+\label{t2fmt:tab:sections}
+\end{table}
+
+\section{The fixed header}\label{t2fmt:sec:entete}
+
+The header fits in 4{,}096 bytes (\cref{t2fmt:fig:entete}). It says what the file is (magic, version, flags), where it comes from (SHA-256 and size of the source GGUF), the model's geometry (layers, experts, active experts, dimensions of the three matrices, MXFP4 format), and where the sections are. Its 3{,}824 reserved bytes must be zero, which the reader checks; its last eight bytes are the fingerprint64 (\cref{t2fmt:sec:empreintes}) of the first 4{,}088. A truncated file is refused on opening: its real size differs from field 24.
+
+\begin{figure}[p]
+\centering
+\TdFmtEntete
+\caption[The fixed header, byte by byte]{The fixed header, eight bytes per row (offsets on the left), except two compressed rows: the sections (128 bytes, offsets 136 to 263, on three rows) and the reserved area (3{,}824 bytes, from 264 to 4{,}087, on a single one), with the values read in \texttt{gpt-oss-120b.trc}. For the 20b: size 11{,}157{,}405{,}696, SHA-256 \texttt{27cd6c43…5901}, source size 12{,}109{,}566{,}624, L = 24, E = 32, the same dimensions. Type 39 is MXFP4 in ggml's numbering; the magnitude partition only serves version 1.1. Colours: identity (blue), provenance (violet), geometry (green), sections (orange), reserved (grey), fingerprint (red).}
+\label{t2fmt:fig:entete}
+\end{figure}
+
+\paragraph{The flags.} Bit 0: chunks aligned on 4{,}096 (always 1). Bit 1: at least two levels (v1.1). Bit 2: \emph{raw} file, whose streams are not coded, used as the reference path for criterion C3. An unknown flag makes the file refused, even re-fingerprinted: it is one of the breaks of \texttt{trc-format}'s witness (\fichier{moteur/REPRISE-F.md}, F1).
+
+\section{META, RESIDENTS, TABLES, DIRECTORY}\label{t2fmt:sec:sections}
+
+\subsection{META: the GGUF pairs, copied}
+
+The META section starts with a \texttt{u64} (the number of pairs), then copies byte for byte the GGUF key-value pairs, in their order and in GGUF v3 format (64-bit key length, key bytes, 32-bit type, value) \cite{ggml_gguf}. The coder adds three pairs: \nolinkurl{troncons.codeur.version} (``trc-codeur 0.1.0''), \nolinkurl{troncons.codeur.date} (``2026-10-15'') and \nolinkurl{troncons.source.nom}. Both files have $36 + 3 = 39$ pairs \mes~(\cref{t2fmt:fig:meta}). The section ends with the fingerprint64 of everything before it. Its 12.98\,MB are almost all vocabulary (201{,}088 tokens); the three bytes of difference between 120b and 20b come from the strings naming the model. The engine reads the hyperparameters there: 64 query heads, 8 key and value heads, head dimension 64, rotation base 150{,}000, YaRN with factor 32 over an original context of 4{,}096 (fast β 32, slow β 1), sliding window of 128.
+
+\begin{figure}[ht]
+\centering
+\TdFmtMeta
+\caption[The META section]{The META section, in symbolic rows (keys and values have variable lengths): the count, the pairs in GGUF v3 format copied byte for byte, the final fingerprint64, then zeros that the section's length does not count.}
+\label{t2fmt:fig:meta}
+\end{figure}
+
+\subsection{RESIDENTS: the always-read tensors}
+
+All GGUF tensors except the experts (\nolinkurl{blk.*.ffn_{gate,up,down}_exps.{weight,bias}}) are copied as they are: $687 - 36 \times 6 = 471$ on the 120b, $459 - 24 \times 6 = 315$ on the 20b \calc. The section starts with a table (a \texttt{u32} count, a reserved \texttt{u32}, then one 128-byte entry per tensor, \cref{t2fmt:fig:resident}), zeros up to the multiple of 4{,}096 from the start of the section, then the data zone, where each tensor is aligned on 256 in its ggml layout. The table's fingerprint64 is stored in the last eight bytes of the section: on the 120b, at 2{,}301{,}059{,}328 bytes from its start, for a length of 2{,}301{,}059{,}336 \mes~(lot F's precision 2: the specification says ``after the data zone''; the end of the last tensor being aligned on 256, the three possible readings coincide here).
+
+\begin{figure}[ht]
+\centering
+\TdFmtResident
+\caption[An entry of the residents table]{An entry of the residents table (128 bytes, sixteen per row). \texttt{ne} follows ggml's convention: \texttt{ne[0]} is the fastest dimension. The offset is counted from the start of the data zone.}
+\label{t2fmt:fig:resident}
+\end{figure}
+
+The input embedding \texttt{token\_embd} (Q8\_0, 0.615\,GB) is \emph{never} mounted in VRAM: the engine reads one row of it per token. A row of 2{,}880 weights in Q8\_0 is $90$ blocks of 34 bytes, i.e.\ 3{,}060 bytes, read within an aligned 8\,KiB read \calc.
+
+\subsection{TABLES: the rANS frequencies}
+
+A record (\cref{t2fmt:fig:table}) carries the layer, the matrix, the kind of stream it serves, the context, and a payload: 16 or 256 frequencies on 16 bits, or 4 centres in f32 (v1.1). A frequency is an integer from 0 to 4{,}096; a table's sum is exactly 4{,}096; 0 marks an absent symbol. Tables are shared by all experts of a layer, one per (layer, matrix, kind, context). In v1.0, each matrix of a layer has four tables: DELTA (context 0) and CODES\_CTX (contexts 0, 1, 2), i.e.\ $36 \times 3 \times 4 = 432$ records of $8 + 512 = 520$ bytes on the 120b; the section is $8 + 432 \times 520 + 8 = 224{,}656$ bytes, count and fingerprint included, exactly the recorded length \calc. The 20b has 288 (149{,}776 bytes). The engine mounts them in VRAM as LUTs of 4{,}096 32-bit words (16\,KiB each): $432 \times 16{,}384 = 7{,}077{,}888$ bytes (7.08\,MB, 6.75\,MiB) for the 120b \calc. The specification (\fichier{decisions/ARCHITECTURE.md} §\,4.6) writes ``$36 \times 3 \times 4 \times 16$\,KiB $=$ \barre{6.9\,MB}'': the product is right, its value is right neither in MB nor in MiB; this is precision T2 of \cref{t2fmt:tab:precisions}.
+
+\begin{figure}[ht]
+\centering
+\TdFmtTable
+\caption[A record of the TABLES section]{A record of the TABLES section: eight header bytes, then the payload.}
+\label{t2fmt:fig:table}
+\end{figure}
+
+\subsection{DIRECTORY: the table of contents}
+
+The directory has one 64-byte entry per (layer, expert), in that order, then the section's fingerprint64: $4{,}608 \times 64 + 8 = 294{,}920$ bytes on the 120b, $768 \times 64 + 8 = 49{,}160$ on the 20b \calc. Each entry (\cref{t2fmt:fig:repertoire}) says where the chunk starts, the length and useful bytes of each of its two levels, and three fingerprints: that of the \emph{original} expert, and that of the useful bytes of each level. The level-1 part immediately follows the level-0 part: exact mode reads both in a single request. It is the only structure of the file that grows with the number of experts, and it stays below 0.3\,MB on the 120b.
+
+\begin{figure}[ht]
+\centering
+\TdFmtRepertoire
+\caption[A directory entry]{A directory entry (64 bytes). In v1.0, the level-1 fields are zero.}
+\label{t2fmt:fig:repertoire}
+\end{figure}
+
+\section{A chunk part}\label{t2fmt:sec:partie}
+
+A part starts with a 64-byte header and a table of 16-byte stream descriptors (\cref{t2fmt:fig:partie-entete}), then the streams, each aligned on 16, then zeros up to the multiple of 4{,}096. In v1.0, a level-0 part carries twelve streams, four per matrix: MEDIANES$_j$, BIAIS$_j$, DELTA$_j$, CODES\_CTX$_j$ for $j = 0$ (gate), 1 (up), 2 (down). \Cref{t2fmt:fig:partie} gives their mean sizes, measured over the 13{,}824 matrices of the 120b.
+
+\begin{figure}[ht]
+\centering
+\TdFmtPartieEntete
+\caption[A part header and a stream descriptor]{Top, a part header (64 bytes: magic \texttt{TRC0} at level 0, \texttt{TRC1} at level 1). Bottom, a stream descriptor (16 bytes). The fixed context is 0 for DELTA and \texttt{0xFF} (none) for raw streams and variable-context streams (lot F's precision 4); the bytes produced by a rANS stream equal its P field, padding included (precision 5).}
+\label{t2fmt:fig:partie-entete}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\TdFmtPartie
+\caption[A mean chunk and a CODES\_CTX stream]{A mean chunk of gpt-oss-120b, stream by stream, then the serialised CODES\_CTX stream. Data: \fichier{memoire/figures/donnees/tome2/flux-moyens.csv} and \fichier{calculs-format.csv}, drawn from \fichier{mesures/moteur/F/journaux/verifier-120b.json}.}
+\label{t2fmt:fig:partie}
+\end{figure}
+
+\paragraph{Padding, a plausibility check.} If the useful length of a part were uniformly distributed modulo 4{,}096, the mean padding would be $\frac{1}{4{,}096}\sum_{i=0}^{4{,}095} i = 2{,}047.5$ bytes. Measured: 2{,}036 bytes on the 120b, 2{,}029 on the 20b (mean chunk minus mean useful bytes) \calc. Padding therefore costs 0.017\,\% of the file, and principle 3 is paid at that price.
+
+\section{The rANS stream}\label{t2fmt:sec:rans}
+
+\subsection{Serialisation}
+
+A rANS stream (\cref{t2fmt:fig:flux-entete}) carries in 16 bytes what is needed to decode it: P, the number of bytes it produces (a multiple of 128); N, the number of macro-steps per tile (256); the geometry (1: one byte per symbol, 4 sub-steps per output word; 2: one nibble, 8 sub-steps); T, the number of tiles, $T = \lceil (P/128)/N \rceil$; W, the number of 16-bit words of the shared stream. Then come \texttt{début[T]} (the index of each tile's first word), \texttt{états[32\,T]} (the initial state of each lane of each tile), \texttt{mots[W]}, then zeros up to the multiple of 16.
+
+\begin{figure}[ht]
+\centering
+\TdFmtFluxEntete
+\caption[The header of a rANS stream]{The header of a rANS stream (16 bytes).}
+\label{t2fmt:fig:flux-entete}
+\end{figure}
+
+\paragraph{The calculation, for one gpt-oss matrix.} A matrix of $R = 2{,}880$ rows and $C = 2{,}880$ columns has $B = C/32 = 90$ blocks per row, $R \cdot B = 259{,}200$ blocks. Its codes are $16 \times 259{,}200 = 4{,}147{,}200$ bytes, i.e.\ $32{,}400$ macro-steps of 128 bytes, hence $T = \lceil 32{,}400/256 \rceil = 127$ tiles (126 full ones and one of 144 macro-steps). The fixed part of the stream is $16 + 4T + 128T = 16 + 508 + 16{,}256 = 16{,}780$ bytes. The mean CODES\_CTX stream is 3{,}960{,}750 bytes: $(3{,}960{,}750 - 16{,}780)/2 \approx 1{,}971{,}986$ words remain (padding of at most 15 bytes included). Over the matrix's $8{,}294{,}400$ weights, the stream costs $3{,}960{,}750 \times 8 / 8{,}294{,}400 = 3.8202$ bits per weight, of which $1{,}971{,}986 \times 16 / 8{,}294{,}400 = 3.8040$ are entropy-coded words and $0.0162$ the fixed part \calc. A matrix's DELTA has $259{,}200$ bytes, 8 tiles, a fixed part of 1{,}072 bytes, and costs $32{,}772 \times 8 / 8{,}294{,}400 = 0.0316$ bit per weight \calc.
+
+\subsection{Normative decoding}
+
+Constants: probabilities on 12 bits ($M = 4{,}096$), state $x$ on 32 bits, lower bound $L = 2^{16}$, 16-bit words. Tile $t$ covers macro-steps $tN$ to $\min((t+1)N, P/128) - 1$. Lane $l \in \{0, \dots, 31\}$ of macro-step $m$ produces the 32-bit output word of index $w = 32m + l$; its sub-steps $k = 0, 1, \dots$ produce, from low to high, byte $k$ (geometry 1) or nibble $k$ (geometry 2). A symbol's table is stored as a LUT of 4{,}096 32-bit entries (\cref{t2fmt:fig:lut}): for each slot $i \in [c[s], c[s] + f[s])$, the entry carries the symbol $s$, its frequency and the offset $i - c[s]$, where $c[s] = \sum_{u<s} f[u]$ is the cumulative frequency.
+
+\begin{figure}[ht]
+\centering
+\TdFmtLut
+\caption[The 32-bit LUT entry]{The 32-bit LUT entry, high bit on the left. In geometry 1, the frequency is stored minus one: $f = 4{,}096$ (a lone symbol) then fits in 12 bits (lot K's test \nolinkurl{symbole_unique_a_frequence_pleine}).}
+\label{t2fmt:fig:lut}
+\end{figure}
+
+Decoding a tile starts from $p \leftarrow \texttt{début}[t]$ and $x_l \leftarrow \texttt{états}[32t + l]$, then, for each macro-step, for each sub-step, \textbf{for $l = 0$ to 31 in order}: read the entry $e$ of the LUT of the symbol's context at slot $x_l \bmod 4{,}096$, extract $s$, $f$ and $b = i - c[s]$, set $y = f \cdot \lfloor x_l / 4{,}096 \rfloor + b$; if $y < L$, read a word ($x_l \leftarrow 2^{16} y + \texttt{mots}[p]$, $p \leftarrow p + 1$), otherwise $x_l \leftarrow y$; write $s$. \Cref{t2fmt:lst:decodeur} is this core, as \texttt{trc-codec} writes it.
+
+\begin{lstlisting}[language=Rust, caption={[The core of the rANS decoder]The core of the normative decoder (\fichier{moteur/crates/trc-codec/src/rans.rs}, \texttt{decoder\_avec}, shortened; comments in French, the language of the code). A missing word reads as 0 and is counted; no stream makes the decoder panic.}, label={t2fmt:lst:decodeur}]
+for m in 0..nb {                       // macro-pas de la tuile
+  for k in 0..spm {                    // sous-pas : 4 (geometrie 1) ou 8 (2)
+    for l in 0..VOIES {                // les 32 voies, DANS L'ORDRE
+      let w = (m0 + m) * VOIES + l;    // mot de sortie de 32 bits
+      let n = w * spm + k;             // indice du symbole
+      let Some(c) = contexte(n, &sortie) else { continue };   // saute
+      let e = luts[c as usize][(x[l] & (M - 1)) as usize];
+      let (s, f, b) = (e & 0xFF, ((e >> 8) & 0xFFF) + 1, e >> 20); // geometrie 1
+      let y = f * (x[l] >> 12) + b;
+      if y < L { x[l] = (y << 16) | mot(p); p += 1; } else { x[l] = y; }
+      sortie[n] = s as u8;
+    }
+  }
+}
+// fin de tuile : chaque voie doit valoir L, et p doit egaler debut[t + 1]
+let hors = x.iter().filter(|&&v| v != L).count();
+let mots_faux = deborde || p != fin;
+\end{lstlisting}
+
+The coder takes exactly the reverse path: it visits the symbols of a tile by \emph{decreasing} macro-step, sub-step and lane, starts from $x = L$ on every lane, and, for each symbol $s$ of frequency $f$ and cumulative frequency $c$, emits the word $x \bmod 2^{16}$ then sets $x \leftarrow \lfloor x / 2^{16} \rfloor$ if $x \ge f \cdot 2^{20}$, before coding $x \leftarrow \lfloor x/f \rfloor \cdot 4{,}096 + (x \bmod f) + c$. Finally it reverses its stack of words.
+
+\subsection{Why it is exact}
+
+The following four statements are lot F's (\fichier{mesures/moteur/F/derivations.md} §\,1 to 3), written out in full. Notation: a symbol $s$ has a frequency $f \in [1, M]$ and a cumulative frequency $c$; coding $C(s, x') = \lfloor x'/f \rfloor M + (x' \bmod f) + c$; decoding from $x$: slot $i = x \bmod M$, symbol $s$ such that $c \le i < c + f$, then $D(x) = f \lfloor x/M \rfloor + i - c$. The ANS principle is Duda's \cite{duda2013ans}; interleaving several states over a single word stream, Giesen's \cite{giesen2014interleaved}.
+
+\begin{lemme}[Exact inverse]\label{t2fmt:lem:inverse}
+For every $x' \ge 0$, $D(C(s, x')) = (s, x')$.
+\end{lemme}
+\begin{proof}
+Let $q = \lfloor x'/f \rfloor$ and $r = x' \bmod f$, so $x' = qf + r$ with $0 \le r < f$. Then $C = qM + (r + c)$ with $0 \le r + c < c + f \le M$: the slot is $i = r + c \in [c, c + f)$, so the symbol read is $s$, and $\lfloor C/M \rfloor = q$. Hence $D = fq + (r + c) - c = qf + r = x'$.
+\end{proof}
+
+\begin{lemme}[The state interval]\label{t2fmt:lem:intervalle}
+With the coder's emission rule, if $x \in I = [L, 2^{32})$ before coding a symbol, then the reduced state $x'$ satisfies $x' \in [f \cdot 2^4, f \cdot 2^{20})$, and $C(s, x') \in I$.
+\end{lemme}
+\begin{proof}
+Without emission, $L \le x < f \cdot 2^{20}$; now $f \cdot 2^4 \le M \cdot 2^4 = 2^{16} = L \le x$, so $x' = x \in [f \cdot 2^4, f \cdot 2^{20})$. With emission, $f \cdot 2^{20} \le x < 2^{32}$, so $x' = \lfloor x/2^{16} \rfloor \in [f \cdot 2^4, 2^{16})$, and $2^{16} \le f \cdot 2^{20}$ since $f \ge 1$. Finally $C(s, x') \ge \lfloor x'/f \rfloor M \ge 2^4 \cdot 2^{12} = L$ and $C(s, x') < (\lfloor x'/f \rfloor + 1) M \le 2^{20} \cdot 2^{12} = 2^{32}$.
+\end{proof}
+
+\begin{lemme}[The decoder reads exactly when the coder emitted]\label{t2fmt:lem:renorm}
+At the step that decodes a symbol, the decoder reads a word if and only if the coder emitted one when coding that symbol, and a single read suffices.
+\end{lemme}
+\begin{proof}
+By \cref{t2fmt:lem:inverse}, $y = D(x)$ is the coder's $x'$. If the coder emitted, $x' < 2^{16} = L$: the decoder reads, and $2^{16} y + w$ restores exactly the state before the emission ($w = x \bmod 2^{16}$), which lies in $I$. Otherwise $x' = x \ge L$ and the decoder does not read. A second read is never needed: for $y < L$, $2^{16} y + w \ge 2^{16} = L$ as soon as $y \ge 1$, and $y \ge 16 f \ge 16$ since $x \ge L$ gives $\lfloor x/M \rfloor \ge 16$.
+\end{proof}
+
+\begin{proposition}[The two free checks of a tile]\label{t2fmt:prop:controles}
+On an intact stream, the decoder (a) ends every lane on $x = L$; (b) consumes exactly the $\texttt{début}[t+1] - \texttt{début}[t]$ words of tile $t$.
+\end{proposition}
+\begin{proof}
+(a) By induction over the reversed steps, with \cref{t2fmt:lem:renorm}: the decoder's state after the $k$-th decoded symbol equals the coder's state before coding that symbol; after the last decoded symbol, which is the first coded, it is the coder's initial state, $L$.
+(b) The decoder reads a word at each step where the coder emitted one, and only there; the number of reads is therefore the number of emissions, the size of the tile's stack. The order of reads between lanes is the order of emissions reversed: the 32 lanes share a single stack because the coder's reverse order, reversed by the stack, is exactly the decoder's forward order.
+\end{proof}
+
+\paragraph{What the checks do not guard.} Neither (a) nor (b) guards the \emph{table}: a decoder reading a corrupted table stays within $I$ and may end on $L$. Lot K saw it on the card: a corrupted LUT slot gives a wrong output with \textbf{0 lanes off $L$} \mes~(\fichier{moteur/K-pour-le-memoire.md} §\,3). This is why the format carries the fingerprints of the tables, checked on opening, and those of the parts. Lot F's witness of witnesses checked it on the code: removing the count of lanes, or that of words, breaks one test each; its first pass had shown that a test looking only at their conjunction did not see the loss of the first (\fichier{mesures/moteur/F/casser-temoins-f1-passe1.log}). The second check (b) is not in the specification: lot F and lot K each added it on their own, without changing a byte of the format, and the judge found it true on 100\,\% of the decoded tiles (finding m4).
+
+\subsection{Thirty-two lanes at once}
+
+The rule ``for $l = 0$ to 31 in order'' seems to forbid decoding the lanes in parallel. It does not: only the order of \emph{word reads} ties the lanes together (\cref{t2fmt:fig:tuile}).
+
+\begin{figure}[ht]
+\centering
+\TdFmtTuile
+\caption[The rANS tile and the per-lane table]{The rANS tile and the per-lane table (figure M4 of the specification). Example classes $\kappa$ for the eight blocks of a macro-step.}
+\label{t2fmt:fig:tuile}
+\end{figure}
+
+\begin{proposition}[Parallel decoding of the lanes]\label{t2fmt:prop:parallele}
+At sub-step $(m, k)$, let $\nu_l = [y_l < L]$ be lane $l$'s renormalisation indicator. A decoder that computes the 32 lanes at once and gives lane $l$ the word $p + \sum_{l' < l} \nu_{l'}$, then advances $p$ by $\sum_l \nu_l$, produces the same symbols and the same states as the normative decoder.
+\end{proposition}
+\begin{proof}
+Computing $y_l$ depends only on $x_l$ and the LUT: it commutes between lanes. In the normative decoder, at sub-step $(m, k)$, the lanes that renormalise read words $p, p+1, \dots$ in increasing lane order: lane $l$ reads word $p$ plus the number of lower-index lanes that also read, i.e.\ $p + \sum_{l'<l} \nu_{l'}$; after the 32 lanes, $p$ has advanced by $\sum_l \nu_l$. Both decoders therefore make the same reads; by induction over sub-steps, states and pointer are equal at every step. Tiles, for their part, are independent: each has its start and its states.
+\end{proof}
+
+Two decoders use it without having read each other. On the card, a warp computes $\nu$ with \texttt{ballot} and the rank with \texttt{popc} of the masked vote (\fichier{moteur/K-pour-le-memoire.md} §\,2.1); in the trial, numpy computes it with a cumulative sum along the lane axis, $p + \texttt{cumsum}(\nu)_l - 1$ for a lane that renormalises, over the 127 tiles of a stream at once (\cref{t2fmt:lst:numpy}). The format is designed for this: 32 lanes per tile is the width of a warp.
+
+\section{Contexts: the table chosen by the decoder}\label{t2fmt:sec:contextes}
+
+For a matrix of $R$ rows and $B = C/32$ blocks per row, block $\beta = rB + b$ has a scale deviation $\delta[\beta]$ and a \emph{scale class}
+\[
+\kappa(\beta) = \begin{cases} 0 & \text{if } \delta[\beta] < 128 \text{ (scale below its row's median)},\\ 1 & \text{if } \delta[\beta] = 128 \text{ (at the median)},\\ 2 & \text{if } \delta[\beta] > 128 \text{ (above)}. \end{cases}
+\]
+For CODES\_CTX, a symbol's context is chosen \textbf{per lane}: word $w$ belongs to block $\lfloor w/4 \rfloor$ (a block is 16 bytes, hence 4 words), and its table is that of $\kappa(\lfloor w/4 \rfloor)$. The decoder always decodes DELTA before CODES\_CTX: it knows $\kappa$ before it needs it.
+
+\begin{proposition}[Context known to the decoder: exactness and rate]\label{t2fmt:prop:contexte}
+If the context $k(n)$ of symbol $n$ is a function of data the decoder holds before decoding $n$, decoding remains exact, and the number of bits emitted is $\sum_n -\log_2(f_{k(n)}[s_n]/M)$ up to the header and the final states.
+\end{proposition}
+\begin{proof}
+Exactness: \cref{t2fmt:lem:inverse} holds for any table; coder and decoder apply the same table to symbol $n$ since they compute the same $k(n)$, the coder from the source, the decoder from what it has already returned, identical by induction. Rate: a coding step multiplies the state by $M/f$ up to rounding ($x' \mapsto \approx x' M/f$), and each word emitted divides it by $2^{16}$; the number of words is therefore, up to a constant per lane, $\sum_n \log_2(M/f_{k(n)}[s_n]) / 16$.
+\end{proof}
+
+The choice of table is an \emph{address}, not a branch: on the card, the 32 lanes execute the same instruction and differ only in the LUT they read from shared memory. Against the three class streams of study 03, the per-lane table avoids reassembly and prefix sum, for the same rate: 3.8431 against 3.8434 bits per weight on the 12 tensors of F1 \mes~(\fichier{ARCHITECTURE.md} §\,3.3).
+
+\paragraph{Padding blocks.} The specification did not say the class of a padding block, when $16RB$ is not a multiple of 128. A matrix's DELTA produces $\lceil RB/128 \rceil \cdot 128$ bytes and its codes $\lceil 16RB/128 \rceil \cdot 128$, i.e.\ $\lceil RB/8 \rceil \cdot 8$ blocks. Since $\lceil RB/8 \rceil \cdot 8 \le \lceil RB/128 \rceil \cdot 128$, every padding block of the codes has a decoded δ, which is 0 (padding), hence $\kappa = 0$: the decoder has no extra rule to know (lot F's precision 6). For gpt-oss, $RB = 259{,}200 = 2{,}025 \times 128$: no padding.
+
+\section{The stream kinds}\label{t2fmt:sec:sortes}
+
+\begin{table}[ht]
+\centering\small
+\begin{tabularx}{\linewidth}{l l >{\raggedright\arraybackslash}X c}
+\toprule
+Code & Kind & Content, bytes produced for an $R \times C$ matrix (gpt-oss: $R = C = 2{,}880$, $B = 90$) & Level \\
+\midrule
+0x01 & MEDIANES & raw: $R$ bytes, each row's E8M0 median (\texttt{tri[B/2]} of the $B$ scales); 2{,}880 & 0 \\
+0x02 & BIAIS & raw: $R$ f32; 11{,}520 & 0 \\
+0x03 & DELTA & rANS geom.\ 1: $RB$ bytes, $\delta = (e - \text{med} + 128) \bmod 256$; 259{,}200 & 0 \\
+0x04 & CODES\_CTX & rANS geom.\ 1, per-lane table: $16RB$ bytes, the \texttt{qs} of the MXFP4 blocks in $\beta$ order; 4{,}147{,}200 & 0 (v1.0) \\
+0x05 & (reserved) & three reassembled class streams: neither produced nor read & — \\
+0x06 & CODES\_BRUTS & raw: $16RB$ bytes (raw file only) & 0 \\
+0x07 & ECHELLES\_BRUTES & raw: $RB$ E8M0 bytes (raw file only) & 0 \\
+0x10 & BASE\_CTX & rANS geom.\ 1, per-lane table: each nibble = sign and magnitude class & 0 (v1.1) \\
+0x11 & COMPL\_CTX & rANS geom.\ 2, per-symbol table: rank of the magnitude within its class & 1 (v1.1) \\
+0x12 & CENTRES & table kind only: the 4 reconstruction values of the base & — \\
+\bottomrule
+\end{tabularx}
+\caption[The stream kinds]{The stream kinds (\fichier{ARCHITECTURE.md} §\,4.10; names as in the code). Kinds 0x10 to 0x12 are reserved to the bit for v1.1 (J2) and produced by no written file.}
+\label{t2fmt:tab:sortes}
+\end{table}
+
+\section{The exact reconstruction of an expert}\label{t2fmt:sec:reconstruction}
+
+\subsection{The normative procedure}
+
+For each matrix $j$ ($R$ rows, $C$ columns, $B = C/32$):
+\begin{enumerate}
+\item read MEDIANES$_j$ $\to$ $\text{med}[r]$ and BIAIS$_j$ $\to$ $\text{bias}[r]$;
+\item decode DELTA$_j$ $\to$ $\delta[\beta]$, then $e[\beta] = (\text{med}[r] + \delta[\beta] - 128) \bmod 256$ and $\kappa(\beta)$;
+\item decode CODES\_CTX$_j$ with the per-lane table $\kappa$ $\to$ $\texttt{qs}[16\beta \dots 16\beta + 15]$;
+\item write the card's slot: codes, scales, biases (\cref{t2fmt:sec:emplacement}).
+\end{enumerate}
+
+\begin{lstlisting}[language=Rust, caption={[Reconstructing a v1.0 matrix]Reconstructing a v1.0 matrix (\fichier{moteur/crates/trc-codec/src/lib.rs}, \texttt{decoder\_matrice\_v10}, shortened).}, label={t2fmt:lst:matrice}]
+let (delta, bd) = rans::decoder_une_table(&flux_d, &t.delta.lut)?;   // 2. les deltas
+let kappa: Vec<u8> = delta.iter().map(|&d| classe_echelle(d)).collect();
+let mut echelles = vec![0u8; n_blocs];
+for (beta, e) in echelles.iter_mut().enumerate() {                  // e = med + delta - 128
+    *e = med[beta / b].wrapping_add(delta[beta]).wrapping_sub(128);   // (mod 256)
+}
+let luts: [&[u32]; 3] = [&t.codes[0].lut, &t.codes[1].lut, &t.codes[2].lut];
+let (mut codes, bc) = rans::decoder_par_voie(&flux_c, &kappa, &luts)?; // 3. table par voie
+codes.truncate(16 * n_blocs);                                        // sans le bourrage
+\end{lstlisting}
+
+\subsection{The original expert, and why nothing needs reordering}
+
+The original expert, in the sense of the fingerprints, is the sequence, for $j = 0, 1, 2$, of the $RB$ 17-byte MXFP4 blocks $[e[\beta], \texttt{qs}[16\beta \dots 16\beta + 15]]$ in $\beta$ order, then, for $j = 0, 1, 2$, of the $R$ f32 biases: $3 \times (17 \times 259{,}200 + 4 \times 2{,}880) = 13{,}253{,}760$ bytes for gpt-oss \calc. An MXFP4 block carries 32 E2M1 weights (4 bits each, two per byte) and a common E8M0 scale (one byte, a power of two) \cite{ocp_mx_v1}.
+
+\begin{lemme}[The original expert in the GGUF]\label{t2fmt:lem:origine}
+In the GGUF, tensor \texttt{blk.$\ell$.ffn\_*\_exps\allowbreak.weight} has ggml dimensions $[C, R, E]$, stored with $\texttt{ne}_0 = C$ fastest. Block $b$ of row $r$ of expert $x$ is block $(xR + r)B + b$ of the tensor, and expert $x$ occupies bytes $[17xRB, 17(x+1)RB)$, in one piece; its biases (F32 tensor $[R, E]$) occupy $[4xR, 4(x+1)R)$.
+\end{lemme}
+\begin{proof}
+A row of $C$ MXFP4 weights is $B = C/32$ blocks of 17 bytes; an expert matrix, $R$ rows; experts follow each other along the slowest dimension. The block index is therefore $((x \cdot R) + r) \cdot B + b$, and the $RB$ blocks of $x$ are consecutive. Same argument for the biases, at 4 bytes per value.
+\end{proof}
+
+The lemma means the original fingerprint is computed without reordering anything:
+\[
+r(x) = \text{first 8 bytes of } \text{SHA-256}\bigl(\text{gate}_x \,\|\, \text{up}_x \,\|\, \text{down}_x \,\|\, \text{bias}_{\text{gate},x} \,\|\, \text{bias}_{\text{up},x} \,\|\, \text{bias}_{\text{down},x}\bigr).
+\]
+The coder computes it on the GGUF slices; the check recomputes it on the decoded expert \emph{and} on the slices, independently.
+
+\begin{theoreme}[Exact reconstruction]\label{t2fmt:thm:reconstruction}
+For every expert $x$ and every v1.0 file written by the coder from a GGUF, the normative procedure applied to the level-0 part of $x$ returns exactly the bytes of the original expert.
+\end{theoreme}
+\begin{proof}
+\emph{Biases}: stream BIAIS$_j$ is the copied bias slice, and is read back as is. \emph{Scales}: the coder sets $\delta = (e - \text{med} + 128) \bmod 256$, the decoder $e' = (\text{med} + \delta - 128) \bmod 256$; in $\mathbb{Z}/256\mathbb{Z}$, $e' = \text{med} + (e - \text{med} + 128) - 128 = e$. The median read is the one the coder wrote (raw stream), whatever its value: the identity does not depend on it really being the median. \emph{Decoded δ}: DELTA$_j$ is a single-table stream; by \cref{t2fmt:lem:inverse,t2fmt:lem:renorm} and \cref{t2fmt:prop:controles}, the decoder returns the coded sequence. \emph{Codes}: CODES\_CTX$_j$ is coded with the table of $\kappa(\lfloor w/4 \rfloor)$, a function of the already decoded δ, equal to the coder's; by \cref{t2fmt:prop:contexte}, decoding returns the coded \texttt{qs}, padding included, which truncation to $16RB$ removes. \emph{Assembly}: the original expert is the concatenation of the blocks $[e[\beta], \texttt{qs}[16\beta\dots]]$ in $\beta$ order then of the biases, in matrix order; this is what \texttt{ExpertDecode::octets\_origine} returns, and it is the GGUF layout by \cref{t2fmt:lem:origine}.
+\end{proof}
+
+\subsection{The expert slot on the card}\label{t2fmt:sec:emplacement}
+
+The card's decoder does not write the original expert but a ``structure of arrays'' (SoA) layout read by the GEMV (seam N, \fichier{ARCHITECTURE.md} §\,5.6). For each matrix: the codes ($16RB$ bytes, $\beta$ order) at offset 0; the scales ($RB$ bytes) at offset $\mathrm{al}_{256}(16RB)$; the biases ($4R$ bytes) at offset $\mathrm{al}_{256}(\mathrm{al}_{256}(16RB) + RB)$; matrix pitch $\mathrm{al}_{256}(\text{bias offset} + 4R)$, where $\mathrm{al}_{256}(x)$ rounds up to the next multiple of 256. For gpt-oss: codes 4{,}147{,}200 bytes at 0; scales 259{,}200 at 4{,}147{,}200; $4{,}147{,}200 + 259{,}200 = 4{,}406{,}400 = 17{,}212.5 \times 256$, hence biases at $17{,}213 \times 256 = 4{,}406{,}528$; $4{,}406{,}528 + 11{,}520 = 4{,}418{,}048 = 17{,}258 \times 256$, hence a pitch of 4{,}418{,}048 bytes and a \textbf{slot of 13{,}254{,}144 bytes} \calc~(lot K's test \nolinkurl{disposition_de_gpt_oss_egale_la_specification}). A weight's value is $k[\text{code}] \cdot 2^{e - 128}$ with $k \in \{0, 1, 2, 3, 4, 6, 8, 12\}$ signed by bit 3: the E2M1 magnitudes are doubled, hence the exponent $e - 128$ instead of $e - 127$.
+
+\section{The fingerprints}\label{t2fmt:sec:empreintes}
+
+\begin{definition}[Fingerprint64]
+For a byte sequence $o$, $\mathrm{fingerprint64}(o)$ is the little-endian integer formed by the first 8 bytes of $\mathrm{SHA\text{-}256}(o)$ \cite{fips180_4} (\texttt{empreinte64} in the code).
+\end{definition}
+
+The format carries them everywhere: the header (over its first 4{,}088 bytes), the end of META, of the RESIDENTS table, of TABLES, of DIRECTORY; each resident tensor; each chunk part (useful bytes); each original expert. The full SHA-256 of the source GGUF is in the header. On opening, the engine checks the header, the tables, the directory and the file size (a few MB hashed). In production, since the correction round, the guard compares the fingerprint of every part read with the directory's (previous chapter).
+
+\begin{proposition}[What an equality of fingerprints excludes]\label{t2fmt:prop:collision}
+If fingerprint64 behaves as a random function on the errors considered (an error not crafted against SHA-256: an offset, a matrix order, a flipped bit), the probability that at least one wrong expert among $n$ has its original's fingerprint is at most $n \cdot 2^{-64}$; for the 4{,}608 experts of the 120b, $4{,}608 / 1.8447\cdot10^{19} \approx 2.50\cdot10^{-16}$ \calc.
+\end{proposition}
+\begin{proof}
+For a given distinct pair, the probability of the same 64-bit image is $2^{-64}$; the union bound over the $n$ experts gives $n \cdot 2^{-64}$.
+\end{proof}
+This is no guarantee against an adversary: the 64-bit prefix breaks in about $2^{32}$ trials by the birthday paradox, if one chooses both contents. Nobody here crafts the GGUF's bytes.
+
+\paragraph{What each check sees.} A fingerprint does not have the same reach depending on what it hashes (\fichier{moteur/E-pour-le-memoire.md}, D14). The part's fingerprint sees any bit flipped in its useful bytes. The original expert's fingerprint, recomputed from the decoded expert, sees only what changes the output: a field the decoder does not read (the layer or expert of a part header, a reserved byte) changes nothing. The card decoder's counters see format faults and lanes off $L$, neither the raw streams nor the identity of the part. The break of bench E2 established it on the real path: twelve flipped bits, one per kind of region, \textbf{12 detected out of 12}, of which 12 by the part's fingerprint, 11 by the expert's, 9 by the counters; in production (before the guard), 9 \mes. The trial's decoder, on the same copy, names who sees what: 6 chunks through lanes off $L$, 2 through a format error, 2 through the part header (their decoded bytes nonetheless equal the GGUF), and \textbf{only 2 through the expert's fingerprint}: one MEDIANES byte (layer 23, expert 4) and one BIAIS byte (layer 21, expert 24), all lanes on $L$ \mes~(\fichier{mesures/epreuve-J1.md} §\,2.4). This is finding M1, which the guard closed.
+
+\section{The bounded-memory coder}\label{t2fmt:sec:codeur}
+
+\subsection{Why two passes}
+
+At 15:10 on 2026-10-15, the machine had only 336\,MB of available memory: another lot's tracer was reading gpt-oss-120b and held 8.7\,GB private \mes~(\fichier{mesures/moteur/F/00-seuils-declares.md}). The first version of the coder kept a layer's 128 prepared experts, i.e.\ $3 \times 128 \times 4{,}406{,}400 \approx 1.69$\,GB on the 120b \calc: it would have made another's measurement page out. Lot F rewrote it in two passes by packets of $p = 2 \times \text{threads}$ experts (\cref{t2fmt:fig:codeur}); the format did not change by a byte.
+
+\begin{figure}[ht]
+\centering
+\TdFmtCodeur
+\caption[The two-pass coder and its window]{The two-pass coder of a layer, and its memory window to scale: a packet of 12 experts ($\approx 0.50$\,GB, i.e.\ 0.47\,GiB: 502{,}252{,}544 bytes; lot F wrote \barre{0.47\,GB}) against the whole layer of the one-pass version (0.42\,GB on the 20b, 1.69\,GB on the 120b).}
+\label{t2fmt:fig:codeur}
+\end{figure}
+
+\subsection{Same bytes, bounded memory}
+
+Notation: a layer has $E$ experts; for matrix $j$, expert $x$ gives a preparation $P_j(x)$ (medians, δ, \texttt{qs}, a function of its own original blocks only) and counts $N_j(x)$ (histogram of δ, histograms of the codes per class $\kappa$), integer vectors.
+
+\begin{proposition}[Identity of the two coders]\label{t2fmt:prop:identite}
+The bytes written by the two-pass coder are those of the one-pass coder.
+\end{proposition}
+\begin{proof}
+(1) \emph{Counts.} In one pass, $N_j = \sum_x N_j(x)$, summed by a parallel fold in any order; in two passes, $N_j = \sum_{\text{packets}} \sum_{x \in \text{packet}} N_j(x)$. Integer addition (u64, without overflow: at most $E \cdot RB \cdot 16 \approx 5.3\cdot10^8$ per bin for the 120b) is associative and commutative: both $N_j$ are equal. (2) \emph{Tables}: a deterministic function of $N_j$ (rounding rule of study 03): equal. (3) \emph{Chunks}: a chunk is a function of $(P_0(x), P_1(x), P_2(x), \text{biases of } x, \text{the layer's tables})$; $P_j(x)$ is recomputed in the second pass from the same bytes (\cref{t2fmt:lem:origine}): same chunks. (4) \emph{Order}: (layer, expert) in both cases, a packet's results gathered in $x$ order: same offsets, same directory, same fingerprints, same header. The original fingerprint, computed in one pass by a hasher fed matrix after matrix and in two passes by a single call on the sequence, covers the same byte sequence; SHA-256 does not depend on how calls split it.
+\end{proof}
+
+\paragraph{The witness.} The 20b recoded by the two-pass version must have the SHA-256 of the F2 file, computed by \texttt{Get-FileHash} (a path independent of our code): \texttt{e8bd6ae1…169f} on both sides; the copy with a flipped bit gives \texttt{c40f1163…7123}: the instrument falls \mes~(\fichier{journaux/identite-20b-2passes.txt}).
+
+\begin{proposition}[Memory bound]\label{t2fmt:prop:memoire}
+With $p$ experts per packet, the peak of the expert loop is bounded by
+\[
+\underbrace{p \sum_j 17 R_j B_j}_{\text{blocks read}} + \underbrace{p \sum_j 17 R_j B_j}_{\text{preparations}} + \underbrace{p\, T_{\max}}_{\text{assembled chunks}} + \underbrace{3 \cdot 4 R E}_{\text{layer's biases}} + \underbrace{2 \times 16\,\mathrm{MiB}}_{\text{bounce, chunk copy}},
+\]
+where only the biases term depends on $E$.
+\end{proposition}
+\begin{proof}
+A packet is read, prepared (at most one preparation in flight per expert of the packet, $(16 + 1) R_j B_j$ bytes per matrix), coded and written before the next is read; a packet's chunks are held until written; the layer's biases are read once; the unbuffered read goes through an aligned bounce buffer, and the copy of residents through 16\,MiB pieces. Nothing else depends on the size of a tensor.
+\end{proof}
+
+\paragraph{The calculation, for gpt-oss and $p = 12$.} $\sum_j 17 R_j B_j = 3 \times 17 \times 259{,}200 = 13{,}219{,}200$ bytes. Blocks read and preparations: $2 \times 12 \times 13{,}219{,}200 = 317{,}260{,}800$; chunks: $12 \times 12{,}251{,}136 = 147{,}013{,}632$; biases: $34{,}560\,E$, i.e.\ 1{,}105{,}920 (20b) and 4{,}423{,}680 (120b); bounce and piece: 33{,}554{,}432. Total on the 120b: $502{,}252{,}544$ bytes \calc. Lot F wrote \barre{$\approx 0.47$\,GB}: that is $0.47$\,\emph{GiB}; in bytes, the bound is $0.50$\,GB (the writer's correction, 2026-10-16: unit). The model-dependent term weighs only 3.3\,MB of difference between the two. The one-pass version additionally kept $3 E \times 4{,}406{,}400$ bytes of preparations: 0.42\,GB (20b), 1.69\,GB (120b). Hence the threshold, declared before launching F3: 120b peak $\le 1.25 \times$ 20b peak, the 25\,\% margin covering the working-set noise (allocator, threads), declared and not measured.
+
+\begin{figure}[ht]
+\centering
+\TdFmtGraphePointes
+\caption[Peak memory of the coder and the check]{Peak working set of the coder and the check, one pass against two passes (sampled every 0.5\,s by the launcher). The 120b, five times larger, is coded and checked within the same window as the 20b: ratios 1.033 (coder) and 1.028 (check), below the 1.25 threshold \mes. Data: \fichier{mesures/moteur/F/csv/pointes-memoire.csv}.}
+\label{t2fmt:fig:pointes}
+\end{figure}
+
+\paragraph{The price, and a unit wrong twice.} The experts are read twice: $2 \times 61.0$\,GB on the 120b instead of $61.0$\,GB. At the disk's throughput for random 4\,MiB reads at queue depth 4 (2.58\,GB/s, study 01; \barre{sequential throughput}: sequential reads of 4\,MiB blocks run there at 1.04 to 1.63\,GB/s), the second read costs $61.0 / 2.58 = 23.6$ seconds \calc. Lot F had written \barre{$\approx 24$ more minutes} in its derivations, and struck it itself (``the unit was wrong''); the head comment of \fichier{moteur/bins/trc-codeur/src/coder.rs} still says ``\barre{on the order of 25 more minutes of disk}'': the same error, found by the writer on 2026-10-16 and reported to lot F (the file is not his). Coding the 120b took 1{,}153\,s in all: the second read weighs about 2\,\% of it ($23.6 / 1{,}153 = 2.05\,\%$ \calc), the processor's rANS does the rest.
+
+\begin{faux}[title={What the witness had not covered: error 87}]
+The first two-pass version computed the GGUF's SHA-256 in 16\,MiB pieces read unbuffered, and read again after the short read at the end of the file, at an offset no longer aligned: Windows refuses (error 87, invalid parameter). The defect was seen on the 20b, corrected (a short read only happens at the end of the file; the caller compares the total with the size), and a fourth break of the unbuffered-read witness now covers it: four breaks out of four fall, the restored test holds \mes~(\fichier{journaux/casser-lecture.log}).
+\end{faux}
+
+\section{C1 on 768 and 4{,}608 experts}\label{t2fmt:sec:cun}
+
+\subsection{The first path: five checks per expert}
+
+The check (\texttt{trc-codeur verifier}) does not trust the coder: it re-reads the \texttt{.trc} through \texttt{trc-format} (all fingerprints), decodes each expert through \texttt{trc-codec}, and compares with the slices read from the GGUF. Five checks per expert: (1) the fingerprint of the part's useful bytes equals the directory's; (2) decoding succeeds (lanes on $L$, words consumed); (3) the reconstructed original bytes equal the GGUF slices byte for byte; (4) the decoded expert's fingerprint equals the directory's original fingerprint; (5) the fingerprint of the GGUF slices equals it too.
+
+\begin{table}[ht]
+\centering\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X r r}
+\toprule
+Quantity (threshold declared beforehand) & gpt-oss-20b & gpt-oss-120b \\
+\midrule
+Exact experts, five checks each (0 wrong) & 768 of 768 & \textbf{4{,}608 of 4{,}608} \\
+Failed checks: part, decoding, bytes, decoded, GGUF & 0, 0, 0, 0, 0 & 0, 0, 0, 0, 0 \\
+Residents equal, bytes and fingerprint & 315 of 315 & 471 of 471 \\
+GGUF SHA-256, recomputed by the coder then the check & \texttt{27cd6c43…5901} & \texttt{582bd40f…622d} \\
+$r_{03}$ (within 0.1\,\% of study 03: 1.1037 and 1.1026) & 1.103732 & 1.102592 \\
+Bits per weight: codes, δ, medians, total & 3.8135; 0.0343; 0.0028; 3.8506 & 3.8202; 0.0316; 0.0028; 3.8546 \\
+Chunks: min, mean, max (bytes) & 11{,}837{,}440; 12{,}013{,}664; 12{,}144{,}640 & 11{,}763{,}712; 12{,}026{,}060; 12{,}251{,}136 \\
+Size of the \texttt{.trc} (arbiter's mark at 1\,\%) & 11{,}157{,}405{,}696 (+0.52\,\%) & 57{,}730{,}662{,}400 (+0.14\,\%) \\
+In-memory break (one median corrupted) & only (7, 13) wrong & only (29, 101) wrong \\
+\bottomrule
+\end{tabularx}
+\caption[C1: the verdict]{Criterion C1 and the rates, against the thresholds declared before the runs (\fichier{mesures/moteur/F/verdicts.md}; logs \fichier{verifier-20b.json}, \fichier{verifier-120b.json}, \fichier{comparer-03-120b.json}). On a real copy of the 20b with a single byte changed (offset 8{,}818{,}286{,}848, 120 $\to$ 121, seen by \texttt{cmp -l}), exactly expert (17, 29) falls, exit code 1.}
+\label{t2fmt:tab:cun}
+\end{table}
+
+In each break, the checks ``part'', ``bytes'' and ``decoded'' fall; ``decoding'' holds (a corrupted median changes $e = \text{med} + \delta - 128$, not the rANS streams); ``GGUF'' holds (the source is untouched). This is the expected pattern, and it says that the five checks are not redundant.
+
+\paragraph{The rate, word by word.} On the 120b, study 03's accounting (original MXFP4 blocks against the MEDIANES, DELTA and CODES\_CTX streams as stored) gives codes 3.820169, δ 0.031609, medians 0.002778, i.e.\ \textbf{3.854555 bits per weight}; with the tables (224{,}656 bytes), 3.854571 \mes. The medians cost exactly one byte per row of 2{,}880 weights: $8/2{,}880 = 0.0027778$ \calc. The ratio $r_{03}$ reads directly: 17 original bytes for 32 weights make $17 \times 8 / 32 = 4.25$ bits per weight, and $4.25 / 3.854555 = 1.102592$, the published $r_{03}$ \calc. The ratio of whole chunks (headers, biases, padding included) is $13{,}253{,}760 / 12{,}026{,}060.4 = 1.102087$ \calc. The twelve F1 tensors of the 20b equal the arbiter's measurement to the millionth, which makes the production coder a second path of F1 (\fichier{csv/f1-contre-trc-20b.csv}).
+
+\begin{figure}[ht]
+\centering
+\TdFmtGrapheTaux
+\caption[Bits per weight per tensor and layer]{Bits per weight of each expert tensor (codes, δ and medians), layer by layer, for both models. The rate is regular across layers and across gate, up and down, within 0.05 bit, except layer 0 of the 120b (gate and up near 3.80). Data: \fichier{mesures/moteur/F/csv/taux-par-tenseur-{120b,20b}.csv}.}
+\label{t2fmt:fig:taux}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\TdFmtGrapheTroncons
+\caption[Chunk size per layer]{Chunk size per layer (mean, minimum and maximum over the layer's experts), against the original MXFP4 expert (13{,}253{,}760 bytes). The largest chunk of the 120b (12{,}251{,}136 bytes, layer 0) sets the size of the engine's arrival buffers. Data: \fichier{mesures/moteur/F/csv/troncons-par-couche-{120b,20b}.csv}.}
+\label{t2fmt:fig:troncons}
+\end{figure}
+
+\subsection{The second path: no line in common}
+
+The first path reads the GGUF with the coder's own function (\texttt{gguf::lire\_dans}): a systematic read error (reading another expert's slice, a wrong offset) would be common to the coder and to the check, and C1 would hold wrongly. Lot F therefore wrote a second path (\fichier{mesures/moteur/F/second\_chemin\_c1.py}): Python, standard library only (\texttt{hashlib} on OpenSSL 3.0.18, not the \texttt{sha2} crate), written from §\,4 alone and the GGUF v3 specification, without re-reading \texttt{trc-format}, \texttt{trc-codec} or the coder's reader; the GGUF read unbuffered; the tensor offsets redone a third time by llama.cpp's own GGUF reader (\texttt{gguf\_init\_from\_file} of \texttt{ggml-base.dll} b11515, MIT) \cite{llamacpp_b11515_gguf}. \Cref{t2fmt:fig:cun} shows how the two paths meet.
+
+\begin{figure}[ht]
+\centering
+\TdFmtCun
+\caption[The two paths of C1]{The two paths of C1 on the 120b.}
+\label{t2fmt:fig:cun}
+\end{figure}
+
+\begin{proposition}[The second path closes the gap of a shared reading]\label{t2fmt:prop:second-chemin}
+Let $G(x)$ be the bytes of the original expert, $D(x)$ the decoded expert, $r(x)$ the directory's fingerprint, $h$ fingerprint64. If $h(D(x)) = r(x)$ (first path) and $h(G_2(x)) = r(x)$ (second path, $G_2$ read by another program), then $D(x) \ne G_2(x)$ would require a collision of $h$; and a read error of the coder passes only if $G_2$ errs in exactly the same way.
+\end{proposition}
+\begin{proof}
+The two equalities give $h(D(x)) = h(G_2(x))$; \cref{t2fmt:prop:collision} bounds the probability of a collision by $4{,}608 \cdot 2^{-64}$ over the model. A systematic error of \texttt{gguf::lire\_dans} would make $G_1(x) \ne G(x)$; the coder would have stored $r(x) = h(G_1(x))$, and the check would have found $D = G_1$, wrongly. The second path compares $r(x)$ with $h(G_2(x))$: two programs without a common line, one of which (llama.cpp) is the reference for the GGUF format, would have to err in the same way.
+\end{proof}
+
+\paragraph{What it measured.} On both models, on mains power: 0 discrepancies between the Python reader and llama.cpp (459 and 687 tensors); data zone tiled without gaps; SHA-256 by \texttt{hashlib} equal to the download register (third computation, the first outside \texttt{sha2}); header, META (36 pairs byte for byte, plus 3), TABLES (288 and 432), DIRECTORY without discrepancy; \textbf{0 wrong expert fingerprints out of 768, then out of 4{,}608}; BIAIS and MEDIANES equal byte for byte to their recomputed sources \mes~(\fichier{journaux/second-chemin-{20b,120b}.json}). The medians, recomputed: for $B = 90$, the median is \texttt{tri[45]}, the 46\textsuperscript{th} smallest of a row's 90 scale bytes.
+
+\begin{table}[ht]
+\centering\small
+\begin{tabularx}{\linewidth}{l >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+Break & Expected & 20b & 120b \\
+\midrule
+code bit & that expert, fingerprint only & (3, 7): fingerprint only & (3, 7): fingerprint only \\
+recomputed median & that expert, MEDIANES only & (5, 9): MEDIANES only & (29, 101): MEDIANES only \\
+bias bit & that expert, fingerprint and BIAIS & (11, 13) & (35, 127) \\
+shifted reader & 1 discrepancy against llama.cpp & 1 (\texttt{output.weight}) & 1 \\
+SHA-256 & different & different & different \\
+slice of $x + 1$ & all experts read wrong & 768 of 768 (and MEDIANES 768) & 256 of 256 (layers 0 and 1, declared) \\
+\bottomrule
+\end{tabularx}
+\caption[The six breaks of the second path]{The six breaks of the second path: each falls exactly where it aims, and the other experts stay correct (\fichier{verdicts.md}; \fichier{csv/second-chemin-c1.csv}). The shift also brings down the medians (they come from the same slices) and leaves the biases correct (they are not shifted): each check sees its own byte.}
+\label{t2fmt:tab:cassures-c1}
+\end{table}
+
+\begin{faux}[title={What the witness caught in its author}]
+The first version of the second path read the GGUF version number on the magic (cursor at 0 instead of 4). Its growing re-read of the head, made for long metadata, then grew without bound up to the whole file: 9.6\,GB of RAM on a 16\,GB machine, before failing. Corrected (cursor at 4, re-read bounded to 256\,MiB). Lesson: an unbounded fallback loop turns a parsing error into a load for the whole machine (\fichier{moteur/REPRISE-F.md}).
+\end{faux}
+
+One link was still missing: ``chunk bytes $\to$ decoded expert'' had only a processor decoder on the 120b. Lot K's card decoder redid it: \textbf{4{,}608 of 4{,}608} experts of the real file equal to \texttt{trc-codec} and to the directory (\fichier{mesures/moteur/K/k1-trc-gptoss120b.json}) \mes.
+
+\section{The trial's independent decoder}\label{t2fmt:sec:epreuve}
+
+The specification foresaw a gesture to know whether it was true (\fichier{ARCHITECTURE.md} §\,8.1): a judge who did not write it codes a Python decoder \emph{from §\,4 alone}, without reading \texttt{trc-format} or \texttt{trc-codec}, and must give back, to the bit, chunks drawn at random. A failure would have been a defect of the specification or of the coder.
+
+\paragraph{What the tool does.} \fichier{mesures/moteur/epreuve-J1/decodeur\_s4.py} (Python 3.13, numpy) contains its own GGUF v3 reader, checks the header field by field, META, RESIDENTS, TABLES and DIRECTORY, then decodes each drawn chunk with the rANS of §\,4.9.2, \emph{vectorised over the tiles} (127 tiles $\times$ 32 lanes in parallel, 1{,}024 sequential steps per stream, 0.8\,s per expert), the per-lane table and the reconstruction. The expert is compared with the directory's original fingerprint and with the GGUF bytes at the offset of \cref{t2fmt:lem:origine}; two checks the decoder does not require are added (median equal to \texttt{tri[B/2]}, end of each tile equal to the start of the next).
+
+\begin{lstlisting}[language=Python, caption={[The trial's vectorised rANS]The core of the judge's vectorised rANS (\fichier{mesures/moteur/epreuve-J1/decodeur\_s4.py}, \texttt{decoder\_flux}, geometry 1, shortened; comments in French): the rule ``for $l = 0$ to 31 in order'' becomes a cumulative sum along the lane axis (\cref{t2fmt:prop:parallele}).}, label={t2fmt:lst:numpy}]
+for ml in range(N):                        # macro-pas local, toutes les tuiles ensemble
+    m = tuiles * N + ml
+    act = np.nonzero(m < total_m)[0]       # tuiles encore actives
+    w = m[act, None] * 32 + voies[None, :] # mot de sortie de chaque voie
+    ctx = kappa[w >> 2]                    # table par voie : bloc = w / 4
+    xa, pa = x[act], p[act]
+    for k in range(4):                     # sous-pas
+        e = luts[ctx, (xa & 4095).astype(np.int64)].astype(np.uint64)
+        s, f, b = e & 0xFF, ((e >> 8) & 0xFFF) + 1, e >> 20
+        y = f * (xa >> 12) + b
+        besoin = y < L_RANS                # voies qui renormalisent
+        cs = np.cumsum(besoin, axis=1)     # rang de chaque lecture dans la tuile
+        idx = np.clip(pa[:, None] + cs - 1, 0, max(W - 1, 0))
+        xa = np.where(besoin, (y << 16) | mots[idx], y)
+        pa = pa + cs[:, -1]
+        sortie[4 * w + k] = s.astype(np.uint8)
+    x[act], p[act] = xa, pa
+\end{lstlisting}
+
+\paragraph{The results.} \textbf{20 chunks out of 20} drawn in \texttt{gpt-oss-120b.trc} (seed 20261016) equal to the GGUF to the bit, and 20 out of 20 in the 20b; 0 lanes off $L$, 0 tiles whose end differs from the start of the next; 172{,}800 rows out of 172{,}800 whose median equals \texttt{tri[B/2]}; the 471 residents of the 120b and the 315 of the 20b equal to the GGUF byte for byte; header, META (39 = 36 + 3 pairs), TABLES (432 tables summing to 4{,}096), DIRECTORY (4{,}608 contiguous entries from the start of CHUNKS to the end of the file) and \texttt{.vocab.gguf} companions conforming \mes~(\fichier{mesures/epreuve-J1.md} §\,2.2; \fichier{journaux/s4-gptoss120b-20.json}).
+
+\begin{table}[ht]
+\centering\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X r r c}
+\toprule
+Break (chunk layer 12, expert 54) & Lanes off $L$ & Wrong bytes & The second holds \\
+\midrule
+one bit flipped in the words of CODES\_CTX & 32 (one tile) & 31{,}122 & yes \\
+two frequencies of a table swapped & 4{,}064 & 3{,}624{,}195 & yes \\
+one median changed by one unit & \textbf{0} & 90 (one row of scales) & yes \\
+one LUT slot corrupted & 4{,}032 & 3{,}262{,}607 & yes \\
+\bottomrule
+\end{tabularx}
+\caption[The breaks of the trial's decoder]{The breaks of the trial's decoder (\fichier{mesures/epreuve-J1.md} §\,2.3). The corrupted median leaves all lanes on $L$ and changes exactly the 90 scales of one row: only the expert's fingerprint sees it. The flipped bit corrupts a single tile: tiles are independent, and the error does not cross the boundary.}
+\label{t2fmt:tab:cassures-s4}
+\end{table}
+
+\subsection{What writing the decoder taught about the text}
+
+``Nothing was missing to decode to the bit'', the judge writes. But a second implementer had to guess three things, which lot F had settled on its side among nine precisions (\cref{t2fmt:tab:precisions}). None changes a byte of the written files; all await the arbiter carrying them into the specification.
+
+\begin{table}[ht]
+\centering\small
+\begin{tabularx}{\linewidth}{c >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+& Precision (delegated answer of 2026-10-15, reversible) & Seen by the judge too \\
+\midrule
+1 & a section's length is useful: fingerprint included, padding excluded & yes (m4.1) \\
+2 & the residents table's fingerprint is in the last 8 bytes of the section & yes (m4.2) \\
+3 & a part's useful bytes end with its last stream & — \\
+4 & fixed context: 0 for DELTA, \texttt{0xFF} otherwise & — \\
+5 & bytes produced by a rANS stream = its P field (padding included); by a raw stream, its length & — \\
+6 & a padding block has $\kappa = 0$ (\cref{t2fmt:sec:contextes}) & — \\
+7 & structures of §\,5.3 extended (fields and functions added, nothing changed) & — \\
+8 & table rounding rule: study 03's (not normative, the frequencies are stored) & — \\
+9 & order of the raw file's streams: for each $j$, its three streams in a row; empty TABLES & — \\
+m4.3 & ``the end of tile $t$ is the start of tile $t+1$'': true on 100\,\% of tiles, not normative & second free check (\cref{t2fmt:prop:controles}) \\
+T2 & size of the LUTs: §\,4.6 writes 6.9\,MB; it is 7{,}077{,}888 bytes, 7.08\,MB or 6.75\,MiB & found by the judge of Volume~II (m17) \\
+\bottomrule
+\end{tabularx}
+\caption[Precisions of the text awaiting the arbiter]{The precisions of the format's text awaiting the arbiter: lot F's nine (\fichier{moteur/REPRISE-F.md}), the trial judge's three imprecisions (finding m4, \fichier{mesures/epreuve-J1.md} §\,2.5) and the one of the judge of Volume~II (T2, \fichier{memoire/tome2/JUGEMENT.md}, m17).}
+\label{t2fmt:tab:precisions}
+\end{table}
+
+\section{Versions, and what is reserved for J2}\label{t2fmt:sec:versions}
+
+Version 1.0 (J1) has one level and the CODES\_CTX kind; a 1.x reader reads any version 1.y lower than or equal to its own, and refuses 2.x. Version 1.1 (J2) is reserved to the bit: two levels, BASE\_CTX (sign and magnitude class, in a nibble, per-lane table) at level 0, COMPL\_CTX (rank of the magnitude within its class, per-symbol table, up to 192 contexts, skips for the single-magnitude class) at level 1, and the CENTRES tables. The arbiter's measurement F1, reported in Volume~I, fixed its cost (\cref{t2fmt:tab:fun}); the switch will require recoding the file once.
+
+\begin{table}[ht]
+\centering\small
+\begin{tabular}{l r r r r}
+\toprule
+Variant (12 tensors of gpt-oss-20b) & Total & Codes or base & Complement & Ratio to A\_ctx \\
+\midrule
+A\_flux (three class streams, study 03) & 3.8434 & 3.8059 & — & 1.00008 \\
+\textbf{A\_ctx (per-lane table, v1.0)} & \textbf{3.8431} & 3.8056 & — & 1 \\
+B\_cond (complement by $\kappa$ and class) & 3.8591 & 2.6066 & 1.2149 & 1.00414 \\
+B\_mag (complement by class only) & 3.8733 & 2.6066 & 1.2291 & 1.00785 \\
+\textbf{B\_riche (v1.1)} & \textbf{3.8550} & 2.6066 & 1.2107 & \textbf{1.00308} \\
+\bottomrule
+\end{tabular}
+\caption[What the v1.1 split costs]{Bits per weight of the arbiter's measurement F1 (\fichier{ARCHITECTURE.md} §\,3.3; \fichier{decisions/journaux/arbitre/decoupe-gptoss20b.json}), all streams decoded and compared byte for byte. The single format of J2 will cost exact mode 0.31\,\% of bytes, below the declared threshold of 0.4\,\%.}
+\label{t2fmt:tab:fun}
+\end{table}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{The trial's decoder decoded only 40 chunks} (20 per model) and 13 named ones; C1 over the 4{,}608 experts rests on lot F's two paths and on lot K's card decoder.
+\item \textbf{The second path is written by lot F}: its author knows the coder's choices. Four of its structure checks depend on them (precisions 1, 2, 4, 5); none touches the expert fingerprints, which depend only on §\,4.7, 4.11, 4.12 and the GGUF specification.
+\item \textbf{The Python reader and the coder share one reading of §\,4.11} (blocks then biases, gate, up, down order; \texttt{ne[0]} = columns): were it wrong with respect to llama.cpp, both would be wrong together. The witness that validates it is lot R's f64 reference, read from the GGUF and judged against llama.cpp.
+\item \textbf{The coder's memory peaks} are working sets sampled every 0.5\,s: a shorter peak may escape; the machine was shared.
+\item \textbf{The collision bound} assumes SHA-256 behaves as a random function on errors that are not crafted; it is worth nothing against an adversary who chooses the bytes.
+\item \textbf{The rate of v1.1} is measured on 12 tensors of the 20b by the arbiter's tool, not by the production coder, which does not write it yet; if that coder exceeds $1.004 \times$ the single level on the 120b, the arbiter decides again.
+\item \textbf{The copy break} was done only on the 20b; on the 120b, the break is in memory (same check code, one bit flipped after reading).
+\end{itemize}
+\end{faux}

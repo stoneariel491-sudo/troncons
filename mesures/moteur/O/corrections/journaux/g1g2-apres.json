@@ -1,0 +1,75 @@
+{
+ "outil": "temoin_sortie.py",
+ "date": "2026-10-16T06:26:41",
+ "exe": "~/dev/cibles/troncons-O/release/troncons.exe",
+ "cas": [
+  {
+   "cas": "absent",
+   "commande": "~/dev/cibles/troncons-O/release/troncons.exe generer --modele ~/dev/modeles/trc/n-existe-pas.trc --vocab ~/dev/modeles/trc/gpt-oss-20b.vocab.gguf --invite ~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt -n 4 --repos 0",
+   "pid": 42068,
+   "sortie_processus_s": 1.527,
+   "mur_s": 1.527,
+   "tuyaux_fermes_s": {
+    "sortie": 1.5241543000011006,
+    "erreur": 1.524286600004416
+   },
+   "tue_a_s": null,
+   "bloque_au_dela_de_s": null,
+   "code": 1,
+   "erreur_dernieres_lignes": [
+    "print_info: EOG token             = 200012 '<|call|>'",
+    "print_info: max token length      = 256",
+    "llama_model_load: vocab only - skipping tensors",
+    "troncons : erreur : ouverture de ~/dev/modeles/trc/n-existe-pas.trc: lecture ou écriture : Le fichier spécifié est introuvable. (os error 2): Le fichier spécifié est introuvable. (os error 2)"
+   ],
+   "orphelins_smi": []
+  },
+  {
+   "cas": "corrompu",
+   "commande": "~/dev/cibles/troncons-O/release/troncons.exe generer --modele ~/dev/modeles/trc/casse/gpt-oss-20b-casse-E2.trc --vocab ~/dev/modeles/trc/gpt-oss-20b.vocab.gguf --invite ~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt -n 32 --flux --repos 0",
+   "pid": 37416,
+   "sortie_processus_s": 4.91,
+   "mur_s": 4.91,
+   "tuyaux_fermes_s": {
+    "sortie": 4.880964700001641,
+    "erreur": 4.881074100005208
+   },
+   "tue_a_s": null,
+   "bloque_au_dela_de_s": null,
+   "code": 1,
+   "erreur_dernieres_lignes": [
+    "llama_model_load: vocab only - skipping tensors",
+    "troncons : préremplissage par flux, couche 1/24 (0.8 s ; 32 lectures de tronçons ; 0 conflits d'arrivée évités)",
+    "troncons : préremplissage par flux, couche 2/24 (1.2 s ; 64 lectures de tronçons ; 0 conflits d'arrivée évités)",
+    "troncons : erreur : couche 2, expert 19 : décodage faux (32 voies hors de L, 0 erreurs de format, 1 pointeurs de tuile faux)"
+   ],
+   "orphelins_smi": []
+  },
+  {
+   "cas": "tue",
+   "commande": "~/dev/cibles/troncons-O/release/troncons.exe generer --modele ~/dev/modeles/trc/gpt-oss-20b.trc --vocab ~/dev/modeles/trc/gpt-oss-20b.vocab.gguf --invite ~/dev/essais/troncons/modeles/donnees/invite-wiki-3000.txt -n 256 --repos 0",
+   "pid": 9072,
+   "sortie_processus_s": 4.912,
+   "mur_s": 4.912,
+   "tuyaux_fermes_s": {
+    "sortie": 4.882371500003501,
+    "erreur": 4.882484000001568
+   },
+   "tue_a_s": 4.796346300005098,
+   "bloque_au_dela_de_s": null,
+   "code": 1,
+   "erreur_dernieres_lignes": [
+    "print_info: EOG token             = 200002 '<|return|>'",
+    "print_info: EOG token             = 200012 '<|call|>'",
+    "print_info: max token length      = 256",
+    "llama_model_load: vocab only - skipping tensors"
+   ],
+   "orphelins_smi": []
+  }
+ ],
+ "verdicts": {
+  "absent": "tient",
+  "corrompu": "tient",
+  "tue": "tient"
+ }
+}

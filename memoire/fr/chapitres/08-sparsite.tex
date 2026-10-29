@@ -1,0 +1,353 @@
+\chapter{Sparsité et décodage spéculatif}\label{ch:sparsite}
+
+\begin{origine}
+\textbf{Au départ}, deux familles de techniques promettaient de lire moins d'octets par jeton : la sparsité des activations (ne lire que les colonnes utiles) et le décodage spéculatif (lire les poids une fois pour plusieurs jetons), toutes deux publiées sur des machines où la RAM tient le modèle.
+\textbf{Ce chapitre établit} le théorème d'amortissement, $\mathcal E(\alpha,k) = (1-\alpha^{k+1})/(1-\alpha)$ jetons par lecture des poids, et ses corollaires ; la condition exacte sous laquelle la spéculation paie pour un mélange d'experts lu du disque, que le routage indépendant ne satisfait jamais ; la mesure, sur un modèle SwiGLU, que sparsité et spéculation ne se composent pas ; et les taux d'acceptation mesurés sur la famille Qwen3.5.
+\textbf{Il reste} la courbe d'union réelle des experts d'un MoE de 2026 sur des jetons de brouillon, l'accord du module MTP natif, et une vérification en arbre sous Vulkan.
+Source : \fichier{fondations/05-sparsite.md}, \fichier{fondations/journaux/05-sparsite/}.
+\end{origine}
+
+\section{Le juge, et le levier qui a la bonne pente}\label{sec:spec-juge}
+
+Une passe de la cible sur $n$ jetons (un lot de vérification) coûte, étages parfaitement recouverts,
+\begin{equation}\label{eq:passe}
+T(n) = \max\Bigl( \frac{O_{\mathrm{disque}}(n)}{W_{\mathrm{disque}}},\ \frac{O_{\mathrm{RAM}}(n)}{W_{\mathrm{PCIe}}},\ \frac{O_{\mathrm{VRAM}}(n)}{W_{\mathrm{VRAM}}},\ \frac{C(n)}{F} \Bigr),
+\end{equation}
+et, sans recouvrement, la somme des mêmes termes (\cref{thm:toit}). $O_x(n)$ est le nombre d'octets de poids que la passe lit depuis l'étage $x$, $C(n) \approx 2 n N_{\text{actifs}}$ le nombre d'opérations, $F$ le débit de calcul effectif. Pour un modèle \textbf{dense}, $O_x(n)$ ne dépend pas de $n$ : c'est tout l'intérêt. Pour un \textbf{MoE} ou un modèle \textbf{à activations creuses}, $O_x(n)$ croît avec $n$, parce que la passe lit l'union de ce que demandent ses $n$ jetons.
+
+Le débit de jetons est $\mathcal E / (T(n) + T_{\text{brouillon}})$, où $\mathcal E$ est le nombre de jetons acceptés par passe. Trois leviers : réduire $O(n)$ (sparsité, neurones chauds, prédiction des experts) ; augmenter $\mathcal E$ à $T(n)$ presque inchangé (décodage spéculatif) ; cacher $T_{\text{brouillon}}$ dans $T(n)$. Quand les poids viennent du disque, $T(n)$ se compte en secondes et $T_{\text{brouillon}}$ en millisecondes : \textbf{le deuxième levier écrase les deux autres, à une condition, que $O(n)$ reste plat en $n$}. Toute la suite chiffre cette condition.
+
+\begin{proposition}[Le coude du calcul]\label{prop:coude}
+Pour un modèle dense de $N$ poids actifs à $b$ octets par poids, lus depuis un étage de débit $W$, la vérification de $n$ jetons reste bornée par la lecture tant que
+\begin{equation}\label{eq:coude}
+n \;<\; n^\star = \frac{F\, b}{2\, W}.
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+La lecture coûte $N b / W$ secondes quel que soit $n$ ; le calcul coûte $2 n N / F$. Le second reste sous le premier tant que $2nN/F < Nb/W$, soit $n < Fb/(2W)$.
+\end{proof}
+
+Avec $F \approx 20$\,Tflop/s (ordre de grandeur des cœurs tenseurs FP16 d'une RTX 4060 Laptop, non mesuré, et que la déquantification fait baisser) et $b = 0{,}6$ octet par poids (environ 4,8 bits) \calc : $n^\star \approx 24$ si les poids sont en VRAM (251,3\,Go/s), $\approx 490$ s'ils passent par le lien (12,2\,Go/s ; l'étude, avec le lien chargé à 6,38\,Go/s, donnait 940), $\approx 2\,100$ s'ils viennent du disque (2,82\,Go/s). Ce tableau dit pourquoi SpecExec vérifie des arbres de 1\,024 à 2\,048 jetons en régime déchargé, et pourquoi EAGLE sur une carte qui tient le modèle s'arrête à quelques dizaines : ce n'est pas un choix, c'est $n^\star$. La mesure de la \cref{fig:cn} le confirme malgré son bruit : jusqu'à 32 jetons, une passe tout en VRAM coûte au plus 1,35 fois une passe d'un jeton.
+
+\begin{figure}[ht]
+\centering
+\GrapheCn
+\caption[Le temps d'une passe de $n$ jetons]{Temps d'une passe de $n$ jetons, Qwen3.5-4B Q4\_K\_M tout en VRAM, médiane et étendue de quatre séries ABBA \mes. Le seuil de bruit déclaré (10\,\%) n'est atteint pour aucun $n$ (carte partagée) : chiffres indicatifs. Le coude est entre 32 et 128, là où la \cref{prop:coude} le place.}
+\label{fig:cn}
+\sourcefig{\fichier{fondations/journaux/05-sparsite/cn/resume-4B-ngl99.txt}.}
+\end{figure}
+
+\section{Le décodage spéculatif}\label{sec:speculatif}
+
+\subsection{La règle de vérification}
+
+Leviathan, Kalman et Matias~\cite{leviathan2023} et Chen et al.~\cite{chen2023spec} posent la même règle. Un brouillon de loi $q$ propose $x_1, \dots, x_k$ ; la cible $p$ calcule en une passe $p(\cdot \mid \text{préfixe}, x_1, \dots, x_i)$ pour $i = 0, \dots, k$. Chaque $x_i$ est accepté avec la probabilité $\min(1, p(x_i)/q(x_i))$ ; au premier refus, on tire un jeton dans la loi résiduelle $r = (p - q)^+ / \lVert (p - q)^+ \rVert_1$ ; si tout est accepté, on tire un jeton de plus dans $p$.
+
+\begin{proposition}[La spéculation est exacte]\label{prop:exacte}
+Le jeton émis à chaque position suit exactement la loi $p$ de la cible, et la probabilité d'acceptation d'une position vaut $\alpha = \sum_x \min(p(x), q(x)) = 1 - \tfrac12 \lVert p - q \rVert_1$.
+\end{proposition}
+
+\begin{proof}
+La probabilité d'émettre $x$ est celle de le proposer et l'accepter, plus celle de refuser puis de tirer $x$ dans $r$ :
+\[
+q(x) \min\Bigl(1, \frac{p(x)}{q(x)}\Bigr) + (1-\alpha)\, \frac{(p(x) - q(x))^+}{1 - \alpha} = \min(p(x), q(x)) + (p(x) - q(x))^+ = p(x),
+\]
+où l'on a utilisé $\lVert (p-q)^+ \rVert_1 = \sum_x (p(x) - \min(p(x),q(x))) = 1 - \alpha$. La probabilité d'acceptation est $\sum_x q(x)\min(1, p(x)/q(x)) = \sum_x \min(p(x), q(x))$, et $\sum_x \min(p,q) = 1 - \tfrac12 \sum_x |p - q|$ puisque $\min(a,b) = \tfrac12(a + b - |a-b|)$.
+\end{proof}
+
+En décodage glouton, un jeton est accepté s'il est l'argmax de la cible ; $\alpha$ est alors le taux d'accord des argmax, qu'on mesure au \cref{sec:alpha}.
+
+\subsection{Le théorème d'amortissement}
+
+\begin{theoreme}[Jetons par lecture des poids]\label{thm:amortissement}
+Si chacune des $k$ positions proposées est acceptée avec la même probabilité $\alpha < 1$, indépendamment des autres et tant qu'aucune n'a été refusée, le nombre $N$ de jetons produits par une passe de vérification (une lecture complète des poids actifs) a pour espérance
+\begin{equation}\label{eq:amortissement}
+\mathcal E(\alpha, k) \;=\; \E[N] \;=\; \sum_{i=0}^{k} \alpha^i \;=\; \frac{1 - \alpha^{k+1}}{1 - \alpha}.
+\end{equation}
+\end{theoreme}
+
+\begin{proof}
+Soit $A$ le nombre de jetons proposés acceptés avant le premier refus, $0 \le A \le k$. La passe rend toujours un jeton de plus que $A$ : la correction tirée dans $r$ au premier refus, ou le jeton bonus tiré dans $p$ si tout est accepté. Donc $N = A + 1$. Les $i$ premières positions sont toutes acceptées avec la probabilité $\alpha^i$, d'où $\Prob(A \ge i) = \alpha^i$ pour $0 \le i \le k$, et $\Prob(A \ge i) = 0$ au-delà. Pour une variable à valeurs entières positives, $\E[A] = \sum_{i \ge 1} \Prob(A \ge i)$ ; ainsi $\E[N] = 1 + \sum_{i=1}^{k} \alpha^i = \sum_{i=0}^{k} \alpha^i$, somme géométrique qui vaut $(1 - \alpha^{k+1})/(1-\alpha)$.
+\end{proof}
+
+\begin{corollaire}[La borne de la chaîne]\label{cor:borne-chaine}
+$\mathcal E(\alpha, k) < 1/(1 - \alpha)$ pour tout $k$, et la chaîne atteint la fraction $1 - \alpha^{k+1}$ de cette borne. À $\alpha = 0{,}8$, $k = 8$ donne déjà 87\,\% de la borne : au-delà, seul un meilleur brouillon ou un \emph{arbre} fait monter $\mathcal E$.
+\end{corollaire}
+
+\begin{proof}
+$\mathcal E(\alpha,k) (1-\alpha) = 1 - \alpha^{k+1} < 1$.
+\end{proof}
+
+\begin{corollaire}[Le $k$ optimal quand la passe coûte cher]\label{cor:k-optimal}
+Avec une passe de coût $T$ et un brouillon de coût $t_b$ par jeton proposé, le débit $\mathcal E(\alpha,k)/(T + k t_b)$ est maximal en un $k^\star$ qui croît comme $\log(T/t_b)/\log(1/\alpha)$ ; pour $T = 8$\,s et $t_b = 5$\,ms, $k^\star = 25$ à $\alpha = 0{,}8$ et $48$ à $\alpha = 0{,}9$ \calc.
+\end{corollaire}
+
+\begin{proof}
+Le gain marginal du $(k{+}1)$-ième jeton proposé est $\alpha^{k+1}$ jeton, son coût marginal $t_b$ pour un coût total $T + kt_b$ ; l'optimum vérifie à peu près $\alpha^{k^\star} \mathcal E^{-1} \approx t_b/(T + k^\star t_b)$, d'où $k^\star \approx \log(T/t_b)/\log(1/\alpha)$ à des termes logarithmiques près. Les valeurs numériques viennent de la maximisation exacte de $(1-\alpha^{k+1})/((1-\alpha)(T + kt_b))$ sur les entiers.
+\end{proof}
+
+\paragraph{Le témoin.} L'outil \texttt{amortissement.py} simule 20\,000 chaînes par cas et compare à l'\cref{eq:amortissement} : écart inférieur à 4 erreurs-types dans les 9 cas. Avec une formule fausse (sans le jeton bonus), 7 cas sur 9 tombent \mes. La \cref{fig:amortissement} et le \cref{tab:amortissement} donnent les valeurs.
+
+\begin{figure}[ht]
+\centering
+\GrapheAmortissement
+\caption[Jetons produits par lecture des poids, $\mathcal E(\alpha,k)$]{Jetons produits par lecture complète des poids actifs, $\mathcal E(\alpha, k)$, et leurs asymptotes $1/(1-\alpha)$ en pointillé (\cref{thm:amortissement,cor:borne-chaine}) \calc. La borne arrive vite : passé $k \approx 8$, une chaîne plus longue ne sert presque plus.}
+\label{fig:amortissement}
+\sourcefig{\fichier{fondations/journaux/05-sparsite/amortissement-tables.json} (\fichier{outils/05-sparsite/amortissement.py}).}
+\end{figure}
+
+\begin{table}[ht]
+\centering\small
+\caption[Valeurs de $\mathcal E(\alpha,k)$]{Jetons produits par lecture complète des poids actifs, $\mathcal E(\alpha,k)$ \calc.}
+\label{tab:amortissement}
+\begin{tabular}{@{}lrrrrrrrr@{}}
+\toprule
+$\alpha$ \textbackslash{} $k$ & 1 & 2 & 3 & 4 & 6 & 8 & 16 & $\infty$ \\
+\midrule
+0,5 & 1,50 & 1,75 & 1,88 & 1,94 & 1,98 & 2,00 & 2,00 & 2 \\
+0,6 & 1,60 & 1,96 & 2,18 & 2,31 & 2,43 & 2,47 & 2,50 & 2,5 \\
+0,7 & 1,70 & 2,19 & 2,53 & 2,77 & 3,06 & 3,20 & 3,33 & 3,33 \\
+0,8 & 1,80 & 2,44 & 2,95 & 3,36 & 3,95 & 4,33 & 4,89 & 5 \\
+0,9 & 1,90 & 2,71 & 3,44 & 4,10 & 5,22 & 6,13 & 8,33 & 10 \\
+0,95 & 1,95 & 2,85 & 3,71 & 4,52 & 6,03 & 7,40 & 11,64 & 20 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Les arbres}
+
+Avec un arbre de $K$ nœuds, la passe vérifie toutes les branches à la fois (masque d'attention en arbre) et garde le plus long chemin accepté (\cref{fig:speculation}). SpecInfer~\cite{specinfer2023} échantillonne les branches, Sequoia~\cite{sequoia2024} construit l'arbre optimal par programmation dynamique sous un budget, SpecExec~\cite{specexec2024} garde les $K$ continuations les plus probables du brouillon : c'est la variante faite pour le régime déchargé. Sa propriété décisive : $\mathcal E$ n'est plus borné par $1/(1-\alpha)$ mais par la couverture de l'arbre. SpecExec rapporte jusqu'à 20,6 jetons acceptés par passe (budget 2\,048) sur Llama 2 70B déchargé, et, \textbf{sur une RTX 4060 de bureau, 70B en GPTQ : 9,7 jetons par passe, 3,28 jetons/s, $\times 4{,}6$} \litt.
+
+\begin{figure}[ht]
+\centering
+\SchemaSpeculation
+\caption[Vérification en chaîne et en arbre]{Une passe de vérification en chaîne et en arbre. La chaîne s'arrête au premier refus ; l'arbre vérifie toutes ses branches dans la même passe et garde le plus long chemin accepté.}
+\label{fig:speculation}
+\end{figure}
+
+\subsection{Les variantes}
+
+\begin{table}[ht]
+\centering\small
+\caption[Les variantes du décodage spéculatif]{Les variantes du décodage spéculatif : brouillon, gain publié, disponibilité sous Windows sans boîte à outils CUDA \litt. llama.cpp~\cite{llamacpp} (commit \texttt{e467e5b}) ne vérifie que des chaînes.}
+\label{tab:variantes-spec}
+\begin{tabularx}{\linewidth}{@{}lXl@{}}
+\toprule
+Variante & Brouillon et gain publié & Sous Vulkan \\
+\midrule
+Petit modèle~\cite{leviathan2023,chen2023spec} & modèle de la même famille, 10 à 50 fois plus petit ; sans perte & oui (chaîne) \\
+Medusa~\cite{medusa2024} & têtes supplémentaires sur le dernier état ; $\times2{,}2$ à $\times3{,}6$ & non \\
+EAGLE-2, EAGLE-3~\cite{eagle2_2024,eagle3_2025} & une couche lisant les états de la cible, arbre dynamique ; jusqu'à $\times6{,}5$ & chaîne seulement \\
+MTP natif~\cite{gloeckle2024,deepseekv3_2024} & module de prédiction multi-jetons entraîné avec le modèle ; brouillon gratuit s'il réside en VRAM & oui (\texttt{draft-mtp}) \\
+DFlash~\cite{dflash2026} & diffusion par blocs, un bloc entier par passe ; plus de $\times6$ & oui \\
+N-grammes, recherche dans le contexte~\cite{lookahead2024} & coût nul ; énorme sur la réécriture, presque nul sur la prose & oui \\
+LayerSkip, QSpec~\cite{layerskip2024,qspec2024} & la cible elle-même, couches sautées ou activations 4 bits ; $\times1{,}6$ à $\times2{,}2$ & non \\
+\textbf{SubSpec}~\cite{subspec2025} & substituts 4 bits résidents des couches déchargées ; 27 à 35 jetons par passe ; Qwen2.5-7B sous 8\,Go : 2,68 $\to$ 27,1 jetons/s & non (PyTorch) \\
+SpecExec, Sequoia~\cite{specexec2024,sequoia2024} & arbres de centaines de nœuds en régime déchargé ; 10 à 20 jetons par passe & non \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Le piège des modèles hybrides.} Qwen3.5, 3.6, 3.8 et Qwen3-Next mêlent des couches d'attention complète et des couches d'attention linéaire à règle delta (Gated DeltaNet), dont l'état est une matrice par tête mise à jour à chaque jeton. Un jeton refusé ne se retire pas d'un état récurrent : il faut avoir gardé l'état d'avant. Pour Qwen3.5-9B (32 têtes de valeur, état $128 \times 128$ par tête, 24 couches linéaires sur 32) \calc :
+\[
+\text{état par couche} = 32 \times 128 \times 128 \times 4\ \text{octets} = 2\,\text{Mio}, \qquad \text{état du modèle} = 24 \times 2 = 48\,\text{Mio par position gardée}.
+\]
+Un arbre de 256 nœuds en demande 12\,Gio : impossible sur 8\,Go. STree~\cite{stree2025} vérifie des arbres pour les modèles à espace d'états en exploitant la structure de leurs matrices de transition ; la transition de la règle delta, $\alpha_t (I - \beta_t k_t k_t^\top)$, n'est pas diagonale, et aucune vérification en arbre n'est publiée pour elle.
+
+\section{Mélanges d'experts et spéculation}\label{sec:moe-spec}
+
+Une passe de vérification d'un MoE lit l'union des experts de ses $n$ jetons.
+
+\begin{lemme}[L'union des experts sous routage indépendant]\label{lem:union}
+Si chaque jeton choisit $k_e$ experts distincts parmi $E$, uniformément et indépendamment des autres jetons, le nombre moyen d'experts distincts demandés par $n$ jetons dans une couche est
+\begin{equation}\label{eq:union}
+U(n) = E\,\Bigl(1 - \bigl(1 - \tfrac{k_e}{E}\bigr)^{n}\Bigr).
+\end{equation}
+\end{lemme}
+
+\begin{proof}
+Un expert donné n'est pas choisi par un jeton avec la probabilité $1 - k_e/E$ ; par indépendance, il n'est choisi par aucun des $n$ jetons avec la probabilité $(1 - k_e/E)^n$. Par linéarité de l'espérance, le nombre moyen d'experts choisis par au moins un jeton est $E$ fois la probabilité complémentaire.
+\end{proof}
+
+\begin{proposition}[Quand la spéculation paie pour un MoE lu du disque]\label{prop:spec-moe}
+Si les octets venus du disque sont dominés par les experts routés, une vérification de $k$ jetons proposés réduit les octets lus par jeton produit si et seulement si
+\begin{equation}\label{eq:spec-moe}
+\mathcal E(\alpha, k) \;>\; \frac{U(k+1)}{k_e}.
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+Sans spéculation, un jeton lit $k_e$ experts par couche. La passe de vérification porte sur $k+1$ positions (le préfixe et les $k$ jetons proposés) et lit $U(k+1)$ experts par couche ; elle produit $\mathcal E(\alpha,k)$ jetons en moyenne (\cref{thm:amortissement}). Les octets par jeton produit baissent si et seulement si $U(k+1)/\mathcal E(\alpha,k) < k_e$.
+\end{proof}
+
+\begin{corollaire}[La spéculation ne paie jamais sur des experts fins indépendants]\label{cor:jamais}
+Pour $k = 1$, la condition devient $1 + \alpha > 2 - k_e/E$, soit $\alpha > 1 - k_e/E$ : $\alpha > 0{,}977$ pour DeepSeek-V4-Flash ($k_e/E = 6/256$), $\alpha > 0{,}980$ pour Qwen3.8-Flash-Next ($10/512$) \calc. À la limite des experts fins ($k_e(k+1) \ll E$), $U(k+1)/k_e \to k+1 > \mathcal E(\alpha,k)$ pour tout $\alpha < 1$.
+\end{corollaire}
+
+\begin{proof}
+Par le \cref{lem:union}, $U(2)/k_e = 2 - k_e/E$ et $\mathcal E(\alpha,1) = 1 + \alpha$. À la limite, $(1 - k_e/E)^{k+1} \approx 1 - (k+1)k_e/E$, donc $U(k+1)/k_e \to k+1$ ; or $\mathcal E(\alpha,k) = \sum_{i=0}^k \alpha^i < k + 1$ dès que $\alpha < 1$.
+\end{proof}
+
+\begin{table}[ht]
+\centering\small
+\caption[Spéculation et MoE lus du disque]{Spéculation et MoE dont les experts viennent du disque, routage uniforme et indépendant (pessimiste) \calc.}
+\label{tab:spec-moe}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Modèle & $B_t$ / $B_e$ (Go) & $E$ / $k_e$ & $U(4)/U(1)$ & $k$ optimal, $\alpha = 0{,}9$ \\
+\midrule
+DeepSeek-V4-Flash Q2\_K\_XL & 6,69 / 2,10 & 256 / 6 & 3,86 & \textbf{0} \\
+Qwen3.8-Flash-Next Q2\_K\_XL & 3,54 / 0,90 & 512 / 10 & 3,88 & \textbf{0} \\
+gpt-oss-120b MXFP4 & 1,69 / 1,91 & 128 / 4 & 3,82 & \textbf{0} \\
+Kimi-K2.6 Q2\_K\_XL & 8,52 / 6,90 & 384 / 8 & 3,88 & \textbf{0} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Le régime de Stone (lot de un, poids sur le disque) est exactement celui où Cascade~\cite{cascade2025} observe que la spéculation ralentit les MoE.} La spéculation ne paie donc, pour un MoE fin lu du disque, que si l'union réelle est très en dessous de l'indépendance (les jetons voisins partagent leurs experts), ou si l'ensemble d'experts de la vérification est borné : MoE-Spec~\cite{moespec2026} (budget fixe par couche), AcceptMoE~\cite{acceptmoe2026} (éligibilité limitée aux experts déjà en cache : $\times2{,}06$, $-0{,}27$ point de précision), EcoSpec~\cite{ecospec2026} et EVICT~\cite{evict2026} (sans perte), DraftExpert~\cite{draftexpert2026} \litt. L'union réelle sur des jetons de brouillon n'est publiée pour aucun modèle que la machine peut lire.
+
+\paragraph{Prédire les experts ne réduit pas les octets.} Mixtral-offloading, ProMoE, HOBBIT (\cref{sec:moe-systemes}) prédisent pour précharger : cela cache la latence du chargement derrière le calcul (\cref{prop:volume}). En régime disque, où le disque travaille en permanence, le préchargement ne rend que le passage de la somme au maximum du \cref{thm:toit}. Seuls le cache et la substitution avec perte réduisent les octets venus du disque.
+
+\section{La sparsité des activations}\label{sec:sparsite-activations}
+
+\begin{table}[ht]
+\centering\small
+\caption[Les méthodes de sparsité des activations]{Les méthodes de sparsité des activations \litt.}
+\label{tab:sparsite}
+\begin{tabularx}{\linewidth}{@{}lXl@{}}
+\toprule
+Méthode & Ce qui est creux, gain publié & Condition \\
+\midrule
+Deja Vu~\cite{dejavu2023} & têtes et neurones par jeton, prédits une couche en avance ; $\times2$ & ReLU (OPT) \\
+PowerInfer~\cite{powerinfer2024} & neurones chauds sur la carte, froids sur le processeur ; jusqu'à $\times11{,}69$ & ReLU \\
+LLM in a flash~\cite{llminflash2024} & fenêtre glissante des neurones récents ; regroupement ligne-colonne & ReLU \\
+CATS~\cite{cats2024} & seuil sur l'entrée de \texttt{down} ; +15\,\% de vitesse & --- \\
+TEAL~\cite{teal2024} & seuil de magnitude sur l'entrée de toutes les matrices ; $\times1{,}53$ à 40\,\% & poids rangés par colonnes \\
+R-Sparse~\cite{rsparse2025} & canaux et composantes singulières ; +43\,\% & --- \\
+TurboSparse~\cite{turbosparse2024} & dReLU réentraîné ; $\times2$ à $\times5$ & réentraînement \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Ce qu'il faut pour qu'un zéro devienne un octet non lu.} En VRAM : des poids rangés par colonnes et un noyau qui ne charge que les colonnes vivantes (le noyau de TEAL l'exige : \texttt{assert weight.stride(1) > 1}) ; aucun noyau de ce type n'existe dans llama.cpp, dont les types quantifiés sont rangés par lignes. Sur le disque : la granularité est la page, et un neurone du FFN de Qwen3.5-9B en 4,5 bits (trois vecteurs de 4\,096) pèse environ 6,9\,Kio \calc, deux pages, très en dessous de la taille où ce disque donne son débit (\cref{fig:disque}).
+
+\subsection{La mesure : unions, fenêtre, neurones chauds}
+
+\paragraph{L'instrument.} \texttt{llama\_numpy.py} est une passe avant numpy d'un modèle « llama » lu dans le GGUF, écrite de zéro, avec un crochet sur l'entrée de chaque projection. Modèle : SmolLM2-135M-Instruct F16 (30 couches, SwiGLU). Témoin : la perplexité de la passe numpy doit retrouver celle de \texttt{llama-perplexity} à moins de 0,5\,\% (seuil déclaré avant) ; elle donne 22,6768 contre 22,6739 sur 16 fenêtres (0,013\,\%, écart maximal 0,18\,\%), et \textbf{le témoin tombe quand on le casse} (rotation RoPE par moitiés au lieu des paires voisines : 232,8 contre 10,4) \mes.
+
+\begin{figure}[ht]
+\centering
+\GrapheUnions
+\caption[L'union des masques de $n$ jetons consécutifs]{Part des colonnes de \texttt{down} qu'une vérification de $n$ jetons consécutifs doit lire si chacun garde son masque top-$k$, selon la sparsité par jeton, et la même union si les masques étaient indépendants (SmolLM2-135M, 2\,048 jetons) \mes. À 50\,\% de sparsité, quatre jetons lisent déjà 90\,\% des colonnes.}
+\label{fig:unions}
+\sourcefig{\fichier{fondations/journaux/05-sparsite/stats-smol.json}.}
+\end{figure}
+
+Les unions (\cref{fig:unions}) sont sous l'indépendance : la corrélation entre jetons voisins existe, mais elle est faible. Pondérée par les octets des quatre entrées d'un bloc, l'union vaut \textbf{0,895 à $n = 4$ et 0,976 à $n = 8$} pour 50\,\% de sparsité par jeton \calc : une vérification de quatre jetons ne lit que 10,5\,\% de moins qu'une passe dense. \textbf{Composée naïvement avec la spéculation, la sparsité par jeton s'évanouit.}
+
+La fenêtre glissante de LLM in a flash réduit le trafic au prix d'une RAM qui tient presque toute la matrice : à RAM égale (72\,\% des colonnes), un cache statique dense laisse 28\,\% des octets au disque, la fenêtre $w = 1$ en laisse 21,8\,\%, un gain de 1,28 seulement. Et \textbf{il n'y a pas de loi de puissance des neurones chauds dans un modèle SwiGLU} : pour couvrir 80\,\% des sélections à 50\,\% de sparsité, il faut 74\,\% des canaux de \texttt{down} \mes. Le facteur 11,69 de PowerInfer suppose une sparsité de ReLU (plus de 90\,\% de neurones inactifs) et une loi de puissance que SwiGLU ne donne pas.
+
+\subsection{Un masque commun au bloc vérifié}
+
+La seule manière de garder les octets de la sparsité sous la vérification est que les $n$ jetons d'un bloc \textbf{partagent un même masque}. Règle mesurée : pour chaque bloc de $n$ jetons consécutifs, garder les $(1-s)D$ canaux d'énergie $\sum_i v_{ij}^2$ la plus grande, éventuellement pondérée par $\lVert W_{:,j} \rVert^2$, la norme de la colonne qu'on renonce à lire.
+
+\begin{table}[ht]
+\centering\small
+\caption[Le coût en qualité d'un masque commun]{Perplexité de SmolLM2-135M sous différentes règles de sparsité, WikiText-2, 1\,020 positions appariées \mes.}
+\label{tab:masque-commun}
+\begin{tabular}{@{}llrr@{}}
+\toprule
+Règle & colonnes lues par passe de $n$ jetons & perplexité & écart \\
+\midrule
+aucune (dense) & 100\,\% & 17,86 & --- \\
+top-$k$ par jeton, $s = 25$\,\% & 75\,\% à $n=1$ ; $\approx$ 99\,\% à $n=4$ & 18,24 & +2,1\,\% \\
+top-$k$ par jeton, $s = 50$\,\% & 50\,\% à $n=1$ ; 89,5\,\% à $n=4$ & 27,09 & +51,6\,\% \\
+masque commun, bloc de 2, pondéré, $s = 25$\,\% & 75\,\% pour $n \le 2$ & 19,84 & +11,0\,\% \\
+masque commun, bloc de 4, pondéré, $s = 25$\,\% & 75\,\% pour $n \le 4$ & 23,96 & +34,1\,\% \\
+masque commun, bloc de 2, pondéré, $s = 50$\,\% & 50\,\% pour $n \le 2$ & 62,87 & $\times3{,}52$ \\
+masque commun, bloc de 4, pondéré, $s = 50$\,\% & 50\,\% pour $n \le 4$ & 301,0 & $\times16{,}9$ \\
+masque commun, bloc de 16, pondéré, $s = 50$\,\% & 50\,\% pour $n \le 16$ & 4\,276 & $\times239$ \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{fondations/journaux/05-sparsite/ppl-smol.json}.}
+\end{table}
+
+\textbf{Sur un SwiGLU dense sans réentraînement, sparsité des activations et vérification spéculative ne se composent pas} (\cref{tab:masque-commun}) : chaque jeton garde son masque et la passe lit presque tout, ou les jetons partagent un masque et la qualité s'effondre. Le diagnostic le confirme : la part de l'énergie d'un jeton gardée à densité 0,5 passe de 0,956--0,986 (masque par jeton) à 0,805--0,918 (bloc de 16), et l'énergie perdue, composée sur 30 couches et 4 entrées, fait exploser la perplexité ; un masque aléatoire, témoin, garde 0,499 à 0,502. Réserve : 135 millions de paramètres ; TEAL rapporte des pertes plus faibles à 7--70 milliards.
+
+\section{Le calcul pour la machine de Stone}\label{sec:spec-machine}
+
+\subsection{Les taux d'acceptation, mesurés}\label{sec:alpha}
+
+Le « même premier jeton » de \texttt{llama-perplexity --kl-divergence} est la part des positions où l'argmax du brouillon égale celui de la cible, le texte servant de préfixe : c'est le taux d'acceptation glouton de la première position proposée, plutôt une borne basse (en génération réelle, le préfixe est le texte de la cible, en général plus prévisible).
+
+\begin{table}[ht]
+\centering\small
+\caption[Taux d'acceptation gloutons mesurés]{Taux d'acceptation gloutons mesurés et jetons par passe qu'ils impliquent (\cref{thm:amortissement}) \mes~\calc.}
+\label{tab:alpha}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Brouillon $\to$ cible & $\alpha$ & KLD & $\mathcal E(\alpha,8)$ & $1/(1-\alpha)$ \\
+\midrule
+témoin : 4B Q4\_K\_M contre lui-même & \textbf{100,000\,\%} & 0 & --- & --- \\
+Qwen3.5-4B Q4\_K\_M $\to$ Qwen3.5-9B Q4\_K\_M & 76,8 $\pm$ 0,9\,\% & 0,279 & 3,91 & 4,31 \\
+4B IQ4\_XS (4,76 bits) $\to$ 4B Q4\_K\_M & 91,9 $\pm$ 0,3\,\% & 0,029 & 6,57 & 12,35 \\
+4B IQ3\_XXS (3,60 bits) $\to$ 4B Q4\_K\_M & 82,1 $\pm$ 0,4\,\% & 0,148 & 4,64 & 5,59 \\
+4B IQ2\_XXS (2,91 bits) $\to$ 4B Q4\_K\_M & 65,8 $\pm$ 0,5\,\% & 0,608 & 2,86 & 2,92 \\
+9B Q2\_K naïf (3,41 bits, sans imatrix) $\to$ 9B Q4\_K\_M & 34,0 $\pm$ 1,0\,\% & 2,60 & 1,52 & 1,52 \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{fondations/journaux/05-sparsite/alpha-*.log}, \fichier{temoin-alpha-4B-contre-lui-meme.log}, étude 02 pour les copies quantifiées du 4B.}
+\end{table}
+
+Le témoin tombe à 100\,\% exactement quand la cible est le brouillon : l'outil mesure bien l'accord (\cref{tab:alpha}). Un brouillon de la même famille, deux fois plus petit, rend au plus 4,3 jetons par passe en chaîne ; une copie quantifiée de la cible elle-même s'accorde bien mieux (91,9\,\% à environ 4,8 bits), d'où la longueur d'acceptation de SubSpec. \textbf{Le substitut naïf s'effondre} : le Q2\_K du 9B requantifié sans matrice d'importance fait passer la perplexité de 8,47 à 105 et l'accord à 34\,\%. Un substitut se fabrique avec la meilleure quantification disponible, pas la plus simple.
+
+\subsection{Le substitut résident, transposé}
+
+SubSpec loge en VRAM une copie 4 bits de la cible et fait passer la cible 16 bits par le lien depuis 128\,Go de RAM. Chez Stone, 16\,Go de RAM imposent une cible déjà quantifiée (environ 4,8 bits) et 8\,Go de VRAM un substitut très bas. Avec les accords mesurés, un budget de 6\,Go de VRAM pour le substitut et une cible Q4\_K\_M en RAM, l'étude calcule pour une cible de 14B (9,1\,Go, passe de 1,42\,s, lien chargé à 6,38\,Go/s) : 0,70 jeton/s sans spéculation, \textbf{1,75 jeton/s ($\times 2{,}5$)} avec le meilleur substitut qui loge (IQ2\_XXS, 5,1\,Go, $\alpha = 0{,}66$, $k^\star = 7$) \calc. Un substitut à 2 bits qui garderait 85\,\% d'accord porterait le 14B à environ 3,6 jetons/s. \textbf{C'est le point exact où la quantification et la spéculation se multiplient} : la quantification extrême ne sert plus seulement à lire moins, elle fabrique le brouillon.
+
+\subsection{Les modèles denses lus du disque}
+
+\begin{table}[ht]
+\centering\small
+\caption[Spéculation et modèles denses lus du disque]{Jetons/s d'un modèle dense en partie sur disque, sans et avec spéculation (brouillon résident, 5\,ms par jeton) ; disque supposé entre 3 et 7\,Go/s par l'étude, le débit mesuré (2,82\,Go/s) étant sous la borne basse \calc.}
+\label{tab:spec-denses}
+\begin{tabular}{@{}llrrrrr@{}}
+\toprule
+Cas & disque & $T(n)$ & sans spéc. & $\alpha=0{,}8$ & $\alpha=0{,}9$ & arbre, 10/passe \\
+\midrule
+70B Q4 (42\,Go), 24\,Go sur disque & 3\,Go/s, en série & 9,76\,s & 0,10 & 0,50 & 0,99 & 1,02 \\
+idem & 7\,Go/s, recouvert & 3,43\,s & 0,29 & 1,40 & 2,72 & 2,87 \\
+70B $\approx$2,3 bits (20\,Go), 2\,Go sur disque & 3\,Go/s, en série & 2,43\,s & 0,41 & 1,96 & 3,76 & 4,04 \\
+idem & recouvert & 1,72\,s & 0,58 & 2,72 & 5,15 & 5,64 \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{fondations/journaux/05-sparsite/amortissement-tables.json}.}
+\end{table}
+
+\textbf{Dans les cas disque, la spéculation multiplie le débit par $\mathcal E$ presque exactement} (\cref{tab:spec-denses}) : $k^\star$ est grand, le brouillon négligeable ($\times5$ à $\alpha = 0{,}8$, $\times10$ à $\alpha = 0{,}9$). La quantification et la spéculation se multiplient : passer de 4,8 à 2,3 bits sort presque le modèle du disque, la spéculation multiplie ensuite par $\mathcal E$, et elle n'ajoute aucune perte de qualité.
+
+\section{Ce qui manque dans le monde}
+
+\begin{enumerate}
+\item \textbf{La spéculation avec des poids lus du NVMe quand la RAM est plus petite que le modèle.} SpecExec (140--192\,Go de RAM), SubSpec (128\,Go), Sequoia, TriForce lisent les poids depuis la RAM ; sur 16\,Go et un disque à 2,82\,Go/s, c'est un facteur 10 non mesuré.
+\item \textbf{Des arbres sous Windows sans CUDA} : llama.cpp vérifie des chaînes, plafonnées à $1/(1-\alpha)$ (\cref{cor:borne-chaine}).
+\item \textbf{Les courbes d'union d'experts réelles des MoE fins de 2026 sur des jetons de brouillon} : toute la rentabilité dépend de l'écart à l'\cref{eq:union}.
+\item \textbf{Le partage de 8\,Go de VRAM entre brouillon et cible} : chaque Go donné au brouillon repart sur le lien ou le disque ; l'optimum n'est publié par personne.
+\item \textbf{Des arbres de vérification pour les hybrides à règle delta} (48\,Mio d'état par nœud).
+\end{enumerate}
+
+\paragraph{Recommandations, pour l'arbitre.} Le brouillon le moins cher et le plus juste est la cible elle-même, quantifiée très bas et résidente, ou son module MTP natif ; vérifier des arbres, pas des chaînes ; pour les MoE, ne vérifier que dans les experts déjà en mémoire et mesurer la perte ; ne pas investir dans la sparsité des activations par jeton pour le régime disque sur des modèles SwiGLU.
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{Le modèle de mesure de la sparsité est petit} (135\,M) ; les grands modèles sont plus creux, et la corrélation entre jetons voisins peut y être plus forte.
+\item \textbf{Le masque top-$k$ par jeton n'est pas exactement TEAL} (seuils calibrés, densité variable) ; il a la même densité moyenne.
+\item \textbf{L'hypothèse $\alpha$ constant et indépendant} surestime $\mathcal E$ pour les longues chaînes.
+\item \textbf{Le routage indépendant} est pessimiste ; si les jetons voisins partagent beaucoup d'experts, « $k$ optimal $= 0$ » tombe.
+\item \textbf{$F = 20$\,Tflop/s} n'est pas mesuré ; $n^\star$ est un ordre de grandeur.
+\item \textbf{Le « même premier jeton » n'est pas exactement $\alpha$} : forçage par un texte, première position seulement, glouton.
+\item \textbf{Les accords des substituts viennent du 4B} ; un 14B se quantifie mieux à bits égaux.
+\item \textbf{Les machines étaient partagées} : les perplexités n'en dépendent pas, les temps si.
+\end{itemize}
+\end{faux}

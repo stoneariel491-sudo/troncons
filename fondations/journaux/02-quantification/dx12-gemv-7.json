@@ -1,0 +1,26 @@
+{
+ "outil": "quant-vulkan-gemv", "api": "dx12", "adaptateur": "NVIDIA GeForce RTX 4060 Laptop GPU", "pilote": "32.0.15.9191 ",
+ "M": 16384, "K": 16384, "horodatage_carte": true, "casser": false,
+ "temoins": [
+  {"format": "scalaire-2b", "erreur_relative_max": 2.631e-6, "tient": true},
+  {"format": "treillis-parite-unif", "erreur_relative_max": 4.244e-6, "tient": true}
+ ],
+ "temoin": "tient",
+ "repetitions": 50, "mesures": [
+  {"serie": 0, "format": "scalaire-2b", "role": "A", "ms": 0.4149, "go_s": 161.7},
+  {"serie": 0, "format": "treillis-parite-unif", "role": "B", "ms": 1.5594, "go_s": 43.0},
+  {"serie": 0, "format": "treillis-parite-unif", "role": "B", "ms": 1.5636, "go_s": 42.9},
+  {"serie": 0, "format": "scalaire-2b", "role": "A", "ms": 0.4107, "go_s": 163.4},
+  {"serie": 0, "format": "lecture-seule", "role": "plafond", "ms": 0.2826, "go_s": 237.5},
+  {"serie": 1, "format": "scalaire-2b", "role": "A", "ms": 0.4064, "go_s": 165.1},
+  {"serie": 1, "format": "treillis-parite-unif", "role": "B", "ms": 1.3166, "go_s": 51.0},
+  {"serie": 1, "format": "treillis-parite-unif", "role": "B", "ms": 1.3124, "go_s": 51.1},
+  {"serie": 1, "format": "scalaire-2b", "role": "A", "ms": 0.3506, "go_s": 191.4},
+  {"serie": 1, "format": "lecture-seule", "role": "plafond", "ms": 0.2808, "go_s": 239.0},
+  {"serie": 2, "format": "scalaire-2b", "role": "A", "ms": 0.3512, "go_s": 191.1},
+  {"serie": 2, "format": "treillis-parite-unif", "role": "B", "ms": 1.3362, "go_s": 50.2},
+  {"serie": 2, "format": "treillis-parite-unif", "role": "B", "ms": 1.3514, "go_s": 49.7},
+  {"serie": 2, "format": "scalaire-2b", "role": "A", "ms": 0.3532, "go_s": 190.0},
+  {"serie": 2, "format": "lecture-seule", "role": "plafond", "ms": 0.2849, "go_s": 235.5}
+ ]
+}

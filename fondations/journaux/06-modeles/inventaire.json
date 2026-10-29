@@ -1,0 +1,3259 @@
+{
+ "Qwen/Qwen3-30B-A3B": {
+  "depot": "Qwen/Qwen3-30B-A3B",
+  "sha": "ad44e777bcd18fa416d9da3bd8f70d33ebb85d39",
+  "cree": "2025-04-27T03:43:05.000Z",
+  "modifie": "2025-07-26T03:45:17.000Z",
+  "licence": "apache-2.0",
+  "licence_nom": null,
+  "licence_lien": "https://huggingface.co/Qwen/Qwen3-30B-A3B/blob/main/LICENSE",
+  "gated": false,
+  "architectures": [
+   "Qwen3MoeForCausalLM"
+  ],
+  "model_type": "qwen3_moe",
+  "api_safetensors_total": 30532122624,
+  "api_safetensors_par_type": {
+   "BF16": 30532122624
+  },
+  "n_fragments": 16,
+  "octets_safetensors": 61066575648,
+  "octets_par_dtype": {
+   "BF16": 61064245248
+  },
+  "config": {
+   "couches": 48,
+   "hidden": 2048,
+   "experts_routes_cfg": 128,
+   "experts_par_jeton": 8,
+   "experts_partages": null,
+   "tetes_q": 32,
+   "tetes_kv": 4,
+   "head_dim": 128,
+   "kv_lora_rank": null,
+   "q_lora_rank": null,
+   "qk_rope_head_dim": null,
+   "v_head_dim": null,
+   "mtp": null,
+   "vocab": 151936,
+   "ctx_max": 40960,
+   "layer_types": null,
+   "n_layer_types": null,
+   "sliding_window": null,
+   "tie": false
+  },
+  "experts_par_couche_trouves": [
+   128
+  ],
+  "couches_moe": 48,
+  "params": {
+   "plongement": 311164928,
+   "actif": 918763520,
+   "expert": 28991029248,
+   "tete": 311164928,
+   "partage": 0
+  },
+  "octets": {
+   "plongement": 622329856,
+   "actif": 1837527040,
+   "expert": 57982058496,
+   "tete": 622329856,
+   "partage": 0
+  },
+  "params_texte_total": 30532122624,
+  "params_actifs_par_jeton_sans_plongement": 3041867776.0,
+  "params_toujours_actifs": 1229928448,
+  "params_experts_routes_actifs": 1811939328.0,
+  "octets_stockes_lus_par_jeton": 6083735552.0,
+  "motifs": {
+   "model.layers.#.mlp.experts.#.down_proj.weight": [
+    6144,
+    9663676416,
+    "BF16",
+    [
+     2048,
+     768
+    ]
+   ],
+   "model.layers.#.mlp.experts.#.gate_proj.weight": [
+    6144,
+    9663676416,
+    "BF16",
+    [
+     768,
+     2048
+    ]
+   ],
+   "model.layers.#.mlp.experts.#.up_proj.weight": [
+    6144,
+    9663676416,
+    "BF16",
+    [
+     768,
+     2048
+    ]
+   ],
+   "model.layers.#.self_attn.o_proj.weight": [
+    48,
+    402653184,
+    "BF16",
+    [
+     2048,
+     4096
+    ]
+   ],
+   "model.layers.#.self_attn.q_proj.weight": [
+    48,
+    402653184,
+    "BF16",
+    [
+     4096,
+     2048
+    ]
+   ],
+   "model.embed_tokens.weight": [
+    1,
+    311164928,
+    "BF16",
+    [
+     151936,
+     2048
+    ]
+   ],
+   "lm_head.weight": [
+    1,
+    311164928,
+    "BF16",
+    [
+     151936,
+     2048
+    ]
+   ],
+   "model.layers.#.self_attn.k_proj.weight": [
+    48,
+    50331648,
+    "BF16",
+    [
+     512,
+     2048
+    ]
+   ],
+   "model.layers.#.self_attn.v_proj.weight": [
+    48,
+    50331648,
+    "BF16",
+    [
+     512,
+     2048
+    ]
+   ],
+   "model.layers.#.mlp.gate.weight": [
+    48,
+    12582912,
+    "BF16",
+    [
+     128,
+     2048
+    ]
+   ],
+   "model.layers.#.input_layernorm.weight": [
+    48,
+    98304,
+    "BF16",
+    [
+     2048
+    ]
+   ],
+   "model.layers.#.post_attention_layernorm.weight": [
+    48,
+    98304,
+    "BF16",
+    [
+     2048
+    ]
+   ],
+   "model.layers.#.self_attn.k_norm.weight": [
+    48,
+    6144,
+    "BF16",
+    [
+     128
+    ]
+   ],
+   "model.layers.#.self_attn.q_norm.weight": [
+    48,
+    6144,
+    "BF16",
+    [
+     128
+    ]
+   ],
+   "model.norm.weight": [
+    1,
+    2048,
+    "BF16",
+    [
+     2048
+    ]
+   ]
+  },
+  "consulte": "2026-10-15"
+ },
+ "mistralai/Mixtral-8x7B-Instruct-v0.1": {
+  "depot": "mistralai/Mixtral-8x7B-Instruct-v0.1",
+  "sha": "eba92302a2861cdc0098cc54bc9f17cb2c47eb61",
+  "cree": "2023-12-10T18:47:12.000Z",
+  "modifie": "2025-07-24T16:41:06.000Z",
+  "licence": "apache-2.0",
+  "licence_nom": null,
+  "licence_lien": null,
+  "gated": false,
+  "architectures": [
+   "MixtralForCausalLM"
+  ],
+  "model_type": "mixtral",
+  "api_safetensors_total": 46702792704,
+  "api_safetensors_par_type": {
+   "BF16": 46702792704
+  },
+  "n_fragments": 19,
+  "octets_safetensors": 93405713504,
+  "octets_par_dtype": {
+   "BF16": 93405585408
+  },
+  "config": {
+   "couches": 32,
+   "hidden": 4096,
+   "experts_routes_cfg": 8,
+   "experts_par_jeton": 2,
+   "experts_partages": null,
+   "tetes_q": 32,
+   "tetes_kv": 8,
+   "head_dim": null,
+   "kv_lora_rank": null,
+   "q_lora_rank": null,
+   "qk_rope_head_dim": null,
+   "v_head_dim": null,
+   "mtp": null,
+   "vocab": 32000,
+   "ctx_max": 32768,
+   "layer_types": null,
+   "n_layer_types": null,
+   "sliding_window": null,
+   "tie": false
+  },
+  "experts_par_couche_trouves": [
+   8
+  ],
+  "couches_moe": 32,
+  "params": {
+   "plongement": 131072000,
+   "expert": 45097156608,
+   "actif": 1343492096,
+   "tete": 131072000,
+   "partage": 0
+  },
+  "octets": {
+   "plongement": 262144000,
+   "expert": 90194313216,
+   "actif": 2686984192,
+   "tete": 262144000,
+   "partage": 0
+  },
+  "params_texte_total": 46702792704,
+  "params_actifs_par_jeton_sans_plongement": 12748853248.0,
+  "params_toujours_actifs": 1474564096,
+  "params_experts_routes_actifs": 11274289152.0,
+  "octets_stockes_lus_par_jeton": 25497706496.0,
+  "motifs": {
+   "model.layers.#.block_sparse_moe.experts.#.w1.weight": [
+    256,
+    15032385536,
+    "BF16",
+    [
+     14336,
+     4096
+    ]
+   ],
+   "model.layers.#.block_sparse_moe.experts.#.w2.weight": [
+    256,
+    15032385536,
+    "BF16",
+    [
+     4096,
+     14336
+    ]
+   ],
+   "model.layers.#.block_sparse_moe.experts.#.w3.weight": [
+    256,
+    15032385536,
+    "BF16",
+    [
+     14336,
+     4096
+    ]
+   ],
+   "model.layers.#.self_attn.o_proj.weight": [
+    32,
+    536870912,
+    "BF16",
+    [
+     4096,
+     4096
+    ]
+   ],
+   "model.layers.#.self_attn.q_proj.weight": [
+    32,
+    536870912,
+    "BF16",
+    [
+     4096,
+     4096
+    ]
+   ],
+   "model.layers.#.self_attn.k_proj.weight": [
+    32,
+    134217728,
+    "BF16",
+    [
+     1024,
+     4096
+    ]
+   ],
+   "model.layers.#.self_attn.v_proj.weight": [
+    32,
+    134217728,
+    "BF16",
+    [
+     1024,
+     4096
+    ]
+   ],
+   "model.embed_tokens.weight": [
+    1,
+    131072000,
+    "BF16",
+    [
+     32000,
+     4096
+    ]
+   ],
+   "lm_head.weight": [
+    1,
+    131072000,
+    "BF16",
+    [
+     32000,
+     4096
+    ]
+   ],
+   "model.layers.#.block_sparse_moe.gate.weight": [
+    32,
+    1048576,
+    "BF16",
+    [
+     8,
+     4096
+    ]
+   ],
+   "model.layers.#.input_layernorm.weight": [
+    32,
+    131072,
+    "BF16",
+    [
+     4096
+    ]
+   ],
+   "model.layers.#.post_attention_layernorm.weight": [
+    32,
+    131072,
+    "BF16",
+    [
+     4096
+    ]
+   ],
+   "model.norm.weight": [
+    1,
+    4096,
+    "BF16",
+    [
+     4096
+    ]
+   ]
+  },
+  "consulte": "2026-10-15"
+ },
+ "openai/gpt-oss-120b": {
+  "depot": "openai/gpt-oss-120b",
+  "sha": "b5c939de8f754692c1647ca79fbf85e8c1e70f8a",
+  "cree": "2025-08-04T22:33:06.000Z",
+  "modifie": "2025-08-26T17:25:03.000Z",
+  "licence": "apache-2.0",
+  "licence_nom": null,
+  "licence_lien": null,
+  "gated": false,
+  "architectures": [
+   "GptOssForCausalLM"
+  ],
+  "model_type": "gpt_oss",
+  "api_safetensors_total": 116829156672,
+  "api_safetensors_par_type": {
+   "BF16": 2167371072,
+   "U8": 114661785600
+  },
+  "n_fragments": 15,
+  "octets_safetensors": 65248893184,
+  "octets_par_dtype": {
+   "BF16": 4334742144,
+   "U8": 60914073600
+  },
+  "config": {
+   "couches": 36,
+   "hidden": 2880,
+   "experts_routes_cfg": 128,
+   "experts_par_jeton": 4,
+   "experts_partages": null,
+   "tetes_q": 64,
+   "tetes_kv": 8,
+   "head_dim": 64,
+   "kv_lora_rank": null,
+   "q_lora_rank": null,
+   "qk_rope_head_dim": null,
+   "v_head_dim": null,
+   "mtp": null,
+   "vocab": 201088,
+   "ctx_max": 131072,
+   "layer_types": [
+    "full_attention",
+    "sliding_attention"
+   ],
+   "n_layer_types": {
+    "full_attention": 18,
+    "sliding_attention": 18
+   },
+   "sliding_window": 128,
+   "tie": false
+  },
+  "experts_par_couche_trouves": [
+   128
+  ],
+  "couches_moe": 36,
+  "params": {
+   "expert": 114701598720,
+   "actif": 969291072,
+   "tete": 579133440,
+   "plongement": 579133440,
+   "partage": 0
+  },
+  "octets": {
+   "expert": 60993699840,
+   "actif": 1938582144,
+   "tete": 1158266880,
+   "plongement": 1158266880,
+   "partage": 0
+  },
+  "params_texte_total": 116829156672,
+  "params_actifs_par_jeton_sans_plongement": 5132849472.0,
+  "params_toujours_actifs": 1548424512,
+  "params_experts_routes_actifs": 3584424960.0,
+  "octets_stockes_lus_par_jeton": 5002902144.0,
+  "motifs": {
+   "model.layers.#.mlp.experts.gate_up_proj_blocks": [
+    36,
+    76441190400,
+    "U8",
+    [
+     128,
+     5760,
+     90,
+     16
+    ]
+   ],
+   "model.layers.#.mlp.experts.down_proj_blocks": [
+    36,
+    38220595200,
+    "U8",
+    [
+     128,
+     2880,
+     90,
+     16
+    ]
+   ],
+   "lm_head.weight": [
+    1,
+    579133440,
+    "BF16",
+    [
+     201088,
+     2880
+    ]
+   ],
+   "model.embed_tokens.weight": [
+    1,
+    579133440,
+    "BF16",
+    [
+     201088,
+     2880
+    ]
+   ],
+   "model.layers.#.self_attn.o_proj.weight": [
+    36,
+    424673280,
+    "BF16",
+    [
+     2880,
+     4096
+    ]
+   ],
+   "model.layers.#.self_attn.q_proj.weight": [
+    36,
+    424673280,
+    "BF16",
+    [
+     4096,
+     2880
+    ]
+   ],
+   "model.layers.#.self_attn.k_proj.weight": [
+    36,
+    53084160,
+    "BF16",
+    [
+     512,
+     2880
+    ]
+   ],
+   "model.layers.#.self_attn.v_proj.weight": [
+    36,
+    53084160,
+    "BF16",
+    [
+     512,
+     2880
+    ]
+   ],
+   "model.layers.#.mlp.experts.gate_up_proj_bias": [
+    36,
+    26542080,
+    "BF16",
+    [
+     128,
+     5760
+    ]
+   ],
+   "model.layers.#.mlp.experts.down_proj_bias": [
+    36,
+    13271040,
+    "BF16",
+    [
+     128,
+     2880
+    ]
+   ],
+   "model.layers.#.mlp.router.weight": [
+    36,
+    13271040,
+    "BF16",
+    [
+     128,
+     2880
+    ]
+   ],
+   "model.layers.#.self_attn.q_proj.bias": [
+    36,
+    147456,
+    "BF16",
+    [
+     4096
+    ]
+   ],
+   "model.layers.#.post_attention_layernorm.weight": [
+    36,
+    103680,
+    "BF16",
+    [
+     2880
+    ]
+   ],
+   "model.layers.#.input_layernorm.weight": [
+    36,
+    103680,
+    "BF16",
+    [
+     2880
+    ]
+   ],
+   "model.layers.#.self_attn.o_proj.bias": [
+    36,
+    103680,
+    "BF16",
+    [
+     2880
+    ]
+   ],
+   "model.layers.#.self_attn.k_proj.bias": [
+    36,
+    18432,
+    "BF16",
+    [
+     512
+    ]
+   ],
+   "model.layers.#.self_attn.v_proj.bias": [
+    36,
+    18432,
+    "BF16",
+    [
+     512
+    ]
+   ],
+   "model.layers.#.mlp.router.bias": [
+    36,
+    4608,
+    "BF16",
+    [
+     128
+    ]
+   ],
+   "model.norm.weight": [
+    1,
+    2880,
+    "BF16",
+    [
+     2880
+    ]
+   ],
+   "model.layers.#.self_attn.sinks": [
+    36,
+    2304,
+    "BF16",
+    [
+     64
+    ]
+   ],
+   "model.layers.#.mlp.experts.down_proj_scales": [
+    36,
+    0,
+    "U8",
+    [
+     128,
+     2880,
+     90
+    ]
+   ],
+   "model.layers.#.mlp.experts.gate_up_proj_scales": [
+    36,
+    0,
+    "U8",
+    [
+     128,
+     5760,
+     90
+    ]
+   ]
+  },
+  "consulte": "2026-10-15"
+ },
+ "deepseek-ai/DeepSeek-V3": {
+  "depot": "deepseek-ai/DeepSeek-V3",
+  "sha": "e815299b0bcbac849fa540c768ef21845365c9eb",
+  "cree": "2024-12-25T12:52:23.000Z",
+  "modifie": "2025-03-27T04:01:45.000Z",
+  "licence": null,
+  "licence_nom": null,
+  "licence_lien": null,
+  "gated": false,
+  "architectures": [
+   "DeepseekV3ForCausalLM"
+  ],
+  "model_type": "deepseek_v3",
+  "api_safetensors_total": 684531386000,
+  "api_safetensors_par_type": {
+   "BF16": 3918786560,
+   "F8_E4M3": 680571043840,
+   "F32": 41555600
+  },
+  "n_fragments": 163,
+  "octets_safetensors": 688586727753,
+  "octets_par_dtype": {
+   "BF16": 7837573120,
+   "F8_E4M3": 680571043840,
+   "F32": 166222400
+  },
+  "config": {
+   "couches": 61,
+   "hidden": 7168,
+   "experts_routes_cfg": 256,
+   "experts_par_jeton": 8,
+   "experts_partages": 1,
+   "tetes_q": 128,
+   "tetes_kv": 128,
+   "head_dim": null,
+   "kv_lora_rank": 512,
+   "q_lora_rank": 1536,
+   "qk_rope_head_dim": 64,
+   "v_head_dim": 128,
+   "mtp": 1,
+   "vocab": 129280,
+   "ctx_max": 163840,
+   "layer_types": null,
+   "n_layer_types": null,
+   "sliding_window": null,
+   "tie": false
+  },
+  "experts_par_couche_trouves": [
+   256
+  ],
+  "couches_moe": 58,
+  "params": {
+   "plongement": 926679040,
+   "actif": 12709959168,
+   "partage": 2554331136,
+   "expert": 653908770816,
+   "tete": 926679040,
+   "mtp": 13463426304
+  },
+  "octets": {
+   "plongement": 1853358080,
+   "actif": 12820524384,
+   "partage": 2554954752,
+   "expert": 654068416512,
+   "tete": 1853358080,
+   "mtp": 15424227552
+  },
+  "params_texte_total": 684489845504,
+  "params_actifs_par_jeton_sans_plongement": 36625618432.0,
+  "params_toujours_actifs": 16190969344,
+  "params_experts_routes_actifs": 20434649088.0,
+  "octets_stockes_lus_par_jeton": 37668475232.0,
+  "motifs": {
+   "model.layers.#.mlp.experts.#.gate_proj.weight": [
+    15104,
+    221727686656,
+    "F8_E4M3",
+    [
+     2048,
+     7168
+    ]
+   ],
+   "model.layers.#.mlp.experts.#.up_proj.weight": [
+    15104,
+    221727686656,
+    "F8_E4M3",
+    [
+     2048,
+     7168
+    ]
+   ],
+   "model.layers.#.mlp.experts.#.down_proj.weight": [
+    15104,
+    221727686656,
+    "F8_E4M3",
+    [
+     7168,
+     2048
+    ]
+   ],
+   "model.layers.#.self_attn.o_proj.weight": [
+    62,
+    7281311744,
+    "F8_E4M3",
+    [
+     7168,
+     16384
+    ]
+   ],
+   "model.layers.#.self_attn.q_b_proj.weight": [
+    62,
+    2340421632,
+    "F8_E4M3",
+    [
+     24576,
+     1536
+    ]
+   ],
+   "model.layers.#.self_attn.kv_b_proj.weight": [
+    62,
+    1040187392,
+    "F8_E4M3",
+    [
+     32768,
+     512
+    ]
+   ],
+   "model.embed_tokens.weight": [
+    1,
+    926679040,
+    "BF16",
+    [
+     129280,
+     7168
+    ]
+   ],
+   "lm_head.weight": [
+    1,
+    926679040,
+    "BF16",
+    [
+     129280,
+     7168
+    ]
+   ],
+   "model.layers.#.embed_tokens.weight": [
+    1,
+    926679040,
+    "BF16",
+    [
+     129280,
+     7168
+    ]
+   ],
+   "model.layers.#.shared_head.head.weight": [
+    1,
+    926679040,
+    "BF16",
+    [
+     129280,
+     7168
+    ]
+   ],
+   "model.layers.#.mlp.shared_experts.gate_proj.weight": [
+    59,
+    866123776,
+    "F8_E4M3",
+    [
+     2048,
+     7168
+    ]
+   ],
+   "model.layers.#.mlp.shared_experts.up_proj.weight": [
+    59,
+    866123776,
+    "F8_E4M3",
+    [
+     2048,
+     7168
+    ]
+   ],
+   "model.layers.#.mlp.shared_experts.down_proj.weight": [
+    59,
+    866123776,
+    "F8_E4M3",
+    [
+     7168,
+     2048
+    ]
+   ],
+   "model.layers.#.self_attn.q_a_proj.weight": [
+    62,
+    682622976,
+    "F8_E4M3",
+    [
+     1536,
+     7168
+    ]
+   ],
+   "model.layers.#.mlp.gate_proj.weight": [
+    3,
+    396361728,
+    "F8_E4M3",
+    [
+     18432,
+     7168
+    ]
+   ],
+   "model.layers.#.mlp.up_proj.weight": [
+    3,
+    396361728,
+    "F8_E4M3",
+    [
+     18432,
+     7168
+    ]
+   ],
+   "model.layers.#.mlp.down_proj.weight": [
+    3,
+    396361728,
+    "F8_E4M3",
+    [
+     7168,
+     18432
+    ]
+   ],
+   "model.layers.#.self_attn.kv_a_proj_with_mqa.weight": [
+    62,
+    255983616,
+    "F8_E4M3",
+    [
+     576,
+     7168
+    ]
+   ],
+   "model.layers.#.mlp.gate.weight": [
+    59,
+    108265472,
+    "BF16",
+    [
+     256,
+     7168
+    ]
+   ],
+   "model.layers.#.eh_proj.weight": [
+    1,
+    102760448,
+    "BF16",
+    [
+     7168,
+     14336
+    ]
+   ],
+   "model.layers.#.input_layernorm.weight": [
+    62,
+    444416,
+    "BF16",
+    [
+     7168
+    ]
+   ],
+   "model.layers.#.post_attention_layernorm.weight": [
+    62,
+    444416,
+    "BF16",
+    [
+     7168
+    ]
+   ],
+   "model.layers.#.self_attn.q_a_layernorm.weight": [
+    62,
+    95232,
+    "BF16",
+    [
+     1536
+    ]
+   ],
+   "model.layers.#.self_attn.kv_a_layernorm.weight": [
+    62,
+    31744,
+    "BF16",
+    [
+     512
+    ]
+   ],
+   "model.layers.#.mlp.gate.e_score_correction_bias": [
+    59,
+    15104,
+    "F32",
+    [
+     256
+    ]
+   ],
+   "model.norm.weight": [
+    1,
+    7168,
+    "BF16",
+    [
+     7168
+    ]
+   ],
+   "model.layers.#.enorm.weight": [
+    1,
+    7168,
+    "BF16",
+    [
+     7168
+    ]
+   ],
+   "model.layers.#.hnorm.weight": [
+    1,
+    7168,
+    "BF16",
+    [
+     7168
+    ]
+   ],
+   "model.layers.#.shared_head.norm.weight": [
+    1,
+    7168,
+    "BF16",
+    [
+     7168
+    ]
+   ],
+   "model.layers.#.self_attn.q_a_proj.weight_scale_inv": [
+    62,
+    0,
+    "F32",
+    [
+     12,
+     56
+    ]
+   ],
+   "model.layers.#.self_attn.q_b_proj.weight_scale_inv": [
+    62,
+    0,
+    "F32",
+    [
+     192,
+     12
+    ]
+   ],
+   "model.layers.#.self_attn.kv_a_proj_with_mqa.weight_scale_inv": [
+    62,
+    0,
+    "F32",
+    [
+     5,
+     56
+    ]
+   ],
+   "model.layers.#.self_attn.kv_b_proj.weight_scale_inv": [
+    62,
+    0,
+    "F32",
+    [
+     256,
+     4
+    ]
+   ],
+   "model.layers.#.self_attn.o_proj.weight_scale_inv": [
+    62,
+    0,
+    "F32",
+    [
+     56,
+     128
+    ]
+   ],
+   "model.layers.#.mlp.gate_proj.weight_scale_inv": [
+    3,
+    0,
+    "F32",
+    [
+     144,
+     56
+    ]
+   ],
+   "model.layers.#.mlp.up_proj.weight_scale_inv": [
+    3,
+    0,
+    "F32",
+    [
+     144,
+     56
+    ]
+   ],
+   "model.layers.#.mlp.down_proj.weight_scale_inv": [
+    3,
+    0,
+    "F32",
+    [
+     56,
+     144
+    ]
+   ],
+   "model.layers.#.mlp.shared_experts.gate_proj.weight_scale_inv": [
+    59,
+    0,
+    "F32",
+    [
+     16,
+     56
+    ]
+   ],
+   "model.layers.#.mlp.shared_experts.up_proj.weight_scale_inv": [
+    59,
+    0,
+    "F32",
+    [
+     16,
+     56
+    ]
+   ],
+   "model.layers.#.mlp.shared_experts.down_proj.weight_scale_inv": [
+    59,
+    0,
+    "F32",
+    [
+     56,
+     16
+    ]
+   ]
+  },
+  "consulte": "2026-10-15"
+ },
+ "deepseek-ai/DeepSeek-R1": {
+  "depot": "deepseek-ai/DeepSeek-R1",
+  "sha": "56d4cbbb4d29f4355bab4b9a39ccb717a14ad5ad",
+  "cree": "2025-01-20T03:46:07.000Z",
+  "modifie": "2025-03-27T04:01:59.000Z",
+  "licence": "mit",
+  "licence_nom": null,
+  "licence_lien": null,
+  "gated": false,
+  "architectures": [
+   "DeepseekV3ForCausalLM"
+  ],
+  "model_type": "deepseek_v3",
+  "api_safetensors_total": 684489845504,
+  "api_safetensors_par_type": {
+   "BF16": 3918786560,
+   "F8_E4M3": 680571043840,
+   "F32": 15104
+  },
+  "n_fragments": 163,
+  "octets_safetensors": 688586727753,
+  "octets_par_dtype": {
+   "BF16": 7837573120,
+   "F8_E4M3": 680571043840,
+   "F32": 166222400
+  },
+  "config": {
+   "couches": 61,
+   "hidden": 7168,
+   "experts_routes_cfg": 256,
+   "experts_par_jeton": 8,
+   "experts_partages": 1,
+   "tetes_q": 128,
+   "tetes_kv": 128,
+   "head_dim": null,
+   "kv_lora_rank": 512,
+   "q_lora_rank": 1536,
+   "qk_rope_head_dim": 64,
+   "v_head_dim": 128,
+   "mtp": 1,
+   "vocab": 129280,
+   "ctx_max": 163840,
+   "layer_types": null,
+   "n_layer_types": null,
+   "sliding_window": null,
+   "tie": false
+  },
+  "experts_par_couche_trouves": [
+   256
+  ],
+  "couches_moe": 58,
+  "params": {
+   "plongement": 926679040,
+   "actif": 12709959168,
+   "partage": 2554331136,
+   "expert": 653908770816,
+   "tete": 926679040,
+   "mtp": 13463426304
+  },
+  "octets": {
+   "plongement": 1853358080,
+   "actif": 12820524384,
+   "partage": 2554954752,
+   "expert": 654068416512,
+   "tete": 1853358080,
+   "mtp": 15424227552
+  },
+  "params_texte_total": 684489845504,
+  "params_actifs_par_jeton_sans_plongement": 36625618432.0,
+  "params_toujours_actifs": 16190969344,
+  "params_experts_routes_actifs": 20434649088.0,
+  "octets_stockes_lus_par_jeton": 37668475232.0,
+  "motifs": {
+   "model.layers.#.mlp.experts.#.gate_proj.weight": [
+    15104,
+    221727686656,
+    "F8_E4M3",
+    [
+     2048,
+     7168
+    ]
+   ],
+   "model.layers.#.mlp.experts.#.up_proj.weight": [
+    15104,
+    221727686656,
+    "F8_E4M3",
+    [
+     2048,
+     7168
+    ]
+   ],
+   "model.layers.#.mlp.experts.#.down_proj.weight": [
+    15104,
+    221727686656,
+    "F8_E4M3",
+    [
+     7168,
+     2048
+    ]
+   ],
+   "model.layers.#.self_attn.o_proj.weight": [
+    62,
+    7281311744,
+    "F8_E4M3",
+    [
+     7168,
+     16384
+    ]
+   ],
+   "model.layers.#.self_attn.q_b_proj.weight": [
+    62,
+    2340421632,
+    "F8_E4M3",
+    [
+     24576,
+     1536
+    ]
+   ],
+   "model.layers.#.self_attn.kv_b_proj.weight": [
+    62,
+    1040187392,
+    "F8_E4M3",
+    [
+     32768,
+     512
+    ]
+   ],
+   "model.embed_tokens.weight": [
+    1,
+    926679040,
+    "BF16",
+    [
+     129280,
+     7168
+    ]
+   ],
+   "lm_head.weight": [
+    1,
+    926679040,
+    "BF16",
+    [
+     129280,
+     7168
+    ]
+   ],
+   "model.layers.#.embed_tokens.weight": [
+    1,
+    926679040,
+    "BF16",
+    [
+     129280,
+     7168
+    ]
+   ],
+   "model.layers.#.shared_head.head.weight": [
+    1,
+    926679040,
+    "BF16",
+    [
+     129280,
+     7168
+    ]
+   ],
+   "model.layers.#.mlp.shared_experts.gate_proj.weight": [
+    59,
+    866123776,
+    "F8_E4M3",
+    [
+     2048,
+     7168
+    ]
+   ],
+   "model.layers.#.mlp.shared_experts.up_proj.weight": [
+    59,
+    866123776,
+    "F8_E4M3",
+    [
+     2048,
+     7168
+    ]
+   ],
+   "model.layers.#.mlp.shared_experts.down_proj.weight": [
+    59,
+    866123776,
+    "F8_E4M3",
+    [
+     7168,
+     2048
+    ]
+   ],
+   "model.layers.#.self_attn.q_a_proj.weight": [
+    62,
+    682622976,
+    "F8_E4M3",
+    [
+     1536,
+     7168
+    ]
+   ],
+   "model.layers.#.mlp.gate_proj.weight": [
+    3,
+    396361728,
+    "F8_E4M3",
+    [
+     18432,
+     7168
+    ]
+   ],
+   "model.layers.#.mlp.up_proj.weight": [
+    3,
+    396361728,
+    "F8_E4M3",
+    [
+     18432,
+     7168
+    ]
+   ],
+   "model.layers.#.mlp.down_proj.weight": [
+    3,
+    396361728,
+    "F8_E4M3",
+    [
+     7168,
+     18432
+    ]
+   ],
+   "model.layers.#.self_attn.kv_a_proj_with_mqa.weight": [
+    62,
+    255983616,
+    "F8_E4M3",
+    [
+     576,
+     7168
+    ]
+   ],
+   "model.layers.#.mlp.gate.weight": [
+    59,
+    108265472,
+    "BF16",
+    [
+     256,
+     7168
+    ]
+   ],
+   "model.layers.#.eh_proj.weight": [
+    1,
+    102760448,
+    "BF16",
+    [
+     7168,
+     14336
+    ]
+   ],
+   "model.layers.#.input_layernorm.weight": [
+    62,
+    444416,
+    "BF16",
+    [
+     7168
+    ]
+   ],
+   "model.layers.#.post_attention_layernorm.weight": [
+    62,
+    444416,
+    "BF16",
+    [
+     7168
+    ]
+   ],
+   "model.layers.#.self_attn.q_a_layernorm.weight": [
+    62,
+    95232,
+    "BF16",
+    [
+     1536
+    ]
+   ],
+   "model.layers.#.self_attn.kv_a_layernorm.weight": [
+    62,
+    31744,
+    "BF16",
+    [
+     512
+    ]
+   ],
+   "model.layers.#.mlp.gate.e_score_correction_bias": [
+    59,
+    15104,
+    "F32",
+    [
+     256
+    ]
+   ],
+   "model.norm.weight": [
+    1,
+    7168,
+    "BF16",
+    [
+     7168
+    ]
+   ],
+   "model.layers.#.enorm.weight": [
+    1,
+    7168,
+    "BF16",
+    [
+     7168
+    ]
+   ],
+   "model.layers.#.hnorm.weight": [
+    1,
+    7168,
+    "BF16",
+    [
+     7168
+    ]
+   ],
+   "model.layers.#.shared_head.norm.weight": [
+    1,
+    7168,
+    "BF16",
+    [
+     7168
+    ]
+   ],
+   "model.layers.#.self_attn.q_a_proj.weight_scale_inv": [
+    62,
+    0,
+    "F32",
+    [
+     12,
+     56
+    ]
+   ],
+   "model.layers.#.self_attn.q_b_proj.weight_scale_inv": [
+    62,
+    0,
+    "F32",
+    [
+     192,
+     12
+    ]
+   ],
+   "model.layers.#.self_attn.kv_a_proj_with_mqa.weight_scale_inv": [
+    62,
+    0,
+    "F32",
+    [
+     5,
+     56
+    ]
+   ],
+   "model.layers.#.self_attn.kv_b_proj.weight_scale_inv": [
+    62,
+    0,
+    "F32",
+    [
+     256,
+     4
+    ]
+   ],
+   "model.layers.#.self_attn.o_proj.weight_scale_inv": [
+    62,
+    0,
+    "F32",
+    [
+     56,
+     128
+    ]
+   ],
+   "model.layers.#.mlp.gate_proj.weight_scale_inv": [
+    3,
+    0,
+    "F32",
+    [
+     144,
+     56
+    ]
+   ],
+   "model.layers.#.mlp.up_proj.weight_scale_inv": [
+    3,
+    0,
+    "F32",
+    [
+     144,
+     56
+    ]
+   ],
+   "model.layers.#.mlp.down_proj.weight_scale_inv": [
+    3,
+    0,
+    "F32",
+    [
+     56,
+     144
+    ]
+   ],
+   "model.layers.#.mlp.shared_experts.gate_proj.weight_scale_inv": [
+    59,
+    0,
+    "F32",
+    [
+     16,
+     56
+    ]
+   ],
+   "model.layers.#.mlp.shared_experts.up_proj.weight_scale_inv": [
+    59,
+    0,
+    "F32",
+    [
+     16,
+     56
+    ]
+   ],
+   "model.layers.#.mlp.shared_experts.down_proj.weight_scale_inv": [
+    59,
+    0,
+    "F32",
+    [
+     56,
+     16
+    ]
+   ]
+  },
+  "consulte": "2026-10-15"
+ },
+ "deepseek-ai/DeepSeek-V3.2": {
+  "depot": "deepseek-ai/DeepSeek-V3.2",
+  "sha": "a7e62ac04ecb2c0a54d736dc46601c5606cf10a6",
+  "cree": "2025-12-01T02:34:49.000Z",
+  "modifie": "2025-12-01T11:04:59.000Z",
+  "licence": "mit",
+  "licence_nom": null,
+  "licence_lien": null,
+  "gated": false,
+  "architectures": [
+   "DeepseekV32ForCausalLM"
+  ],
+  "model_type": "deepseek_v32",
+  "api_safetensors_total": 685355329792,
+  "api_safetensors_par_type": {
+   "BF16": 3946184704,
+   "F8_E4M3": 681408069632,
+   "F32": 1075456
+  },
+  "n_fragments": 163,
+  "octets_safetensors": 689483049129,
+  "octets_par_dtype": {
+   "BF16": 7892369408,
+   "F8_E4M3": 681408069632,
+   "F32": 170668160
+  },
+  "config": {
+   "couches": 61,
+   "hidden": 7168,
+   "experts_routes_cfg": 256,
+   "experts_par_jeton": 8,
+   "experts_partages": 1,
+   "tetes_q": 128,
+   "tetes_kv": 128,
+   "head_dim": null,
+   "kv_lora_rank": 512,
+   "q_lora_rank": 1536,
+   "qk_rope_head_dim": 64,
+   "v_head_dim": 128,
+   "mtp": 1,
+   "vocab": 129280,
+   "ctx_max": 163840,
+   "layer_types": null,
+   "n_layer_types": null,
+   "sliding_window": null,
+   "tie": false
+  },
+  "experts_par_couche_trouves": [
+   256
+  ],
+  "couches_moe": 58,
+  "params": {
+   "plongement": 926679040,
+   "actif": 13561484032,
+   "partage": 2554331136,
+   "expert": 653908770816,
+   "tete": 926679040,
+   "mtp": 13477385728
+  },
+  "octets": {
+   "plongement": 1853358080,
+   "actif": 13702294208,
+   "partage": 2554954752,
+   "expert": 654068416512,
+   "tete": 1853358080,
+   "mtp": 15438725568
+  },
+  "params_texte_total": 685355329792,
+  "params_actifs_par_jeton_sans_plongement": 37477143296.0,
+  "params_toujours_actifs": 17042494208,
+  "params_experts_routes_actifs": 20434649088.0,
+  "octets_stockes_lus_par_jeton": 38550245056.0,
+  "motifs": {
+   "model.layers.#.mlp.experts.#.gate_proj.weight": [
+    15104,
+    221727686656,
+    "F8_E4M3",
+    [
+     2048,
+     7168
+    ]
+   ],
+   "model.layers.#.mlp.experts.#.up_proj.weight": [
+    15104,
+    221727686656,
+    "F8_E4M3",
+    [
+     2048,
+     7168
+    ]
+   ],
+   "model.layers.#.mlp.experts.#.down_proj.weight": [
+    15104,
+    221727686656,
+    "F8_E4M3",
+    [
+     7168,
+     2048
+    ]
+   ],
+   "model.layers.#.self_attn.o_proj.weight": [
+    62,
+    7281311744,
+    "F8_E4M3",
+    [
+     7168,
+     16384
+    ]
+   ],
+   "model.layers.#.self_attn.q_b_proj.weight": [
+    62,
+    2340421632,
+    "F8_E4M3",
+    [
+     24576,
+     1536
+    ]
+   ],
+   "model.layers.#.self_attn.kv_b_proj.weight": [
+    62,
+    1040187392,
+    "F8_E4M3",
+    [
+     32768,
+     512
+    ]
+   ],
+   "model.embed_tokens.weight": [
+    1,
+    926679040,
+    "BF16",
+    [
+     129280,
+     7168
+    ]
+   ],
+   "lm_head.weight": [
+    1,
+    926679040,
+    "BF16",
+    [
+     129280,
+     7168
+    ]
+   ],
+   "model.layers.#.embed_tokens.weight": [
+    1,
+    926679040,
+    "BF16",
+    [
+     129280,
+     7168
+    ]
+   ],
+   "model.layers.#.shared_head.head.weight": [
+    1,
+    926679040,
+    "BF16",
+    [
+     129280,
+     7168
+    ]
+   ],
+   "model.layers.#.mlp.shared_experts.gate_proj.weight": [
+    59,
+    866123776,
+    "F8_E4M3",
+    [
+     2048,
+     7168
+    ]
+   ],
+   "model.layers.#.mlp.shared_experts.up_proj.weight": [
+    59,
+    866123776,
+    "F8_E4M3",
+    [
+     2048,
+     7168
+    ]
+   ],
+   "model.layers.#.mlp.shared_experts.down_proj.weight": [
+    59,
+    866123776,
+    "F8_E4M3",
+    [
+     7168,
+     2048
+    ]
+   ],
+   "model.layers.#.self_attn.indexer.wq_b.weight": [
+    62,
+    780140544,
+    "F8_E4M3",
+    [
+     8192,
+     1536
+    ]
+   ],
+   "model.layers.#.self_attn.q_a_proj.weight": [
+    62,
+    682622976,
+    "F8_E4M3",
+    [
+     1536,
+     7168
+    ]
+   ],
+   "model.layers.#.mlp.gate_proj.weight": [
+    3,
+    396361728,
+    "F8_E4M3",
+    [
+     18432,
+     7168
+    ]
+   ],
+   "model.layers.#.mlp.up_proj.weight": [
+    3,
+    396361728,
+    "F8_E4M3",
+    [
+     18432,
+     7168
+    ]
+   ],
+   "model.layers.#.mlp.down_proj.weight": [
+    3,
+    396361728,
+    "F8_E4M3",
+    [
+     7168,
+     18432
+    ]
+   ],
+   "model.layers.#.self_attn.kv_a_proj_with_mqa.weight": [
+    62,
+    255983616,
+    "F8_E4M3",
+    [
+     576,
+     7168
+    ]
+   ],
+   "model.layers.#.mlp.gate.weight": [
+    59,
+    108265472,
+    "BF16",
+    [
+     256,
+     7168
+    ]
+   ],
+   "model.layers.#.eh_proj.weight": [
+    1,
+    102760448,
+    "BF16",
+    [
+     7168,
+     14336
+    ]
+   ],
+   "model.layers.#.self_attn.indexer.wk.weight": [
+    62,
+    56885248,
+    "F8_E4M3",
+    [
+     128,
+     7168
+    ]
+   ],
+   "model.layers.#.self_attn.indexer.weights_proj.weight": [
+    62,
+    28442624,
+    "BF16",
+    [
+     64,
+     7168
+    ]
+   ],
+   "model.layers.#.input_layernorm.weight": [
+    62,
+    444416,
+    "F32",
+    [
+     7168
+    ]
+   ],
+   "model.layers.#.post_attention_layernorm.weight": [
+    62,
+    444416,
+    "F32",
+    [
+     7168
+    ]
+   ],
+   "model.layers.#.self_attn.q_a_layernorm.weight": [
+    62,
+    95232,
+    "F32",
+    [
+     1536
+    ]
+   ],
+   "model.layers.#.self_attn.kv_a_layernorm.weight": [
+    62,
+    31744,
+    "F32",
+    [
+     512
+    ]
+   ],
+   "model.layers.#.mlp.gate.e_score_correction_bias": [
+    59,
+    15104,
+    "F32",
+    [
+     256
+    ]
+   ],
+   "model.layers.#.self_attn.indexer.k_norm.weight": [
+    62,
+    7936,
+    "F32",
+    [
+     128
+    ]
+   ],
+   "model.layers.#.self_attn.indexer.k_norm.bias": [
+    62,
+    7936,
+    "F32",
+    [
+     128
+    ]
+   ],
+   "model.norm.weight": [
+    1,
+    7168,
+    "F32",
+    [
+     7168
+    ]
+   ],
+   "model.layers.#.enorm.weight": [
+    1,
+    7168,
+    "F32",
+    [
+     7168
+    ]
+   ],
+   "model.layers.#.hnorm.weight": [
+    1,
+    7168,
+    "F32",
+    [
+     7168
+    ]
+   ],
+   "model.layers.#.shared_head.norm.weight": [
+    1,
+    7168,
+    "F32",
+    [
+     7168
+    ]
+   ],
+   "model.layers.#.self_attn.q_a_proj.weight_scale_inv": [
+    62,
+    0,
+    "F32",
+    [
+     12,
+     56
+    ]
+   ],
+   "model.layers.#.self_attn.q_b_proj.weight_scale_inv": [
+    62,
+    0,
+    "F32",
+    [
+     192,
+     12
+    ]
+   ],
+   "model.layers.#.self_attn.kv_a_proj_with_mqa.weight_scale_inv": [
+    62,
+    0,
+    "F32",
+    [
+     5,
+     56
+    ]
+   ],
+   "model.layers.#.self_attn.kv_b_proj.weight_scale_inv": [
+    62,
+    0,
+    "F32",
+    [
+     256,
+     4
+    ]
+   ],
+   "model.layers.#.self_attn.o_proj.weight_scale_inv": [
+    62,
+    0,
+    "F32",
+    [
+     56,
+     128
+    ]
+   ],
+   "model.layers.#.self_attn.indexer.wq_b.weight_scale_inv": [
+    62,
+    0,
+    "F32",
+    [
+     64,
+     12
+    ]
+   ]
+  },
+  "consulte": "2026-10-15"
+ },
+ "deepseek-ai/DeepSeek-V4-Flash": {
+  "depot": "deepseek-ai/DeepSeek-V4-Flash",
+  "sha": "60d8d70770c6776ff598c94bb586a859a38244f1",
+  "cree": "2026-04-22T06:04:20.000Z",
+  "modifie": "2026-06-22T12:12:13.000Z",
+  "licence": "mit",
+  "licence_nom": null,
+  "licence_lien": null,
+  "gated": false,
+  "architectures": [
+   "DeepseekV4ForCausalLM"
+  ],
+  "model_type": "deepseek_v4",
+  "api_safetensors_total": 290944616402,
+  "api_safetensors_par_type": {
+   "BF16": 1415259264,
+   "I64": 2327040,
+   "F32": 36168018,
+   "F8_E4M3": 6023020544,
+   "I8": 283467841536
+  },
+  "n_fragments": 46,
+  "octets_safetensors": 159617149040,
+  "octets_par_dtype": {
+   "BF16": 2830518528,
+   "I64": 18616320,
+   "F32": 144672072,
+   "F8_E8M0": 8858737664,
+   "F8_E4M3": 6023020544,
+   "I8": 141733920768
+  },
+  "config": {
+   "couches": 43,
+   "hidden": 4096,
+   "experts_routes_cfg": 256,
+   "experts_par_jeton": 6,
+   "experts_partages": 1,
+   "tetes_q": 64,
+   "tetes_kv": 1,
+   "head_dim": 512,
+   "kv_lora_rank": null,
+   "q_lora_rank": 1024,
+   "qk_rope_head_dim": 64,
+   "v_head_dim": null,
+   "mtp": 1,
+   "vocab": 129280,
+   "ctx_max": 1048576,
+   "layer_types": null,
+   "n_layer_types": null,
+   "sliding_window": 128,
+   "tie": false
+  },
+  "experts_par_couche_trouves": [
+   256
+  ],
+  "couches_moe": 43,
+  "params": {
+   "actif": 6227046228,
+   "expert": 138512695296,
+   "partage": 1082130432,
+   "mtp": 3388823412,
+   "tete": 0
+  },
+  "octets": {
+   "actif": 7763762908,
+   "expert": 147169738752,
+   "partage": 1082196480,
+   "mtp": 3593787756,
+   "tete": 0
+  },
+  "params_texte_total": 149210695368,
+  "params_actifs_par_jeton_sans_plongement": 10555567956.0,
+  "params_toujours_actifs": 7309176660,
+  "params_experts_routes_actifs": 3246391296.0,
+  "octets_stockes_lus_par_jeton": 12295250140.0,
+  "motifs": {
+   "layers.#.ffn.experts.#.w1.weight": [
+    11008,
+    46170898432,
+    "I8",
+    [
+     2048,
+     2048
+    ]
+   ],
+   "layers.#.ffn.experts.#.w2.weight": [
+    11008,
+    46170898432,
+    "I8",
+    [
+     4096,
+     1024
+    ]
+   ],
+   "layers.#.ffn.experts.#.w3.weight": [
+    11008,
+    46170898432,
+    "I8",
+    [
+     2048,
+     2048
+    ]
+   ],
+   "layers.#.attn.wo_a.weight": [
+    43,
+    1442840576,
+    "F8_E4M3",
+    [
+     8192,
+     4096
+    ]
+   ],
+   "layers.#.attn.wo_b.weight": [
+    43,
+    1442840576,
+    "F8_E4M3",
+    [
+     4096,
+     8192
+    ]
+   ],
+   "layers.#.attn.wq_b.weight": [
+    43,
+    1442840576,
+    "F8_E4M3",
+    [
+     32768,
+     1024
+    ]
+   ],
+   "mtp.#.ffn.experts.#.w1.weight": [
+    256,
+    1073741824,
+    "I8",
+    [
+     2048,
+     2048
+    ]
+   ],
+   "mtp.#.ffn.experts.#.w2.weight": [
+    256,
+    1073741824,
+    "I8",
+    [
+     4096,
+     1024
+    ]
+   ],
+   "mtp.#.ffn.experts.#.w3.weight": [
+    256,
+    1073741824,
+    "I8",
+    [
+     2048,
+     2048
+    ]
+   ],
+   "embed.weight": [
+    1,
+    529530880,
+    "BF16",
+    [
+     129280,
+     4096
+    ]
+   ],
+   "head.weight": [
+    1,
+    529530880,
+    "BF16",
+    [
+     129280,
+     4096
+    ]
+   ],
+   "layers.#.ffn.shared_experts.w1.weight": [
+    43,
+    360710144,
+    "F8_E4M3",
+    [
+     2048,
+     4096
+    ]
+   ],
+   "layers.#.ffn.shared_experts.w2.weight": [
+    43,
+    360710144,
+    "F8_E4M3",
+    [
+     4096,
+     2048
+    ]
+   ],
+   "layers.#.ffn.shared_experts.w3.weight": [
+    43,
+    360710144,
+    "F8_E4M3",
+    [
+     2048,
+     4096
+    ]
+   ],
+   "layers.#.attn.wq_a.weight": [
+    43,
+    180355072,
+    "F8_E4M3",
+    [
+     1024,
+     4096
+    ]
+   ],
+   "layers.#.attn.indexer.wq_b.weight": [
+    21,
+    176160768,
+    "F8_E4M3",
+    [
+     8192,
+     1024
+    ]
+   ],
+   "layers.#.attn.compressor.wgate.weight": [
+    41,
+    130023424,
+    "BF16",
+    [
+     1024,
+     4096
+    ]
+   ],
+   "layers.#.attn.compressor.wkv.weight": [
+    41,
+    130023424,
+    "BF16",
+    [
+     1024,
+     4096
+    ]
+   ],
+   "layers.#.attn.wkv.weight": [
+    43,
+    90177536,
+    "F8_E4M3",
+    [
+     512,
+     4096
+    ]
+   ],
+   "layers.#.ffn.gate.weight": [
+    43,
+    45088768,
+    "BF16",
+    [
+     256,
+     4096
+    ]
+   ],
+   "mtp.#.attn.wo_a.weight": [
+    1,
+    33554432,
+    "F8_E4M3",
+    [
+     8192,
+     4096
+    ]
+   ],
+   "mtp.#.attn.wo_b.weight": [
+    1,
+    33554432,
+    "F8_E4M3",
+    [
+     4096,
+     8192
+    ]
+   ],
+   "mtp.#.attn.wq_b.weight": [
+    1,
+    33554432,
+    "F8_E4M3",
+    [
+     32768,
+     1024
+    ]
+   ],
+   "layers.#.attn.indexer.compressor.wgate.weight": [
+    21,
+    22020096,
+    "BF16",
+    [
+     256,
+     4096
+    ]
+   ],
+   "layers.#.attn.indexer.compressor.wkv.weight": [
+    21,
+    22020096,
+    "BF16",
+    [
+     256,
+     4096
+    ]
+   ],
+   "layers.#.hc_attn_fn": [
+    43,
+    16908288,
+    "F32",
+    [
+     24,
+     16384
+    ]
+   ],
+   "layers.#.hc_ffn_fn": [
+    43,
+    16908288,
+    "F32",
+    [
+     24,
+     16384
+    ]
+   ],
+   "mtp.#.e_proj.weight": [
+    1,
+    16777216,
+    "F8_E4M3",
+    [
+     4096,
+     4096
+    ]
+   ],
+   "mtp.#.h_proj.weight": [
+    1,
+    16777216,
+    "F8_E4M3",
+    [
+     4096,
+     4096
+    ]
+   ],
+   "mtp.#.ffn.shared_experts.w1.weight": [
+    1,
+    8388608,
+    "F8_E4M3",
+    [
+     2048,
+     4096
+    ]
+   ],
+   "mtp.#.ffn.shared_experts.w2.weight": [
+    1,
+    8388608,
+    "F8_E4M3",
+    [
+     4096,
+     2048
+    ]
+   ],
+   "mtp.#.ffn.shared_experts.w3.weight": [
+    1,
+    8388608,
+    "F8_E4M3",
+    [
+     2048,
+     4096
+    ]
+   ],
+   "layers.#.attn.indexer.weights_proj.weight": [
+    21,
+    5505024,
+    "BF16",
+    [
+     64,
+     4096
+    ]
+   ],
+   "mtp.#.attn.wq_a.weight": [
+    1,
+    4194304,
+    "F8_E4M3",
+    [
+     1024,
+     4096
+    ]
+   ],
+   "layers.#.ffn.gate.tid2eid": [
+    3,
+    2327040,
+    "I64",
+    [
+     129280,
+     6
+    ]
+   ],
+   "mtp.#.attn.wkv.weight": [
+    1,
+    2097152,
+    "F8_E4M3",
+    [
+     512,
+     4096
+    ]
+   ],
+   "layers.#.attn.compressor.ape": [
+    41,
+    1396736,
+    "F32",
+    [
+     4,
+     1024
+    ]
+   ],
+   "mtp.#.ffn.gate.weight": [
+    1,
+    1048576,
+    "BF16",
+    [
+     256,
+     4096
+    ]
+   ],
+   "mtp.#.hc_attn_fn": [
+    1,
+    393216,
+    "F32",
+    [
+     24,
+     16384
+    ]
+   ],
+   "mtp.#.hc_ffn_fn": [
+    1,
+    393216,
+    "F32",
+    [
+     24,
+     16384
+    ]
+   ]
+  },
+  "consulte": "2026-10-15"
+ },
+ "deepseek-ai/DeepSeek-V4.1-Flash": {
+  "depot": "deepseek-ai/DeepSeek-V4.1-Flash",
+  "sha": "5254448103b6254fc646dacbca1cbbf20e9216c1",
+  "cree": "2026-09-10T02:17:58.000Z",
+  "modifie": "2026-10-12T09:45:54.000Z",
+  "licence": "mit",
+  "licence_nom": null,
+  "licence_lien": null,
+  "gated": false,
+  "architectures": [
+   "DeepseekV41ForCausalLM"
+  ],
+  "model_type": "deepseek_v41",
+  "api_safetensors_total": 763205315794,
+  "api_safetensors_par_type": {
+   "BF16": 1976441856,
+   "F32": 42307282,
+   "F8_E4M3": 204015223296,
+   "I8": 557171343360
+  },
+  "n_fragments": 48,
+  "octets_safetensors": 510296708312,
+  "octets_par_dtype": {
+   "BF16": 3952883712,
+   "F32": 169229128,
+   "F8_E8M0": 23563015184,
+   "F8_E4M3": 204015223296,
+   "I8": 278585671680
+  },
+  "config": {
+   "couches": 40,
+   "hidden": 5120,
+   "experts_routes_cfg": 384,
+   "experts_par_jeton": 6,
+   "experts_partages": 1,
+   "tetes_q": 64,
+   "tetes_kv": 1,
+   "head_dim": 512,
+   "kv_lora_rank": null,
+   "q_lora_rank": 1280,
+   "qk_rope_head_dim": 64,
+   "v_head_dim": null,
+   "mtp": 3,
+   "vocab": 129280,
+   "ctx_max": 1048576,
+   "layer_types": null,
+   "n_layer_types": null,
+   "sliding_window": 128,
+   "tie": false
+  },
+  "experts_par_couche_trouves": [
+   384
+  ],
+  "couches_moe": 40,
+  "params": {
+   "actif": 203570729344,
+   "hors_texte": 411847680,
+   "expert": 271790899200,
+   "partage": 1415577600,
+   "mtp": 7430590032,
+   "tete": 0
+  },
+  "octets": {
+   "actif": 211334662608,
+   "hors_texte": 823695360,
+   "expert": 288777830400,
+   "partage": 1416960000,
+   "mtp": 7932874632,
+   "tete": 0
+  },
+  "params_texte_total": 484207796176,
+  "params_actifs_par_jeton_sans_plongement": 209233039744.0,
+  "params_toujours_actifs": 204986306944,
+  "params_experts_routes_actifs": 4246732800.0,
+  "octets_stockes_lus_par_jeton": 217263776208.0,
+  "motifs": {
+   "layers.#.engram.embed.weight": [
+    2,
+    196613849600,
+    "F8_E4M3",
+    [
+     384016682,
+     256
+    ]
+   ],
+   "layers.#.ffn.experts.#.w1.weight": [
+    15360,
+    90596966400,
+    "I8",
+    [
+     2304,
+     2560
+    ]
+   ],
+   "layers.#.ffn.experts.#.w2.weight": [
+    15360,
+    90596966400,
+    "I8",
+    [
+     5120,
+     1152
+    ]
+   ],
+   "layers.#.ffn.experts.#.w3.weight": [
+    15360,
+    90596966400,
+    "I8",
+    [
+     2304,
+     2560
+    ]
+   ],
+   "mtp.#.ffn.experts.#.w1.weight": [
+    384,
+    2264924160,
+    "I8",
+    [
+     2304,
+     2560
+    ]
+   ],
+   "mtp.#.ffn.experts.#.w2.weight": [
+    384,
+    2264924160,
+    "I8",
+    [
+     5120,
+     1152
+    ]
+   ],
+   "mtp.#.ffn.experts.#.w3.weight": [
+    384,
+    2264924160,
+    "I8",
+    [
+     2304,
+     2560
+    ]
+   ],
+   "layers.#.attn.wo_b.weight": [
+    40,
+    1677721600,
+    "F8_E4M3",
+    [
+     5120,
+     8192
+    ]
+   ],
+   "layers.#.attn.wq_b.weight": [
+    40,
+    1677721600,
+    "F8_E4M3",
+    [
+     32768,
+     1280
+    ]
+   ],
+   "layers.#.attn.wo_a.weight": [
+    40,
+    1342177280,
+    "F8_E4M3",
+    [
+     8192,
+     4096
+    ]
+   ],
+   "embed.weight": [
+    1,
+    661913600,
+    "BF16",
+    [
+     129280,
+     5120
+    ]
+   ],
+   "head.weight": [
+    1,
+    661913600,
+    "BF16",
+    [
+     129280,
+     5120
+    ]
+   ],
+   "layers.#.ffn.shared_experts.w1.weight": [
+    40,
+    471859200,
+    "F8_E4M3",
+    [
+     2304,
+     5120
+    ]
+   ],
+   "layers.#.ffn.shared_experts.w2.weight": [
+    40,
+    471859200,
+    "F8_E4M3",
+    [
+     5120,
+     2304
+    ]
+   ],
+   "layers.#.ffn.shared_experts.w3.weight": [
+    40,
+    471859200,
+    "F8_E4M3",
+    [
+     2304,
+     5120
+    ]
+   ],
+   "layers.#.engram.wkv.weight": [
+    2,
+    314572800,
+    "F8_E4M3",
+    [
+     25600,
+     6144
+    ]
+   ],
+   "layers.#.attn.wq_a.weight": [
+    40,
+    262144000,
+    "F8_E4M3",
+    [
+     1280,
+     5120
+    ]
+   ],
+   "vision.blocks.#.mlp.w1.weight": [
+    32,
+    184549376,
+    "BF16",
+    [
+     5632,
+     1024
+    ]
+   ],
+   "mtp.#.attn.wo_b.weight": [
+    3,
+    125829120,
+    "F8_E4M3",
+    [
+     5120,
+     8192
+    ]
+   ],
+   "mtp.#.attn.wq_b.weight": [
+    3,
+    125829120,
+    "F8_E4M3",
+    [
+     32768,
+     1280
+    ]
+   ],
+   "layers.#.attn.wkv.weight": [
+    40,
+    104857600,
+    "F8_E4M3",
+    [
+     512,
+     5120
+    ]
+   ],
+   "vision.blocks.#.attn.wqkv.weight": [
+    32,
+    100663296,
+    "BF16",
+    [
+     3072,
+     1024
+    ]
+   ],
+   "mtp.#.attn.wo_a.weight": [
+    3,
+    100663296,
+    "F8_E4M3",
+    [
+     8192,
+     4096
+    ]
+   ],
+   "vision.blocks.#.mlp.w2.weight": [
+    32,
+    92274688,
+    "BF16",
+    [
+     1024,
+     2816
+    ]
+   ],
+   "layers.#.ffn.gate.weight": [
+    40,
+    78643200,
+    "BF16",
+    [
+     384,
+     5120
+    ]
+   ],
+   "mtp.#.main_proj.weight": [
+    1,
+    78643200,
+    "F8_E4M3",
+    [
+     5120,
+     15360
+    ]
+   ],
+   "aligner.w1.weight": [
+    1,
+    47185920,
+    "BF16",
+    [
+     5120,
+     9216
+    ]
+   ],
+   "layers.#.attn.indexer.wq_b.weight": [
+    8,
+    41943040,
+    "F8_E4M3",
+    [
+     4096,
+     1280
+    ]
+   ],
+   "mtp.#.ffn.shared_experts.w1.weight": [
+    3,
+    35389440,
+    "F8_E4M3",
+    [
+     2304,
+     5120
+    ]
+   ],
+   "mtp.#.ffn.shared_experts.w2.weight": [
+    3,
+    35389440,
+    "F8_E4M3",
+    [
+     5120,
+     2304
+    ]
+   ],
+   "mtp.#.ffn.shared_experts.w3.weight": [
+    3,
+    35389440,
+    "F8_E4M3",
+    [
+     2304,
+     5120
+    ]
+   ],
+   "vision.blocks.#.attn.wo.weight": [
+    32,
+    33554432,
+    "BF16",
+    [
+     1024,
+     1024
+    ]
+   ],
+   "mtp.#.markov_head.embed.weight": [
+    1,
+    33095680,
+    "BF16",
+    [
+     129280,
+     256
+    ]
+   ],
+   "mtp.#.markov_head.head.weight": [
+    1,
+    33095680,
+    "BF16",
+    [
+     129280,
+     256
+    ]
+   ],
+   "aligner.w2.weight": [
+    1,
+    26214400,
+    "BF16",
+    [
+     5120,
+     5120
+    ]
+   ],
+   "layers.#.hc_attn_fn": [
+    40,
+    19660800,
+    "F32",
+    [
+     24,
+     20480
+    ]
+   ],
+   "layers.#.hc_ffn_fn": [
+    40,
+    19660800,
+    "F32",
+    [
+     24,
+     20480
+    ]
+   ],
+   "mtp.#.attn.wq_a.weight": [
+    3,
+    19660800,
+    "F8_E4M3",
+    [
+     1280,
+     5120
+    ]
+   ],
+   "layers.#.attn.compressor.wkv.weight": [
+    4,
+    10485760,
+    "BF16",
+    [
+     512,
+     5120
+    ]
+   ],
+   "layers.#.attn.compressor.wgate.weight": [
+    3,
+    7864320,
+    "BF16",
+    [
+     512,
+     5120
+    ]
+   ]
+  },
+  "consulte": "2026-10-15"
+ },
+ "deepseek-ai/DeepSeek-V4-Pro": {
+  "depot": "deepseek-ai/DeepSeek-V4-Pro",
+  "sha": "b5968e9190ef611bbf34a7229255be88a0e937c1",
+  "cree": "2026-04-22T06:04:45.000Z",
+  "modifie": "2026-06-22T12:12:50.000Z",
+  "licence": "mit",
+  "licence_nom": null,
+  "licence_lien": null,
+  "gated": false,
+  "architectures": [
+   "DeepseekV4ForCausalLM"
+  ],
+  "model_type": "deepseek_v4",
+  "api_safetensors_total": 1598839674782,
+  "api_safetensors_par_type": {
+   "BF16": 2816899328,
+   "I64": 2327040,
+   "F32": 87776414,
+   "F8_E4M3": 23169335296,
+   "I8": 1572763336704
+  },
+  "n_fragments": 64,
+  "octets_safetensors": 864721029744,
+  "octets_par_dtype": {
+   "BF16": 5633798656,
+   "I64": 18616320,
+   "F32": 351105656,
+   "F8_E8M0": 49150268416,
+   "F8_E4M3": 23169335296,
+   "I8": 786381668352
+  },
+  "config": {
+   "couches": 61,
+   "hidden": 7168,
+   "experts_routes_cfg": 384,
+   "experts_par_jeton": 6,
+   "experts_partages": 1,
+   "tetes_q": 128,
+   "tetes_kv": 1,
+   "head_dim": 512,
+   "kv_lora_rank": null,
+   "q_lora_rank": 1536,
+   "qk_rope_head_dim": 64,
+   "v_head_dim": null,
+   "mtp": 1,
+   "vocab": 129280,
+   "ctx_max": 1048576,
+   "layer_types": null,
+   "n_layer_types": null,
+   "sliding_window": 128,
+   "tie": false
+  },
+  "experts_par_couche_trouves": [
+   384
+  ],
+  "couches_moe": 61,
+  "params": {
+   "actif": 21573664756,
+   "expert": 773698093056,
+   "partage": 4029677568,
+   "mtp": 13156570676,
+   "tete": 0
+  },
+  "octets": {
+   "actif": 24664057612,
+   "expert": 822054223872,
+   "partage": 4029923520,
+   "mtp": 13956587692,
+   "tete": 0
+  },
+  "params_texte_total": 812458006056,
+  "params_actifs_par_jeton_sans_plongement": 37692375028.0,
+  "params_toujours_actifs": 25603342324,
+  "params_experts_routes_actifs": 12089032704.0,
+  "octets_stockes_lus_par_jeton": 41538578380.0,
+  "motifs": {
+   "layers.#.ffn.experts.#.w1.weight": [
+    23424,
+    257899364352,
+    "I8",
+    [
+     3072,
+     3584
+    ]
+   ],
+   "layers.#.ffn.experts.#.w2.weight": [
+    23424,
+    257899364352,
+    "I8",
+    [
+     7168,
+     1536
+    ]
+   ],
+   "layers.#.ffn.experts.#.w3.weight": [
+    23424,
+    257899364352,
+    "I8",
+    [
+     3072,
+     3584
+    ]
+   ],
+   "layers.#.attn.wo_b.weight": [
+    61,
+    7163871232,
+    "F8_E4M3",
+    [
+     7168,
+     16384
+    ]
+   ],
+   "layers.#.attn.wq_b.weight": [
+    61,
+    6140461056,
+    "F8_E4M3",
+    [
+     65536,
+     1536
+    ]
+   ],
+   "mtp.#.ffn.experts.#.w1.weight": [
+    384,
+    4227858432,
+    "I8",
+    [
+     3072,
+     3584
+    ]
+   ],
+   "mtp.#.ffn.experts.#.w2.weight": [
+    384,
+    4227858432,
+    "I8",
+    [
+     7168,
+     1536
+    ]
+   ],
+   "mtp.#.ffn.experts.#.w3.weight": [
+    384,
+    4227858432,
+    "I8",
+    [
+     3072,
+     3584
+    ]
+   ],
+   "layers.#.attn.wo_a.weight": [
+    61,
+    4093640704,
+    "F8_E4M3",
+    [
+     16384,
+     4096
+    ]
+   ],
+   "layers.#.ffn.shared_experts.w1.weight": [
+    61,
+    1343225856,
+    "F8_E4M3",
+    [
+     3072,
+     7168
+    ]
+   ],
+   "layers.#.ffn.shared_experts.w2.weight": [
+    61,
+    1343225856,
+    "F8_E4M3",
+    [
+     7168,
+     3072
+    ]
+   ],
+   "layers.#.ffn.shared_experts.w3.weight": [
+    61,
+    1343225856,
+    "F8_E4M3",
+    [
+     3072,
+     7168
+    ]
+   ],
+   "embed.weight": [
+    1,
+    926679040,
+    "BF16",
+    [
+     129280,
+     7168
+    ]
+   ],
+   "head.weight": [
+    1,
+    926679040,
+    "BF16",
+    [
+     129280,
+     7168
+    ]
+   ],
+   "layers.#.attn.wq_a.weight": [
+    61,
+    671612928,
+    "F8_E4M3",
+    [
+     1536,
+     7168
+    ]
+   ],
+   "layers.#.attn.indexer.wq_b.weight": [
+    30,
+    377487360,
+    "F8_E4M3",
+    [
+     8192,
+     1536
+    ]
+   ],
+   "layers.#.attn.compressor.wgate.weight": [
+    61,
+    333971456,
+    "BF16",
+    [
+     1024,
+     7168
+    ]
+   ],
+   "layers.#.attn.compressor.wkv.weight": [
+    61,
+    333971456,
+    "BF16",
+    [
+     1024,
+     7168
+    ]
+   ],
+   "layers.#.attn.wkv.weight": [
+    61,
+    223870976,
+    "F8_E4M3",
+    [
+     512,
+     7168
+    ]
+   ],
+   "layers.#.ffn.gate.weight": [
+    61,
+    167903232,
+    "BF16",
+    [
+     384,
+     7168
+    ]
+   ],
+   "mtp.#.attn.wo_b.weight": [
+    1,
+    117440512,
+    "F8_E4M3",
+    [
+     7168,
+     16384
+    ]
+   ],
+   "mtp.#.attn.wq_b.weight": [
+    1,
+    100663296,
+    "F8_E4M3",
+    [
+     65536,
+     1536
+    ]
+   ],
+   "mtp.#.attn.wo_a.weight": [
+    1,
+    67108864,
+    "F8_E4M3",
+    [
+     16384,
+     4096
+    ]
+   ],
+   "layers.#.attn.indexer.compressor.wgate.weight": [
+    30,
+    55050240,
+    "BF16",
+    [
+     256,
+     7168
+    ]
+   ],
+   "layers.#.attn.indexer.compressor.wkv.weight": [
+    30,
+    55050240,
+    "BF16",
+    [
+     256,
+     7168
+    ]
+   ],
+   "mtp.#.e_proj.weight": [
+    1,
+    51380224,
+    "F8_E4M3",
+    [
+     7168,
+     7168
+    ]
+   ],
+   "mtp.#.h_proj.weight": [
+    1,
+    51380224,
+    "F8_E4M3",
+    [
+     7168,
+     7168
+    ]
+   ],
+   "layers.#.hc_attn_fn": [
+    61,
+    41975808,
+    "F32",
+    [
+     24,
+     28672
+    ]
+   ],
+   "layers.#.hc_ffn_fn": [
+    61,
+    41975808,
+    "F32",
+    [
+     24,
+     28672
+    ]
+   ],
+   "mtp.#.ffn.shared_experts.w1.weight": [
+    1,
+    22020096,
+    "F8_E4M3",
+    [
+     3072,
+     7168
+    ]
+   ],
+   "mtp.#.ffn.shared_experts.w2.weight": [
+    1,
+    22020096,
+    "F8_E4M3",
+    [
+     7168,
+     3072
+    ]
+   ],
+   "mtp.#.ffn.shared_experts.w3.weight": [
+    1,
+    22020096,
+    "F8_E4M3",
+    [
+     3072,
+     7168
+    ]
+   ],
+   "layers.#.attn.indexer.weights_proj.weight": [
+    30,
+    13762560,
+    "BF16",
+    [
+     64,
+     7168
+    ]
+   ],
+   "mtp.#.attn.wq_a.weight": [
+    1,
+    11010048,
+    "F8_E4M3",
+    [
+     1536,
+     7168
+    ]
+   ],
+   "mtp.#.attn.wkv.weight": [
+    1,
+    3670016,
+    "F8_E4M3",
+    [
+     512,
+     7168
+    ]
+   ],
+   "mtp.#.ffn.gate.weight": [
+    1,
+    2752512,
+    "BF16",
+    [
+     384,
+     7168
+    ]
+   ],
+   "layers.#.ffn.gate.tid2eid": [
+    3,
+    2327040,
+    "I64",
+    [
+     129280,
+     6
+    ]
+   ],
+   "layers.#.attn.compressor.ape": [
+    61,
+    2154496,
+    "F32",
+    [
+     4,
+     1024
+    ]
+   ],
+   "mtp.#.hc_attn_fn": [
+    1,
+    688128,
+    "F32",
+    [
+     24,
+     28672
+    ]
+   ],
+   "mtp.#.hc_ffn_fn": [
+    1,
+    688128,
+    "F32",
+    [
+     24,
+     28672
+    ]
+   ]
+  },
+  "consulte": "2026-10-15"
+ },
+ "Qwen/Qwen3-235B-A22B-Instruct-2507": {
+  "depot": "Qwen/Qwen3-235B-A22B-Instruct-2507",
+  "erreur": "RuntimeError('échec : https://huggingface.co/Qwen/Qwen3-235B-A22B-Instruct-2507/resolve/main/model-00110-of-00118.safetensors')"
+ }
+}

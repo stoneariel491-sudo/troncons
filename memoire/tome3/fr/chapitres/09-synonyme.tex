@@ -1,0 +1,516 @@
+% Tome~III, chapitre 9 : le génome synonyme, mode rapide, lot B (version française). Rédacteur D, 2026-10-29.
+% Chiffres : genome/07-genome-synonyme.md (avec ses barres), genome/construction-synonyme-pour-le-memoire.md,
+% genome/JUGEMENT-construction.md (§§ 3, 5, 6, 7, 8 ; corrections du 2026-10-27), leurs journaux sous
+% mesures/genome/construction/synonyme/ et mesures/genome/construction/juge/, et les nombres des figures
+% (memoire/figures/tome3/donnees/synonyme-nombres.tex, latents-chiffres.tex), écrits par des scripts commités.
+% Plan et réserves : memoire/tome3/PLAN-redaction.md § 09 (R1, R3 ; P3 hors de ce chapitre).
+
+\chapter{Le génome synonyme, mode rapide (lot B)}\label{t3sno:ch}
+
+\begin{origine}
+\textbf{Au départ}, la mutation synonyme (choisir le symbole de base de chaque poids par une rétroaction d'erreur pondérée par les entrées réelles, sous une contrainte d'entropie) n'était mesurée que sur \num{32} experts sur \num{768} de gpt-oss-20b : la variante $\lambda = 0$ en KL de bout en bout ($-\num{0.0098} \pm \num{0.0033}$, appariée, contre la frontière), la variante $\lambda = 1$ en erreur de sortie d'expert seulement (\cref{t3syn:ch}). Aucun fichier, aucun noyau, aucune option du moteur ne la servait.
+\textbf{Ce chapitre établit} la mutation synonyme écrite pour les \num{768} experts, sa KL de bout en bout avec tous les experts substitués, le départage des deux variantes $\lambda = 0$ et $\lambda = 1$ par une règle déclarée avant, et le \emph{mode rapide} du moteur : un fichier compagnon \texttt{<nom>.rapide.trc} décodé par le décodeur du mode exact, un noyau \texttt{gemv\_base}, une option \texttt{--rapide}, chacun avec son témoin. Il établit aussi, par le juge, ce que le mode rapide ne rend pas : deux gains de vitesse publiés par le lot, barrés comme gains du mode.
+\textbf{Il reste} la mutation synonyme du 120b (ni calibration, ni juge f64), un autre corpus que wiki.test, la queue de la KL (les bascules de routage) et la décision de la politique mixte des défauts, à reprendre avec les rapports du juge (\cref{t3sno:sec:reste}).
+Sources : \fichier{genome/07-genome-synonyme.md}, \fichier{genome/construction-synonyme-pour-le-memoire.md}, \fichier{genome/JUGEMENT-construction.md}, \fichier{mesures/genome/construction/synonyme/} (seuils : \fichier{00-seuils-declares.md}) et \fichier{mesures/genome/construction/juge/}.
+\end{origine}
+
+\begin{enbref}
+Dans le vivant, une mutation est dite \emph{synonyme} quand elle change une lettre d'un codon sans changer l'acide aminé que ce codon désigne : la séquence change, la protéine non. L'image sert ici d'analogie, et de rien de plus. Une matrice d'un expert de gpt-oss n'est jugée que par ce qu'elle fait de ses entrées réelles ; une erreur de poids dans une direction que ces entrées n'excitent jamais ne change presque pas la sortie. La mutation synonyme choisit donc, poids après poids, une version approchée de la matrice (sa \emph{base}, trois bits de symbole par poids) dont l'erreur va justement dans ces directions muettes. Elle n'invente pas de nouveau décodeur : mêmes huit symboles, mêmes quatre niveaux, mêmes échelles que la base « frontière » du Tome~II, où le symbole est une simple fonction du code. Tout le travail est au codeur. Sur les \num{768} experts du 20b, servis tous par leur base, la KL de bout en bout tombe de \num{0.2640} (frontière) à \num{0.1318} (synonyme, $\lambda = 0$), pour \num{2.67} bits par poids d'expert au lieu de \num{3.86} pour le fichier exact ; un juge qui ne l'a pas construit le redonne sur dix fenêtres de texte que personne n'avait vues. Le moteur sert ce mode rapide, sur la carte, aussi fidèlement que la référence en double précision. Ce qu'il ne rend pas, c'est de la vitesse en génération : à fichiers comparables, $\times 1{,}28$ sur le 120b et $\times 0{,}94$ sur le 20b ; les $\times 2{,}00$ et $\times 1{,}24$ d'abord publiés comparaient un compagnon neuf à un ancien fichier exact que ce disque lit plus lentement à cause du motif de ses requêtes.
+\end{enbref}
+
+\section{Ce qui est construit}\label{t3sno:sec:construit}
+
+\paragraph{Le vocabulaire.} Le format exact du Tome~II sert chaque poids d'expert en MXFP4 : un code E2M1 de quatre bits (un signe, trois bits de grandeur) sous une échelle E8M0 commune à un bloc de 32 poids \parencite{ocp_mx_v1}. La découpe \emph{base + complément} du Tome~I range les huit grandeurs E2M1 en quatre \emph{classes} contiguës ; la \emph{base} d'un poids est son signe et sa classe $k \in \{0,1,2,3\}$ (huit symboles, trois bits de symbole), et le \emph{complément} dit quelle grandeur de la classe il porte. Servir la base seule, c'est remplacer chaque poids par $\pm c_k \cdot s_b$, où $c_k$ est le niveau (le centre) de la classe et $s_b$ l'échelle du bloc : c'est le \emph{mode rapide}, avec perte, dont l'intérêt est de lire moins d'octets. Deux manières de choisir la base :
+\begin{itemize}
+\item la \textbf{frontière} : le symbole est une fonction du code exact (la classe où tombe sa grandeur) ; c'est la base du Tome~II, sans calibration ;
+\item la \textbf{synonyme} : le symbole est choisi par le codeur pour que l'erreur de \emph{sortie} soit petite sur les entrées réelles, quitte à prendre une classe voisine de celle du code ; le décodeur ne voit pas la différence.
+\end{itemize}
+Deux réglages de la synonyme sont mesurés : $\lambda = 0$, la rétroaction d'erreur seule, et $\lambda = 1$, la même sous une contrainte d'entropie qui pénalise les symboles rares (\cref{t3sno:sec:choix}). Tous deux portent un amortissement $\delta^\star = 1$ de la matrice des entrées (\cref{t3sno:eq:H}).
+
+\paragraph{Les pièces.} \Cref{t3sno:tab:pieces} les donne, chacune avec le témoin déclaré avant sa mesure (\fichier{mesures/genome/construction/synonyme/00-seuils-declares.md}, commits du 17 octobre 2026 entre 8 h 19 et 12 h 14, puis l'amendement de la séance de vitesse le 21 à 23 h 59).
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[Les pièces du lot B et leurs témoins]{Les pièces du lot B, chacune avec le témoin déclaré avant sa mesure et le résultat \mes.}
+\label{t3sno:tab:pieces}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.17\linewidth}>{\raggedright\arraybackslash}p{0.25\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.24\linewidth}@{}}
+\toprule
+Pièce & Ce qu'elle fait & Témoin et cassure & Résultat \\
+\midrule
+codage des 768 experts & \texttt{coder\_768.sh} appelle \texttt{synonyme.py ecrire-sym}, le code de l'éclaireur, \emph{inchangé} & W1 : refaire L00-E00 ($\lambda = 0$) rend le fichier de l'éclaireur octet pour octet ; cassure : $\delta = 0{,}99$ & SHA-256 égales (\texttt{9079dcf1}…) ; cassure : \num{117501} symboles différents \\
+second chemin des symboles & \texttt{verifier\_sym.py} relit les \texttt{.sym}, reconstruit, recalcule les erreurs publiées & W2 : égales au journal de l'éclaireur à $10^{-9}$ relatif (16 experts, couches 0, 8, 16, 23) ; cassure : un bit de classe sur une ligne & écart maximal $4{,}4\cdot 10^{-16}$ ; cassure : $7{,}2\cdot 10^{-3}$, tombe \\
+noyau du mode rapide & \texttt{gemv\_base} (\texttt{gemv.cuh}, lecteur de valeurs en paramètre) & carte contre référence f64 sur un cas exact par construction (\cref{t3sno:prop:b2}) ; mode exact avant et après & 0 ligne différente sur \num{2880} ; mode exact identique au bit \\
+drapeau RAPIDE & bit 5 de l'en-tête, version 1.2 & refus sous 1.2, avec brut, avec canonique & 4 cas sur 4 \\
+empaqueteur et vérificateur & \texttt{trc-rapide coder}, \texttt{trc-rapide verifier} & S3-T1 (\cref{t3sno:sec:moteur}) ; cassure \texttt{--casser C X} & l'expert visé, et lui seul \\
+option du moteur & \texttt{troncons … --rapide} & un fichier rapide sans \texttt{--rapide}, un exact avec & refusés tous deux, erreur nommée \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{mesures/genome/construction/synonyme/codage/W1-reproduction.json}, \fichier{codage/W2-*.json}, \fichier{rapide/refus-*.log} ; test \texttt{gemv\_base\_exacte\_au\_bit\_et\_mode\_exact\_inchange} ; test \texttt{drapeau\_rapide\_v12}.}
+\end{table}
+
+\paragraph{Une décision, et son prix.} Le cahier de construction prévoyait un codeur en Rust sur la carte. Le lot a codé les 768 experts avec le code Python de l'éclaireur, sans en changer une ligne, à environ \SI{54}{\second} par expert sur un processus, trois à six processus en parallèle (\emph{réponse par délégation du 2026-10-17, réversible}). La raison : c'est la seule voie qui rend \emph{exactement} la variante dont l'erreur avait été mesurée, et W1 le prouve au bit. Le prix est le 120b, où ce codeur coûterait des dizaines d'heures (\cref{t3sno:sec:120b}).
+
+\section{Le mécanisme}\label{t3sno:sec:mecanisme}
+
+\subsection{L'erreur de sortie et la matrice des entrées}\label{t3sno:sec:H}
+
+Soit une matrice d'expert $W \in \mathbb{R}^{R \times C}$ ($R = C = \num{2880}$ pour les trois matrices gate, up et down de gpt-oss, \cite{openai2025gptoss}), ses entrées réelles $x \in \mathbb{R}^C$ et le poids $g$ que le routeur donne à l'expert pour chacune. L'erreur que fait une reconstruction $\hat W$, à la sortie et sur la loi des entrées pondérée comme le modèle pondère l'expert, vaut
+\begin{equation}\label{t3sno:eq:erreur}
+\mathcal{E}(\hat W) = \frac{\mathrm{E}\!\left[g^2 \,\lVert (W - \hat W)\, x \rVert^2\right]}{\mathrm{E}[g^2]}
+= \mathrm{tr}\!\left(\Delta W \, H \, \Delta W^\top\right),
+\qquad \Delta W = W - \hat W,
+\end{equation}
+avec
+\begin{equation}\label{t3sno:eq:H}
+H = \frac{\mathrm{E}[g^2\, x x^\top]}{\mathrm{E}[g^2]}
+\qquad\text{et, pour le codeur,}\qquad
+H_\delta = H + \delta^\star\, \overline{\mathrm{diag}\, H}\; I,\quad \delta^\star = 1 .
+\end{equation}
+\emph{Le calcul.} $\lVert \Delta W x\rVert^2 = x^\top \Delta W^\top \Delta W x = \mathrm{tr}(\Delta W\, x x^\top \Delta W^\top)$ ; la trace et l'espérance sont linéaires, d'où $\mathrm{E}[g^2 \lVert \Delta W x\rVert^2] = \mathrm{tr}(\Delta W\, \mathrm{E}[g^2 x x^\top]\, \Delta W^\top)$, et la division par $\mathrm{E}[g^2]$ donne \eqref{t3sno:eq:erreur}. La trace se coupe en lignes : $\mathrm{tr}(\Delta W H \Delta W^\top) = \sum_r \delta_r^\top H \delta_r$, où $\delta_r$ est la ligne $r$ de $\Delta W$. \emph{Les lignes sont donc des problèmes indépendants}, et le codeur traite chaque ligne $w$ seule : $\min_q (w - q)^\top H (w - q)$, $q$ parcourant les reconstructions permises colonne par colonne.
+
+Les entrées de calibration sont celles de l'éclaireur : les fenêtres 10 à 21 de wiki.test (\num{6132} positions), disjointes des dix fenêtres d'évaluation R1 (fenêtres 0 à 9), et pondérées par le carré du poids du routeur. Un expert donné ne voit que les positions que le routeur lui envoie : \num{1329} pour l'expert 0 de la couche 8, en dimension \num{2880}. Sa matrice $H$ est donc de rang \num{1329} au plus, et c'est ce qui rend l'amortissement nécessaire (\cref{t3sno:sec:spectre}).
+
+\subsection{Le choix des symboles}\label{t3sno:sec:choix}
+
+\begin{lemme}[Rétroaction d'erreur optimale, OBS]\label{t3sno:lem:obs}
+Soit $H \succ 0$ et une ligne $w$. Si l'on fixe la colonne $j$ à une valeur $q_j$ et qu'on laisse libres les colonnes suivantes $F$, l'accroissement minimal de $(w - q)^\top H (w - q)$ vaut $(w_j - q_j)^2 / [H_F^{-1}]_{jj}$, et il est atteint en corrigeant les colonnes libres de $\delta_F = -(w_j - q_j)\,[H_F^{-1}]_{F j} / [H_F^{-1}]_{jj}$ \parencite{hassibi1992obs,frantar2022obc}.
+\end{lemme}
+\begin{proof}
+On cherche la plus petite perturbation $\delta$ (portée par $j$ et $F$) telle que $(w + \delta)_j = q_j$, au sens de la forme $\delta^\top H \delta$ restreinte à ces colonnes. Le lagrangien $\tfrac12 \delta^\top H \delta + \mu\,(e_j^\top \delta + w_j - q_j)$ s'annule en gradient pour $H\delta = -\mu e_j$, soit $\delta = -\mu H^{-1} e_j$ ; la contrainte donne $-\mu [H^{-1}]_{jj} + w_j - q_j = 0$, donc $\mu = (w_j - q_j)/[H^{-1}]_{jj}$ et
+\[
+\delta = -\frac{w_j - q_j}{[H^{-1}]_{jj}}\, H^{-1} e_j,\qquad
+\delta^\top H \delta = \frac{(w_j - q_j)^2}{[H^{-1}]_{jj}^2}\, e_j^\top H^{-1} H H^{-1} e_j = \frac{(w_j - q_j)^2}{[H^{-1}]_{jj}} .
+\]
+Toutes les inverses sont prises sur le bloc des colonnes $\{j\} \cup F$, d'où l'indice $F$ de l'énoncé.
+\end{proof}
+
+\paragraph{Une seule factorisation.} Dans l'ordre des colonnes $1, \dots, C$, les quantités $[H_F^{-1}]_{jj}$ et $[H_F^{-1}]_{Fj}$ du lemme sont les lignes du facteur de Cholesky \emph{supérieur} $U$ de $H^{-1}$ ($U^\top U = H^{-1}$) : $[H_F^{-1}]_{jj} = U_{jj}^2$ et la correction vaut $-\bigl((w_j - q_j)/U_{jj}\bigr)\, U_{j,F}$ \parencite{frantar2022gptq}. L'éclaireur obtient $U$ sans inverser $H$ : si $P$ renverse l'ordre des colonnes et $P H P = L L^\top$, alors $U = P L^{-1} P$. En effet $H^{-1} = P (L L^\top)^{-1} P = P L^{-\top} L^{-1} P = (P L^{-1} P)^\top (P L^{-1} P)$ puisque $P^2 = I$ et $P^\top = P$, et $P L^{-1} P$ est triangulaire supérieure parce que $L^{-1}$ est triangulaire inférieure et que $P$ renverse lignes et colonnes. La démonstration est en tête de la fonction \texttt{facteur\_inverse} ; le facteur ainsi obtenu s'écarte de $7 \cdot 10^{-14}$ du facteur direct (\cref{t3ecl:ch}).
+
+\paragraph{La règle de choix.} La colonne $j$ choisit le symbole (signe $\pm$, classe $k$) qui minimise
+\begin{equation}\label{t3sno:eq:choix}
+k_j = \operatorname*{argmin}_{k}\; \bigl(\lvert \tilde w_j\rvert - c_k\, s_b\bigr)^2 + \lambda\, \bar c\, U_{jj}^2\, \ell(\pm, k),
+\qquad \ell = -\log_2 p ,
+\end{equation}
+où $\tilde w_j$ est le poids déjà corrigé par les colonnes précédentes, $p$ la loi des symboles de la base frontière du même tenseur, et $\bar c = \mathrm{tr}(\Delta W_F H \Delta W_F^\top)/(RC)$ l'erreur moyenne d'un poids de la frontière dans les unités de $H$. Divisé par $U_{jj}^2$, le premier terme est l'accroissement de l'erreur de sortie (\cref{t3sno:lem:obs}) et le second vaut $\lambda\,\bar c$ fois la longueur de code : $\lambda$ se lit en « fractions de l'erreur moyenne d'un poids, par bit ». Puis l'erreur commise est reportée sur les colonnes suivantes,
+\[
+\varepsilon_j = \pm\,\frac{\lvert\tilde w_j\rvert - c_{k_j} s_b}{U_{jj}},
+\qquad \tilde w_F \leftarrow \tilde w_F - \varepsilon_j\, U_{j,F} .
+\]
+$\lambda = 0$ est la rétroaction seule ; $\lambda = 1$ ajoute la contrainte d'entropie. C'est mot pour mot ce que fait le code de l'éclaireur (\fichier{outils/genome/eclaireur/synonyme.py}, fonctions \texttt{hessienne}, \texttt{facteur\_inverse}, \texttt{choisir}), et le lot B ne l'a pas modifié.
+
+\paragraph{Le témoin qui sait tomber.} Avec $H = I$ et $\lambda = 0$, $U = I$ : aucune correction, chaque poids prend le centre le plus proche. Les centres étant les centres de gravité de classes contiguës, le centre le plus proche d'une grandeur est celui de sa classe, et la synonyme rend \emph{exactement} la frontière (0 symbole différent ; avec le $H$ réel, \num{1789132} symboles différents sur les tenseurs de l'éclaireur, \cref{t3ecl:ch}).
+
+\paragraph{Le décodeur ne change pas.} Mêmes huit symboles, mêmes quatre centres, mêmes échelles : le mécanisme vit tout entier dans le codeur, et son coût de transcription est nul. C'est ce que dit l'analogie, dans la mesure où elle dit quelque chose : le « ribosome » (le décodeur) lit un codon synonyme sans le savoir.
+
+\subsection{La transformation dans la base propre de \texorpdfstring{$H$}{H}}\label{t3sno:sec:spectre}
+
+\begin{proposition}[L'erreur de sortie dans la base propre]\label{t3sno:prop:propre}
+Soit $(u_k, \lambda_k)$ les couples propres de la matrice symétrique positive $H$ et $e_k = \lVert \Delta W u_k \rVert^2$ l'énergie de l'erreur dans la direction $u_k$. Alors
+\[
+\mathcal{E}(\hat W) = \mathrm{tr}(\Delta W H \Delta W^\top) = \sum_k \lambda_k\, e_k,
+\qquad
+\lVert \Delta W \rVert_F^2 = \sum_k e_k .
+\]
+\end{proposition}
+\begin{proof}
+$H = \sum_k \lambda_k u_k u_k^\top$, donc $\mathrm{tr}(\Delta W H \Delta W^\top) = \sum_k \lambda_k\, \mathrm{tr}(\Delta W u_k u_k^\top \Delta W^\top) = \sum_k \lambda_k\, \lVert \Delta W u_k\rVert^2$. Les $u_k$ formant une base orthonormée, $\sum_k u_k u_k^\top = I$, et le même calcul avec $\lambda_k = 1$ donne la norme de Frobenius.
+\end{proof}
+
+\begin{lecture}
+La proposition dit ce que fait la mutation synonyme : elle abaisse $\sum_k \lambda_k e_k$ en \emph{déplaçant} l'énergie $e_k$ vers les directions où $\lambda_k$ est petite, au prix d'une énergie totale $\sum_k e_k$ plus grande, c'est-à-dire d'une erreur \emph{sur les poids} plus haute. Elle est synonyme pour la sortie, pas pour les poids.
+\end{lecture}
+
+\Cref{fig:t3-syno-base-propre} le montre sur une matrice, avant et après : la couche 8, l'expert 0, la matrice gate du 20b, frontière contre synonyme $\lambda = 1$ \mes. La matrice $H$ de calibration y est de rang \num{1329} : les \num{1551} directions au-delà, sur \num{2880}, ne pèsent rien en calibration, mais les entrées d'évaluation les pèsent encore (au moins \num{0.119}). L'amortissement $\delta^\star = 1$ ajoute à chaque direction $\overline{\mathrm{diag}\,H} = \mathrm{tr}\,H/\num{2880} = \num{0.41}$, plus que ce poids d'évaluation des directions muettes ; seules \num{433} valeurs propres le dépassent. Le synonyme augmente l'erreur sur les poids de \SI{20}{\percent} ($\sum_k e_k$ : \num{40.07} $\to$ \num{48.01}) et la déplace vers les directions muettes (de \SI{54}{\percent} à \SI{61}{\percent} de $\sum_k e_k$ au-delà du rang). L'erreur de sortie, elle, baisse :
+\begin{gather*}
+\textstyle\sum_k \lambda_k e_k \;:\; \num{16.50} \to \num{6.15}\ (\div\,\num{2.68}) \text{ en calibration,}\\
+\textstyle\sum_k (u_k^\top H_{\text{év}} u_k)\, e_k \;:\; \num{16.09} \to \num{10.28}\ (\div\,\num{1.57}) \text{ vue par l'évaluation.}
+\end{gather*}
+L'écart entre $\div 2{,}68$ et $\div 1{,}57$ est le sur-apprentissage qui reste à $\delta^\star = 1$ : le coût de la frontière vu par l'évaluation reste à son coût de calibration ($\times\,\num{0.975}$), celui du synonyme monte ($\times\,\num{1.67}$). L'éclaireur l'avait dit d'une phrase : le synonyme d'un échantillon n'est pas le synonyme de la loi. Une remarque de lecture, venue du juge des figures : l'aire ombrée entre les deux courbes du panneau (b$'$) \emph{n'est pas} la mesure de ce sur-apprentissage, puisque la frontière en a une aussi (\num{0.17}, contre \num{0.32} pour le synonyme) ; la part cumulée en calibration atteint 1 au rang de $H$ pour toute variante.
+
+\begin{figure}[tbp]
+\centering
+\GrapheSynoBasePropre
+\LegendeFigure{SynoBasePropre}
+\label{fig:t3-syno-base-propre}
+\end{figure}
+
+\paragraph{Une rangée, vue de près.} \Cref{fig:t3-lat-rangee} descend au niveau des poids, dans la même matrice : une rangée de 32 poids (ligne \num{2118}, bloc 52), tirée parmi les blocs dont le nombre de symboles changés égale la médiane sur la matrice, donc typique par construction \mes. La mutation y change 4 symboles sur 32 et en éloigne 3 de leur valeur exacte (le quatrième, un zéro, change de signe à la même distance) ; l'erreur sur les poids du bloc monte de \num{7.39} à \num{11.27} (en unités de $s_b^2$). Sur la matrice entière, \SI{17.5}{\percent} des symboles changent (\num{5.59} par bloc en moyenne). Une rangée ne peut pas montrer où va l'erreur : c'est la base propre (\cref{fig:t3-syno-base-propre}) qui le montre.
+
+\begin{figure}[tbp]
+\centering
+\GrapheLatentsRangee
+\LegendeFigure{LatentsRangee}
+\label{fig:t3-lat-rangee}
+\end{figure}
+
+\subsection{L'erreur dans les directions des entrées}\label{t3sno:sec:nuage}
+
+\Cref{fig:t3-lat-nuage} regarde la même matrice depuis ses entrées : les \num{1329} entrées réelles de calibration de l'expert, projetées sur les premiers axes propres de $H$ ($\lambda_1 = \num{279.5}$, $\lambda_2 = \num{33.5}$, $\lambda_3 = \num{21.7}$, \SI{28.2}{\percent} de la trace), et, dans chaque direction unité $v$ d'un plan, l'erreur de sortie $\lVert \Delta W v \rVert$ pour une entrée unité de direction $v$ \mes\,\calc. Dans un plan $B = [u_1\ u_k]$, cette courbe est la fonction d'appui de l'ellipse $M^{1/2}$, $M = B^\top \Delta W^\top \Delta W B$ : pour $v = B a$, $\lVert a \rVert = 1$, $\lVert \Delta W v\rVert^2 = a^\top M a$. La frontière est presque un cercle : elle répartit son erreur à plat. La synonyme l'écrase le long de $u_1$, où se projettent les entrées : \SI{90}{\percent} des projections sont à moins de \ang{30} de $u_1$ dans le plan $(u_1, u_2)$ et de \ang{24} dans le plan $(u_1, u_3)$, et pour une entrée unité de ces cônes l'erreur du synonyme vaut au plus \num{0.133} et \num{0.135} de celle de la frontière. Le long des axes eux-mêmes, le rapport vaut \num{0.082} ($u_1$), \num{0.217} ($u_2$) et \num{0.269} ($u_3$).
+
+\paragraph{Ce que la borne de \num{0.135} ne dit pas.} Elle porte sur les \emph{projections} des entrées dans ces plans, pas sur les entrées entières : \SI{72}{\percent} de la norme au carré d'une entrée est hors des trois premiers axes, et une entrée fait un angle médian de \ang{59} avec le plan $(u_1, u_2)$. Sur les \num{1329} entrées réelles dans leurs \num{2880} dimensions, le rapport $\lVert \Delta W_s x\rVert / \lVert \Delta W_f x\rVert$ vaut \num{0.61} en médiane, de \num{0.49} à \num{0.81}, et aucune n'est sous \num{0.135}. La première version de la figure suggérait l'inverse ; le second juge des espaces latents l'a relevé, et la légende jugée dit maintenant les deux nombres. Dans les \num{2877} autres directions, pondérée par les entrées, l'erreur de sortie baisse aussi, de \num{11.96} à \num{6.08}, et ces directions portent \SI{57}{\percent} du gain de sortie : le gain n'est pas seulement là où la figure regarde.
+
+\begin{figure}[tbp]
+\centering
+\GrapheLatentsNuage
+\LegendeFigure{LatentsNuage}
+\label{fig:t3-lat-nuage}
+\end{figure}
+
+\section{Le mode rapide ne touche pas le mode exact}\label{t3sno:sec:propositions}
+
+Le mode rapide ajoute un chemin dans un moteur dont l'exactitude au bit est démontrée et mesurée (Tome~II). Deux propositions disent ce que l'ajout garde, et ce que le noyau neuf garantit.
+
+\begin{proposition}[B1 : le mode exact est inchangé]\label{t3sno:prop:b1}
+Le noyau \texttt{gemv\_4\_lignes} est paramétré par le lecteur des valeurs $V$ (\fichier{moteur/crates/trc-noyaux/noyaux/gemv.cuh}). Pour $V$ = \texttt{ValeurE2M1}, les sorties du mode exact sont identiques au bit à celles d'avant l'ajout ; et un fichier rapide se décode par le même décodeur rANS, les mêmes tables et la même grille que le mode exact.
+\end{proposition}
+\begin{proof}
+Pour $V$ = \texttt{ValeurE2M1}, la suite des \texttt{fmaf} a les mêmes opérandes dans le même ordre qu'avant le paramètre : même valeur \texttt{valeur\_e2m1x2(c)} pour chaque demi-octet, même parcours (mot $t$, octet $k$, demi-octet faible puis fort), même réduction en papillon. Une suite d'opérations flottantes identique en opérandes et en ordre rend des résultats identiques au bit ; le paramètre se résout à la compilation et n'ajoute aucune opération. Le décodeur rANS, lui, ne lit jamais la valeur d'un symbole (Tome~II, spécification § 4.9) : il rend des demi-octets ; c'est le drapeau RAPIDE de l'en-tête qui dit qu'ils sont des symboles de base, et c'est la GEMV qui les lit autrement. Témoin de carte : le mode exact avant et après un passage en mode rapide, sur les mêmes octets, rend les mêmes sorties au bit (test \texttt{gemv\_base\_exacte\_au\_bit\_et\_mode\_exact\_inchange}) \mes.
+\end{proof}
+
+\begin{proposition}[B2 : \texttt{gemv\_base} est déterministe, et exact sur un témoin]\label{t3sno:prop:b2}
+\texttt{gemv\_base} calcule $y = \hat W x$ avec $\hat W_{rc} = \pm c_{k} \cdot 2^{e - 128}$ dans le même découpage et le même ordre que \texttt{gemv\_mxfp4}. Si les centres sont des multiples de $\frac12$ au plus égaux à 12, les échelles dans $[2^{-11}, 2^{-5}]$ et les entrées dans $\{-2, \dots, 2\}$, la sortie de la carte égale au bit la référence en double précision.
+\end{proposition}
+\begin{proof}
+\emph{Le déterminisme.} La valeur $v(c) = \pm c_{c \,\&\, 3}$ est choisie par des sélections, sans lecture indexée ni divergence d'accès mémoire, et l'ordre des opérations est fixé par le découpage, comme pour \texttt{gemv\_mxfp4} (Tome~II, chapitre des noyaux).
+\emph{L'exactitude sur le témoin.} Un terme vaut $c \cdot s \cdot x$ avec $c = a/2$ ($a$ entier, $\lvert a \rvert \le 24$), $s = 2^{-m}$ ($5 \le m \le 11$) et $x$ entier, $\lvert x \rvert \le 2$ : c'est un multiple de $2^{-(m+1)}$, donc de $2^{-12}$, et $\lvert c s x\rvert \le 12 \cdot 2^{-5} \cdot 2 = 0{,}75$. Une ligne de \num{2880} termes reste sous $\num{2880} \times 0{,}75 = \num{2160} < 2^{12}$, et toute somme partielle aussi, dans tout ordre. Un multiple de $2^{-12}$ de valeur absolue sous $2^{12}$ s'écrit sur $12 + 12 = 24$ bits significatifs : il est représentable exactement en f32 (24 bits de mantisse). Chaque produit et chaque addition tombent donc sur un flottant f32 exact, aucune opération n'arrondit, et le résultat ne dépend ni de l'ordre ni de la précision : il égale la somme exacte, que la référence f64 calcule aussi exactement. Mesuré : 0 ligne différente sur \num{2880} \mes.
+\end{proof}
+
+Le témoin de B2 est choisi pour pouvoir tomber : la cassure (le mode exact lancé sur les mêmes octets, qui lit des codes et non des symboles) rend des lignes différentes, et tombe \mes.
+
+\section{Le compagnon \texttt{<nom>.rapide.trc}, au bit près}\label{t3sno:sec:format}
+
+Le compagnon est un fichier \texttt{.trc} ordinaire (Tome~II, chapitre du format), avec ce que donne \cref{t3sno:tab:format} ; tout le reste est le format exact. Le schéma de la figure prévue (III-9.5) n'a pas été tracé : le tableau en tient lieu.
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[Le compagnon rapide, champ par champ]{Le compagnon \texttt{<nom>.rapide.trc}, champ par champ : ce qui diffère du fichier exact, et pourquoi.}
+\label{t3sno:tab:format}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.17\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.28\linewidth}@{}}
+\toprule
+Élément & Valeur & Raison \\
+\midrule
+version & 1.2 & le drapeau RAPIDE est défini en v1.2 \\
+drapeaux & bit 0 ALIGNÉ + \textbf{bit 5 RAPIDE} ; bits 1 (niveaux), 2 (brut), 3 (canonique) refusés avec lui & un lecteur 1.0 ou 1.1 refuse le fichier : le mode exact ne peut pas lire des symboles par erreur \\
+MÉTA & les paires du GGUF, recopiées du fichier exact, plus \texttt{troncons.rapide.codeur}, \texttt{.variante} (synonyme ou frontière), \texttt{.exact} (empreinte64 de l'en-tête du fichier exact, en hexadécimal), \texttt{.partition} (\texttt{0 0 1 1 1 2 2 3}), \texttt{.centres}, \texttt{.lambda}, \texttt{.amortissement}, \texttt{.calibration} & provenance ; la vérification contrôle le lien \texttt{.exact} \\
+RÉSIDENTS & recopiés octet pour octet du fichier exact & le compagnon s'ouvre seul \\
+TABLES & par (couche, matrice) : DELTA (contexte 0), CODES\_CTX (contextes 0, 1, 2 : comptes des demi-octets de base sur les 32 experts), \textbf{CENTRES} (contexte 0 : 4 f32, grandeurs doublées) & même décodeur, mêmes tables ; la GEMV lit les centres \\
+tronçon & MEDIANES, BIAIS, DELTA, CODES\_CTX pour les 3 matrices (12 flux, comme en v1.0) & échelles et biais de l'expert exact \\
+demi-octet & bit 3 : le signe ; bits 1-0 : la classe $k$ ; bit 2 : nul. L'octet $t$ d'un bloc porte la colonne $32b + t$ (demi-octet faible) et $32b + 16 + t$ (fort) & disposition de \texttt{block\_mxfp4} \\
+valeur servie & $\pm c_k \cdot 2^{e - 128}$, $c = (\num{0.474331}, \num{2.848596}, \num{6.837154}, \num{12.0})$ en grandeurs doublées & \texttt{gemv\_base} \\
+empreinte d'origine & empreinte64 de l'\emph{expert rapide} (blocs $[e,\ \text{demi-octets de base}]$, puis biais) & le mode témoin du moteur la vérifie sans changement \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{genome/07-genome-synonyme.md}, § 3 ; \fichier{genome/construction-synonyme-pour-le-memoire.md}, § 2.5.}
+\end{table}
+
+\paragraph{La partition et les centres.} La clé \texttt{.partition} range les huit grandeurs E2M1, en grandeurs doublées $\{0, 1, 2, 3, 4, 6, 8, 12\}$, dans les classes $0\,0\,1\,1\,1\,2\,2\,3$ : $\{0, 1\}$, $\{2, 3, 4\}$, $\{6, 8\}$, $\{12\}$. Chaque centre est dans sa classe, et le dernier est la grandeur 12 elle-même ; le facteur $2^{e-128}$ au lieu de $2^{e-127}$ compense le doublement. Ce sont ces classes contiguës qui rendent vrai le témoin $H = I$ (\cref{t3sno:sec:choix}).
+
+\paragraph{Trois écarts au cahier}, chacun pour ne toucher aucun chemin du mode exact (\emph{réponses par délégation du 2026-10-17, réversibles}) : (1) la sorte de flux CODES\_CTX au lieu d'une sorte neuve BASE\_CTX, pour que le décodeur de la carte, ses tables et sa grille restent ceux du mode exact, mot pour mot, le drapeau portant le sens ; (2) les résidents recopiés au lieu d'une section vide, pour que le moteur ouvre le compagnon comme tout fichier (coût : \SI{1.9}{\Go} de disque) ; (3) l'empreinte d'origine prise sur l'expert rapide, la provenance de l'expert exact restant dans l'en-tête (SHA-256 du GGUF) et dans \texttt{.exact}.
+
+\section{Les mesures de la qualité}\label{t3sno:sec:mesures}
+
+\subsection{Le protocole et ses témoins}\label{t3sno:sec:protocole}
+
+Déclaré avant : la référence f64 du lot R avec substitution (\texttt{genome-capture kl --sub}), les 768 experts servis par leur base, sur les dix fenêtres de R1 (\num{2550} positions notées, tenues à l'écart de la calibration), jugée par \texttt{juge kl} contre la référence exacte ; la différence appariée position par position, et son écart-type \emph{par fenêtres} (les dix moyennes de fenêtre, $\sigma = s/\sqrt{10}$), comme dans toute la quête. La KL est celle de \textcite{kullback1951}, au sens et avec la coupe du Tome~II ; le premier choix porte son intervalle de \textcite{wilson1927}.
+
+Deux témoins ont été déclarés mal, et corrigés à leur place, barrés, avec l'heure :
+\begin{itemize}
+\item \barre{le journal de chaque passe porte 768 experts substitués} : corrigé le 17 octobre à 10 h 50, après la passe frontière, qui porte 732. Le compteur compte les experts \emph{chargés}, pas les fichiers présents, et 36 experts ne sont routés par aucune des \num{2550} positions. Le témoin juste est « substitués = lus » : frontière 732 sur 732, synonyme 725 sur 725, $\lambda = 0$ 729 sur 729 ; les ensembles diffèrent parce que le routage dépend des experts servis. Cassure connue : la passe de l'éclaireur, 32 substitués sur 731 lus \mes.
+\item \barre{la KL recalculée depuis le CSV égale celle du juge à $10^{-12}$ près} : corrigé à 11 h 35, après une chute sans cause sur la passe synonyme. Le CSV porte dix chiffres significatifs, soit au plus $5\cdot 10^{-10}$ d'erreur relative par valeur ; le seuil absolu venait des KL de \num{0.03} de l'éclaireur. Le seuil juste est $10^{-9}$ relatif : écarts mesurés $3{,}5\cdot 10^{-12}$, $8 \cdot 10^{-12}$ et $5\cdot 10^{-12}$ ; la cassure (une ligne retirée) tombe \mes.
+\end{itemize}
+La leçon est celle du lot : un témoin de compteur se déclare sur ce que le compteur compte.
+
+\subsection{Le repère de l'outil de référence}\label{t3sno:sec:repere}
+
+llama.cpp b11515 \parencite{ggml2026llamacppb11515} ne sait requantifier les experts de gpt-oss sous \num{2.6} bits qu'en Q2\_0 (\num{2.25} bits par poids, groupes de 64) : ses k-quants et ses IQ ont des super-blocs de 256 poids, que \num{2880} ne divise pas. Experts seuls requantifiés (le reste du GGUF inchangé, \SI{6979.93}{\Mio} contre \num{11536.18}), dix fenêtres de R1 sur le processeur, options de la base « processeur » : KL $\num{1.597} \pm \num{0.019}$, médiane \num{1.314}, premier choix \SI{13.6}{\percent}, perplexité \num{881.2} \mes. C'est un repère faible, qu'il faut dire tel : un arrondi au plus proche à deux bits, sans matrice d'importance, détruit presque le modèle.
+
+\subsection{La KL de bout en bout, les 768 experts substitués}\label{t3sno:sec:kl}
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[La KL de bout en bout, 768 experts substitués]{La KL de bout en bout sur R1, les 768 experts de gpt-oss-20b servis par leur base (référence f64 substituée, \num{2550} positions) \mes. L'incertitude naïve (par positions) est celle que 07 publie ; celle par fenêtres est la juste (\cref{t3jug:sec:sigma}).}
+\label{t3sno:tab:kl}
+\begin{tabular}{@{}lccccccc@{}}
+\toprule
+Variante & KL & $\pm\sigma$ naïf & $\pm\sigma$ fenêtres & médiane & 99,9\textsuperscript{e} c. & premier choix & perplexité \\
+\midrule
+frontière & \num{0.2640} & \num{0.0066} & \num{0.0376} & \num{0.163} & \num{4.07} & \SI{47.8}{\percent} & \num{274.1} \\
+synonyme $\lambda = 1$ & \num{0.1522} & \num{0.0062} & \num{0.0203} & \num{0.0615} & \num{3.93} & \SI{67.5}{\percent} & \num{466.5} \\
+synonyme $\lambda = 0$ & \textbf{\num{0.1318}} & \num{0.0055} & \num{0.0182} & \num{0.0559} & \num{3.37} & \textbf{\SI{69.9}{\percent}} & \num{411.0} \\
+\midrule
+llama.cpp Q2\_0 (repère) & \num{1.597} & \num{0.019} & \num{0.173} & \num{1.314} & \num{6.78} & \SI{13.6}{\percent} & \num{881.2} \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/genome/construction/synonyme/kl/kl-\{frontiere,synonyme,synonyme-l0\}-768-juge.json}, \fichier{repere/kl-q2_0-juge.json} ; $\sigma$ par fenêtres recalculé depuis les fichiers par position par \fichier{memoire/outils/tome3_synonyme.py} ; perplexité de la référence exacte : \num{460.2}.}
+\end{table}
+
+\paragraph{Ce que disent ces nombres} (\cref{t3sno:tab:kl}) :
+\begin{itemize}
+\item Servir \emph{tous} les experts par la base de la frontière fait une KL de \num{0.264}, sept fois celle de 32 experts substitués (\num{0.036}, protocole de l'éclaireur) : la KL croît moins vite que le nombre d'experts substitués ($\times 24$ d'experts, $\times 7$ de KL), ce qu'on attend d'erreurs dont l'essentiel passe par des bascules de routage, qui saturent \calc. Les deux nombres sont de deux protocoles ; on les compare ici par leur rapport, on ne les joint par aucun trait (réserve R3).
+\item La synonyme garde son avantage relatif quand on passe de 32 à 768 experts. Le lot écrivait que « le gain ne fond pas ; il grandit », en comparant $\lambda = 0$ à 32 experts (rapport à la frontière \num{0.727}) à $\lambda = 1$ à 768 (\num{0.576}) : deux variantes. À variante égale, $\lambda = 0$ passe de \num{0.727} à \num{0.499}, et la phrase reste vraie (constat M5 du juge).
+\item Les incertitudes absolues publiées par 07 sont naïves : par positions, elles ignorent que les \num{255} positions d'une fenêtre partagent leur passé. Par fenêtres, elles sont de \num{3.2} à \num{8.9} fois plus larges selon la série (constat M1 du juge ; dérivation au \cref{t3jug:sec:sigma}). Aucun verdict n'en dépend : tous reposent sur des différences appariées prises avec $\sigma$ par fenêtres.
+\end{itemize}
+
+\paragraph{Les quantiles} (frontière $\to$ synonyme $\lambda = 1$) : 90\textsuperscript{e} centile \num{0.565} $\to$ \num{0.328} ; 99\textsuperscript{e} \num{1.457} $\to$ \num{1.295} ; maximum \num{6.49} $\to$ \num{6.94} \mes. La part lisse baisse beaucoup, la queue peu : médiane $\div\,\num{2.65}$, 90\textsuperscript{e} centile $\div\,\num{1.72}$, 99\textsuperscript{e} $\div\,\num{1.12}$, 99,9\textsuperscript{e} $\div\,\num{1.04}$ \calc. Plus on va dans la queue, moins le synonyme y fait : ce sont les bascules de routage, que la pondération par les entrées d'un seul expert ne voit pas (\cref{t3syn:ch}).
+
+\subsection{Le critère B2, et le départage des deux \texorpdfstring{$\lambda$}{lambda}}\label{t3sno:sec:b2}
+
+\paragraph{B2 (i), synonyme $\lambda = 1$ contre la frontière.} La règle, déclarée avant : $d = \mathrm{KL}_{\text{synonyme}} - \mathrm{KL}_{\text{frontière}}$ position par position ; meilleure si $\bar d + 2\sigma < 0$, égale si $\lvert \bar d\rvert \le 2\sigma$, pire sinon. Mesuré : $\bar d = -\num{0.1118}$, $\sigma$ par fenêtres \num{0.0296} (naïf \num{0.0045}), $\bar d + 2\sigma = -\num{0.052} < 0$ : \textbf{meilleure} (\num{3.8}\,$\sigma$), négative dans les dix fenêtres, de $-\num{0.036}$ (fenêtre 4) à $-\num{0.345}$ (fenêtre 7) ; premier choix apparié $+\num{0.197} \pm \num{0.011}$ \mes. La porte du pas suivant (le mode rapide dans le moteur), déclarée « si (i) tient », est ouverte.
+
+\paragraph{B0, la mesure qui manquait d'abord.} Faite \emph{après} la passe à 768 experts, sur le protocole de l'éclaireur (32 experts, \num{2550} positions ; les symboles $\lambda = 1$ des 32 experts sont un sous-ensemble des 768) \mes :
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+32 experts (éclaireur) & KL & contre la frontière & contre $\lambda = 0$ & premier choix \\
+\midrule
+frontière & \num{0.0360} & --- & & \SI{87.1}{\percent} \\
+$\lambda = 0$ (éclaireur) & \num{0.0262} & $-\num{0.0098} \pm \num{0.0033}$, meilleure & --- & \SI{90.9}{\percent} \\
+$\lambda = 1$ & \num{0.0350} & $-\num{0.0010} \pm \num{0.0022}$, égale & $+\num{0.0088} \pm \num{0.0032}$, pire & \SI{87.7}{\percent} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+À 32 experts, la contrainte d'entropie rend presque tout le gain de KL de $\lambda = 0$ contre ses \num{0.078} bit ; à 768, $\lambda = 1$ bat la frontière de \SI{42}{\percent}. Les deux faits ne se contredisent pas (des experts différents, un régime de bascules différent), mais ils disent que la comparaison décisive est $\lambda = 0$ contre $\lambda = 1$ \emph{à 768 experts}. La règle en a été déclarée le 17 octobre à 12 h 15, après B0 et avant le codage $\lambda = 0$ (commit \texttt{ff36671}) : $d = \mathrm{KL}_{\lambda=0} - \mathrm{KL}_{\lambda=1}$ ; si $\bar d + 2\sigma < 0$, $\lambda = 0$ devient la variante du mode rapide ; sinon $\lambda = 1$ reste, qui a 0,07 bit de moins.
+
+\paragraph{B2 entre les deux $\lambda$.} Codage $\lambda = 0$, $\delta^\star = 1$ des 768 experts (768 fichiers de \num{12441636} octets, soit $4 + 32 + 3 \times \num{2880} \times \num{1440}$), puis la même passe KL (le 21 octobre, \SI{1554}{\second}). Mesuré : $\bar d = -\num{0.0204}$, $\sigma$ par fenêtres \num{0.0097} (naïf \num{0.0038}), $\bar d + 2\sigma = -\num{0.0009} < 0$ : $\lambda = 0$ \textbf{meilleure, de justesse} (\num{2.09}\,$\sigma$). Neuf fenêtres sur dix vont dans ce sens ; la fenêtre 7 va dans l'autre ($+\num{0.061}$ : \num{0.113} $\to$ \num{0.174}). $\lambda = 0$ a moins de KL sur \num{1706} positions sur \num{2550} ; premier choix apparié $+\num{2.4} \pm \num{0.8}$ points ; contre la frontière, $-\num{0.1322} \pm \num{0.0234}$ (\num{5.6}\,$\sigma$) et $+\num{22.1} \pm \num{1.1}$ points de premier choix \mes. Par la règle, $\lambda = 0$ devient la variante du mode rapide.
+
+\paragraph{Le juge, sur dix fenêtres neuves.} Le juge de la construction a tiré dix fenêtres de wiki.test que ni la calibration ni R1 ne touchent (\cref{t3jug:sec:fenetres}) et refait B2 par le moteur : $\bar d = -\num{0.0303} \pm \num{0.0084}$, \num{3.6}\,$\sigma$, neuf fenêtres sur dix (la fenêtre 0 contre, $+\num{0.016}$) ; et $\lambda = 0$ contre la frontière, par la référence substituée : $-\num{0.1565} \pm \num{0.0334}$ (\num{4.7}\,$\sigma$), dix fenêtres sur dix \mes. Sa prédiction déclarée, « égales », est démentie : le choix de $\lambda = 0$ n'était pas un coup de chance des fenêtres de R1. \Cref{t3sno:tab:fenetres} donne chaque fenêtre ; \cref{fig:t3-syno-foret} les dessine.
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[Les différences appariées, fenêtre par fenêtre]{Les différences appariées $\bar d$ de chaque fenêtre (négatives quand la seconde variante gagne) \mes. R1 : lot B, référence f64 substituée. Fenêtres neuves : le juge ; $\lambda = 0$ contre $\lambda = 1$ par le moteur, $\lambda = 0$ contre la frontière par la référence substituée.}
+\label{t3sno:tab:fenetres}
+\setlength{\tabcolsep}{2.6pt}
+\begin{tabular}{@{}lrrrrrrrrrr|r@{}}
+\toprule
+Fenêtre & 0 & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & $z$ \\
+\midrule
+R1, $\lambda = 1$ − frontière & $-0{,}108$ & $-0{,}047$ & $-0{,}116$ & $-0{,}073$ & $-0{,}036$ & $-0{,}079$ & $-0{,}069$ & $-0{,}345$ & $-0{,}053$ & $-0{,}193$ & \num{3.8} \\
+R1, $\lambda = 0$ − $\lambda = 1$ & $-0{,}028$ & $-0{,}019$ & $-0{,}048$ & $-0{,}042$ & $-0{,}037$ & $-0{,}020$ & $-0{,}013$ & $+0{,}061$ & $-0{,}020$ & $-0{,}039$ & \num{2.1} \\
+neuves, $\lambda = 0$ − $\lambda = 1$ & $+0{,}016$ & $-0{,}024$ & $-0{,}092$ & $-0{,}031$ & $-0{,}019$ & $-0{,}028$ & $-0{,}029$ & $-0{,}037$ & $-0{,}037$ & $-0{,}021$ & \num{3.6} \\
+neuves, $\lambda = 0$ − frontière & $-0{,}101$ & $-0{,}267$ & $-0{,}056$ & $-0{,}154$ & $-0{,}085$ & $-0{,}096$ & $-0{,}334$ & $-0{,}118$ & $-0{,}050$ & $-0{,}304$ & \num{4.7} \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/genome/construction/synonyme/kl/apparie-768-par-fenetre.csv}, \fichier{apparie-l1-contre-l0-768-par-fenetre.csv} ; \fichier{mesures/genome/construction/juge/kl/apparie-neuf-moteur-l0-contre-l1-par-fenetre.csv}, \fichier{apparie-neuf-sub-l0-contre-frontiere-par-fenetre.csv}. Les fenêtres neuves ne sont pas les fenêtres de R1 du même numéro.}
+\end{table}
+
+\begin{figure}[tbp]
+\centering
+\GrapheSynoForet
+\LegendeFigure{SynoForet}
+\label{fig:t3-syno-foret}
+\end{figure}
+
+\paragraph{Lire la forêt.} \Cref{fig:t3-syno-foret} met les trois comparaisons sur un seul axe. Contre la frontière, les deux synonymes gagnent avec une marge que personne ne discute, sur les deux jeux de fenêtres. Entre eux, l'écart est bien plus petit, et la bande $\pm 2\sigma$ de R1 frôle le zéro : c'est le « de justesse » du lot, et c'est la même règle qui donne les deux verdicts. Une remarque de chemin : le premier panneau des fenêtres neuves met $\lambda = 1$ par le moteur contre la frontière par la référence substituée, deux chemins que le juge publie « à titre indicatif seulement » ($-\num{0.1260} \pm \num{0.0366}$) ; sur R1, où les deux chemins existent, ce mélange déplace $\bar d$ de \num{0.0014}. Les fenêtres neuves sont de wiki.test, le corpus de R1 \parencite{merity2016wikitext} : elles éprouvent un autre texte, pas une autre sorte de texte.
+
+\subsection{La queue de la KL}\label{t3sno:sec:queue}
+
+\Cref{fig:t3-syno-queue} trace la fonction de survie $P(\mathrm{KL} > t)$ des \num{2550} positions pour les trois variantes et le repère. Elle montre d'un coup d'œil les deux parts de la KL que la synthèse avait séparées (\cref{t3syn:ch}) : la part lisse, où le synonyme divise la médiane par \num{2.66} ($\lambda = 1$) et \num{2.92} ($\lambda = 0$), et la queue des bascules de routage, où les courbes se rejoignent.
+
+\begin{figure}[tbp]
+\centering
+\GrapheSynoQueue
+\LegendeFigure{SynoQueue}
+\label{fig:t3-syno-queue}
+\end{figure}
+
+La queue a fait écrire au lot deux phrases que la mesure a reprises, et qui restent barrées à leur place :
+\begin{itemize}
+\item \barre{La queue ne bouge pas} (07, § 0) : barrée par le lot lui-même le 22 octobre, parce que vraie pour $\lambda = 1$ seulement.
+\item « Avec $\lambda = 0$, la queue baisse aussi. » Contre la \emph{frontière}, elle tient : 99\textsuperscript{e} centile \num{1.457} $\to$ \num{1.081} ($-\SI{26}{\percent}$) sur R1, \num{1.877} $\to$ \num{1.397} ($-\SI{26}{\percent}$) sur les fenêtres neuves par la référence substituée ; 99,9\textsuperscript{e} $-\SI{17}{\percent}$ et $-\SI{18}{\percent}$ \mes. Contre $\lambda = 1$, \barre{le centile 99 baisse de 17\,\% et le centile 99,9 de 14\,\%} : sur les fenêtres neuves, le 99\textsuperscript{e} ne baisse que de \SI{5}{\percent} et le 99,9\textsuperscript{e} \emph{monte} de \SI{6}{\percent} (\num{3.61} contre \num{3.40}, moteur) ; barré par le juge (constat M2).
+\end{itemize}
+La raison est arithmétique : un 99,9\textsuperscript{e} centile de \num{2550} positions ne laisse que trois positions au-dessus de lui \calc. Ce n'est pas une grandeur qu'on oppose d'une variante à l'autre à cette taille d'échantillon. La légende de \cref{fig:t3-syno-queue} le dit, et donne la baisse au 99,9\textsuperscript{e} centile contre la frontière par jeu et par chemin : $\lambda = 1$ \SI{3.4}{\percent} sur R1 mais \SI{20.8}{\percent} sur les fenêtres neuves, $\lambda = 0$ \SI{17.2}{\percent} et \SI{15.9}{\percent} (synonymes par le moteur sur les fenêtres neuves ; d'où \SI{15.9}{\percent} ici et \SI{18}{\percent} par la référence substituée).
+
+\subsection{La perplexité ne juge pas la fidélité}\label{t3sno:sec:perplexite}
+
+La perplexité de la frontière \emph{baisse} (\num{274.1} contre \num{460.2} pour le modèle exact) pendant que sa KL est la pire : sur un texte brut, hors du format de conversation pour lequel le modèle est réglé, une distribution déformée peut mieux prédire le jeton suivant que le modèle exact. Celle du synonyme $\lambda = 1$ reste à $+\SI{1.4}{\percent}$ de l'exact (logarithme du rapport $\num{0.013} \pm \num{0.016}$) ; celle de $\lambda = 0$ descend (\num{411.0} ; $-\num{0.113} \pm \num{0.015}$) \mes. Le lot en avait tiré une phrase : \barre{$\lambda = 0$ déforme la distribution dans une direction privilégiée que $\lambda = 1$ ne prend pas}. Sur les fenêtres neuves, le sens s'inverse : $\lambda = 0$ est à $+\SI{2.4}{\percent}$ de l'exact (\num{402.1} contre \num{392.5}) et $\lambda = 1$ à $+\SI{15.6}{\percent}$ \mes ; barré par le juge (constat M3). La leçon de la synthèse se confirme une fois de plus : seule la KL juge la fidélité.
+
+\subsection{Le débit des symboles}\label{t3sno:sec:debit}
+
+Les entropies des symboles sur les 72 tenseurs entiers des 768 experts, par l'estimateur de l'éclaireur (\cref{t3ecl:ch}) \mes :
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lcc@{}}
+\toprule
+72 tenseurs, 768 experts & $H_0$ des symboles & $H(\text{symbole} \mid \kappa)$ \\
+\midrule
+frontière & \num{2.6413} & \num{2.5992} \\
+synonyme $\lambda = 1$ & \num{2.5683} ($-\num{0.0730}$) & \num{2.5275} ($-\num{0.0717}$) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+La prédiction de l'éclaireur, sur 16 experts, était $-\num{0.078}$ bit. Par rôle (moyennes de $H_0$, synonyme contre frontière) : gate \num{2.556} contre \num{2.645} ($-\num{0.089}$), up \num{2.630} contre \num{2.643} ($-\num{0.013}$), down \num{2.518} contre \num{2.635} ($-\num{0.117}$), avec $-\num{0.62}$, $-\num{0.46}$ et $-\num{0.35}$ bit sur les down des couches 0, 1 et 2. La matrice up, qui voit les mêmes entrées que gate, ne cède presque pas de bits à la contrainte d'entropie ; pourquoi n'est pas mesuré [hyp. : l'erreur de la frontière de up, dans les unités de $H$, est petite devant ses écarts de longueur de code, et $\bar c$ normalise par elle]. Le codeur rANS réel du compagnon \parencite{duda2013ans} rend \num{2.5861} bits par poids contre \num{2.6593} ($-\num{0.0733}$) : la même différence que l'entropie, biais f32, échelles et médianes compris dans les deux.
+
+Pour $\lambda = 0$, le compagnon réel coûte \num{2.6717} bits par poids d'expert : $+\num{0.0124}$ sur la frontière et $+\num{0.0856}$ sur $\lambda = 1$ \mes. Sans contrainte d'entropie, la rétroaction choisit des symboles un peu moins prévisibles que la fonction du code : $\lambda = 0$ paie sa KL en bits, là où $\lambda = 1$ gagnait les deux à la fois contre la frontière.
+
+\subsection{La frontière des variantes}\label{t3sno:sec:variantes}
+
+\Cref{fig:t3-syno-variantes} place les variantes dans le plan (bits par poids du compagnon réel, KL de bout en bout) : $\lambda = 1$ domine la frontière sur les deux axes ; $\lambda = 0$ achète \num{0.0204} de KL avec \num{0.0856} bit. Le moteur exact est hors du cadre, à \num{3.86} bits utiles par poids d'expert et une KL de \num{0.0037} (07, § 4.3, écrit 3,85 bits ; la figure prend les bits utiles du fichier v1.0 mesurés par le juge, \fichier{mesures/genome/construction/juge/J-T0-fichiers.json}, la définition prise pour les compagnons), et Q2\_0 aussi, à \num{2.25} bits et \num{1.597}. Les barres sont $\pm 2\sigma$ \emph{par fenêtres}.
+
+\begin{figure}[tbp]
+\centering
+\GrapheSynoVariantes
+\LegendeFigure{SynoVariantes}
+\label{fig:t3-syno-variantes}
+\end{figure}
+
+\paragraph{Réserve R3.} Ces points sont mesurés avec les 768 experts substitués ; ceux de la ronde (\cref{t3syn:ch}, la frontière commune) le sont avec 32 experts, et rien ne relie les uns aux autres par un trait. Une KL à 32 experts substitués et une KL à 768 ne mesurent pas la même chose : la première est la part d'un sous-ensemble, la seconde le modèle entier servi par sa base.
+
+\section{Le mode rapide dans le moteur}\label{t3sno:sec:moteur}
+
+\paragraph{S3-T1, le fichier.} \texttt{trc-rapide verifier} relit chaque compagnon : pour les 768 experts, les demi-octets décodés égalent ceux du \texttt{.sym}, les échelles et les biais ceux de l'expert exact, les empreintes celles du répertoire, et le lien MÉTA vers l'en-tête exact tient. Cassures (\texttt{--casser C X}) : L7 E13 pour la frontière, L19 E2 pour $\lambda = 1$, L11 E27 pour $\lambda = 0$ ; chaque fois un expert faux, le visé \mes. Le compagnon frontière fait \num{8285093888} octets (\num{2.6593} bits utiles par poids, \num{2.6600} aligné) contre \num{11157405696} pour le fichier exact v1.0 ; celui de $\lambda = 0$, \num{8314617856} octets, écrit en \SI{301}{\second}.
+
+\paragraph{S3-T2, le moteur.} \texttt{troncons generer --rapide --temoin} sur le compagnon frontière, invite de la série O4, 32 jetons : \num{5856} experts décodés sur la carte, redescendus et vérifiés, 0 erreur ; le texte est cohérent \mes.
+
+\paragraph{S3-K, les deux chemins du mode rapide.} Le moteur (f32, carte) et la référence f64 rendent-ils le même modèle rapide ? Seuils déclarés : KL(référence f64 rapide $\Vert$ moteur rapide) $\le \num{0.011}$ et premier choix identique $\ge \SI{95}{\percent}$. Leur source : l'écart mesuré entre le moteur exact et la référence exacte sur le 20b, $\num{0.00368} \pm \num{0.00046}$ et \SI{97.18}{\percent} (critère C4 du Tome~II), multiplié par trois pour l'amplification par les bascules d'un modèle plus loin de l'exact ($3 \times \num{0.00368} = \num{0.011}$) \calc.
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[Le mode rapide servi par le moteur]{Le mode rapide servi par le moteur (gpt-oss-20b, 768 experts, R1) : bits, taille, KL contre la référence exacte et les deux chemins (S3-K) \mes.}
+\label{t3sno:tab:moteur}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+Mode servi & bits par poids & fichier & KL contre la référence & premier choix & S3-K \\
+\midrule
+frontière (témoin) & \num{2.6593} & \SI{8.29}{\Go} & \num{0.2626} & \SI{47.6}{\percent} & \num{0.00207} ; \SI{98.5}{\percent} \\
+synonyme $\lambda = 1$ & \textbf{\num{2.5861}} & \textbf{\SI{8.11}{\Go}} & \num{0.1522} & \SI{67.4}{\percent} & \num{0.00171} ; \SI{98.2}{\percent} \\
+synonyme $\lambda = 0$ (retenue par B2) & \num{2.6717} & \SI{8.31}{\Go} & \textbf{\num{0.1313}} & \textbf{\SI{69.7}{\percent}} & \num{0.0038} ; \SI{97.8}{\percent} \\
+exact (v1.0) & \num{3.86} & \SI{11.16}{\Go} & \num{0.0037} & \SI{97.2}{\percent} & --- \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/genome/construction/synonyme/rapide/coder-*.json}, \fichier{moteur/kl-moteur-*-juge.json}, \fichier{moteur/S3K-*.json} ; exact : critère C4 du Tome~II et \fichier{mesures/genome/construction/juge/J-T0-fichiers.json}.}
+\end{table}
+
+S3-K tient pour les trois variantes, et chaque cassure (la référence f64 \emph{frontière} contre le moteur synonyme) tombe : \num{0.190} et \SI{50.9}{\percent} de premier choix pour $\lambda = 1$, \num{0.149} et \SI{55.0}{\percent} pour $\lambda = 0$ \mes. Le moteur sert le mode rapide aussi fidèlement qu'il sert le mode exact, et sa KL contre la référence exacte égale celle de la référence substituée à l'écart des deux chemins près (\num{0.2626} contre \num{0.2640} ; \num{0.1522} et \num{0.1522} ; \num{0.1313} contre \num{0.1318}). Sur les fenêtres neuves, le juge redonne S3-K pour $\lambda = 0$ : \num{0.0037} et \SI{97.8}{\percent} (\cref{t3jug:sec:kl}).
+
+\section{La vitesse, et ce que le juge a barré}\label{t3sno:sec:vitesse}
+
+\subsection{Les séances du lot}\label{t3sno:sec:seances}
+
+La règle déclarée : \texttt{troncons mesurer}, invite et options de la série O4 (708 jetons d'invite, 256 jetons gloutons, repos de \SI{10}{\second}), séance A B B A A B B A, A le fichier exact v1.0, B le compagnon ; secteur vérifié avant chaque passe, verrou de la carte tenu ; bruit de référence $\sigma$, l'écart relatif des passes A entre elles ; gain annoncé si le rapport médian B/A dépasse $1 + 2\sigma$. Prédit au toit du disque : $\times 1{,}41$ à $\times 1{,}45$ (20b), $\times 1{,}43$ à $\times 1{,}46$ (120b).
+
+\paragraph{Séance s1 (20b) : publiée, non concluante.} Elle a tourné pendant la passe KL B0 (six fils), le calcul du débit et l'écriture du compagnon du 120b, qui lit \SI{57}{\Go} sur le même disque. Passes A : \num{2.64}, \num{2.47}, \num{3.18}, \num{3.61} jetons/s (médiane \num{2.91}) ; passes B : \num{3.43}, \num{3.49}, \num{3.36}, \num{3.39} (\num{3.41}). Rapport \num{1.17}, $\sigma_A = \SI{17.8}{\percent}$, seuil \num{1.36} : pas de gain annoncé \mes. Le moteur exact y tournait à \numrange{2.5}{3.6} jetons/s contre \num{10.9} dans la série O4 sur une machine libre.
+
+\paragraph{Séance s2 (20b), machine calme} (le 22 octobre, de 1 h 11 à 1 h 25 ; deux relevés vides des autres flux au départ, aucune passe sous charge) : A le v1.0 exact, B le compagnon $\lambda = 0$ \mes.
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lcc@{}}
+\toprule
+& passes A (exact v1.0) & passes B (rapide $\lambda = 0$) \\
+\midrule
+génération, jetons/s & \num{9.39} · \num{9.69} · \num{9.83} · \num{9.39} & \num{5.46} · \num{11.83} · \num{12.22} · \num{11.85} \\
+médiane & \num{9.54} & \num{11.84} \\
+préremplissage (708 jetons), jetons/s & \numrange{10.8}{11.4} & \numrange{16.9}{17.7} \\
+octets lus par pas de génération & \SI{0.1164}{\Go} & \SI{0.1152}{\Go} \\
+succès en VRAM ; défauts sur 255 pas & \num{0.899} ; \num{2472} & \num{0.856} ; \num{3531} \\
+débit par octet en génération & \SI{1.12}{\Go\per\second} & \SI{1.39}{\Go\per\second} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+$\sigma_A = \SI{2.3}{\percent}$, rapport \num{1.241}, seuil \num{1.046} : gain annoncé par la règle, \barre{$\times 1{,}24$ en génération}, et $\times 1{,}57$ au préremplissage (publié, non déclaré comme critère). Les deux fichiers ne génèrent pas le même texte (le mode rapide est avec perte ; le texte B part dans une boucle), donc les experts routés diffèrent ; par pas, les octets lus sont presque égaux, et le gain vient d'un débit par octet plus haut. Le lot en proposait une cause : \barre{le cache de fichiers du système, qui garde une plus grande part d'un fichier de 8,3 Go que d'un fichier de 11,2 Go} [hyp.].
+
+\paragraph{120b-V, machine calme} (le 22 octobre, de 2 h 34 à 3 h 38) : A le fichier exact v1.0 (\SI{57.73}{\Go}), B le compagnon frontière (\SI{40.45}{\Go}) \mes.
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lcc@{}}
+\toprule
+& passes A (exact v1.0) & passes B (rapide frontière) \\
+\midrule
+génération, jetons/s & \num{2.08} · \num{1.87} · \num{2.12} · \num{1.88} & \num{3.95} · \num{3.97} · \num{3.98} · \num{3.97} \\
+médiane & \num{1.98} & \num{3.97} \\
+préremplissage, jetons/s & \numrange{1.43}{1.56} & \numrange{2.99}{3.01} \\
+octets lus par pas de génération & \SI{0.707}{\Go} & \SI{0.464}{\Go} \\
+débit par octet en génération & \SIrange{1.32}{1.50}{\Go\per\second} & \SIrange{1.83}{1.85}{\Go\per\second} \\
+succès en VRAM & \num{0.591} & \num{0.610} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+$\sigma_A = \SI{6.6}{\percent}$, rapport \num{2.00}, seuil \num{1.13} : gain annoncé par la règle, \barre{$\times 2{,}00$}, au-delà du prédit au toit du disque.
+
+\subsection{Une identité, et ce qu'elle sépare}\label{t3sno:sec:b3}
+
+\begin{proposition}[B3 : la décomposition d'un rapport de vitesses]\label{t3sno:prop:b3}
+Soit, pour une passe X, $v_X$ ses jetons par seconde de génération, $o_X$ les octets lus par pas et $d_X = o_X / t_X$ son débit par octet, $t_X = 1/v_X$ le temps d'un pas. Alors, exactement,
+\[
+\frac{v_B}{v_A} = \frac{o_A}{o_B} \cdot \frac{d_B}{d_A}.
+\]
+\end{proposition}
+\begin{proof}
+$d_X = o_X v_X$, donc $v_X = d_X / o_X$, et le quotient des deux donne l'identité.
+\end{proof}
+
+Le premier facteur est ce qu'un format plus petit peut rendre à débit égal : son \emph{toit des octets}. Le second dit si le même octet a été lu plus vite. Sur le 120b, $1{,}524 \times 1{,}31 = 2{,}00$ ; sur le 20b, $1{,}010 \times 1{,}24 = 1{,}25$ (les médianes donnent 1,24) \calc. Le lot laissait le $\times 1{,}31$ du 120b « non mesuré » et le $\times 1{,}24$ du 20b « [hyp.] le cache de fichiers ». L'identité ne dit pas d'où vient le second facteur ; elle dit seulement qu'il ne vient pas des octets, donc pas du mécanisme qu'on croyait mesurer.
+
+\subsection{Ce que le juge a mesuré}\label{t3sno:sec:juge-vitesse}
+
+Le juge a mis \emph{trois} fichiers de chaque modèle dans une même séance équilibrée (A B R R B A A B R R B A) : A le v1.0 d'origine, B le v1.2 exact, R le compagnon rapide ; et il a mesuré l'étage disque seul de chaque fichier dans la même séance. Alors $r(R/A) = r(R/B)\cdot r(B/A)$, et $r(R/B)$ dit ce que vaut le mode rapide contre un fichier exact que l'étage disque lit à la même vitesse (B et R : $\num{0.956}$ et $\num{1.009}$ fois, sous le seuil de séparation) \mes. Le plan, sa démonstration et ses seuils sont au \cref{t3jug:sec:vitesse} ; le résultat tient en quatre nombres :
+
+\begin{center}\footnotesize
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+& $r(R/A)$ & $r(R/B)$ & toit des octets $o_B/o_R$ & étage disque R/A \\
+\midrule
+120b (compagnon frontière) & \num{1.851} & \textbf{\num{1.284}} & \num{1.47} & \num{1.31} \\
+20b (compagnon $\lambda = 0$) & \num{1.220} & \textbf{\num{0.942}} & \num{0.98} & \num{1.39} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{itemize}
+\item \textbf{Les mesures du lot se redonnent} : $r(R/A) = \num{1.220}$ sur le 20b contre \num{1.241} ; \num{1.851} sur le 120b, aux réglages du J1 (\texttt{--flux}, 326 emplacements) au lieu de ceux du lot, ce qui suffit à l'écart avec \num{2.00}.
+\item \textbf{Leur attribution au mode rapide tombe} (graves G1 et G2 du juge). Sur le 120b, le mode rapide frontière rend $\times 1{,}28$ en génération pour un toit des octets de $\times 1{,}47$, et $\times 1{,}12$ au préremplissage ; sur le 20b, il génère \SI{6}{\percent} \emph{moins vite} que le v1.2 exact, parce qu'il lit autant d'octets par pas (\SI{115.1}{\Mo} contre \num{112.5}) : son routage, avec perte, manque plus souvent la VRAM (\num{0.856} contre \num{0.899}). Il ne gagne qu'au préremplissage ($\times 1{,}23$), où le texte est imposé et où les octets suivent la taille des experts.
+\item \textbf{La cause avancée est impossible.} Le moteur lit chaque tronçon sans passer par le cache du système (lectures sans tampon de Windows), et le disque lit \numrange{1.0000}{1.0057} fois les octets demandés ; aucun cache de fichiers n'est sur le chemin.
+\item \textbf{Le second facteur de B3 est mesuré} : c'est l'étage disque, qui lit le compagnon \num{1.31} (120b) et \num{1.39} (20b) fois plus vite que le v1.0 d'origine à octets égaux par lecture.
+\end{itemize}
+
+\paragraph{Ce qui fait l'étage disque (réserve R1).} Sur ce disque, l'écart suit \emph{le motif des requêtes de lecture que le format impose} (frontières et longueurs des tronçons ; réserve R1, \cref{t3jug:sec:r1}, où sont la lecture démentie et ses mesures). Pour ce chapitre, cela change le mot, pas les verdicts : B et R ont tous deux un motif rapide (environ 11,6 et \SI{8.3}{\Mo} par requête), A le motif lent du v1.0 (environ \SI{12.0}{\Mo}), et $r(R/B)$ compare deux motifs rapides. Ces rapports valent pour ce disque, ce jour-là ; ils ne se transportent pas à une autre machine sans y être remesurés. Le gain du v1.2 sur le v1.0 lui-même est au \cref{t3cod:ch}.
+
+\paragraph{Ce que le juge a relevé de plus.} La règle de vitesse du lot ne regardait que le bruit des passes A ($\sigma_A = \SI{2.3}{\percent}$ sur le 20b) ; les passes B avaient $\sigma_B = \SI{31}{\percent}$ à cause de la première (\num{5.46} jetons/s, juste après l'écriture du compagnon). Avec $\sigma = \max(\sigma_A, \sigma_B)$, le gain n'aurait pas été annoncé (constat M4). La règle déclarée a été suivie ; elle était trop étroite pour voir que le fichier B changeait de comportement entre sa première et sa deuxième lecture. La séance du juge prend $\sigma = \max(\sigma_A, \sigma_B, \sigma_R)$.
+
+\section{Le 120b}\label{t3sno:sec:120b}
+
+\paragraph{Pourquoi la mutation synonyme n'y est pas écrite.} Trois manques, chacun chiffré \calc :
+\begin{enumerate}
+\item \emph{Aucune entrée de calibration} : les captures de l'éclaireur sont celles du 20b ; il faudrait la passe de capture de la référence f64 sur le 120b (36 couches, 128 experts ; celle du 20b a pris \SI{1966}{\second} pour 12 fenêtres et \SI{9.95}{\Go} d'experts lus).
+\item \emph{Le codage} : \num{4608} experts à environ \SI{54}{\second} chacun (les matrices du 120b ont les mêmes dimensions) font $\num{4608} \times 54 = \num{248832}$ secondes, environ \SI{69}{\hour} sur un processus, environ \SI{23}{\hour} avec le gain de parallélisme vu sur le 20b ($\approx \times 3$). C'est le cas pour lequel le cahier prévoit le codeur sur la carte.
+\item \emph{Aucun juge} : la référence f64 du 120b sur les dix fenêtres n'existe pas (Tome~II, ce qui manque à l'épreuve) ; sans elle, pas de KL de bout en bout.
+\end{enumerate}
+
+\paragraph{Ce qui se mesure quand même} (seuils déclarés le 17 octobre à 12 h 10, avant ces mesures) : le compagnon \emph{frontière} du 120b, sans calibration, qui a la taille du mode rapide à 0,07 bit près, donc sa vitesse.
+\begin{itemize}
+\item \textbf{120b-T1} : dans la passe à cassure, \num{4607} experts justes sur \num{4608}, le seul faux est le visé (L30 E77) ; lien MÉTA tenu \mes.
+\item \textbf{120b-T2} : \texttt{troncons generer --rapide --temoin}, 32 jetons : \num{56671} experts décodés sur la carte, redescendus et vérifiés, 0 erreur, texte cohérent ; \SI{471}{\Go} lus en \SI{2010}{\second} (le mode témoin redescend chaque expert : ce n'est pas une vitesse) \mes.
+\item \textbf{Un proxy de qualité, validé d'abord là où le vrai juge existe.} Sur le 20b, le moteur exact contre la référence f64 redonne C4 au dernier chiffre ($\num{0.00368} \pm \num{0.00046}$, \SI{97.18}{\percent}), et KL(moteur exact $\Vert$ moteur rapide) égale la KL contre la référence f64 à \num{0.002} près : frontière \num{0.2645} contre \num{0.2626}, $\lambda = 1$ \num{0.1533} contre \num{0.1522}, $\lambda = 0$ \num{0.1331} contre \num{0.1313} \mes. L'écart du moteur exact à la référence (\num{0.0037}) est petit devant les KL du mode rapide : le proxy les mesure à \SI{1.5}{\percent} près.
+\item \textbf{Sur le 120b} (dix fenêtres de R1, \texttt{--flux} comme l'épreuve J1) : KL(moteur exact $\Vert$ moteur rapide frontière) $= \num{0.1404} \pm \num{0.0042}$ (médiane \num{0.084} ; 99\textsuperscript{e} centile \num{0.98} ; 99,9\textsuperscript{e} \num{2.22}), premier choix \SI{67.5}{\percent}, perplexité \num{401.4} contre \num{422.2} pour le moteur exact. Témoins : le moteur exact du 120b rend l'empreinte de CSV de l'épreuve J1 (\texttt{a80f5f04}…\texttt{9498}) et sa perplexité (\num{422.21}) ; exact contre exact : 0 \mes. Le $\pm$ est naïf, comme ceux de 07.
+\end{itemize}
+La même base frontière coûte deux fois moins de KL au 120b qu'au 20b (\num{0.140} contre \num{0.265}) : plus d'experts (128 contre 32, quatre routés chaque fois), et une part plus petite de chaque sortie passe par un expert donné [hyp., non mesurée]. Si le rapport synonyme sur frontière du 20b (\num{0.50} pour $\lambda = 0$) se transportait, le synonyme du 120b serait vers \num{0.07} ; c'est une extrapolation, pas une mesure.
+
+\section{Ce qui reste}\label{t3sno:sec:reste}
+
+\begin{enumerate}
+\item \textbf{La mutation synonyme du 120b} : la passe de capture de la référence f64 sur le 120b, le codeur sur la carte, puis la même KL de bout en bout avec la référence f64 du 120b sur les dix fenêtres.
+\item \textbf{La politique mixte des défauts} (servir la base d'un expert absent pendant que l'exact arrive) est à reprendre avec $r(R/B)$ et non $r(R/A)$ : sur le 120b, $\times 1{,}28$ en génération pour une KL de \num{0.14} (proxy) ; sur le 20b, rien en génération, $\times 1{,}23$ au préremplissage. Le cahier demandait de la simuler sur les traces avant de la construire ; c'est d'autant plus nécessaire.
+\item \textbf{Un autre corpus} (code, dialogue) : les fenêtres neuves du juge sont de wiki.test, comme R1 et la calibration.
+\item \textbf{La queue de la KL} ($99{,}9^{\text{e}}$ centile \num{3.37} avec $\lambda = 0$) : ce sont les bascules de routage. La garde tropicale était la pièce qui la viserait ; elle tombe au seuil déclaré (\cref{t3tro:ch}), ce qui laisse cette queue sans mécanisme.
+\item \textbf{Le mode rapide comme brouillon} d'un décodage spéculatif vérifié par le mode exact, dont le texte serait celui du modèle exact au bit : une idée de Stone (« un genre de puissance de raisonnement différent »), non mesurée ici.
+\end{enumerate}
+
+\section{Ce qui pourrait être faux}\label{t3sno:sec:faux}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{B2 entre les deux $\lambda$ s'est joué de justesse sur R1} ($\bar d + 2\sigma = -\num{0.0009}$, une fenêtre sur dix contre). Avec dix fenêtres, $\sigma$ par fenêtres est lui-même incertain d'environ \SI{24}{\percent} ($1/\sqrt{2\cdot 9}$) \calc. Le juge l'a redonné à \num{3.6}\,$\sigma$ sur dix fenêtres neuves, mais toujours de wiki.test et par un seul chemin pour $\lambda = 1$ (le moteur ; la référence substituée $\lambda = 1$ n'y a pas été passée). Une autre sorte de texte pourrait rendre « égales », et la règle garderait alors $\lambda = 1$. Les deux compagnons restent écrits, vérifiés et servis.
+\item \textbf{Les experts non routés} : de 36 à 39 experts ne sont routés par aucune des \num{2550} positions de R1 sous substitution, et 11 par aucune des vingt fenêtres sous la référence exacte (\cref{fig:t3-jcons-experts}). Leurs fichiers sont vérifiés (S3-T1) ; aucune KL ne juge leur base.
+\item \textbf{Le spectre et le nuage sont une matrice d'un expert} (L8, E0, gate) : la forme de la transformation y est vue, pas établie pour les \num{2304} matrices. Les deux autres spectres du même dossier ne sont pas tracés.
+\item \textbf{Les incertitudes absolues de 07} sont naïves ; celles de \cref{t3sno:tab:kl} par fenêtres sont justes pour des fenêtres indépendantes, ce que dix fenêtres d'un même article ne sont peut-être pas tout à fait.
+\item \textbf{Le repère llama.cpp est faible} (Q2\_0 sans matrice d'importance) ; une requantification meilleure à \num{2.6} bits ou moins n'existe pas dans b11515 pour des lignes de \num{2880}. Battre ce repère ne dit rien de la place de la synonyme dans l'état de l'art.
+\item \textbf{La vitesse} : une séance par modèle et par juge, sur un seul disque, un seul matin ; les rapports $r(R/B)$ reposent sur le fait, mesuré dans la séance, que B et R se lisent à la même vitesse à l'étage disque. Si ce n'était plus vrai un autre jour, il faudrait refaire la séance, pas reprendre le chiffre. Et sur une machine où le motif v1.0 ne serait pas lent, $r(R/A)$ lui-même changerait.
+\item \textbf{Le 120b} n'a que la frontière (sans calibration) ; son proxy de qualité est une KL entre deux sorties du moteur, sans la référence f64, validé sur un autre modèle.
+\item \textbf{L'analogie} du codon synonyme décrit le mécanisme ; elle ne le prouve pas. Ce qui le prouve est la KL, sur un texte tenu à l'écart.
+\end{itemize}
+\end{faux}

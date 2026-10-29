@@ -1,0 +1,25 @@
+% Sources du plaidoyer du partisan de B (decisions/partisan-B.md), consultées le 2026-10-15.
+% Les deux corps ci-dessous ont été lus en HTML ; l'entrée de SliceMoE complète celle de
+% 07-synthese.bib (résumé seul), sous une autre clé pour ne pas la dupliquer.
+
+@online{choi2025slicemoecorps,
+  author       = {Choi, Yuseon and Kim, Sangjin and Oh, Jungjun and Park, Gwangtae and Kim, Byeongcheol and Yoo, Hoi-Jun},
+  title        = {{SliceMoE}: Bit-Sliced Expert Caching under Miss-Rate Constraints for Efficient {MoE} Inference},
+  eprint       = {2512.12990},
+  eprinttype   = {arXiv},
+  date         = {2025-12-15},
+  url          = {https://arxiv.org/html/2512.12990},
+  note         = {v5 du 2026-09-08. Corps lu (HTML) : INT asymétrique G32, tranche haute par décalage (AMAT, troncature), experts critiques selon les scores du routeur, tranches basses évincées en premier, aucun codage entropique, flash UFS 3.1 et LPDDR4, accélérateur simulé ; DeepSeek-V2-Lite et Qwen1.5-MoE (éditeur, non reproduit).},
+  urldate      = {2026-10-15}
+}
+
+@online{tang2024hobbit,
+  author       = {Tang, Peng and Liu, Jiacheng and Hou, Xiaofeng and Pu, Yifei and Wang, Jing and Heng, Pheng-Ann and Li, Chao and Guo, Minyi},
+  title        = {{HOBBIT}: A Mixed Precision Expert Offloading System for Fast {MoE} Inference},
+  eprint       = {2411.01433},
+  eprinttype   = {arXiv},
+  date         = {2024-11-03},
+  url          = {https://arxiv.org/html/2411.01433v2},
+  note         = {v2 du 2024-11-06. Corps lu (HTML) : deux copies par expert (FP16 et Int4, ou Int8 et Int2), choix selon la somme des poids de routage des experts mieux classés (seuils 0,6 et 0,9 sur Mixtral), 67/30/3 \% ; RTX 4090 et Jetson AGX Orin ; perte au plus 1 point (éditeur, non reproduit).},
+  urldate      = {2026-10-15}
+}

@@ -1,0 +1,336 @@
+% Volume~III, chapter 4: gene duplication (English version).
+% Translated on 2026-10-29 by translator EN1 from memoire/tome3/fr/chapitres/04-duplication.tex (writer A,
+% corrected: G2, G3), number for number, same labels. Sources as in the French chapter: genome/duplication.md,
+% genome/duplication-derivations.md, genome/duplication-pour-le-memoire.md, mesures/genome/duplication/
+% (00-seuils-declares.md, csv/, *.json). A sentence of the sources is struck out here: ``substituting is never
+% better than removing the expert'' (duplication.md § 0.6, 05-synthese.md § 3.2); redone by the writer from
+% csv/paralogues.csv (means per layer and counts per expert), see § 7.
+% Figures (judged, unchanged): III-4.2 \GrapheDupParente, III-4.8 \GrapheDupArbre.
+\chapter{Gene duplication}\label{t3dup:ch}
+
+\begin{origine}
+\textbf{The starting point} is Stone's hypothesis (\fichier{idees/biomimetisme-genome-des-poids.md} §\,5 bis): ``les experts d'une couche (ou de couches voisines) sont parents : stocker un expert parent et, pour chaque descendant, une petite mutation coûte moins de bits que l'expert entier'' (the experts of a layer, or of neighbouring layers, are related: storing a parent expert and, for each descendant, a small mutation costs fewer bits than the whole expert). The frontier: 3.8431 bits lossless, 2.6441 bits for the base at 4.2920\,\% error. The state of the art (\cref{t3que:tab:familles}, family 3): mergers of experts on BF16, judged by task accuracy, never in bits on 4-bit codes; and the model card does not say whether the experts of gpt-oss were born by copy~\cite{openai2025gptoss}.
+\textbf{This chapter establishes} the kinship of the experts of gpt-oss-20b, measured on the MXFP4 codes and on the weights, up to a permutation of the neurons (the only symmetry of an expert, proved), in the same layer and in the neighbouring layer; its exact cost in bits (a conditional mutual information, added costs counted); the most economical coding tree; the output error of a truncated mutation and of a paralogue on real inputs. \textbf{Duplication does not beat the frontier}: it exists, it can be measured, and it is worth a thousandth of a bit. A sentence of the sources is corrected here, on their own data.
+\textbf{What remains} is the KL of the truncated mutation (not measured, its output error being enough to rule it out), the exact cost and the paralogues on gpt-oss-120b, and the screen over the 24 layers.
+Sources: \fichier{genome/duplication.md}; \fichier{genome/duplication-derivations.md}; \fichier{genome/duplication-pour-le-memoire.md}; \fichier{mesures/genome/duplication/00-seuils-declares.md}, \fichier{csv/}, logs \texttt{*.json}; tools under \fichier{outils/genome/duplication/}.
+\end{origine}
+
+\begin{enbref}
+In living things, a gene sometimes duplicates; the two copies then drift, one keeping the function, the other taking on a new one, and the gene family born from it long keeps the trace of its common copy~\cite{ohno1970}. The image suggests a compression: if the 32 experts of a layer were born from a copy, storing a parent and mutations would cost less than 32 experts. The image is an analogy, and the question is posed in bits: how much does one expert teach about another, once their neurons are put back in the same order? The measured answer is: almost nothing. After the best matching, two matched experts resemble each other as much as two experts drawn at random; what they share belongs to the whole layer, to its input columns, not to a lineage. The experts of gpt-oss were trained to be \emph{different}: the router sends each one only the tokens where it is useful.
+\end{enbref}
+
+\section{The question, posed in bits}\label{t3dup:sec:question}
+
+A child $c$ coded given an already decoded parent $p$ costs $H(c \mid p)$ instead of $H(c)$; the gain is the mutual information $I(c ; p)$, minus what must be stored to link the child to the parent. For a network, a single freedom makes two experts comparable: permuting the hidden neurons, which does not change the function (\cref{t3dup:prop:permutation}). Stone's duplication becomes
+\begin{equation}\label{t3dup:eq:question}
+\max_{p,\ \Pi}\ I(c ;\ \Pi p) \quad \text{against} \quad 3.84 \text{ bits per weight.}
+\end{equation}
+The notation is that of the model: an expert of gpt-oss-20b at layer $\ell$, index $e$; $d = f = 2\,880$; $W_g, W_u \in \mathbb{R}^{f \times d}$ (gate, up), $W_d \in \mathbb{R}^{d \times f}$ (down), biases $b_g, b_u \in \mathbb{R}^f$, $b_d \in \mathbb{R}^d$. The thresholds are declared in \fichier{mesures/genome/duplication/00-seuils-declares.md}, with an addendum and struck-out corrections, all prior to the reading of the sample.
+
+\section{The symmetry that makes kinship invisible}\label{t3dup:sec:symetrie}
+
+\begin{proposition}[Invariance under permutation of the neurons]\label{t3dup:prop:permutation}
+Let $\Pi \in \{0,1\}^{f \times f}$ be a permutation matrix. The expert with weights
+\[ (\Pi W_g,\ \Pi W_u,\ W_d \Pi^\top,\ \Pi b_g,\ \Pi b_u,\ b_d) \]
+computes the same function as $(W_g, W_u, W_d, b_g, b_u, b_d)$.
+\end{proposition}
+
+\begin{proof}
+The expert computes $y = W_d\, \sigma(W_g x + b_g,\, W_u x + b_u) + b_d$, where $\sigma$ acts component by component: $\sigma(g, u)_k = s(g_k, u_k)$ with $s(g, u) = \min(g, 7)\cdot\mathrm{sigmoid}(1.702\cdot\min(g, 7))\cdot(\mathrm{clamp}(u, -7, 7) + 1)$ (the bounded SwiGLU of gpt-oss, \texttt{ops::swiglu\_oai} of \texttt{trc-reference}). A function applied component by component commutes with every permutation: $\sigma(\Pi a, \Pi b) = \Pi\,\sigma(a, b)$. So $W_d \Pi^\top \sigma(\Pi W_g x + \Pi b_g, \Pi W_u x + \Pi b_u) + b_d = W_d \Pi^\top \Pi\, \sigma(W_g x + b_g, W_u x + b_u) + b_d = y$, since $\Pi^\top \Pi = I$.
+\end{proof}
+
+\paragraph{Consequences.} Two experts born from the same copy and then trained can have their neurons in any order: comparing $W_g^A$ and $W_g^B$ row $i$ against row $i$ sees nothing. Kinship is judged after the best matching of the neurons, as one matches those of two networks to connect or merge them~\cite{ainsworth2022rebasin,entezari2021permutation}. There is no other continuous symmetry: $s$ is not homogeneous (the threshold 7, the sigmoid, the ``$+1$'' on $u$), so no rescaling of a neuron can be compensated by $W_d$. A matching by permutation is the only freedom.
+
+\paragraph{What the permutation does to the MXFP4 blocks.} The blocks of 32 run along the input of each matrix. For $W_g$ and $W_u$ (input $d$), $\Pi$ permutes whole rows: each block stays whole. For $W_d$ (input $f$), $W_d \Pi^\top$ permutes the columns: the blocks are crossed. A position-by-position conditional code stays exact in both cases (\cref{t3dup:sec:cout}).
+
+\section{Raw kinship: screen, matching, family}\label{t3dup:sec:parente}
+
+\subsection{Two lemmas for reading a cosine}
+
+\begin{lemme}[The Gaussian gain of a parent]\label{t3dup:lem:gauss}
+Let a child row $x$ and a parent $p$ be given, the second known to the decoder, with $x = \alpha p + z$, $z \perp p$, and $\rho = \cos(x, p)$. For a Gaussian source and a squared-error distortion $D < \sigma_x^2 (1 - \rho^2)$, coding the child given the parent saves
+\begin{equation}\label{t3dup:eq:gauss}
+g(\rho) = -\frac12 \log_2 (1 - \rho^2) \quad \text{bit per weight,}
+\end{equation}
+independently of $D$.
+\end{lemme}
+
+\begin{proof}
+By orthogonal projection, $\|x\|^2 = \|\alpha p\|^2 + \|z\|^2$ and $\|\alpha p\|^2 = \rho^2 \|x\|^2$, so $\sigma_z^2 = \sigma_x^2 (1 - \rho^2)$. The rate--distortion function of a Gaussian of variance $\sigma^2$ is $R(D) = \frac12 \log_2(\sigma^2/D)$ for $D < \sigma^2$~\cite{shannon1959}. The child alone costs $R_1 = \frac12\log_2(\sigma_x^2/D)$; given the parent, $z$ remains to be coded, $R_2 = \frac12\log_2(\sigma_x^2(1-\rho^2)/D)$, valid as long as $D < \sigma_z^2$. The difference is~\eqref{t3dup:eq:gauss}.
+\end{proof}
+
+Values \calc: $g(0.1) = 0.0072$; $g(0.2) = 0.0294$; $g(0.3) = 0.0680$; $g(0.5) = 0.2075$; $g(0.9) = 1.198$ bits. A cosine of 0.1 is worth only a hundredth of a bit.
+
+\begin{lemme}[The floor of chance]\label{t3dup:lem:hasard}
+For a fixed target and $N$ independent vectors uniform on the sphere of $\mathbb{R}^n$, $n$ large, the maximum of the $N$ cosines in absolute value is roughly $\sqrt{2\ln(2N)/n}$.
+\end{lemme}
+
+\begin{proof}[Sketch]
+For $u$ uniform on the sphere and $e$ fixed, $\sqrt n\,\cos(u, e)$ tends in law to a standard normal. The maximum of $N$ values $|Z|$, that is of $2N$ one-sided Gaussian tails, sits at first order where the expected number of exceedances is 1: $2N\,\Prob(Z > t) \approx 1$, and $\Prob(Z > t) \approx e^{-t^2/2}$ at first logarithmic order, hence $t \approx \sqrt{2\ln(2N)}$. Divide by $\sqrt n$. (The next-order corrections lower this level slightly.)
+\end{proof}
+
+For the dictionary of the screen ($N = 31 \times 2\,880 = 89\,280$ rows, $n = 2\,880$): $\sqrt{2\ln 178\,560 / 2\,880} = 0.0916$ \calc. The chance control of the screen gives 0.084 \mes, of the same order, a little below because the rows of the dictionary are not independent. Any $\rho$ found at the level of 0.08 to 0.09 is only a maximum of chance correlations.
+
+\subsection{The screen: an upper bound, without bijection}
+
+\fichier{ecran\_parente.py} seeks, for each target row (a ``gene''), the best $|\cos|$ among all the rows of the same role of the 31 other experts of the layer (89\,280 candidates), without requiring a one-to-one matching: it is the upper bound of a gene-by-gene kinship. Layers 0 to 4 (log interrupted to free the memory of the machine, \fichier{ecran-20b-interrompu-couches-0-4.log}) \mes: for gate, $\bar\rho$ from 0.12 to 0.21 against a chance control of 0.084 (Gaussian gain of 0.010 to 0.039 bit); for down, $\bar\rho$ from 0.32 to 0.44 against 0.076 to 0.108 (0.09 to 0.18 bit). The planted control ($\rho_0 = 0.9$, \fichier{ecran-temoin-planter-0.9.json}) is recovered at 0.900 and 1.198 bits, and the chance dictionary does not see it (0.083).
+
+\subsection{One-to-one matching: the true kinship from expert to expert}
+
+\fichier{paires\_arbre.py}: cost $\sum_{\text{roles}} \cos^2$ between neurons, assignment by the Hungarian algorithm~\cite{kuhn1955hungarian} (the scipy implementation~\cite{crouse2016assignment}), a single permutation joint over the three matrices (the function requires it), score = mean of $-\frac12\log_2(1 - \cos^2)$ over the matched neurons. Layer 12, four experts (\cref{t3dup:tab:paires}).
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabular}{l r r r r}
+\toprule
+Pair & cos gate & cos up & cos down & score (bit per weight) \\
+\midrule
+(0, 2) & 0.044 & 0.034 & 0.108 & 0.0053 \\
+(0, 3) & 0.039 & 0.034 & 0.106 & 0.0050 \\
+(2, 3) & 0.049 & 0.034 & 0.107 & 0.0049 \\
+chance & 0.040 & 0.041 & 0.039 & 0.0016 \\
+planted, $\rho_0 = 0.5$ & 0.500 & 0.500 & 0.500 & 0.2077 (expected 0.2075) \\
+\bottomrule
+\end{tabular}
+\caption[The Hungarian matching, layer 12]{The Hungarian matching of four experts of layer 12, against a chance parent and a planted copy \mes. Data: \fichier{mesures/genome/duplication/paires-temoin-planter-0.5.json}. The planted permutation is recovered at 100\,\%.}
+\label{t3dup:tab:paires}
+\end{table}
+
+Matched gate and up are at the level of chance; only down carries a little structure. The planted control is recovered to the thousandth of a bit: the instrument reads $g$.
+
+\subsection{The best parent of each child}
+
+The declared sample: children 0, 8, 16 and 24 of layers 0, 8, 16 and 23 (16 children, 48 matrices). For each, \fichier{mutation.py} seeks the best parent among 63 candidates (31 of its layer, 32 of the previous layer; \fichier{csv/scores-parente.csv}). \Cref{fig:t3-dup-parente} shows the 880 scores.
+
+\begin{figure}[tbp]
+\centering
+\GrapheDupParente
+\LegendeFigure{DupParente}
+\label{fig:t3-dup-parente}
+\end{figure}
+
+\paragraph{What the figure shows.} All the scores lie between 0.0018 and 0.0425 bit per weight \mes. The highest, child (23, 0) and its parent (23, 22), is 27 times the chance control of its layer (0.0016, mean of 8 pairs; \fichier{arbre-c23.json}) and remains 4.9 times below a copy planted at $\rho = 0.5$, which the same instrument recovers. The best parent barely stands out from the lot: its score exceeds the median of the candidates by 0.0008 to 0.038 bit (\fichier{genome/duplication.md} §\,2.3). Twelve parents out of sixteen are in the same layer, four in the previous one, of which only one at the same index: (7, 24) for (8, 24), at 0.0147 bit, the only trace of a filiation by index, and it is tiny. The same index one layer down is not favoured: its score is, depending on the child, below or above the median of the 32 candidates of the previous layer.
+
+\paragraph{Layer 0, a common floor.} In layer 0, the four children choose the same parent, (0, 9): a \emph{hub}, not a lineage. The 124 same-layer candidates there all have a score of 0.0153 to 0.0341, with a cosine of the down matrices of 0.23 to 0.31 (median 0.11 in the other layers) \mes: a statistic shared by all the columns of the layer, not a kinship. The caption says so, and says too that no chance control was measured at this layer; the exact cost of \cref{t3dup:sec:cout} measures it by another path.
+
+\subsection{The family: a common subspace}
+
+\fichier{spectre\_famille.py} computes, for layer 12, the Shannon rate of a Gaussian of the same spectrum at $\varepsilon = 4.29\,\%$ by reverse water-filling (\fichier{spectre-c12.json}) \mes: a common basis of the layer (the Karhunen--Loève transform of the family) would save 0.06 to 0.07 bit more than a diagonal basis, net of the control (gate 0.072, up 0.056, down 0.070). But it costs $n^2 = 8.3\cdot10^6$ numbers per layer and per role, that is 0.5 bit per weight in f16 spread over 32 experts \calc: seven times its gain. The diagonal gain of down (0.187 bit) is already taken by the E8M0 scales, which follow the norm of each row of down.
+
+\section{The exact cost of an expert coded as a mutation}\label{t3dup:sec:cout}
+
+\subsection{The statements}
+
+\begin{proposition}[The lossless gain is a conditional mutual information]\label{t3dup:prop:im}
+Let $C$ be the E2M1 code (16 symbols) of a weight of the child, $\kappa$ its scale class (the class of the format: sign of $e$ minus the upper median of the row, 3 classes) and $P$ the code of the parent at the matched position. An entropy coder with one table per context $\kappa$ spends $H(C \mid \kappa)$ bits per weight; with one table per $(\kappa, P)$, $H(C \mid \kappa, P)$. The gain is
+\begin{equation}\label{t3dup:eq:im}
+H(C \mid \kappa) - H(C \mid \kappa, P) = I(C ; P \mid \kappa) \;\ge\; 0,
+\end{equation}
+zero if and only if $C$ and $P$ are independent given $\kappa$.
+\end{proposition}
+
+\begin{proof}
+This is the definition of the conditional mutual information, $I(C;P\mid\kappa) = H(C\mid\kappa) - H(C\mid\kappa,P)$; its non-negativity and the case of equality are those of~\cite[th. 2.6.5 and 2.5.2]{cover2006}: it is a mean of Kullback--Leibler divergences between $p(c, p'\mid\kappa)$ and $p(c\mid\kappa)p(p'\mid\kappa)$, zero if and only if these laws coincide.
+\end{proof}
+
+\paragraph{The bias of the estimator.} $H$ is estimated by exact counts (``plug-in''). Its downward bias is, at first order, $(K-1)/(2N\ln 2)$ for $K$ non-empty cells and $N$ samples~\cite{miller1955bias}. For $H(C\mid\kappa,P)$: $K \le 3 \times 16 \times 16 = 768$ and $N = 8\,294\,400$, hence a bias of at most $767/(2 \times 8\,294\,400 \times \ln 2) = 6.7\cdot10^{-5}$ bit \calc. The estimated mutual information is inflated by at most this amount: any gain below $10^{-4}$ bit is indistinguishable from zero.
+
+\paragraph{The added information, counted} \calc.
+\begin{itemize}
+\item \emph{The permutation}: $\log_2(f!)$ bits per expert, shared by its three matrices.
+\[ \log_2(2\,880!) = \frac{\mathrm{lgamma}(2\,881)}{\ln 2} = 28\,948.6 \text{ bits}; \qquad \text{per weight, } \frac{28\,948.6}{3 \times 2\,880^2} = 1.163\cdot10^{-3}. \]
+Second path, by Stirling:
+\[ f\log_2 f - f\log_2 e + \tfrac12\log_2(2\pi f) = 33\,096.5 - 4\,155.0 + 7.1 = 28\,948.6. \]
+\item \emph{The tables}: 768 counts of 16 bits per matrix for D1, that is $768 \times 16 / 8\,294\,400 = 1.48\cdot10^{-3}$ bit per weight; 192 counts for D2b ($\kappa \times 8$ base symbols $\times 8$), $3.70\cdot10^{-4}$.
+\item A parent is therefore useful only if $I(C;P\mid\kappa)$ exceeds $2.64\cdot10^{-3}$ bit per weight for D1, $1.53\cdot10^{-3}$ for D2b.
+\end{itemize}
+
+\paragraph{The chance parent is not a zero.} Matching the child to its parent by a permutation drawn at random leaves the columns in place (for gate and up, input dimension $j$ stays $j$): any structure common to \emph{all} the experts along the column survives. The chance control measures this common part; the part proper to kinship is the difference $I(C;P\mid\kappa) - I(C;P_{\text{chance}}\mid\kappa)$.
+
+\begin{proposition}[The gain at identical reconstruction]\label{t3dup:prop:identique}
+If the reconstruction of the child is fixed (the base of B, or an ECSQ alone), with indices $Q$, and a parent context $P'$ (the base symbol of the parent, or its quantised prediction) enters the coder, the error on the weights and at the output does not change by one bit, and the rate goes from $H(Q\mid\mathrm{ctx})$ to $H(Q\mid\mathrm{ctx}, P')$: the gain is $I(Q;P'\mid\mathrm{ctx})$, with the same biases and the same costs as in \cref{t3dup:prop:im}.
+\end{proposition}
+
+\begin{proof}
+The reconstruction is a function of $Q$ alone; adding a context to the entropy coder changes only the law under which $Q$ is coded, hence only the rate, and \cref{t3dup:prop:im} applies to $Q$ instead of $C$.
+\end{proof}
+
+This is the only way to credit kinship without confusing it with a change of quantiser.
+
+\begin{remarque}[Why the subtracted prediction loses on a discrete grid]\label{t3dup:rem:grille}
+The weights of the child live on a discrete grid (16 values per block). A uniform quantiser whose step $\Delta$ falls on the grid ($\Delta$ a multiple of $2^{e-128}$) gives a \emph{zero} error on part of the weights. The residual $x - \alpha p$ is no longer on the grid: its quantisation error is about $\Delta^2/12$ everywhere. At equal rate, the ECSQ of the residual loses what the grid gave for free, and what the parent saves, $g(\rho)$ of \cref{t3dup:lem:gauss}, is smaller as soon as $\rho$ is small.
+\end{remarque}
+
+\subsection{The measurements}
+
+Tables per matrix: \fichier{csv/d1-sans-perte.csv}, \fichier{csv/d2-avec-perte.csv}, \fichier{csv/d2b-base.csv}; verdicts: \fichier{verdicts.json} (tool \fichier{synthese.py}, whose control \texttt{--casser} makes D1 ``work'' everywhere and holds; \fichier{verdicts-casse.json}). \Cref{t3dup:tab:cout} gives their means per layer and per role.
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{@{}l l >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X@{}}
+\toprule
+layer & role & $H(C\mid\kappa)$ & D1 parent & D1 chance & D2b parent & D2b chance & ECSQ alone & subtracted & ECSQ + parent \\
+\midrule
+0 & gate & 3.7686 & 0.0082 & 0.0072 & 0.0064 & 0.0056 & 1.564 & 1.882 & 1.562 \\
+0 & up & 3.7855 & 0.0064 & 0.0060 & 0.0050 & 0.0047 & 1.559 & 1.929 & 1.558 \\
+0 & down & 3.8185 & 0.0002 & 0.0001 & 0.0002 & 0.0000 & 1.049 & 1.283 & 1.043 \\
+8 & gate & 3.8208 & 0.0045 & 0.0004 & 0.0040 & 0.0003 & 1.538 & 2.049 & 1.533 \\
+8 & up & 3.8005 & 0.0008 & 0.0004 & 0.0006 & 0.0003 & 1.655 & 2.119 & 1.653 \\
+8 & down & 3.7984 & 0.0017 & 0.0001 & 0.0013 & 0.0000 & 1.626 & 2.168 & 1.619 \\
+16 & gate & 3.8099 & 0.0033 & 0.0004 & 0.0029 & 0.0002 & 1.490 & 1.999 & 1.485 \\
+16 & up & 3.8098 & 0.0007 & 0.0003 & 0.0005 & 0.0002 & 1.564 & 2.107 & 1.562 \\
+16 & down & 3.7988 & 0.0011 & 0.0001 & 0.0009 & 0.0000 & 1.568 & 2.177 & 1.564 \\
+23 & gate & 3.7978 & 0.0082 & 0.0019 & 0.0069 & 0.0013 & 1.449 & 2.091 & 1.439 \\
+23 & up & 3.7921 & 0.0041 & 0.0018 & 0.0031 & 0.0013 & 1.607 & 2.123 & 1.601 \\
+23 & down & 3.7892 & 0.0020 & 0.0001 & 0.0015 & 0.0000 & 1.584 & 2.121 & 1.579 \\
+\bottomrule
+\end{tabularx}
+\caption[The exact cost of an expert coded as a mutation]{The exact cost of an expert coded as a mutation, means of 4 children per layer and per role, in bits per weight \mes. D1: lossless gain on the codes; D2b: gain at reconstruction identical to the base; the last three columns: rate at 4.29\,\% weight error of an ECSQ alone, of the subtracted mutation, and of the ECSQ with the parent as context (without the scales, 0.034 bit, nor $\alpha$, 0.0028). Data: \fichier{mesures/genome/duplication/csv/d1-sans-perte.csv}, \fichier{d2-avec-perte.csv}, \fichier{d2b-base.csv}.}
+\label{t3dup:tab:cout}
+\end{table}
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.6cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{2.2cm}}
+\toprule
+Measurement & What it requires (declared) & Result \mes & Verdict \\
+\midrule
+D1, lossless & gain $> 2.64\cdot10^{-3}$ on the 48 matrices & mean gain 0.0034, chance 0.0016, net 0.0019; 21 out of 48 & \textbf{does not work} \\
+D2, subtracted mutation & below 2.6441 and below the ECSQ alone by more than one standard deviation of chance ($3.0\cdot10^{-4}$) & $-0.486$ bit on average: worse than without parent & \textbf{does not work} \\
+D2c, parent context, same reconstruction as the ECSQ & same & $+0.0016$ bit, $\alpha$ included; 43 out of 48 beat chance by more than one standard deviation & a real gain, of no consequence \\
+D2b, base + parent, same reconstruction as the base & gain $> 1.53\cdot10^{-3}$ and above chance on the 48 & gain 0.0028, chance 0.0012; 24 out of 48; frontier 2.6441 $\to$ 2.6429 & \textbf{does not work} \\
+O, output & D2 at most the error of the base, 4 layers out of 4 & base 6.4\,\%, mutation 8.6\,\%; 4 children out of 16 below the base & \textbf{does not work} \\
+\bottomrule
+\end{tabularx}
+\caption[The verdicts of duplication]{The verdicts of duplication against the declared thresholds \mes. Data: \fichier{mesures/genome/duplication/verdicts.json}; \fichier{genome/duplication.md} §\,3.}
+\label{t3dup:tab:verdicts}
+\end{table}
+
+\paragraph{Reading} (\cref{t3dup:tab:verdicts}). Losslessly, the parent saves on average 0.0034 bit per weight on the codes, of which 0.0016 are recovered with a chance parent: the part proper to kinship is 0.0019 bit, below the $2.64\cdot10^{-3}$ of added costs. With loss, at identical reconstruction, the frontier of 2.6441 bits would at best come down to 2.6429. The subtracted mutation \emph{loses} 0.49 bit, as \cref{t3dup:rem:grille} announced. The largest gain of a single matrix is 0.0170 bit (gate of (0, 16)), of which 0.0145 are recovered with the chance parent; the largest net gain is 0.0109 bit (gate of (23, 0), parent (23, 22)), then 0.0098 (gate of (23, 16), parent (22, 13)). Nothing comes near a tenth of a bit.
+
+\section{The truncated mutation and the output of the expert}\label{t3dup:sec:sortie}
+
+Inputs: the normalised states really routed to each child (capture of the scout, 12 windows of 511 tokens, SHA-256 fingerprints in each \fichier{mutation-cL.json}), at most 2\,048 tokens per child; output of the expert in f64, biases included; control: the exact weights give a zero error (\fichier{csv/t-o-sortie.csv}, column \texttt{temoin\_exact}) \mes.
+
+\begin{table}[tbp]
+\centering\footnotesize
+\begin{tabular}{l l r r r r r r}
+\toprule
+child & parent & tokens & base of B & mutation & ECSQ alone & truncated mutation & raw parent \\
+& & & weights / output & at $\varepsilon \approx 4.29\,\%$ & at $\varepsilon \approx 4.29\,\%$ & weights / output & output \\
+\midrule
+(0, 0) & (0, 9) & 762 & 4.3 / 6.6 & 4.7 / 7.1 & 4.8 / 7.0 & 94.3 / 97.4 & 217.0 \\
+(0, 8) & (0, 9) & 698 & 4.3 / 6.3 & 4.6 / 6.5 & 4.7 / 6.7 & 95.3 / 100.3 & 222.1 \\
+(0, 16) & (0, 9) & 1\,334 & 4.6 / 4.5 & 5.4 / 5.5 & 4.6 / 5.1 & 93.4 / 103.6 & 95.9 \\
+(0, 24) & (0, 9) & 914 & 4.5 / 4.8 & 4.5 / 5.2 & 4.5 / 4.3 & 91.3 / 94.0 & 101.0 \\
+(8, 0) & (8, 31) & 1\,329 & 4.7 / 8.3 & 3.9 / 18.5 & 5.1 / 29.3 & 92.5 / 120.3 & 168.3 \\
+(8, 8) & (7, 30) & 1\,761 & 4.5 / 7.2 & 4.1 / 11.4 & 4.1 / 11.3 & 93.7 / 106.1 & 121.0 \\
+(8, 16) & (7, 11) & 300 & 4.2 / 7.0 & 3.9 / 22.9 & 3.9 / 31.5 & 94.9 / 105.6 & 144.4 \\
+(8, 24) & (7, 24) & 928 & 5.4 / 20.3 & 4.5 / 12.5 & 4.2 / 12.8 & 93.2 / 121.5 & 255.4 \\
+(16, 0) & (16, 17) & 330 & 4.5 / 6.1 & 4.0 / 11.1 & 3.9 / 11.4 & 95.0 / 77.8 & 113.0 \\
+(16, 8) & (16, 24) & 240 & 4.0 / 3.1 & 3.8 / 2.9 & 3.8 / 3.1 & 98.3 / 64.8 & 113.0 \\
+(16, 16) & (16, 6) & 147 & 4.1 / 5.2 & 4.1 / 8.2 & 3.8 / 11.1 & 98.5 / 83.3 & 135.0 \\
+(16, 24) & (16, 11) & 1\,237 & 4.2 / 5.5 & 4.6 / 7.0 & 4.2 / 7.1 & 97.6 / 82.9 & 207.5 \\
+(23, 0) & (23, 22) & 303 & 4.7 / 6.2 & 4.8 / 8.3 & 3.6 / 6.5 & 95.5 / 90.0 & 54.9 \\
+(23, 8) & (23, 16) & 56 & 4.5 / 3.3 & 3.8 / 2.3 & 3.8 / 2.7 & 96.1 / 80.0 & 56.2 \\
+(23, 16) & (22, 13) & 239 & 4.7 / 4.4 & 3.9 / 5.5 & 4.5 / 5.9 & 96.2 / 107.1 & 176.2 \\
+(23, 24) & (23, 11) & 2\,048 & 3.9 / 3.6 & 3.8 / 3.5 & 3.7 / 4.6 & 99.0 / 24.2 & 28.6 \\
+\midrule
+\textbf{mean} & & & --- / \textbf{6.4} & --- / \textbf{8.6} & --- / \textbf{10.0} & \textbf{95.3 / 91.2} & \\
+\bottomrule
+\end{tabular}
+\caption[The output of the children, on real inputs]{Relative errors in \%, weights then output of the expert, on the real inputs routed to each child \mes. Data: \fichier{mesures/genome/duplication/csv/t-o-sortie.csv}; \fichier{genome/duplication.md} §\,4.}
+\label{t3dup:tab:sortie}
+\end{table}
+
+\paragraph{Reading} (\cref{t3dup:tab:sortie}).
+\begin{itemize}
+\item \textbf{The truncated mutation} (the child served by $\alpha \odot$ parent, residual discarded) keeps 1 to 9\,\% of the energy of the weights (4.7\,\% on average) and gives 24 to 121\,\% error on the output. The values below 100\,\% of layers 16 and 23 come from the biases: they stay exact and carry a large share of the output of the deep experts (for (23, 24), the raw parent itself makes only 28.6\,\%). This is the error one would have by serving only the biases: the truncated mutation brings nothing.
+\item \textbf{Same weight error, very different output error.} The ECSQ alone and the mutation fall to 3.6 to 5.4\,\% weight error, like the base; but the output error of the ECSQ alone ranges from 0.63 to 4.5 times that of the base: the common step erases the blocks of small scale, which the base keeps. \Cref{t3pre:ch} sees it from its side, by another path.
+\item (8, 24) is the exception where the base itself gives 20.3\,\%: its output error is not uniform either. It is the aberrant expert of the scout (\cref{t3ecl:sec:mutation}), seen here on other inputs.
+\item The quantisation step for O is that of the sweep closest to 4.29\,\% (no interpolation possible on a reconstruction): hence the weight errors of 3.6 to 5.4\,\%.
+\end{itemize}
+
+\section{The most economical tree}\label{t3dup:sec:arbre}
+
+\begin{proposition}[The optimal coding order is a maximum-weight spanning tree]\label{t3dup:prop:arbre}
+If each expert is coded alone ($B$ bits) or as a mutation of an already decoded parent ($B - s$ bits, $s \ge 0$ the gain of the edge, symmetric), the minimal cost of a valid decoding order of $E$ experts is $B\,E - \max_T \sum_{(i,j) \in T} s_{ij}$, the maximum ranging over the spanning trees $T$ of the complete graph of the experts, and Kruskal's algorithm~\cite{kruskal1956} finds it.
+\end{proposition}
+
+\begin{proof}
+A valid decoding order gives every expert but one (the root) a parent decoded before it: the ``child, parent'' edges form a spanning tree oriented from the root, and the cost is $BE - \sum_T s$. Conversely, every spanning tree, rooted at any expert and traversed breadth-first, gives a valid order of the same cost, since $s$ is symmetric. Minimising the cost therefore amounts to maximising $\sum_T s$. Kruskal's greedy choice (take the heaviest edge that does not close a cycle) is optimal by the cut property: for every cut of the graph, an edge of maximal weight crossing it belongs to a maximum-weight spanning tree. (For non-symmetric gains, one would need the maximum-weight arborescence of Chu--Liu and Edmonds; our scores are symmetric by construction, $\cos^2$ and matching.)
+\end{proof}
+
+The gain per weight of the layer is $\sum_T s / E$, and it does not exceed $\frac{E-1}{E}\max s$. \fichier{paires\_arbre.py --couche 23} matches one to one the 496 pairs of the most ``related'' layer of the sample, then draws the tree (\fichier{arbre-c23.json}) \mes: scores of the pairs, 10\,\% / median / 90\,\% / 99\,\%: 0.0031 / 0.0038 / 0.0138 / 0.0689 bit; chance control (8 pairs): 0.0016; edges of the tree, min / median / max: 0.0037 / 0.0101 / 0.0892. \textbf{Gain of the layer coded by its tree: 0.0212 bit per weight}, as a Gaussian bound.
+
+\begin{figure}[tbp]
+\centering
+\GrapheDupArbre
+\LegendeFigure{DupArbre}
+\label{fig:t3-dup-arbre}
+\end{figure}
+
+\paragraph{What the figure shows.} \Cref{fig:t3-dup-arbre} draws the tree by its own structure, not by a projection: a star around expert 31, which carries the four heaviest edges, (17, 31) at 0.089, (5, 31) at 0.089, (15, 31) at 0.077, (25, 31) at 0.069, then thin branches; 16 experts out of 32 are leaves. Expert 31 is a hub, the only trace of a family in all the measurements. The inset is the shadow of the same experts by a classical MDS on $d_{ij} = \log_2(s_{\max}/s_{ij})$; its fidelity is stated in the caption and must be stated in the text: the plane keeps 30.9\,\% of the variance of the distances, and the rank correlation between distances in the plane and true distances is 0.61, against 0.11 for permuted distances (\fichier{phylogenie-c23.json}) \mes. Two neighbours on this shadow are often, not always, neighbours in the data. The judge of the figures noted that in \cref{fig:t3-dup-arbre} four edge values out of ten are closer to another edge than to their own (\fichier{memoire/tome3/JUGEMENT-figures3.md}, M4, a reserve on a figure that holds): the value of an edge is read in the CSV, not by eye. And above all, the figure is not a genealogy: no edge is a copy, the tree is the cheapest coding order, not a history.
+
+\paragraph{The heaviest edge, in real bits.} \fichier{mutation.py --couche 23 --enfants 17 --parent 23,31} (\fichier{mutation-arete-max-c23-e17-p31.json}) \mes: D1 parent 0.0222 / 0.0136 / 0.0149 bit (gate, up, down), D1 chance 0.0003 / 0.0004 / 0.0001, D2b 0.0199 / 0.0108 / 0.0117; weight error of the truncated mutation 83.9 / 91.4 / 91.4\,\%. Output of expert 17: base 10.4\,\%, mutation at $\varepsilon \approx 4.29\,\%$ 15.3\,\%, truncated mutation 109.9\,\%. This is the best case found in the model: 0.017 bit on average, 0.014 net of the added costs, that is 3.84 $\to$ 3.83. The ratio between the real gain on the codes and the Gaussian score is here $0.017/0.089 = 0.19$, and $0.0076/0.0425 = 0.18$ for (23, 0); applied to the tree, it gives about \textbf{0.004 bit per weight for the whole of layer 23} \calc, before the added costs ($2.6\cdot10^{-3}$): a net gain of the order of a thousandth.
+
+\paragraph{On gpt-oss-120b.} \fichier{paires\_arbre.py --modele 120b --couche 18 --experts 8} (28 pairs, \fichier{paires-120b-c18-8experts.json}) \mes: scores from 0.0030 to 0.0054 bit (chance 0.0016); matched cosines 0.038 (gate), 0.032 (up), 0.094 (down) against 0.040 at chance. The same picture as on the 20b. The deliverable of the subject says so by striking out its own sentence: ``\barre{gpt-oss-120b is not measured}''; it is, on one layer and 8 experts out of 128, and the exact cost (D1, D2b) and the paralogues are not redone there.
+
+\section{Paralogues: serving an absent expert by another}\label{t3dup:sec:paralogues}
+
+A cache miss could be served without reading a byte, by an already resident expert: a paralogue, in the sense of the analogy. Life draws a robustness from its gene families: a removed gene is often compensated by a paralogue~\cite{gu2003duplicate}. Cache-aware routing~\cite{skliar2024cacheconditional} favours the reuse of experts already in memory and is judged by task accuracy and speed; here we measure the functional bound of any substitution.
+
+\begin{lemme}[The error of a paralogue]\label{t3dup:lem:paralogue}
+Let $y_c$ be the output of the missing expert and $y_s$ that of a resident expert, on the inputs routed to $c$. With a scalar gain $\beta$ chosen by least squares,
+\begin{equation}\label{t3dup:eq:paralogue}
+\varepsilon(c, s) = \min_\beta \frac{\sum\|y_c - \beta y_s\|^2}{\sum\|y_c\|^2} = 1 - \rho_f^2, \qquad \rho_f = \frac{\langle y_c, y_s\rangle}{\|y_c\|\,\|y_s\|},\quad \beta^\ast = \frac{\langle y_c, y_s\rangle}{\|y_s\|^2},
+\end{equation}
+the inner product ranging over all the tokens and all the components.
+\end{lemme}
+
+\begin{proof}
+$\|y_c - \beta y_s\|^2 = \|y_c\|^2 - 2\beta\langle y_c, y_s\rangle + \beta^2\|y_s\|^2$ is a quadratic in $\beta$, minimal at $\beta^\ast$, where it equals $\|y_c\|^2 - \langle y_c, y_s\rangle^2/\|y_s\|^2 = \|y_c\|^2(1 - \rho_f^2)$.
+\end{proof}
+
+For the output of the layer, expert $c$ enters with its routing weight $g_c \in (0, 1)$: the relative error of the layer is about $\sum g_c^2\|y_c - y_s\|^2 / \sum\|\sum_j g_j y_j\|^2$, smaller than $\varepsilon$ by a factor that the measurement gives. The paralogue reads no byte: it beats any compression in rate. It is worth something only if its error is at the level of that of the base.
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabular}{r r r r r r r}
+\toprule
+layer & $\varepsilon$ best paralogue & $\varepsilon$, $\beta = 1$ & $\varepsilon$ chance & $\varepsilon$, 5\textsuperscript{th} choice & layer: substituted & layer: removed \\
+\midrule
+0 & 0.792 & 1.401 & 0.945 & 1.215 & 0.167 & 0.133 \\
+8 & 0.842 & 1.439 & 0.936 & 1.239 & 0.139 & 0.092 \\
+16 & 0.658 & 0.749 & 0.721 & 0.924 & 0.071 & 0.076 \\
+23 & 0.335 & 0.435 & 0.467 & 0.564 & 0.037 & 0.037 \\
+\bottomrule
+\end{tabular}
+\caption[Paralogues, by depth]{The relative error of an expert served by another, mean over the experts of each layer (32, 32, 31, 31), at most 96 routed tokens per expert \mes. Routing recomputed from the F32 router of the GGUF, equal to the captured routing at 100\,\% (control). The last two columns: relative error of the output of the \emph{layer} when the expert is substituted by its best paralogue, or removed (routing renormalised over the other three). Data: \fichier{mesures/genome/duplication/csv/paralogues.csv}, \fichier{paralogues-c*.json}.}
+\label{t3dup:tab:paralogues}
+\end{table}
+
+\paragraph{Reading} (\cref{t3dup:tab:paralogues}). The outputs of the experts resemble each other more in depth, but through a component \emph{common to all}: the chance control falls with them (0.47 at layer 23), and what is proper to the best paralogue is only 0.13 above chance. A cache miss is much better served by the base of B (expert error of 5 to 8\,\%, \cref{t3dup:tab:sortie}) than by the best neighbour (33 to 84\,\%).
+
+\paragraph{A sentence of the sources, corrected.} The deliverable of the subject and the synthesis of the round write: ``in the output of the layer, \barre{substituting is never better than removing the expert} (16.7 against 13.3\,\%; 13.9 against 9.2; 7.1 against 7.6; 3.7 against 3.7\,\%)'' (\fichier{genome/duplication.md} §\,0, point 6; \fichier{genome/05-synthese.md} §\,3.2). The numbers in parentheses contradict it: at layer 16, the mean of the substituted error (0.071) is \emph{below} that of the removed error (0.076). Redone here from \fichier{csv/paralogues.csv} \calc~on \mes: substituting is better than removing for 4 experts out of 32 at layer 0, 5 out of 32 at layer 8, \textbf{25 out of 31 at layer 16} and \textbf{21 out of 31 at layer 23}, where the two means are equal to within $10^{-3}$. The correct sentence is therefore: \emph{removing the expert is better than substituting it at layers 0 and 8; at layers 16 and 23, the best paralogue does a little better than removal for the majority of the experts, but by at most half a point of layer error on average}. The conclusion of the chapter does not change: the bar for a paralogue is not the absent expert but the removal of the expert, and the best paralogue departs from it by only a few thousandths, far from what the base achieves.
+
+\section{Why the idea fails, and where to look}\label{t3dup:sec:pourquoi}
+
+\paragraph{The reason, in numbers.} A duplicated gene keeps its resemblance as long as selection does not take it away. The experts of gpt-oss, for their part, were trained to be \emph{different}: the router sends an expert only the tokens where it is useful, and two experts that resembled each other would share the same tokens. The measurement confirms it: after the best permutation, the mutual information between a child and its best parent is of the order of $10^{-3}$ bit per weight out of 3.84, and what remains of it is for half or more a property of the whole layer (the input columns, the output space of down), not of the pair. Truncating the mutation means losing the expert: 96\,\% of its energy is its own. \emph{They pose the problem thus} (Git Re-Basin, Entezari et al., MC-SMoE~\cite{li2023mcsmoe}): match the neurons of two networks or of two experts in order to merge them, judged by task accuracy. \emph{The term we lacked}: the rate, in bits per weight read, of an expert coded given another. \emph{The one they do not have}: the measurement on 4-bit codes, where the mutual information is counted exactly, and the separation between proper kinship and the structure common to the layer, by the control of the chance parent.
+
+\paragraph{Where the noise is, where the structure is.} (a) Part of the structure between experts is \textbf{common to the layer}, not proper to a pair: the chance parent (same input columns, neurons in any order) takes back 46\,\% of the gain on average, and 88 to 94\,\% in layer 0, where the hidden state carries outlier channels. These are statistics per input column shared by the 32 experts; \cref{t3pre:ch} takes them as a column context, and it is the only context that passes its threshold. (b) Proper kinship grows with depth (layer 23: D1 gate 0.0082 against 0.0019 at chance; a hub, expert 31) but stays below a hundredth of a bit. (c) The rest is noise for any duplication: the best parent explains 1 to 9\,\% of the energy of the weights of a child (at most 16\,\% for a single matrix).
+
+\paragraph{What the measurement saw in passing.} The ECSQ alone (common step, exponent context) falls to 0.89 to 1.78 bits (1.52 on average, without the 0.034 bit of scales) at 4.29\,\% \emph{weight} error, far below the frontier; but its \emph{output} error varies from 0.63 to 4.5 times that of the base. The lever is not kinship, a property of the weights among themselves, but \emph{usage}, a property of the weights before their inputs: a weight is worth what its real inputs make it weigh. The subject drew its direction for what followed from this (answer by delegation of 2026-10-17, reversible: it is the only mechanism measured here whose gain counts in tenths of a bit and not in thousandths); \cref{t3pre:ch} measures this allocation by usage, and \cref{t3syn:ch} will say what the KL left of it.
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{The parent is chosen by a Gaussian score on the weights}, not by the gain on the codes. Another parent might gain a little more in D1. The best score of the whole list (0.043) bounds the Gaussian gain of any parent; the real D1 is always below the score.
+\item \textbf{A single permutation per pair, joint over the three roles.} Permutations per role would be freer but would no longer describe the same expert (the function requires the same $\Pi$). The screen without bijection bounds what any further freedom could gain.
+\item \textbf{The sample}: 16 children out of 768, four depths. Layer 23 shows a stronger kinship than the others; layers 17 to 22 are not measured. The screen was interrupted at layer 4.
+\item \textbf{The real inputs} come from 12 windows of a single corpus; at most 2\,048 tokens per child, 78 to 96 for the paralogues.
+\item \textbf{The entropy estimator} is biased downwards by at most $6.7\cdot10^{-5}$ bit: negligible compared with the reported gains, but of the same order as the smallest.
+\item \textbf{\Cref{t3dup:lem:hasard}} is an asymptote; the measured control (0.084) is a little below it (0.092).
+\item \textbf{The sentence corrected in \cref{t3dup:sec:paralogues}} is corrected on means of 31 and 32 experts at 96 tokens at most; the gap between substituting and removing at layers 16 and 23 is a few thousandths, with no published uncertainty.
+\item \textbf{The machine was shared and loaded} (free memory from 0.7 to 2.6\,GB): the durations in the logs measure nothing, and no throughput number is reported.
+\end{itemize}
+\end{faux}

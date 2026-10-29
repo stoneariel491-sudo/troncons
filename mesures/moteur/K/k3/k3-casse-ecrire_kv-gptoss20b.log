@@ -1,0 +1,145 @@
+carte : NVIDIA GeForce RTX 4060 Laptop GPU ; pilote 13010 ; casser : « ecrire_kv »
+  gemv_q8_0     entiers 37 × 96, exact au bit                diff     0.000e0 (seuil = 0e0) tient
+  gemv_q8_0     entiers 5 × 32, exact au bit                 diff     0.000e0 (seuil = 0e0) tient
+  gemv_q8_0     entiers 2880 × 2880, exact au bit            diff     0.000e0 (seuil = 0e0) tient
+  gemv_q8_0     entiers 2880 × 4096, exact au bit            diff     0.000e0 (seuil = 0e0) tient
+  gemv_q8_0     entiers 513 × 2880, exact au bit             diff     0.000e0 (seuil = 0e0) tient
+  gemv_f32      entiers 128 × 2880 + biais entier, exact au bit diff     0.000e0 (seuil = 0e0) tient
+  gemv_f32      entiers 32 × 2880 + biais entier, exact au bit diff     0.000e0 (seuil = 0e0) tient
+  gemv_f32      entiers 5 × 32 + biais entier, exact au bit  diff     0.000e0 (seuil = 0e0) tient
+  gemv_mxfp4    entiers 2880 × 2880 + biais, contre Matrice::produit, exact au bit diff     0.000e0 (seuil = 0e0) tient
+  routeur_topk  indices et boîte, 128 zéros                  diff     0.000e0 (seuil = 0e0) tient
+  routeur_topk  poids, 128 zéros                             e        0.000e0 (seuil ≤ 1e-6) tient
+  routeur_topk  indices et boîte, 32 valeurs à égalités répétées diff     0.000e0 (seuil = 0e0) tient
+  routeur_topk  poids, 32 valeurs à égalités répétées        e        0.000e0 (seuil ≤ 1e-6) tient
+  routeur_topk  indices et boîte, 128, quatre maxima égaux aux indices 5, 42, 79, 116 diff     0.000e0 (seuil = 0e0) tient
+  routeur_topk  poids, 128, quatre maxima égaux aux indices 5, 42, 79, 116 e        0.000e0 (seuil ≤ 1e-6) tient
+  routeur_topk  indices et boîte, 128, maxima égaux aux indices 64 et 127 diff     0.000e0 (seuil = 0e0) tient
+  routeur_topk  poids, 128, maxima égaux aux indices 64 et 127 e       1.911e-8 (seuil ≤ 1e-6) tient
+  routeur_topk  indices et boîte, 256 experts, 7 valeurs     diff     0.000e0 (seuil = 0e0) tient
+  routeur_topk  poids, 256 experts, 7 valeurs                e        0.000e0 (seuil ≤ 1e-6) tient
+  routeur_topk  indices et boîte, 128 tirés, une égalité forcée diff     0.000e0 (seuil = 0e0) tient
+  routeur_topk  poids, 128 tirés, une égalité forcée         e       4.734e-8 (seuil ≤ 1e-6) tient
+  argmax        201 088, trois maxima égaux (7, 150 000, 200 000) (carte : 7, hôte : 7) diff     0.000e0 (seuil = 0e0) tient
+  argmax        201 088 fois −∞ (carte : 0, hôte : 0)        diff     0.000e0 (seuil = 0e0) tient
+  argmax        201 088 égaux à 1, NaN en 0 et 1 000 (carte : 1, hôte : 1) diff     0.000e0 (seuil = 0e0) tient
+  argmax        maximum seul au dernier indice (carte : 201087, hôte : 201087) diff     0.000e0 (seuil = 0e0) tient
+  combiner      tirés sur 2^±12, n = 4, pas 3000             diff     0.000e0 (seuil = 0e0) tient
+  combiner      tirés sur 2^±12, n = 3, pas 3000             diff     0.000e0 (seuil = 0e0) tient
+  ligne_q8_0    64 lignes réelles (dont 0 et 201087)         diff     0.000e0 (seuil = 0e0) tient
+  rmsnorm       attn_norm, 64 lignes, un appel               e       4.859e-8 (seuil ≤ 1e-6) tient
+  rmsnorm       attn_norm, en place, égal au bit à l'appel hors place diff     0.000e0 (seuil = 0e0) tient
+  gemv_q8_0     attn_q 4096 × 2880 + biais, 8 positions      e       9.615e-8 (seuil ≤ 1e-5) tient
+  gemv_q8_0     attn_k 512 × 2880 + biais, 8 positions       e       1.003e-7 (seuil ≤ 1e-5) tient
+  gemv_q8_0     attn_v 512 × 2880 + biais, 8 positions       e       9.608e-8 (seuil ≤ 1e-5) tient
+  rope_yarn     q et k, 10 positions de 0 à 131071, OpenAI   e       4.532e-8 (seuil ≤ 1e-6) tient
+  rope_yarn     q et k, 10 positions de 0 à 131071, llama.cpp e       4.522e-8 (seuil ≤ 1e-6) tient
+  ecrire_kv     256 positions, cases pleines                 diff     1.306e5 (seuil = 0e0) TOMBE
+  ecrire_kv     256 positions, anneau de 128                 diff     6.517e4 (seuil = 0e0) TOMBE
+  attention     1 positions [0, 1), anneau 128               e       2.832e-6 (seuil ≤ 1e-5) tient
+  gemv_q8_0     attn_output 2880 × 4096 + biais, position 0  e       8.462e-8 (seuil ≤ 1e-5) tient
+  combiner      x + (a Woᵀ + bo), n = 1, position 0          diff     0.000e0 (seuil = 0e0) tient
+  rmsnorm       post_attention_norm, position 0              e       1.788e-8 (seuil ≤ 1e-6) tient
+  gemv_f32      routeur 32 × 2880 + biais, position 0        e       6.740e-8 (seuil ≤ 1e-5) tient
+  routeur_topk  indices et boîte, logits réels, position 0   diff     0.000e0 (seuil = 0e0) tient
+  routeur_topk  poids, logits réels, position 0              e       2.777e-8 (seuil ≤ 1e-6) tient
+  gemv_mxfp4    gate et up de 4 experts [9, 24, 5, 6] + biais, position 0 e       9.175e-8 (seuil ≤ 1e-5) tient
+  swiglu_oai    4 × 2880 paires en un appel, position 0      e       2.191e-8 (seuil ≤ 1e-6) tient
+  gemv_mxfp4    down de 4 experts + biais, position 0        e       2.421e-7 (seuil ≤ 1e-5) tient
+  combiner      x₁ + Σ g_j s_j, n = 4, position 0            diff     0.000e0 (seuil = 0e0) tient
+  attention     127 positions [0, 127), anneau 128           e       2.984e-6 (seuil ≤ 1e-5) tient
+  gemv_q8_0     attn_output 2880 × 4096 + biais, position 126 e       7.908e-8 (seuil ≤ 1e-5) tient
+  combiner      x + (a Woᵀ + bo), n = 1, position 126        diff     0.000e0 (seuil = 0e0) tient
+  rmsnorm       post_attention_norm, position 126            e       2.875e-8 (seuil ≤ 1e-6) tient
+  gemv_f32      routeur 32 × 2880 + biais, position 126      e       8.423e-8 (seuil ≤ 1e-5) tient
+  routeur_topk  indices et boîte, logits réels, position 126 diff     0.000e0 (seuil = 0e0) tient
+  routeur_topk  poids, logits réels, position 126            e       3.528e-8 (seuil ≤ 1e-6) tient
+  gemv_mxfp4    gate et up de 4 experts [24, 6, 5, 0] + biais, position 126 e       1.146e-7 (seuil ≤ 1e-5) tient
+  swiglu_oai    4 × 2880 paires en un appel, position 126    e       3.820e-8 (seuil ≤ 1e-6) tient
+  gemv_mxfp4    down de 4 experts + biais, position 126      e       1.201e-7 (seuil ≤ 1e-5) tient
+  combiner      x₁ + Σ g_j s_j, n = 4, position 126          diff     0.000e0 (seuil = 0e0) tient
+  attention     128 positions [0, 128), anneau 128           e       3.257e-6 (seuil ≤ 1e-5) tient
+  gemv_q8_0     attn_output 2880 × 4096 + biais, position 127 e       6.274e-8 (seuil ≤ 1e-5) tient
+  combiner      x + (a Woᵀ + bo), n = 1, position 127        diff     0.000e0 (seuil = 0e0) tient
+  rmsnorm       post_attention_norm, position 127            e       1.651e-8 (seuil ≤ 1e-6) tient
+  gemv_f32      routeur 32 × 2880 + biais, position 127      e       7.457e-8 (seuil ≤ 1e-5) tient
+  routeur_topk  indices et boîte, logits réels, position 127 diff     0.000e0 (seuil = 0e0) tient
+  routeur_topk  poids, logits réels, position 127            e       2.283e-8 (seuil ≤ 1e-6) tient
+  gemv_mxfp4    gate et up de 4 experts [24, 6, 14, 8] + biais, position 127 e       1.357e-7 (seuil ≤ 1e-5) tient
+  swiglu_oai    4 × 2880 paires en un appel, position 127    e       4.886e-8 (seuil ≤ 1e-6) tient
+  gemv_mxfp4    down de 4 experts + biais, position 127      e       1.984e-7 (seuil ≤ 1e-5) tient
+  combiner      x₁ + Σ g_j s_j, n = 4, position 127          diff     0.000e0 (seuil = 0e0) tient
+  attention     128 positions [1, 129), anneau 128           e       2.179e-6 (seuil ≤ 1e-5) tient
+  gemv_q8_0     attn_output 2880 × 4096 + biais, position 128 e       5.807e-8 (seuil ≤ 1e-5) tient
+  combiner      x + (a Woᵀ + bo), n = 1, position 128        diff     0.000e0 (seuil = 0e0) tient
+  rmsnorm       post_attention_norm, position 128            e       3.616e-8 (seuil ≤ 1e-6) tient
+  gemv_f32      routeur 32 × 2880 + biais, position 128      e       1.045e-7 (seuil ≤ 1e-5) tient
+  routeur_topk  indices et boîte, logits réels, position 128 diff     0.000e0 (seuil = 0e0) tient
+  routeur_topk  poids, logits réels, position 128            e       2.258e-8 (seuil ≤ 1e-6) tient
+  gemv_mxfp4    gate et up de 4 experts [9, 5, 24, 11] + biais, position 128 e       1.242e-7 (seuil ≤ 1e-5) tient
+  swiglu_oai    4 × 2880 paires en un appel, position 128    e       3.674e-8 (seuil ≤ 1e-6) tient
+  gemv_mxfp4    down de 4 experts + biais, position 128      e       1.065e-7 (seuil ≤ 1e-5) tient
+  combiner      x₁ + Σ g_j s_j, n = 4, position 128          diff     0.000e0 (seuil = 0e0) tient
+  attention     128 positions [172, 300), anneau 128         e       6.153e-6 (seuil ≤ 1e-5) tient
+  gemv_q8_0     attn_output 2880 × 4096 + biais, position 299 e       1.023e-7 (seuil ≤ 1e-5) tient
+  combiner      x + (a Woᵀ + bo), n = 1, position 299        diff     0.000e0 (seuil = 0e0) tient
+  rmsnorm       post_attention_norm, position 299            e       2.633e-8 (seuil ≤ 1e-6) tient
+  gemv_f32      routeur 32 × 2880 + biais, position 299      e       1.121e-7 (seuil ≤ 1e-5) tient
+  routeur_topk  indices et boîte, logits réels, position 299 diff     0.000e0 (seuil = 0e0) tient
+  routeur_topk  poids, logits réels, position 299            e       1.312e-8 (seuil ≤ 1e-6) tient
+  gemv_mxfp4    gate et up de 4 experts [24, 6, 11, 3] + biais, position 299 e       1.125e-7 (seuil ≤ 1e-5) tient
+  swiglu_oai    4 × 2880 paires en un appel, position 299    e       2.920e-8 (seuil ≤ 1e-6) tient
+  gemv_mxfp4    down de 4 experts + biais, position 299      e       2.353e-7 (seuil ≤ 1e-5) tient
+  combiner      x₁ + Σ g_j s_j, n = 4, position 299          diff     0.000e0 (seuil = 0e0) tient
+  rmsnorm       attn_norm, 64 lignes, un appel               e       5.207e-8 (seuil ≤ 1e-6) tient
+  rmsnorm       attn_norm, en place, égal au bit à l'appel hors place diff     0.000e0 (seuil = 0e0) tient
+  gemv_q8_0     attn_q 4096 × 2880 + biais, 8 positions      e       1.561e-7 (seuil ≤ 1e-5) tient
+  gemv_q8_0     attn_k 512 × 2880 + biais, 8 positions       e       1.115e-7 (seuil ≤ 1e-5) tient
+  gemv_q8_0     attn_v 512 × 2880 + biais, 8 positions       e       1.176e-7 (seuil ≤ 1e-5) tient
+  rope_yarn     q et k, 10 positions de 0 à 131071, OpenAI   e       5.253e-8 (seuil ≤ 1e-6) tient
+  rope_yarn     q et k, 10 positions de 0 à 131071, llama.cpp e       5.253e-8 (seuil ≤ 1e-6) tient
+  ecrire_kv     256 positions, cases pleines                 diff     1.312e5 (seuil = 0e0) TOMBE
+  ecrire_kv     256 positions, anneau de 128                 diff     6.562e4 (seuil = 0e0) TOMBE
+  attention     1 positions [0, 1)                           e       2.483e-6 (seuil ≤ 1e-5) tient
+  gemv_q8_0     attn_output 2880 × 4096 + biais, position 0  e       1.885e-7 (seuil ≤ 1e-5) tient
+  combiner      x + (a Woᵀ + bo), n = 1, position 0          diff     0.000e0 (seuil = 0e0) tient
+  rmsnorm       post_attention_norm, position 0              e       4.205e-8 (seuil ≤ 1e-6) tient
+  gemv_f32      routeur 32 × 2880 + biais, position 0        e       1.160e-7 (seuil ≤ 1e-5) tient
+  routeur_topk  indices et boîte, logits réels, position 0   diff     0.000e0 (seuil = 0e0) tient
+  routeur_topk  poids, logits réels, position 0              e       1.591e-8 (seuil ≤ 1e-6) tient
+  gemv_mxfp4    gate et up de 4 experts [11, 28, 2, 1] + biais, position 0 e       1.634e-7 (seuil ≤ 1e-5) tient
+  swiglu_oai    4 × 2880 paires en un appel, position 0      e       2.529e-8 (seuil ≤ 1e-6) tient
+  gemv_mxfp4    down de 4 experts + biais, position 0        e       2.014e-7 (seuil ≤ 1e-5) tient
+  combiner      x₁ + Σ g_j s_j, n = 4, position 0            diff     0.000e0 (seuil = 0e0) tient
+  attention     300 positions [0, 300)                       e       7.384e-7 (seuil ≤ 1e-5) tient
+  gemv_q8_0     attn_output 2880 × 4096 + biais, position 299 e       6.278e-8 (seuil ≤ 1e-5) tient
+  combiner      x + (a Woᵀ + bo), n = 1, position 299        diff     0.000e0 (seuil = 0e0) tient
+  rmsnorm       post_attention_norm, position 299            e       4.557e-8 (seuil ≤ 1e-6) tient
+  gemv_f32      routeur 32 × 2880 + biais, position 299      e       2.034e-7 (seuil ≤ 1e-5) tient
+  routeur_topk  indices et boîte, logits réels, position 299 diff     0.000e0 (seuil = 0e0) tient
+  routeur_topk  poids, logits réels, position 299            e       2.831e-8 (seuil ≤ 1e-6) tient
+  gemv_mxfp4    gate et up de 4 experts [11, 28, 15, 1] + biais, position 299 e       2.248e-7 (seuil ≤ 1e-5) tient
+  swiglu_oai    4 × 2880 paires en un appel, position 299    e       2.991e-8 (seuil ≤ 1e-6) tient
+  gemv_mxfp4    down de 4 experts + biais, position 299      e       2.045e-7 (seuil ≤ 1e-5) tient
+  combiner      x₁ + Σ g_j s_j, n = 4, position 299          diff     0.000e0 (seuil = 0e0) tient
+  attention     4096 positions [0, 4096)                     e       1.928e-6 (seuil ≤ 1e-5) tient
+  gemv_q8_0     attn_output 2880 × 4096 + biais, position 4095 e       1.101e-7 (seuil ≤ 1e-5) tient
+  combiner      x + (a Woᵀ + bo), n = 1, position 4095       diff     0.000e0 (seuil = 0e0) tient
+  rmsnorm       post_attention_norm, position 4095           e       3.163e-8 (seuil ≤ 1e-6) tient
+  gemv_f32      routeur 32 × 2880 + biais, position 4095     e       2.577e-7 (seuil ≤ 1e-5) tient
+  routeur_topk  indices et boîte, logits réels, position 4095 diff     0.000e0 (seuil = 0e0) tient
+  routeur_topk  poids, logits réels, position 4095           e       2.462e-8 (seuil ≤ 1e-6) tient
+  gemv_mxfp4    gate et up de 4 experts [28, 11, 15, 2] + biais, position 4095 e       1.267e-7 (seuil ≤ 1e-5) tient
+  swiglu_oai    4 × 2880 paires en un appel, position 4095   e       2.445e-8 (seuil ≤ 1e-6) tient
+  gemv_mxfp4    down de 4 experts + biais, position 4095     e       9.030e-8 (seuil ≤ 1e-5) tient
+  combiner      x₁ + Σ g_j s_j, n = 4, position 4095         diff     0.000e0 (seuil = 0e0) tient
+  rmsnorm       output_norm, état 0                          e       3.582e-8 (seuil ≤ 1e-6) tient
+  gemv_q8_0     output 201088 × 2880, état 0                 e       1.359e-7 (seuil ≤ 1e-5) tient
+  argmax        logits réels 201088, état 0 (f64 : 2923, carte : 2923) diff     0.000e0 (seuil = 0e0) tient
+  rmsnorm       output_norm, état 1                          e       2.800e-8 (seuil ≤ 1e-6) tient
+  gemv_q8_0     output 201088 × 2880, état 1                 e       1.806e-7 (seuil ≤ 1e-5) tient
+  argmax        logits réels 201088, état 1 (f64 : 84676, carte : 84676) diff     0.000e0 (seuil = 0e0) tient
+  rmsnorm       output_norm, état 2                          e       2.935e-8 (seuil ≤ 1e-6) tient
+  gemv_q8_0     output 201088 × 2880, état 2                 e       1.268e-7 (seuil ≤ 1e-5) tient
+  argmax        logits réels 201088, état 2 (f64 : 16915, carte : 16915) diff     0.000e0 (seuil = 0e0) tient
+cassure : le témoin visé tombe, les onze autres tiennent (9.9 s)

@@ -1,0 +1,223 @@
+% Figures du juge de la construction pour le Tome III (genome/JUGEMENT-construction.md,
+% genome/construction-juge-pour-le-memoire.md). Gardé par \ifdefined\GrapheJconsCodon. Données :
+% \Racine/figures/tome3/donnees/juge-*.csv et juge-nombres.tex, écrits par memoire/outils/tome3_juge.py depuis
+% mesures/genome/construction/juge/ (et, pour le mode exact sur R1, mesures/moteur/O/journaux/o3/). Styles « jcons ».
+%
+% Second flux (2026-10-27) : dictionnaire des couleurs du Tome III (palette-tome3.tex) et légendes G9 (\Titre,
+% \Legende, \Source ; le chapitre écrit \LegendeFigure{<Nom>}). III-8.8 : axe tiré des données (G2 du juge des
+% chiffres, aucun expert hors du cadre) ; III-10.1 : D21 du juge de design ; III-10.3 : D22 et M13.
+%   III-8.8 JconsCodon   III-10.1 JconsExperts   III-10.3 JconsFenetres
+
+\ifdefined\GrapheJconsCodon\else
+\input{\Racine/figures/tome3/legende-tome3}
+\providecommand{\CodonDonnees}{\Racine/figures/tome3/donnees}
+\providecommand{\CodonNum}[1]{\num[group-digits=integer]{#1}}
+\input{\CodonDonnees/juge-nombres}
+
+\pgfplotsset{
+  % Catégories de la grille des experts (D21) : 0 aucune fenêtre (blanc, cadre et croix d'encre), [10, 20) R1 seul
+  % (CouleurRun plein), [20, 30) neuves seules (CouleurNeuves plein, un point blanc), [30, 40) les deux, du gris
+  % clair au gris moyen selon log10(1 + appels) : le bruit de fond ne prend plus l'œil aux exceptions. Troisième
+  % passe (DN21 du juge de design) : la rampe se resserre, black!5 à black!20 au lieu de black!8 à black!35.
+  colormap={jcons}{color(0)=(white) color(9.99)=(white)
+    color(10)=(CouleurRun) color(19.99)=(CouleurRun)
+    color(20)=(CouleurNeuves) color(29.99)=(CouleurNeuves)
+    color(30)=(black!5) color(40)=(black!20)},
+}
+\tikzset{jcons note/.style={t3 sans cesure, font=\sffamily\scriptsize, text=black!70, align=center}}
+
+% =============================================================================================================
+% III-8.8 (F-J6). Le codon par le décodeur du juge.
+\newcommand{\GrapheJconsCodon}{%
+\begin{tikzpicture}
+\begin{axis}[t3 graphe, t3 points, t3 decimales x=1, name=g, width=0.6\linewidth, height=6.2cm,
+  title={(a) \EF{share of $-0$ in each drawn expert}{part des $-0$ de chaque expert tiré}},
+  xlabel={\EF{relative depth (layer / last layer)}{profondeur relative (couche / dernière couche)}},
+  ylabel={\EF{$-0$ codes (\%)}{codes $-0$ (\%)}}, xmin=-0.03, xmax=1.03, ymin=\JconsNPartAxeMin, ymax=\JconsNPartAxeMax,
+  legend style={at={(0.98,0.86)}, anchor=north east}, legend columns=1]
+\draw[CouleurVingtB, dashed, line width=0.7pt] (axis cs:-0.03,\JconsNPartVingt) -- (axis cs:1.03,\JconsNPartVingt);
+\draw[CouleurCentVingtB, dash pattern=on 1.5pt off 1.5pt, line width=0.7pt] (axis cs:-0.03,\JconsNPartCent) -- (axis cs:1.03,\JconsNPartCent);
+\addplot[only marks, t3 vingtb point, fill opacity=0.75, unbounded coords=discard]
+  table[x=x, y expr={\thisrow{taille}==20 ? \thisrow{part} : nan}] {\CodonDonnees/juge-codon-experts.csv};
+\addlegendentry{gpt-oss-20b (\JconsNExpertsVingt)}
+\addplot[only marks, t3 centvingtb point, fill opacity=0.75, unbounded coords=discard]
+  table[x=x, y expr={\thisrow{taille}==120 ? \thisrow{part} : nan}] {\CodonDonnees/juge-codon-experts.csv};
+\addlegendentry{gpt-oss-120b (\JconsNExpertsCent)}
+\node[t3 nombre=CouleurCentVingtB!85!black, anchor=west] at (axis cs:0.02,\JconsNPartMax)
+  {\JconsNPartMaxModele, \EF{layer}{couche} \JconsNPartMaxCouche, expert \JconsNPartMaxExpert\Dp\ \Pourcent{\JconsNPartMax}};
+\addlegendimage{CouleurVingtB, dashed, line width=0.7pt}
+\addlegendentry{\EF{whole 20b file}{fichier 20b entier}\Dp\ \Pourcent{\JconsNPartVingt}}
+\addlegendimage{CouleurCentVingtB, dash pattern=on 1.5pt off 1.5pt, line width=0.7pt}
+\addlegendentry{\EF{whole 120b file}{fichier 120b entier}\Dp\ \Pourcent{\JconsNPartCent}}
+\node[t3 note, anchor=south west] at (axis cs:0.0,\JconsNPartAxeMin+0.15)
+  {\EF{nibbles 8 in the 96 decodings:}{demi-octets 8 dans les 96 décodages :} \JconsNHuit};
+\end{axis}
+\begin{axis}[t3 graphe, t3 decimales y=2, name=d, at={(g.east)}, anchor=west, xshift=1.55cm, width=0.36\linewidth, height=6.2cm,
+  title={(b) \EF{gain per expert weight}{gain par poids d'expert}},
+  ylabel={\EF{gain (bit/weight)}{gain (bit/poids)}}, ymin=0, ymax=0.16, xmin=-0.6, xmax=1.6, xtick={0,1}, xmajorgrids=false,
+  xticklabels={20b, 120b}, clip=false]
+\node[jcons note, anchor=north, yshift=-0.42cm] at (axis cs:0,0)
+  {\CodonNum{\JconsNGoVingtA}\\$\downarrow$\\\CodonNum{\JconsNGoVingtB}~\EF{GB}{Go}};
+\node[jcons note, anchor=north, yshift=-0.42cm] at (axis cs:1,0)
+  {\CodonNum{\JconsNGoCentA}\\$\downarrow$\\\CodonNum{\JconsNGoCentB}~\EF{GB}{Go}};
+\draw[fill=CouleurVingtB, draw=CouleurVingtB!70!black, line width=0.4pt] (axis cs:-0.3,0) rectangle (axis cs:0.3,\JconsNGainVingt);
+\draw[fill=CouleurCentVingtB, draw=CouleurCentVingtB!70!black, line width=0.4pt] (axis cs:0.7,0) rectangle (axis cs:1.3,\JconsNGainCent);
+\draw[t3 seuil] (axis cs:-0.6,\JconsNSeuilCdeux) -- (axis cs:1.6,\JconsNSeuilCdeux);
+\node[t3 etiquette, anchor=south] at (axis cs:0.5,0.142) {A-C2\Dp\ $\ge\CodonNum{\JconsNSeuilCdeux}$};
+\node[t3 nombre=CouleurVingtB, anchor=north] at (axis cs:0,0.105) {\CodonNum{\JconsNGainVingt}};
+\node[t3 nombre=CouleurCentVingtB!85!black, anchor=north] at (axis cs:1,0.105) {\CodonNum{\JconsNGainCent}};
+\end{axis}
+\end{tikzpicture}}
+\Titre{JconsCodon}{The codon by the judge's decoder}{Le codon par le décodeur du juge}
+\Legende{JconsCodon}{\mes}
+  {The judge's own decoder finds the canonical expert in all \JconsNExpertsTient\ drawn experts, and the gain of
+   both files passes the threshold declared before.}
+  {Le décodeur propre du juge retrouve l'expert canonique dans les \JconsNExpertsTient\ experts tirés, et le gain
+   des deux fichiers passe le seuil déclaré avant.}
+  {(a) The \JconsNExperts\ experts drawn from the two v1.2 files and decoded by the judge: share of $-0$ codes in
+   the GGUF expert, by relative depth; dashed, the share over the whole file. All \JconsNExpertsTient\ decode to
+   the canonical expert, with no nibble 8 left; the \JconsNTemoins\ v1.0 controls decode to the GGUF bytes
+   (\JconsNTemoinsTient/\JconsNTemoins). The set of nibbles changed between v1.0 and v1.2 is exactly the set of
+   $-0$ (note of the judge §~1.2). The share of $-0$ varies by expert: the highest, \Pourcent{\JconsNPartMax},
+   is in layer~\JconsNPartMaxCouche\ of the \JconsNPartMaxModele; the file gain does not depend on it. The axis is
+   drawn from the data: no expert lies outside the frame. (b) The gain per expert weight of the four files read
+   whole (aligned chunks), their sizes below, against the threshold A-C2 declared before.}
+  {(a) Les \JconsNExperts\ experts tirés des deux fichiers v1.2 et décodés par le juge : part des codes $-0$ de
+   l'expert du GGUF, selon la profondeur relative ; en tirets, la part sur le fichier entier. Les
+   \JconsNExpertsTient\ se décodent en l'expert canonique, sans aucun demi-octet 8 ; les \JconsNTemoins\ témoins
+   v1.0 se décodent en les octets du GGUF (\JconsNTemoinsTient/\JconsNTemoins). L'ensemble des demi-octets changés
+   entre v1.0 et v1.2 est exactement celui des $-0$ (note du juge §~1.2). La part des $-0$ varie d'un expert à
+   l'autre : la plus haute, \Pourcent{\JconsNPartMax}, est à la couche~\JconsNPartMaxCouche\ du
+   \JconsNPartMaxModele ; le gain du fichier n'en dépend pas. L'axe est tiré des données : aucun expert n'est hors
+   du cadre. (b) Le gain par poids d'expert des quatre fichiers lus en entier (tronçons alignés), leurs tailles
+   en dessous, contre le seuil A-C2 déclaré avant.}
+\Source{JconsCodon}{\fichier{mesures/genome/construction/juge/J-T1-echantillon.csv}, \fichier{J-T0-fichiers.json}\Pv{}
+  \fichier{mesures/genome/construction/codon/tailles.json}\Pv\ \EF{script}{script} \fichier{memoire/outils/tome3_juge.py}.}
+
+% =============================================================================================================
+% III-10.1 (F-J4). Les experts vus : grille 24 × 32 du 20b, qui les a routés et combien.
+% Cases carrées : axe de 12,6 cm sur 9,45 cm, 32 × 24 cases de 0,394 cm.
+\newcommand{\JconsCle}[3]{% x, remplissage, texte : une entrée de la clé
+  \fill[#2] (#1,0) rectangle ++(0.36,0.36);\draw[black!40, line width=0.3pt] (#1,0) rectangle ++(0.36,0.36);
+  \node[jcons note, anchor=west] at (#1+0.42,0.18) {#3};}
+\newcommand{\GrapheJconsExperts}{%
+\begin{tikzpicture}
+\begin{axis}[name=grille, scale only axis, width=12.6cm, height=9.45cm, enlargelimits=false, clip=false,
+  xmin=-0.5, xmax=31.5, ymin=-0.5, ymax=23.5, y dir=reverse,
+  xtick={0,4,...,28,31}, ytick={0,2,...,22}, tick label style={font=\scriptsize}, tick style={draw=none},
+  xlabel={\EF{expert}{expert}}, ylabel={\EF{layer}{couche}}, label style={font=\small},
+  colormap name=jcons, point meta min=0, point meta max=40, axis line style={black!40}]
+\addplot[matrix plot*, mesh/cols=32, point meta=explicit] table[x=expert, y=couche, meta=m] {\CodonDonnees/juge-grille.csv};
+\addplot[only marks, mark=*, mark size=1.1pt, mark options={solid, fill=white, draw=white}, unbounded coords=discard]
+  table[x=expert, y expr={\thisrow{sorte}==2 ? \thisrow{couche} : nan}] {\CodonDonnees/juge-grille.csv};
+\addplot[only marks, mark=square, mark size=5.2pt, mark options={solid, draw=Encre, line width=0.6pt}, unbounded coords=discard]
+  table[x=expert, y expr={\thisrow{sorte}==0 ? \thisrow{couche} : nan}] {\CodonDonnees/juge-grille.csv};
+\addplot[only marks, t3 cassure point, mark size=3.2pt, unbounded coords=discard]
+  table[x=expert, y expr={\thisrow{sorte}==0 ? \thisrow{couche} : nan}] {\CodonDonnees/juge-grille.csv};
+% le compte des experts jamais routés, couche par couche, en marge
+\addplot[only marks, mark=none, nodes near coords, point meta=explicit symbolic,
+  nodes near coords style={font=\sffamily\scriptsize, anchor=center, text=Encre}]
+  table[x expr=32.4, y=couche, meta=vides] {\CodonDonnees/juge-grille-marge.csv};
+\node[jcons note, anchor=south, text=Encre] at (axis cs:32.4,-0.6) {$\times$};
+\end{axis}
+\begin{scope}[shift={($(grille.south west)+(0,-1.25)$)}]
+\JconsCle{0}{CouleurRun}{\EF{R1 only}{R1 seul} (\JconsNRunSeul)}
+\JconsCle{2.7}{CouleurNeuves}{\EF{new windows only}{fenêtres neuves seules} (\JconsNNeufSeul)}
+\fill[white] (2.88,0.18) circle (1.1pt);
+\shade[left color=black!5, right color=black!20] (7.2,0) rectangle ++(0.9,0.36);\draw[black!40, line width=0.3pt] (7.2,0) rectangle ++(0.9,0.36);
+\node[jcons note, anchor=west] at (8.16,0.18) {\EF{both}{les deux} (\JconsNDeux)};
+\draw[Encre, line width=0.6pt] (10.1,0) rectangle ++(0.36,0.36);
+\path[t3 cassure point, mark size=2.4pt] plot coordinates {(10.28,0.18)};
+\node[jcons note, anchor=west] at (10.52,0.18) {\EF{never routed}{jamais routé} (\JconsNVides)};
+\end{scope}
+\end{tikzpicture}}
+\Titre{JconsExperts}{The experts that were seen}{Les experts vus}
+\Legende{JconsExperts}{\mes}
+  {\JconsNVides\ experts of gpt-oss-20b were never routed, on either set of windows: no KL measurement of the
+   construction called them (their decoding, for its part, is checked by value: C1, \JconsNExpertsDecodes\ experts
+   of \JconsNExpertsTous).}
+  {\JconsNVides\ experts de gpt-oss-20b n'ont jamais été routés, sur aucun des deux jeux de fenêtres : aucune
+   mesure de KL de la construction ne les a appelés (leur décodage, lui, est vérifié en valeur : C1,
+   \JconsNExpertsDecodes\ experts sur \JconsNExpertsTous).}
+  {The $24\times32$ experts of gpt-oss-20b, each cell coloured by the windows that routed tokens to it: the ten
+   windows of R1 only (blue), the ten new windows of the judge only (purple, white dot), both (grey, darker with
+   the number of calls on a logarithmic scale), or none (framed and crossed; their count per layer in the margin).
+   A call is one token routed to an expert; a window routes its \JconsNJetonsFenetre\ tokens, of which
+   \JconsNContexte\ are context not scored (\CodonNum{\JconsNAppelsRun} calls in all on each set of windows; at most
+   \CodonNum{\JconsNAppelsMaxUnJeu} for one expert on one set, \CodonNum{\JconsNAppelsMax} on both together). It is
+   the map of the space the router visits on real text, under the routing of the reference: a change confined to
+   the \JconsNVides\ crossed experts would move no KL of \crefrange{t3cod:ch}{t3jug:ch} measured with that routing, but a variant
+   whose routing flips could call them.}
+  {Les $24\times32$ experts de gpt-oss-20b, chaque case colorée selon les fenêtres qui lui ont routé des jetons :
+   les dix fenêtres de R1 seules (bleu), les dix fenêtres neuves du juge seules (violet, point blanc), les deux
+   (gris, plus foncé avec le nombre d'appels, en échelle logarithmique), ou aucune (encadrée et barrée ; leur compte
+   par couche en marge). Un appel est un jeton routé vers un expert ; une fenêtre route ses \JconsNJetonsFenetre\
+   jetons, dont \JconsNContexte\ de contexte non notés (\CodonNum{\JconsNAppelsRun} appels en tout sur chaque jeu
+   de fenêtres ; au plus \CodonNum{\JconsNAppelsMaxUnJeu} pour un expert sur un jeu, \CodonNum{\JconsNAppelsMax} sur
+   les deux réunis). C'est la carte de l'espace que le routeur parcourt sur du texte réel, sous le routage de la
+   référence : un changement confiné aux \JconsNVides\ experts barrés ne bougerait aucune KL des \crefrange{t3cod:ch}{t3jug:ch}
+   mesurée avec ce routage, mais une variante dont le routage bascule pourrait les appeler.}
+\Source{JconsExperts}{\fichier{mesures/genome/construction/juge/figures/routage-grille.csv},
+  \fichier{J-T0-fichiers.json} ($k$)\Pv\ \fichier{mesures/genome/construction/synonyme/kl/kl-frontiere-768-positions.csv}
+  (\EF{scored positions}{positions notées})\Pv\ \fichier{mesures/genome/construction/codon/tailles.json}
+  (C1)\Pv\ \EF{script}{script} \fichier{memoire/outils/tome3_juge.py}.}
+
+% =============================================================================================================
+% III-10.3 (F-J7). La difficulté des fenêtres : KL par fenêtre, R1 et neuves côte à côte.
+\newcommand{\JconsSerie}[4]{% colonne, style du trait, style de la marque, entrée de légende
+  \addplot[#2, line width=0.5pt, #3, unbounded coords=jump] table[x=x, y=#1] {\CodonDonnees/juge-kl-fenetres.csv};
+  \addlegendentry{#4}}
+\newcommand{\GrapheJconsFenetres}{%
+\begin{tikzpicture}
+\begin{axis}[t3 graphe, width=0.95\linewidth, height=7cm, ymode=log, ymin=5e-5, ymax=1,
+  xmin=-0.6, xmax=20.6, xtick={0,...,9,11,12,...,20}, xticklabels={0,...,9,0,1,...,9},
+  xticklabel style={font=\scriptsize}, xlabel={\EF{window}{fenêtre}}, xmajorgrids=false,
+  ylabel={\EF{mean KL of the window}{KL moyenne de la fenêtre}},
+  legend style={at={(0.5,1.03)}, anchor=south}, legend columns=4]
+\fill[CouleurNeuves!8] (axis cs:10.5,5e-5) rectangle (axis cs:20.6,1);
+\draw[black!40, line width=0.5pt] (axis cs:10,5e-5) -- (axis cs:10,1);
+\JconsSerie{frontiere}{CouleurFrontiere, solid}{t3 frontiere point}{\EF{frontier}{frontière}}
+\JconsSerie{lambda1}{CouleurSynonyme, dash pattern=on 3pt off 1.5pt}{t3 synonyme point}{$\lambda=1$}
+\JconsSerie{lambda0}{CouleurLambdaZero, dash pattern=on 3pt off 1pt on 1pt off 1pt}{t3 lambda zero point}{$\lambda=0$}
+\JconsSerie{exact}{CouleurExact, solid}{t3 exact point}{\EF{exact mode}{mode exact}}
+\node[t3 etiquette, anchor=south] at (axis cs:4.5,6e-5) {R1};
+\node[t3 etiquette, anchor=south] at (axis cs:15.5,6e-5) {\EF{new windows (judge)}{fenêtres neuves (juge)}};
+\end{axis}
+\end{tikzpicture}}
+\Titre{JconsFenetres}{The difficulty of the windows}{La difficulté des fenêtres}
+\Legende{JconsFenetres}{\mes}
+  {Some windows are harder than others for every variant alike; the exact mode stays far below them all.}
+  {Certaines fenêtres sont plus difficiles que d'autres pour toutes les variantes à la fois ; le mode exact reste
+   loin au-dessous de toutes.}
+  {Mean KL of each window (\JconsNNotees\ scored positions) for the frontier, the two synonyms and the exact mode,
+   on the ten windows of R1 and the ten new windows of the judge (shaded). The thin lines join windows that do not
+   follow one another: they only show that the variants rise and fall together. Paths: on R1, the variants
+   through the substituted f64 reference and the exact mode from the per-position file of lot O; on the new
+   windows, $\lambda=0$, $\lambda=1$ and the exact mode through the engine, the frontier through the substituted
+   reference. One path is drawn per series and per set. On R1 the three variants also went through the engine:
+   engine minus substituted reference, \CodonNum{\JconsNCheminRunMoy} on average for the frontier,
+   \CodonNum{+\JconsNCheminRunMoyUn} for $\lambda=1$, \CodonNum{\JconsNCheminRunMoyZero} for $\lambda=0$, from
+   \CodonNum{\JconsNCheminRunMin} to \CodonNum{+\JconsNCheminRunMax} by window over the three; on the new windows,
+   $\lambda=0$ went through both, \CodonNum{\JconsNCheminNeufMoy} on average. The
+   frontier ranges from \CodonNum{\JconsNFrontMin} to \CodonNum{\JconsNFrontMax} on R1: this spread from window to
+   window, shared by all variants, makes the standard deviation by windows ($\sigma_f=\CodonNum{\JconsNSigmaF}$ for
+   the frontier) much larger than the naive one by positions, and pairing removes it (\cref{fig:t3-syno-foret}).
+   The new windows are drawn from wiki.test, the corpus of R1.}
+  {KL moyenne de chaque fenêtre (\JconsNNotees\ positions notées) pour la frontière, les deux synonymes et le mode
+   exact, sur les dix fenêtres de R1 et les dix fenêtres neuves du juge (fond teinté). Les traits fins joignent des
+   fenêtres qui ne se suivent pas : ils ne montrent que le parallélisme des variantes. Chemins : sur R1, les
+   variantes par la référence f64 substituée et le mode exact depuis le fichier par position du lot O ; sur les
+   fenêtres neuves, $\lambda=0$, $\lambda=1$ et le mode exact par le moteur, la frontière par la référence
+   substituée. Un seul chemin est tracé par série et par jeu. Sur R1, les trois variantes sont aussi passées par
+   le moteur : moteur moins référence substituée, \CodonNum{\JconsNCheminRunMoy} en moyenne pour la frontière,
+   \CodonNum{+\JconsNCheminRunMoyUn} pour $\lambda=1$, \CodonNum{\JconsNCheminRunMoyZero} pour $\lambda=0$, de
+   \CodonNum{\JconsNCheminRunMin} à \CodonNum{+\JconsNCheminRunMax} par fenêtre sur les trois ; sur les fenêtres
+   neuves, $\lambda=0$ est passé par les deux, \CodonNum{\JconsNCheminNeufMoy} en moyenne. La frontière va de \CodonNum{\JconsNFrontMin} à \CodonNum{\JconsNFrontMax} sur R1 : cet écart
+   d'une fenêtre à l'autre, commun à toutes les variantes, rend l'écart-type par fenêtres
+   ($\sigma_f=\CodonNum{\JconsNSigmaF}$ pour la frontière) bien plus grand que l'écart-type naïf par positions, et
+   l'appariement le retire (\cref{fig:t3-syno-foret}). Les fenêtres neuves sont tirées de wiki.test, le corpus de R1.}
+\Source{JconsFenetres}{\fichier{mesures/genome/construction/juge/figures/kl-par-fenetre.csv}\Pv{}
+  \fichier{mesures/moteur/O/journaux/o3/c4-20b-comparer.csv}\Pv{}
+  \fichier{mesures/genome/construction/synonyme/moteur/kl-moteur-frontiere-positions.csv}\Pv\ \EF{script}{script}
+  \fichier{memoire/outils/tome3_juge.py}.}
+\fi

@@ -1,0 +1,43 @@
+% Schémas du chapitre « Chargement à la demande ».
+
+% Une couche de mélange d'experts et la hiérarchie de cache qui sert ses experts.
+\newcommand{\SchemaMoE}{%
+\begin{tikzpicture}[font=\sffamily\small, node distance=0.6cm and 0.9cm]
+  \node[draw=Encre, fill=Fond, rounded corners=2pt, minimum width=2.2cm, minimum height=0.8cm] (x) {\EF{hidden state $x_\ell$}{état caché $x_\ell$}};
+  \node[draw=Vram, fill=Vram!10, rounded corners=2pt, minimum width=2.6cm, minimum height=0.8cm, right=of x, align=center] (att) {\EF{attention, norms}{attention, normes}\\ {\scriptsize \EF{always read: $B_t$}{toujours lue : $B_t$}}};
+  \node[draw=Accent, fill=Accent!10, rounded corners=2pt, minimum width=2.2cm, minimum height=0.8cm, right=of att, align=center] (rout) {\EF{router}{routeur}\\ {\scriptsize top-$k_e$ \EF{of}{sur} $E$}};
+  % Les experts de la couche, choisis en couleur.
+  \foreach \e in {0,...,15}{
+    \pgfmathtruncatemacro{\choisi}{(\e==2 || \e==7 || \e==11 || \e==14) ? 1 : 0}
+    \ifnum\choisi=1 \def\coul{Signe!45}\else\def\coul{black!8}\fi
+    \node[draw=black!50, fill=\coul, minimum width=0.42cm, minimum height=0.42cm, inner sep=0pt] (e\e) at ($(rout.east)+(1.2+0.5*\e,0)$) {};
+  }
+  \node[font=\sffamily\scriptsize, above=2pt of e7.north east, anchor=south] {\EF{$E$ routed experts of layer $\ell$; $k_e$ chosen}{$E$ experts routés de la couche $\ell$ ; $k_e$ choisis}};
+  \draw[-{Latex}] (x) -- (att); \draw[-{Latex}] (att) -- (rout); \draw[-{Latex}] (rout) -- (e0);
+  % La hiérarchie qui sert les experts choisis.
+  \node[draw=Vram, fill=Vram!12, rounded corners=2pt, align=center, text width=3.3cm, below=1.5cm of rout] (cv) {\textbf{VRAM}\\ \EF{hot experts (hit $h_v$)}{experts chauds (succès $h_v$)}};
+  \node[draw=Ram, fill=Ram!12, rounded corners=2pt, align=center, text width=3.3cm, right=1.1cm of cv] (cr) {\textbf{RAM}\\ \EF{warm cache, read buffers ($h_r$)}{cache tiède, tampons de lecture ($h_r$)}};
+  \node[draw=Disque, fill=Disque!12, rounded corners=2pt, align=center, text width=3.3cm, right=1.1cm of cr] (cd) {\textbf{\EF{Disk}{Disque}}\\ \EF{all experts, miss $1-h$}{tous les experts, défaut $1-h$}};
+  \draw[-{Latex}, Signe] (e7.south) to[out=-90, in=60] (cv.north east);
+  \draw[-{Latex}, Signe, densely dashed] (e11.south) to[out=-90, in=90] (cr.north);
+  \draw[-{Latex}, Signe, densely dotted] (e14.south) to[out=-90, in=120] (cd.north);
+  \draw[-{Latex}, black!50] (cd.west) -- node[above, font=\scriptsize] {$2{,}82$} (cr.east);
+  \draw[-{Latex}, black!50] (cr.west) -- node[above, font=\scriptsize] {$12{,}2$} (cv.east);
+  \node[anchor=north west, font=\sffamily\scriptsize, text width=14.5cm, align=left] at ([yshift=-0.35cm]cv.south west)
+    {\EF{Per token: $B_t$ always-read bytes, plus $B_e = k_e\, L\, e$ routed bytes ($e$: bytes of one expert, $L$: MoE layers). The disk must deliver $(1-h)\,B_e$ bytes per token: the hit rate $h$ decides everything. Throughputs measured on the machine, GB/s.}%
+        {Par jeton : $B_t$ octets toujours lus, plus $B_e = k_e\, L\, e$ octets routés ($e$ : octets d'un expert, $L$ : couches MoE). Le disque doit livrer $(1-h)\,B_e$ octets par jeton : le taux de succès $h$ décide de tout. Débits mesurés sur la machine, en Go/s.}};
+\end{tikzpicture}}
+
+% Les quatre réponses à un défaut de cache (un expert routé absent de la mémoire rapide).
+\newcommand{\SchemaDefaut}{%
+\begin{tikzpicture}[font=\sffamily\small, node distance=0.5cm]
+  \node[draw=Signe, fill=Signe!10, rounded corners=2pt, align=center, minimum height=0.9cm] (d) {\EF{miss: expert $j$ of layer $\ell$\\ absent from VRAM}{défaut : expert $j$ de la couche $\ell$\\ absent de la VRAM}};
+  \node[draw=black!40, fill=Fond, rounded corners=2pt, align=center, text width=3.2cm, below left=1.0cm and 2.6cm of d] (a) {\textbf{\EF{wait}{attendre}}\\ {\scriptsize \EF{read, copy, compute; exact; latency on the critical path}{lire, copier, calculer ; exact ; latence sur le chemin critique}}};
+  \node[draw=black!40, fill=Fond, rounded corners=2pt, align=center, text width=3.2cm, right=0.35cm of a] (b) {\textbf{\EF{defer}{reporter}}\\ {\scriptsize \EF{add its output to layer $\ell{+}2$ (KTransformers); small loss}{ajouter sa sortie à la couche $\ell{+}2$ (KTransformers) ; petite perte}}};
+  \node[draw=black!40, fill=Fond, rounded corners=2pt, align=center, text width=3.2cm, right=0.35cm of b] (c) {\textbf{\EF{substitute}{substituer}}\\ {\scriptsize \EF{low-precision copy kept in RAM (HOBBIT); $\le 1$ point}{copie basse précision gardée en RAM (HOBBIT) ; $\le 1$ point}}};
+  \node[draw=black!40, fill=Fond, rounded corners=2pt, align=center, text width=3.2cm, right=0.35cm of c] (e) {\textbf{\EF{re-route}{re-router}}\\ {\scriptsize \EF{choose a present expert (cache-conditional routing); +0.1 to 3\,\% PPL}{choisir un expert présent (routage conscient du cache) ; +0,1 à 3\,\% de PPL}}};
+  \foreach \n in {a,b,c,e} \draw[-{Latex}, black!60] (d.south) -- (\n.north);
+  \node[below=0.45cm of b.south east, font=\sffamily\scriptsize, text width=12cm, align=center]
+    {\EF{Chosen per miss by the routing score of the missing expert, under a quality budget declared before the measurement: the term nobody has assembled (\cref{sec:trous-chargement}).}%
+        {Choisie défaut par défaut selon le score de routage de l'expert manquant, sous un budget de qualité déclaré avant la mesure : le terme que personne n'a réuni (\cref{sec:trous-chargement}).}};
+\end{tikzpicture}}

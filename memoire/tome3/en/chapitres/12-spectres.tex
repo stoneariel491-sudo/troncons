@@ -1,0 +1,239 @@
+% Volume~III, chapter 12: the spectra of the matrices and the fractal (English version). Translator EN2,
+% 2026-10-29, from memoire/tome3/fr/chapitres/12-spectres.tex (writer B, as corrected); same labels, same macros,
+% same numbers. Plan and reserves: memoire/tome3/PLAN-redaction.md § 12.
+% Every number comes from a committed file read at the time of writing: genome/pistes/spectres/spectres.md (with its
+% struck-through sentences), pour-le-memoire.md, seuil.md (and its amendment § 4 bis, before reading), juge-seuil.md,
+% JUGEMENT.md, and the logs of mesures/pistes/spectres/. This whole folder is read-only. The lead is not closed
+% (pass of the per-row ceiling unfinished at the judgement, § 0 of the deliverable empty): only what the judge
+% judged (main and amended verdict, exponents, comparison with the permuted matrix) is given as a result; the rest
+% (lever, ceilings, prediction test, normalisation) carries the label ``not judged''. The figures are pages 1 and 2
+% of genome/pistes/spectres/figures/spectres-figures.tex, compiled separately by construire.sh; pages 3 to 5 are
+% not judged and are not placed.
+
+\chapter{The spectra of the matrices and the fractal}\label{t3spe:ch}
+
+\begin{origine}
+\textbf{At the start}, no slope measurement. Stone had proposed the image of a fractal: weights that would resemble one another from one scale to the next, and that could be described by few parameters. The committed data gave only, for expert 0 of each tensor, the share of energy at seven ranks: a modest excess over chance for gate and up, a strong one for down (\fichier{genome/05-synthese.md} §\,3.3). The literature (Martin and Mahoney) gave a hypothesis, that of ``heavy-tailed'' spectra in trained networks, not the answer for gpt-oss; the prognosis of the synthesis for compression was unfavourable.
+\textbf{This chapter establishes}, by the method of Clauset, Shalizi and Newman on 48 matrices of gpt-oss-20b drawn before looking, that these matrices \emph{do not follow} a power law: 0 out of 48 under the declared criterion, 9 out of 48 under the criterion amended before the reading, when 32 were needed. It poses why the declared criterion could never say yes (a theorem of the judge: the power law is the boundary of the truncated log-normal), and what is true nonetheless: all the matrices have more tail than their permuted version (48 out of 48), and this tail, heaviest in down and attn\_output of layer 0, has the shape of a log-normal. One sentence of the lead is struck through (``the only place'': eleven matrices, not four).
+\textbf{What remains}, not judged: the compression lever (none in the weights, on the sample), the spectral ceiling and its share beyond the row scales (pass unfinished), the test of the rule ``$\hat\alpha < 2$'' (it falls); and, not measured: the 21 layers not drawn, the 120b, the original weights before quantisation.
+Sources: \fichier{genome/pistes/spectres/spectres.md}, \fichier{pour-le-memoire.md}, \fichier{seuil.md}, \fichier{juge-seuil.md}, \fichier{JUGEMENT.md}; \fichier{mesures/pistes/spectres/} (\fichier{ajustements.out}, \fichier{second-chemin-v2.out}, \fichier{temoins.out}, \fichier{puissance-critere.out}, \fichier{rapport.json}, \fichier{fig-*.csv}, \fichier{juge/}).
+\end{origine}
+
+\begin{enbref}
+A weight matrix can be described by its singular values: how much energy it puts into each of its directions. For a matrix drawn at random, this distribution is known and bounded, without a tail. A ``fractal'', in the sense Stone meant, would leave a precise signature: a power law, the same shape at every scale. The fractal is an image here, and the question it raises can be measured. The answer is no: training did put energy into a few directions, everywhere, but the shape of this tail is not a power law; where it is heaviest, it copies the law of a few giant rows, the outlier channels, which a simple per-row scale already captures.
+\end{enbref}
+
+% =====================================================================================================
+\section{The question and the quantity}\label{t3spe:sec:grandeur}
+
+Three questions: do the spectra of gpt-oss follow a power law; with which exponents, by role and by layer; and does this spectrum open a measurable compression lever, in bits per weight? This chapter answers the first two, judged, and reports the third as not judged.
+
+\begin{definition}[Empirical spectral density]\label{t3spe:def:esd}
+For $W \in \mathbb{R}^{m \times n}$, $m \le n$ (otherwise transpose), the correlation matrix $X = WW^\top/n$ has eigenvalues $\lambda_i = \sigma_i^2/n$, where the $\sigma_i$ are the singular values of $W$. The empirical spectral density is $\rho_W(\lambda) = \frac1m\sum_i \delta(\lambda - \lambda_i)$. A \emph{power-law tail} is $\rho(\lambda) \propto \lambda^{-\alpha}$ beyond a threshold $\lambda_{\min}$.
+\end{definition}
+The exponent depends on the quantity fitted: if $\rho(\lambda) \propto \lambda^{-\alpha}$, then with $\lambda = \sigma^2$, $\rho(\sigma) = \rho(\lambda)\,|\dd\lambda/\dd\sigma| \propto \sigma^{-2\alpha}\,\sigma = \sigma^{-(2\alpha - 1)}$. The fit is on $\lambda$, like Martin and Mahoney \cite{martin2018implicit,martin2021predicting}, who describe in state-of-the-art networks a ``heavy-tailed'' self-regularisation and show that metrics drawn from these laws judge the quality of a model better than norms do (abstracts read by the lead on 2026-10-21; their numerical thresholds for $\alpha$, in the body of the articles, are not cited here).
+
+\paragraph{The sample, drawn before looking} (seed 20261021, \fichier{seuil.md} §\,1; the judge redoes the draw and finds the same experts). Layers 0, 12, 23; experts [0, 6, 22, 24] (layer 0), [1, 3, 19, 31] (layer 12), [7, 21, 26, 27] (layer 23); gate, up and down of each (36 matrices $2\,880 \times 2\,880$, MXFP4 dequantised in exact f64), plus attn\_q, attn\_k, attn\_v, attn\_output of the three layers (12 Q8\_0 matrices). In all 48 matrices and 124\,032 singular values, $36 \times 2\,880 + 3 \times (2\,880 + 512 + 512 + 2\,880)$, saved together with those of the 48 permuted matrices and of the controls; 617\,s of computation on the processor \mes.
+
+% =====================================================================================================
+\section{The control of chance: Marchenko-Pastur}\label{t3spe:sec:mp}
+
+For $W$ with independent entries of variance $s^2$, when $m, n \to \infty$ with $q = m/n \le 1$ fixed, the spectral density of $X = WW^\top/n$ tends to the law of Marchenko and Pastur \cite{marchenko1967distribution}
+\begin{equation}\label{t3spe:eq:mp}
+\rho_{\mathrm{MP}}(\lambda) = \frac{\sqrt{(\lambda_+ - \lambda)(\lambda - \lambda_-)}}{2\pi s^2 q\,\lambda}, \qquad \lambda \in [\lambda_-, \lambda_+], \quad \lambda_\pm = s^2(1 \pm \sqrt q)^2 .
+\end{equation}
+For a square matrix ($q = 1$), the support is $[0, 4s^2]$, the density diverges as $\lambda^{-1/2}$ at 0 and vanishes as a square root at the right edge. \emph{The support is bounded}: there is no tail, and the largest eigenvalue exceeds $\lambda_+$ only by fluctuations of order $n^{-2/3}$. For $q = 512/2\,880 = 0.178$ (attn\_k and attn\_v seen from their short side), $\lambda_\pm = s^2(1 \pm 0.4216)^2$, that is $[0.3345\,s^2;\ 2.021\,s^2]$ \calc. A power-law fit on such a spectrum must find nothing: this is control T-MP, which must fall.
+
+The second control, \emph{T-perm}, permutes the entries of each matrix: it keeps the marginal law of the entries (and their kurtosis, up to 2\,000 on down) and destroys all rank structure. The gap between $W$ and its permuted version is what training put into the directions.
+
+% =====================================================================================================
+\section{The instrument: Clauset, Shalizi and Newman, step by step}\label{t3spe:sec:csn}
+
+The method \cite{clauset2009power} is written from scratch by the lead (\fichier{outils/pistes/spectres/csn.py}). The journal references of the articles of CSN, of Marchenko and Pastur and of Vuong, given from memory by the lead, were checked by the writers on 2026-10-29 in their Crossref records (DOI \texttt{10.1137/070710111}, \texttt{10.1070/SM1967v001n04ABEH001994}, \texttt{10.2307/1912557}): journal, volume, issue and first page agree; the articles are not reread.
+
+\paragraph{The exponent by maximum likelihood.} For the continuous law $p(x) = \frac{\alpha - 1}{x_{\min}}\bigl(\frac{x}{x_{\min}}\bigr)^{-\alpha}$, $x \ge x_{\min}$, the log-likelihood of $n$ points of the tail is $\ell(\alpha) = n\ln(\alpha - 1) - n\ln x_{\min} - \alpha\sum_i \ln(x_i/x_{\min})$. Setting $\dd\ell/\dd\alpha = n/(\alpha - 1) - \sum_i\ln(x_i/x_{\min})$ to zero,
+\begin{equation}\label{t3spe:eq:alpha}
+\hat\alpha = 1 + \frac{n}{\sum_i \ln(x_i/x_{\min})}, \qquad \sigma_{\hat\alpha} = \frac{\hat\alpha - 1}{\sqrt n},
+\end{equation}
+the standard error coming from the Fisher information, $\dd^2\ell/\dd\alpha^2 = -n/(\alpha - 1)^2$.
+
+\paragraph{The threshold by Kolmogorov-Smirnov.} For each candidate $x_{\min}$ (observed values, tail of at least 50 points), $\hat F(x) = 1 - (x/x_{\min})^{1-\hat\alpha}$ and $D = \max_x|S(x) - \hat F(x)|$, $S$ the empirical distribution function of the tail; at the sorted points $t_{(j)}$, $D = \max\bigl(\max_j ((j+1)/n - \hat F(t_{(j)})),\ \max_j (\hat F(t_{(j)}) - j/n)\bigr)$. The $x_{\min}$ with minimal $D$ is kept.
+
+\paragraph{The competitors, truncated at $x_{\min}$.} The exponential, $p(x) = \lambda e^{-\lambda(x - x_{\min})}$, with maximum likelihood $\hat\lambda = 1/(\bar x - x_{\min})$; the log-normal, $p(x) = \varphi\bigl((\ln x - \mu)/\sigma\bigr)/\bigl(x\sigma\,(1 - \Phi((\ln x_{\min} - \mu)/\sigma))\bigr)$, without a closed form, maximised numerically.
+
+\paragraph{Vuong's ratio} \cite{vuong1989likelihood}. With $\ell_i = \ln p_{\mathrm{PL}}(x_i) - \ln p_{\mathrm{alt}}(x_i)$ and $R = \sum_i \ell_i$, under the hypothesis ``the two laws are equally close to the true one'', $R/(\hat\sigma\sqrt n)$ follows $\Normale(0, 1)$ asymptotically; $p = \operatorname{erfc}\bigl(|R|/(\hat\sigma\sqrt{2n})\bigr)$. $R > 0$ with small $p$: the power law is preferred.
+
+\paragraph{Plausibility.} Replicas draw each point, with probability $n_{\text{tail}}/N$, from the fitted power law ($x = x_{\min} u^{-1/(\hat\alpha - 1)}$), otherwise from among the points below $x_{\min}$; $x_{\min}$ and $\alpha$ are re-estimated, and $p_{\mathrm{gof}}$ is the share of replicas whose $D$ is at least that of the data (100 replicas).
+
+\subsection{The declared threshold, and why it was amended before the reading}\label{t3spe:sec:amendement}
+
+\textbf{Declared threshold} (\fichier{genome/pistes/spectres/seuil.md}, commit \texttt{a171622}, 2026-10-21 23:22:25): call a matrix ``power law'' only if the method prefers it to the exponential \emph{and} to the log-normal with $p < 0.05$, and call the matrices of gpt-oss so only if two thirds of the sample (32 out of 48) are. A trial of the instrument on synthetic draws, \emph{before} any fit of gpt-oss, showed that this criterion could not say yes (\cref{t3spe:tab:puissance}).
+
+\begin{table}[tbp]
+\centering\small
+\caption[The power of the two criteria]{The power of the two criteria, on synthetic draws of $n = 2\,880$, before the reading of the real spectra \mes.}
+\label{t3spe:tab:puissance}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+20 draws & declared criterion & amended criterion ``compatible'' & median $\hat\alpha$ \\
+\midrule
+Pareto $\alpha = 2.5$ & 0 / 20 & \textbf{18 / 20} & 2.496 \\
+Pareto $\alpha = 3.5$ & 0 / 20 & \textbf{20 / 20} & 3.510 \\
+exponential & 0 / 20 & 0 / 20 & --- \\
+log-normal $\sigma = 1$ & 0 / 20 & 4 / 20 & --- \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/pistes/spectres/puissance-critere.out} (commit \texttt{fdf5929}); \fichier{genome/pistes/spectres/spectres.md} §\,2.}
+\end{table}
+
+Hence the \textbf{amendment} (\fichier{seuil.md} §\,4 bis, commit \texttt{bfc1c8c}, 23:25:57, eight minutes before the real spectra existed in the repository): the declared verdict is reported as is, and CSN's ``\emph{compatible with a power law}'' verdict is added (their ``moderate or better''): $p_{\mathrm{gof}} \ge 0.1$, the exponential ruled out ($R > 0$, $p < 0.05$) and the log-normal not preferred. It always reads ``power law, or log-normal of very large $\sigma$, indistinguishable here''. It was to be kept only if it said ``compatible'' on at least 18 Paretos out of 20 and at most 2 exponentials out of 20: it passes, at the edge, with 18 out of 20 at $\alpha = 2.5$. The judge notes two reservations of form (\fichier{JUGEMENT.md} §\,1): the amendment quotes median $p$ of 0.59 and 0.63 against the log-normal, which come from a trial without a log; the only committed log gives 0.61 and 0.69, which the deliverable quotes.
+
+\subsection{The declared criterion can never say yes: the judge's theorem}\label{t3spe:sec:theoreme}
+
+The lead explained the lack of power by the size: ``over an observed range of a few units of $y$, the curvature that separates them is below the noise''. The judge posed it, before computation, as a stronger theorem (\fichier{juge-seuil.md}, J1; \fichier{JUGEMENT.md} §\,2).
+
+\begin{theoreme}[The power law is the boundary of the truncated log-normal]\label{t3spe:thm:bord}
+On a tail $\lambda \ge \lambda_{\min}$, set $y = \ln(\lambda/\lambda_{\min}) \ge 0$. For every sample, the likelihood ratio $R = \ell_{\mathrm{PL}}(\hat\alpha) - \sup \ell_{\mathrm{LN}}$ of the power law against the truncated log-normal fitted at its maximum is $\le 0$, at any size $n$. The criterion ``$R > 0$ and $p < 0.05$ against the log-normal'' is therefore impossible.
+\end{theoreme}
+\begin{proof}
+In $y$, the truncated log-normal with parameters $(\mu, \sigma)$ has density (the Jacobian $1/\lambda$ of the law in $\lambda$ cancels with $\dd\lambda = \lambda\,\dd y$)
+\[
+g(y) \propto \exp\!\Bigl(-\frac{(y + \ln\lambda_{\min} - \mu)^2}{2\sigma^2}\Bigr) \propto \exp(-c_1 y^2 + b\,y), \qquad c_1 = \frac{1}{2\sigma^2} > 0,\quad b = \frac{\mu - \ln\lambda_{\min}}{\sigma^2},
+\]
+a truncated Gaussian. The power law $\rho(\lambda) \propto \lambda^{-\alpha}$ has density in $y$ $(\alpha - 1)\,e^{-(\alpha - 1)y}$: it is the same model at the boundary $c_1 = 0$, $b = -(\alpha - 1)$. The log-likelihood $\ell(c_1, b) = \sum_i(-c_1 y_i^2 + b\,y_i) - n\ln Z(c_1, b)$, with $Z = \int_0^\infty e^{-c_1 y^2 + by}\,\dd y = \tfrac12\sqrt{\pi/c_1}\,\operatorname{erfcx}\bigl(-b/(2\sqrt{c_1})\bigr)$, is continuous up to the boundary ($Z \to 1/|b|$ as $c_1 \to 0^+$, $b < 0$) and concave (exponential family with statistics $-y^2$, $y$). Therefore $\sup_{c_1 > 0} \ell \ge \ell(0, -(\hat\alpha - 1)) = \ell_{\mathrm{PL}}(\hat\alpha)$, and $R \le 0$. The Jacobians, common to both laws, cancel in $R$.
+\end{proof}
+
+Checked on the judge's 141 spectra (48 real, 48 permuted, 45 controls): $R_{\text{log-normal}} \le 2.7 \times 10^{-13}$, machine zero \mes. The log-normal likelihood reaches the boundary ($\sigma = \infty$) on 11 of the 48 real matrices and on most of the true Paretos. Corollary: the \emph{thirteen} values $R_{\text{log-normal}} > 0$ of the lead's table (up to $+0.096$ on L12.down.E19) are unfinished numerical optima of the $(\mu, \sigma)$ parametrisation, which heads towards $\mu \to -\infty$ without reaching it; no verdict depends on them ($p \ge 0.34$ everywhere there), and this is also the true reason for the gap in $p$ against the log-normal between the lead's two paths. The declared verdict is therefore not ``without power at $n = 2\,880$'': it is empty by construction.
+
+\subsection{The controls, the break, the second path}\label{t3spe:sec:temoins}
+
+\begin{table}[tbp]
+\centering\small
+\caption[The controls of the instrument]{The controls of the instrument, under the two criteria \mes.}
+\label{t3spe:tab:temoins}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.2\linewidth}llr@{}}
+\toprule
+Control & expected & declared criterion & amended criterion & $\hat\alpha$ \\
+\midrule
+T-Pareto ($\alpha = 2.5$ planted, passed through an SVD) & recognised, $\alpha \in [2.3; 2.7]$ & failure (foreseen) & \textbf{holds} & $2.492 \pm 0.032$ \\
+T-MP $2\,880 \times 2\,880$ & not a power law & holds & \textbf{holds} & 16.9 \\
+T-MP, three other shapes & not a power law & holds & \textbf{holds} & 14.9; 15.8; 8.8 \\
+T-exponential & not a power law & holds & \textbf{holds} & 5.75 \\
+T-log-normal ($\sigma = 1$) & reported & not settled & not compatible & 3.03 \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{mesures/pistes/spectres/temoins.out}, \fichier{temoins-casse.out}; \fichier{genome/pistes/spectres/spectres.md} §\,2.}
+\end{table}
+
+The \textbf{break} swaps the inputs of T-Pareto and of square T-MP: under the amended criterion, both fall (T-Pareto not compatible, $\hat\alpha = 16.9$; T-MP compatible, $\hat\alpha = 2.49$): the instrument can say yes and no, and it is the data that decide (\cref{t3spe:tab:temoins}). Under the declared criterion, the break brings down only T-Pareto: a verdict that never says yes cannot make a negative control fail, a second proof, through the instrument, of its lack of power. One remark helps to read what follows: pure chance returns $\hat\alpha = 9$ to 17, because the drop of a spectrum with bounded support, seen from above, looks like a very steep slope. \emph{A small $\hat\alpha$ means a heavy tail; an $\hat\alpha$ of 10 or more means ``no tail''.}
+
+\paragraph{The second path} (\fichier{second-chemin-v2.out}) redoes the dequantisation from the specification (E2M1 decoded bit by bit, E8M0 scale $= 2^{e - 127}$), the eigenvalues through the Gram matrix, the sweep of $x_{\min}$ and $\alpha$ differently: 48 equal SHA-256 fingerprints out of 48, eigenvalues of the tail to $3.8 \times 10^{-14}$, equal $\lambda_{\min}$, $\alpha$ to $2.2 \times 10^{-7}$, equal verdicts \mes. Its first version was wrong: \barre{$\hat\alpha$ from 1.1 to 2.5 instead of 1.6 to 6.9}; its likelihood carried $-\alpha\sum\ln t_i$ instead of $-\alpha\sum\ln(t_i/\lambda_{\min})$, and its fingerprints differed on the sign of the zeros (the bit-by-bit decoder returns $-0.0$ for code 8, the table $+0.0$: the project's synonymous codon, found again here by accident).
+
+% =====================================================================================================
+\section{The verdict: not a power law}\label{t3spe:sec:verdict}
+
+\begin{table}[tbp]
+\centering\small
+\caption[The verdict by family]{The verdict by family, 48 matrices of gpt-oss-20b \mes. Redone identically by the judge, with the same nine compatible matrices (agreement 48 / 48).}
+\label{t3spe:tab:verdict}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lrrrrrrr@{}}
+\toprule
+& & declared & \textbf{amended} & expon. & log-norm. & & permuted \\
+Family & $n$ & criterion & \textbf{criterion} & ruled out & preferred & $p_{\mathrm{gof}} \ge 0.1$ & compatible \\
+\midrule
+gate & 12 & 0 & \textbf{4} & 4 & 0 & 12 & 0 \\
+up & 12 & 0 & \textbf{0} & 0 & 3 & 6 & 0 \\
+down & 12 & 0 & \textbf{3} & 7 & 4 & 5 & 0 \\
+attention & 12 & 0 & \textbf{2} & 5 & 2 & 9 & 1 \\
+\midrule
+\textbf{all} & \textbf{48} & \textbf{0} & \textbf{9} & 16 & 9 & 32 & 1 \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/pistes/spectres/ajustements.out}, \fichier{rapport.json}; judge: \fichier{mesures/pistes/spectres/juge/juge-csn.csv}, \fichier{comparaison-juge-csn.txt}.}
+\end{table}
+
+\textbf{At the declared threshold}: 0 matrices out of 48 under the declared criterion, 9 out of 48 under the amended criterion; 32 were needed. \emph{One cannot write that the matrices of gpt-oss-20b follow a power law}: neither under the declared criterion, which can say nothing, nor under the amended criterion, which could say yes and says no (\cref{t3spe:tab:verdict}). No family reaches its two thirds; gate is the closest (4 out of 12). The judge redoes everything by a path of its own (exact two-sided KS, log-normal in natural parameters starting from the moments, replicas from another seed): 0 / 48, 9 / 48, the same nine matrices, $\lambda_{\min}$ and $\hat\alpha$ equal on 48 / 48. The number 9 depends a little on its edges (four compatible matrices rule out the exponential narrowly, three non-compatible ones miss it by little); even tipping all these cases in the favourable direction, one reaches 12, far from 32. With a looser criterion still (the exponential ruled out, nothing else), 16 out of 48: the verdict does not depend on the choice of criterion.
+
+\begin{figure}[tbp]
+\centering
+\FigureSpectres{1}
+\caption[The tail of the spectra of layer 12]{\textbf{All the families have more tail than chance, but none traces the straight line of a power law.} \mes~Share of eigenvalues $\ge \lambda$ against $\lambda/\bar\lambda$, in log-log, for one matrix of each family at layer 12 (gate, up, down of expert 1; attn\_q), the same down with permuted entries, the Marchenko-Pastur law (vertical drop at the edge of its support) and the Pareto control $\alpha = 2.5$ (a straight line of slope $-(\alpha - 1)$). Page 1 of the lead's figures, judged. \HorsStyle\sourcefig{\fichier{mesures/pistes/spectres/fig-ccdf-*.csv}; \fichier{genome/pistes/spectres/figures/spectres-figures.tex}, page 1.}}
+\label{fig:t3-spec-survie}
+\end{figure}
+
+\paragraph{What the 39 non-compatible matrices are} (\cref{fig:t3-spec-survie}). Most often a \emph{tail too short to decide}: the tail kept by KS retains only 50 to 120 eigenvalues for 18 matrices, a few spiking directions above an almost random mass, and the exponential is ruled out for only 16 matrices out of 48. For up, a \emph{lighter tail}: the exponential or a log-normal of small $\sigma$ (0.17 to 0.85 for 10 out of 12) is preferred or equivalent. For down and attn\_output of layer 0, a \emph{heavy but curved tail}: $\hat\alpha \approx 1.6$ to 1.7 over 565 to 973 eigenvalues, but the log-normal is preferred for all five ($p \le 0.0044$; $\sigma = 1.8$ to 3.0), and the power law is not even plausible for the four down matrices ($p_{\mathrm{gof}} = 0$).
+
+\subsection{The exponents, by role and by layer}\label{t3spe:sec:exposants}
+
+\begin{table}[tbp]
+\centering\small
+\caption[The exponents by role and by layer]{The exponents $\hat\alpha$ (on $\lambda = \sigma^2$), \textbf{medians by layer}; in brackets, the four matrices in the order of the draw, the compatible ones in bold; last row, the medians of the permuted matrices \mes. The individual $\hat\alpha$ range from 2.70 to 5.95 for gate and from 3.50 to 8.32 for up.}
+\label{t3spe:tab:alpha}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+& layer 0 & layer 12 & layer 23 \\
+\midrule
+gate & 3.75 [4.15; 3.35; 5.95; \textbf{2.98}] & 3.96 [3.67; 3.78; 4.54; 4.13] & 3.02 [\textbf{3.04}; 3.00; \textbf{2.70}; \textbf{3.21}] \\
+up & 5.84 [6.24; 5.43; 6.94; 3.96] & 4.33 [3.83; 4.83; 3.50; 8.32] & 3.70 [3.75; 3.64; 3.57; 4.12] \\
+down & \textbf{1.63} [1.65; 1.61; 1.71; 1.61] & 3.09 [\textbf{2.72}; 3.18; \textbf{2.99}; 3.60] & 6.44 [6.06; 6.83; \textbf{2.74}; 7.25] \\
+attention (q, k, v, o) & 6.20; 4.23; 6.04; 1.72 & 2.87; 2.95; 5.12; \textbf{2.89} & \textbf{1.90}; 1.50; 1.71; 4.05 \\
+permuted (gate; up; down; att.) & 15.4; 17.2; 7.9; 8.9 & 12.5; 17.3; 5.4; 7.9 & 14.9; 13.5; 16.3; 8.7 \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{mesures/pistes/spectres/rapport.json} (field \texttt{alpha}); \fichier{genome/pistes/spectres/spectres.md} §\,4.1; judge: $\hat\alpha$ equal on the 48 matrices and the 48 permuted ones.}
+\end{table}
+
+\begin{figure}[tbp]
+\centering
+\FigureSpectres{2}
+\caption[The exponents by matrix]{\textbf{The real exponent is below that of the same permuted matrix in all 48 cases; only nine matrices are compatible with a power law.} \mes~$\hat\alpha$ by matrix and its standard error $(\hat\alpha - 1)/\sqrt{n_q}$, by family, layers 0, 12, 23 from left to right within each family; filled discs: compatible; circles: not compatible; crosses: the same matrix with permuted entries. Page 2 of the lead's figures, judged. \HorsStyle\sourcefig{\fichier{mesures/pistes/spectres/fig-alpha.csv}; \fichier{genome/pistes/spectres/figures/spectres-figures.tex}, page 2.}}
+\label{fig:t3-spec-alpha}
+\end{figure}
+
+The standard errors range from 0.02 (down, layer 0) to 0.99 (up, layer 12, E31, on 55 points) \mes~(\cref{t3spe:tab:alpha,fig:t3-spec-alpha}). The lead gave ``gate 3.0 to 4.0; up 3.7 to 5.8'': these are the medians by layer, not ranges, and the judge asks for it to be written that way.
+
+\paragraph{What they say.}
+(1) \emph{All the matrices have more tail than chance}: the real $\hat\alpha$ is below that of the same permuted matrix in all 48 cases (ratio permuted over real from 1.26 to 8.81, median 3.49, redone by the judge); training put energy into a few directions (the share of the first 5\,\% of directions is 1.25 to 5.3 times that of chance). This is the only ``positive'' result of the lead, and it is broad.
+(2) \emph{up is the closest to chance} ($\hat\alpha$ 3.5 to 8.3, none compatible); gate is intermediate and hardens with depth (3 compatible out of 4 at layer 23). A reading, not measured: gate and up receive the same input, but only the output of gate goes through the non-linearity that decides which channel opens.
+(3) \emph{down and attn\_output of layer 0, and q, k, v of layer 23, have very heavy tails} ($\hat\alpha = 1.5$ to 1.9: below 2, the fitted law does not even have a finite mean); these are also the matrices whose entries have an enormous kurtosis (down of layer 0: 60 to 1\,988). The matrices that write into the residual stream at layer 0 are those that manufacture its outlier channels.
+(4) \emph{This heavy tail is not a power law}: for down of layer 0, the log-normal is preferred and the power law rejected.
+(5) The lead wrote: \barre{``Layer 12 of down is the only place where the power law and the log-normal truly merge''}. This is false (\fichier{JUGEMENT.md} §\,4.1): the fitted log-normal \emph{is} the power law, at the boundary $c_1 = 0$ of \cref{t3spe:thm:bord}, on eleven matrices: the four down matrices of layer 12, but also L00.gate.E22, L00.attn\_k, L12.gate.E01, L12.attn\_output, L23.down.E07, E21 and E27; the published table already showed it ($\mu = -69$ to $-118$ for those seven).
+
+\paragraph{Relation to Martin and Mahoney.} What is measured here agrees with the first half of their description (tails heavier than chance in 48 matrices out of 48, an excess that varies strongly by role and by layer) and does not confirm the second in the strict sense: under the CSN test, the tail is a plausible power law in only 9 matrices out of 48, and the heaviest of all is a log-normal. A difference of method (they often fit the density of $W^\top W/N$ with the \texttt{powerlaw} library) can move $\alpha$ by a fraction of a unit; it does not change the shape.
+
+% =====================================================================================================
+\section{The lever and the ceiling: what is not judged}\label{t3spe:sec:levier}
+
+The lead's judge judged neither the lever, nor the spectral ceiling, nor the per-rank ceiling, nor the prediction test, nor the exploratory normalisation measurement, nor the pass of the per-row ceiling, which was still running (\fichier{JUGEMENT.md} §\,5). This section poses their derivations, which depend on no measurement, and reports their numbers with the label \etiq{Signe}{not judged}; their figures (pages 3 to 5 of the lead's file) are not placed. All these gains are \emph{in the domain of the weights}, and the synthesis of the round showed that the weight error does not predict the KL: a lever here would be a necessary condition, never a sufficient one.
+
+\paragraph{The spectral ceiling.} $W$ is read as $\max(m, n)$ Gaussian vectors of dimension $p = \min(m, n)$, with a covariance of eigenvalues $\lambda_j$. At relative error $D$, reverse water-filling in the eigenbasis (the Karhunen-Loève transform) gives $D_j = \min(\theta, \lambda_j)$, $\sum_j D_j = D\sum_j\lambda_j$, and the rate $R_{\mathrm{KLT}} = \frac1p\sum_j\max\bigl(0, \tfrac12\log_2(\lambda_j/\theta)\bigr)$ bits per weight \litt~(Cover and Thomas~\cite{cover2006}; the passage is cited after the lead's note, not reread here). The flat spectrum of the same energy costs $R_{\text{white}} = \tfrac12\log_2(1/D)$, that is 2.2535 bits at $D = 0.044$. The ceiling $G = R_{\text{white}} - R_{\mathrm{KLT}}$ bounds from above the gain of any method that codes in a basis, under this model: coding coordinate by coordinate with its own variances is allowed, and does no better than the transform (at high rate, this is Hadamard's inequality, $\det C \le \prod_i c_{ii}$), which itself does no worse than the white basis (the inequality of means). At high rate, if $\theta < \lambda_{\min}$,
+\begin{equation}\label{t3spe:eq:platitude}
+G = \tfrac12\log_2\frac{\bar\lambda}{\lambda_g},
+\end{equation}
+the logarithm of the ratio of the arithmetic and geometric means of the spectrum, a flatness measure in which the small values weigh as much as the large ones. Two closed forms follow from it \calc: for Marchenko-Pastur with ratio 1, $\E\ln\lambda = -1$ and $G = \tfrac12\log_2 e = 0.7213$ bit; for a Pareto ($\lambda \ge 1$, $\alpha > 2$), $\bar\lambda = (\alpha - 1)/(\alpha - 2)$, $\E\ln\lambda = 1/(\alpha - 1)$, and
+\begin{equation}\label{t3spe:eq:pareto}
+G_{\text{Pareto}}(\alpha) = \tfrac12\log_2\frac{\alpha - 1}{\alpha - 2} - \frac{1}{2(\alpha - 1)\ln 2},
+\end{equation}
+which is $0.7925 - 0.4809 = 0.3116$ at $\alpha = 2.5$, \emph{less} than square chance (0.5899 at $D = 0.044$). A heavy tail at the top does not, by itself, make a large ceiling; this is why the lead's first positive control, \barre{``Pareto above MP''}, fell, a wrong expectation replaced before any reading of gpt-oss by a planted rank 8 (predicted $\approx 0.24$, measured 0.216), and why the excess is read against the permuted version of the same matrix. On the sample, the weighted excess is 0.424 bit per weight \etiq{Signe}{not judged}, largest in down and attn\_output of layer 0 and q, k, v of layer 23: exactly the matrices with $\hat\alpha < 2$.
+
+\paragraph{What remains of it once the basis is paid for.} Offering the decoder the first $r$ directions costs $b$ bits per factor coefficient, $b\,r\,(m + n)/(mn)$ bits per weight, that is $0.0111\,r$ at $b = 16$ for a square matrix \calc; a complete basis costs at least $b$ bits per weight, for a ceiling that does not exceed 1.8 bits over the 48 matrices: it never pays for itself. Two thirds of the ceiling live beyond the 64th direction, and at $b = 16$ no family has a lever at the threshold of 0.05 bit (down: 0.042) \etiq{Signe}{not judged}. The lever measured on the matrices themselves, lossless on the MXFP4 codes through the conditional mutual information $I(C ; B_r \mid E)$ and lossy through a per-row Gaussian bound and a real quantiser, is worth on the sample only 0.0009, 0.0036 and 0.0007 bit per weight \etiq{Signe}{not judged}. The real quantiser requires subtractive dithering: on an already discrete source, a uniform quantiser without dithering measures the grid and not the structure (the permuted control returned the same gain), whereas with a dither $u \sim U(-\tfrac12, \tfrac12)$ known to the decoder, the error becomes uniform and independent of the signal whatever its law (results of Schuchman and of Zamir and Feder, cited after the lead's note, not reread), with energy exactly $N\Delta^2/12$.
+
+\paragraph{Where the structure went.} The ceiling mixes two things: the inequality of the per-row variances, which any coder with a per-row scale captures, and the structure between rows, which only a basis captures. The chain $R_{\mathrm{KLT}} \le R_{\text{row}} \le R_{\text{white}}$ separates them \calc. For L00.down.E24, $R_{\text{row}} = 0.755$ bit instead of 2.254: the scales alone take 1.50 of the 1.74 bits of the ceiling. MXFP4 has better still, one scale per block of 32 weights. An exploratory measurement, not declared and not judged, confirms it for the tail: normalising the rows of down and attn\_output of layer 0 takes their $\hat\alpha$ from 1.6--1.7 to 3.4--7.0, normalising the columns does not change it; their largest singular value is only 1.1 to 1.4 times their largest row norm. The heaviest tail is the law of a few giant rows, copied. Finally, the rule ``$\hat\alpha < 2$ designates the matrices where a low rank pays for itself'', seen before being declared, was tested on 36 new matrices (layers 3, 9 and 21): 4 out of 6 below 2, but 5 out of 30 above for 10\,\% allowed: it falls \etiq{Signe}{not judged}. The idea of the fractal gives here neither a law nor a selector.
+
+% =====================================================================================================
+\section{What could be wrong}\label{t3spe:sec:faux}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{The sample}: 48 matrices out of the 2\,400 of the model (2\,\%), 3 layers out of 24, 4 experts out of 32. The verdict holds for this randomly drawn sample; a layer not drawn could differ, and the slopes with depth are read on three points.
+\item \textbf{The quantity}: the spectra are those of the dequantised weights (MXFP4, Q8\_0), not of the original weights in BF16, not downloaded. Quantisation adds a roughly white noise that raises the bottom of the spectrum and can shorten the apparent tail; its effect on $\alpha$ is not measured.
+\item \textbf{The guard of 50 points} on the tail is a declared choice, not a derivation; five matrices have their $\lambda_{\min}$ at the guard or very close to it, and for them nothing is decidable.
+\item \textbf{The amended criterion} is set after seeing that the declared criterion had no power, but before any reading of the real spectra; it passes its power test at the edge (18 / 20). The verdict does not depend on this choice (16 / 48 at the loosest).
+\item \textbf{The permuted control is a single permutation per matrix}; at the measured gap (ratio $\ge 1.26$), another seed would not overturn ``48 / 48'', but this is not measured.
+\item \textbf{The references}: Martin and Mahoney are known only from their abstracts; the records of CSN, Marchenko-Pastur and Vuong are checked, not the articles; Cover and Thomas, Schuchman, Zamir and Feder, Gray and Markel are cited after the lead's note, without verification.
+\item \textbf{Everything labelled ``not judged''} (lever, ceilings, test of the rule, normalisation) has had no second look; the lead is not closed (pass of the per-row ceiling unfinished at the judgement, summary of the deliverable not written).
+\item \textbf{The figures} are those of the lead, outside the common style; only the two judged pages are placed.
+\end{itemize}
+\end{faux}

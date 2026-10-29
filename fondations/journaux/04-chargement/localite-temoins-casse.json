@@ -1,0 +1,130 @@
+{
+ "outil": "chargement_localite.py",
+ "mode": "temoins",
+ "casser": true,
+ "rapport": {
+  "T1_reutilisation": {
+   "mesure": 0.06264847461865466,
+   "attendu": 0.0625,
+   "tolerance": 0.0027066677414425365,
+   "reussi": true
+  },
+  "T1_lru_C8": {
+   "mesure": 0.0626328125,
+   "attendu": 0.0625,
+   "tolerance": 0.002706329386826371,
+   "reussi": true
+  },
+  "T1_lfu_C8": {
+   "mesure": 0.0626328125,
+   "attendu": 0.0625,
+   "tolerance": 0.002706329386826371,
+   "reussi": true
+  },
+  "T1_lru_C16": {
+   "mesure": 0.123921875,
+   "attendu": 0.125,
+   "tolerance": 0.00369754986443726,
+   "reussi": true
+  },
+  "T1_lfu_C16": {
+   "mesure": 0.1242734375,
+   "attendu": 0.125,
+   "tolerance": 0.00369754986443726,
+   "reussi": true
+  },
+  "T1_lru_C32": {
+   "mesure": 0.2491953125,
+   "attendu": 0.25,
+   "tolerance": 0.004841229182759271,
+   "reussi": true
+  },
+  "T1_lfu_C32": {
+   "mesure": 0.24932031249999997,
+   "attendu": 0.25,
+   "tolerance": 0.004841229182759271,
+   "reussi": true
+  },
+  "T1_lru_C64": {
+   "mesure": 0.49846875,
+   "attendu": 0.5,
+   "tolerance": 0.005590169943749474,
+   "reussi": true
+  },
+  "T1_lfu_C64": {
+   "mesure": 0.4983828125,
+   "attendu": 0.5,
+   "tolerance": 0.005590169943749474,
+   "reussi": true
+  },
+  "T2_reutilisation": {
+   "mesure": 1.0,
+   "attendu": 1.0,
+   "reussi": true
+  },
+  "T2_lru_C8": {
+   "mesure": 0.99975,
+   "attendu_min": 0.99975,
+   "reussi": true
+  },
+  "T2_lru_C16": {
+   "mesure": 0.99975,
+   "attendu_min": 0.99975,
+   "reussi": true
+  },
+  "T2_lru_C32": {
+   "mesure": 0.99975,
+   "attendu_min": 0.99975,
+   "reussi": true
+  },
+  "T2_lru_C64": {
+   "mesure": 0.99975,
+   "attendu_min": 0.99975,
+   "reussi": true
+  },
+  "T3_reutilisation": {
+   "mesure": 0.06354713678419605,
+   "attendu": 0.6,
+   "tolerance": 0.016144577023314434,
+   "reussi": false
+  },
+  "T4_belady_borne": {
+   "violations": 0,
+   "reussi": true
+  },
+  "T3_caches": {
+   "8": {
+    "lru": 0.06353125,
+    "lfu": 0.06353125,
+    "statique_calibre": 0.06934027777777778,
+    "statique_oracle": 0.079234375,
+    "belady": 0.06353125
+   },
+   "16": {
+    "lru": 0.1278125,
+    "lfu": 0.12871875,
+    "statique_calibre": 0.13733506944444443,
+    "statique_oracle": 0.152515625,
+    "belady": 0.33502343749999997
+   },
+   "32": {
+    "lru": 0.2532265625,
+    "lfu": 0.2553359375,
+    "statique_calibre": 0.2694878472222222,
+    "statique_oracle": 0.2914609375,
+    "belady": 0.5530625
+   },
+   "64": {
+    "lru": 0.5043125,
+    "lfu": 0.505828125,
+    "statique_calibre": 0.5250694444444444,
+    "statique_oracle": 0.5507656249999999,
+    "belady": 0.7847265625
+   }
+  }
+ },
+ "echecs": [
+  "T3 réutilisation (localité)"
+ ],
+ "verdict": "TEMOIN TOMBE"
+}

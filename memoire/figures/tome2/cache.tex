@@ -1,0 +1,212 @@
+% Figures du chapitre « Le cache, l'ordonnanceur et le moteur » (Tome II), communes aux deux langues.
+% Chargé par le chapitre lui-même (garde \ifdefined\GrapheCchFalaise). Chaque graphe lit un CSV
+% commité : ceux du lot O (mesures/moteur/O/), de la mesure gpt-oss (mesures/localite-gpt-oss/), ou
+% les données dérivées de memoire/outils/tome2_reference_cache.py (donnees/t2o-*.csv).
+% Styles TikZ préfixés « cch ».
+\providecommand{\DonneesTomeDeux}{\Racine/figures/tome2/donnees}
+\providecommand{\CsvLotO}{\Depot/mesures/moteur/O}
+\providecommand{\CsvLocalite}{\Depot/mesures/localite-gpt-oss/figures}
+
+\tikzset{
+  cchetat/.style={draw=#1!80!black, fill=#1!14, rounded corners=6pt, align=center,
+    font=\sffamily\small, minimum width=2.3cm, minimum height=1.0cm, inner sep=3pt},
+  cchetat/.default=Accent,
+  cchlien/.style={-{Latex[length=2.4mm]}, line width=0.8pt, draw=black!70},
+  cchnote/.style={font=\sffamily\scriptsize, align=center, text=black!80},
+  cchflux/.style={draw=#1!80!black, fill=#1!22, minimum height=0.42cm, inner sep=1pt, font=\sffamily\tiny},
+}
+\pgfplotsset{cch garder/.style 2 args={x filter/.append code={%
+  \edef\tempa{\thisrow{#1}}\edef\tempb{#2}\ifx\tempa\tempb\else\def\pgfmathresult{inf}\fi}}}
+
+% --- L'automate d'un emplacement VRAM (schéma M5), et l'étage RAM.
+\newcommand{\SchemaCchAutomate}{%
+\begin{tikzpicture}[font=\sffamily\small]
+  \node[cchetat=Code] (libre) at (0,0) {\EF{Free}{Libre}};
+  \node[cchetat=Pcie] (vol) at (5.6,0) {\EF{In flight}{En vol}\\[-1pt] {\scriptsize\EF{(decoder writes)}{(le décodeur écrit)}}};
+  \node[cchetat=Vram] (pres) at (11.2,0) {\EF{Present}{Présent}\\[-1pt] {\scriptsize\EF{(GEMV reads)}{(la GEMV lit)}}};
+  \draw[cchlien] (libre) -- node[cchnote, above] {\texttt{demander}\EF{: miss}{ : défaut}} node[cchnote, below] {\EF{read, copy, decode}{lecture, copie, décodage}} (vol);
+  \draw[cchlien] (vol) -- node[cchnote, above] {\texttt{pret}} node[cchnote, below] {\EF{decoding done (event)}{décodage fini (événement)}} (pres);
+  \draw[cchlien] (pres.south) to[out=-120, in=-60, looseness=0.45] node[cchnote, below, text width=7.6cm]
+    {\EF{eviction by the policy: never a pinned expert (demanded by the current layer, until \texttt{liberer}), never an in-flight slot}%
+        {éviction par la politique : jamais un expert épinglé (demandé par la couche en cours, jusqu'à \texttt{liberer}), jamais un emplacement en vol}} (libre.south);
+  \draw[cchlien] (pres.north) to[out=110, in=70, looseness=4] node[cchnote, above] {\EF{hit: \texttt{acceder}}{succès : \texttt{acceder}}} (pres.north east);
+  \node[draw=Ram!80!black, fill=Ram!8, rounded corners=2pt, font=\sffamily\scriptsize, text width=11.4cm, align=left, anchor=north] at (5.6,-3.25)
+    {\textbf{\EF{RAM tier (warm cache, mode A)}{Étage RAM (cache tiède, mode A)}}\EF{: an entry is born only from a disk read (a coded section cannot be rebuilt from a decoded expert); every access to an expert it holds touches it, VRAM hits included (inclusive tier). A VRAM miss found in RAM costs a copy and a decoding, not a read.}%
+        {\ : une entrée ne naît que d'une lecture du disque (on ne refait pas un tronçon codé depuis un expert décodé) ; tout accès à un expert qu'il tient la touche, succès VRAM compris (étage inclusif). Un défaut VRAM trouvé en RAM coûte une copie et un décodage, pas une lecture.}};
+\end{tikzpicture}}
+
+% --- La falaise du LRU partagé : l'anneau des couches.
+\newcommand{\SchemaCchAnneau}{%
+\begin{tikzpicture}[font=\sffamily\scriptsize]
+  \def\R{2.6}
+  % 12 secteurs dessinés pour L couches ; le secteur 0 est la couche l.
+  \foreach \s in {0,...,11}{
+    \pgfmathsetmacro{\a}{90 - \s*30}
+    \pgfmathsetmacro{\b}{90 - (\s+1)*30}
+    \ifnum\s=0 \def\coul{Signe}\else\def\coul{Accent}\fi
+    \fill[\coul!14, draw=\coul!70!black] (\a:\R) arc (\a:\b:\R) -- (\b:\R-0.7) arc (\b:\a:\R-0.7) -- cycle;
+    \foreach \j in {0,...,3}{
+      \pgfmathsetmacro{\c}{\a - 3.75 - \j*7.5}
+      \fill[\coul!70!black] (\c:\R-0.35) circle (1.4pt);
+    }
+  }
+  \node[text=Signe] at (75:\R+0.45) {$(t, \ell)$};
+  \node[text=Signe, align=center] at (75:\R-1.35) {$x$};
+  \draw[-{Latex}, Signe, line width=0.8pt] (60:\R+0.25) arc (60:-255:\R+0.25);
+  \node[align=left, text=Signe, anchor=west] at (-35:\R+0.5) {\EF{after $x$: $(L-1)\,k$ distinct\\ accesses, all of other layers}{après $x$ : $(L-1)\,k$ accès\\ distincts, tous d'autres couches}};
+  \node[text=Signe] at (105:\R+0.5) {$(t{+}1, \ell)$};
+  % Le temps tourne dans le sens des aiguilles d'une montre ; les N accès les plus récents, à
+  % l'instant de juger (t+1, l), forment l'arc qui remonte le temps depuis 90°.
+  \draw[SerieC, line width=3pt, opacity=0.55] (93:\R+0.8) arc (93:330:\R+0.8);
+  \node[SerieC!70!black, align=right, anchor=east] at (205:\R+1.0) {\EF{LRU of $N \le (L-1)k$ slots:}{LRU de $N \le (L-1)k$ emplacements :}\\ \EF{the $N$ most recent,}{les $N$ plus récents,}\\ \EF{$x$ is no longer among them}{$x$ n'en fait plus partie}};
+  \node[align=center] at (0,0) {\EF{one turn}{un tour}\\ = \EF{one token}{un jeton}\\ $L$ \EF{sectors of $k$}{secteurs de $k$}};
+\end{tikzpicture}}
+
+% --- Les deux étages : deux piles LRU sur le même flux.
+\newcommand{\SchemaCchEtages}{%
+\begin{tikzpicture}[font=\sffamily\scriptsize, x=0.55cm, y=0.55cm]
+  \foreach \i in {0,...,15}{
+    \pgfmathsetmacro{\coul}{\i<6 ? 1 : 0}
+    \ifnum\i<6 \fill[Vram!45, draw=Vram!80!black] (\i,0) rectangle ++(1,1);
+    \else \fill[Ram!25, draw=Ram!80!black] (\i,0) rectangle ++(1,1); \fi
+  }
+  \draw[decorate, decoration={brace, amplitude=4pt}] (0,1.15) -- (6,1.15) node[midway, above=4pt] {VRAM : $V$ \EF{most recent}{plus récents}};
+  \draw[decorate, decoration={brace, mirror, amplitude=4pt}] (0,-0.15) -- (16,-0.15) node[midway, below=4pt] {RAM : $R \ge V$ \EF{most recent (inclusive)}{plus récents (inclusive)}};
+  \node[anchor=east] at (-0.2,0.5) {\EF{recency}{récence}\,$\leftarrow$};
+  \node[anchor=west, align=left] at (16.4,0.5) {$h_v = h(V)$\\ $h_r = h(R) - h(V)$\\ \EF{disk}{disque} : $1 - h(R)$};
+\end{tikzpicture}}
+
+% --- La falaise mesurée : succès contre emplacements, LRU et Belady (20b, quatre lectures).
+\newcommand{\GrapheCchFalaise}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=0.94\linewidth, height=0.56\linewidth,
+  xlabel={\EF{slots $N$ of the shared cache}{emplacements $N$ du cache partagé}}, ylabel={\EF{hit rate}{taux de succès}},
+  xmin=0, xmax=322, ymin=0, ymax=1.0, legend pos=south east, legend style={font=\scriptsize}]
+  \addplot[SerieE, line width=1.1pt, mark=*, mark size=0.9pt, cch garder={trace}{t20b.tous.lecture}] table[x=emplacements, y=h_belady] {\CsvLotO/csv/falaise-20b-dense.csv};
+  \addlegendentry{Belady (\EF{offline optimum}{optimum hors ligne})}
+  \addplot[SerieA, line width=1.3pt, mark=square*, mark size=0.9pt, cch garder={trace}{t20b.tous.lecture}] table[x=emplacements, y=h_lru] {\CsvLotO/csv/falaise-20b-dense.csv};
+  \addlegendentry{LRU}
+  \draw[Signe, densely dashed] (axis cs:92,0) -- (axis cs:92,1) node[pos=0.97, left, font=\scriptsize] {$(L{-}1)k = 92$};
+  \draw[black!60, densely dotted] (axis cs:96,0) -- (axis cs:96,1) node[pos=0.88, right, font=\scriptsize] {$Lk = 96$};
+  \draw[SerieC, line width=0.8pt] (axis cs:96,0.5026) -- (axis cs:150,0.5026) node[right, font=\scriptsize, align=left] {$\bar r\,(T{-}1)/T = 0{,}5026$};
+\end{axis}
+\end{tikzpicture}}
+
+% --- La proposition du LRU partagé, sur les 17 traces réelles.
+\newcommand{\GrapheCchProp}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=0.62\linewidth, height=0.58\linewidth,
+  xlabel={$\bar r\,(T-1)/T$ \EF{(adjacent reuse, computed)}{(réutilisation adjacente, calculée)}},
+  ylabel={\EF{LRU hit rate (measured)}{succès du LRU (mesuré)}},
+  xmin=-0.02, xmax=0.9, ymin=-0.04, ymax=0.9, legend pos=north west, legend style={font=\scriptsize}]
+  \addplot[black!40, no markers, densely dashed, forget plot] coordinates {(0,0) (0.88,0.88)};
+  \addplot[only marks, mark=*, mark size=2pt, SerieA, cch garder={modele}{20b}] table[x=borne, y=lru_Lk] {\DonneesTomeDeux/t2o-prop1.csv};
+  \addlegendentry{20b, $N = Lk = 96$}
+  \addplot[only marks, mark=square*, mark size=2pt, SerieB, cch garder={modele}{120b}] table[x=borne, y=lru_Lk] {\DonneesTomeDeux/t2o-prop1.csv};
+  \addlegendentry{120b, $N = Lk = 144$}
+  \addplot[only marks, mark=triangle*, mark size=2.2pt, SerieF] table[x=borne, y=lru_Lm1k] {\DonneesTomeDeux/t2o-prop1.csv};
+  \addlegendentry{\EF{both, $N = (L-1)k$: zero}{les deux, $N = (L-1)k$ : zéro}}
+\end{axis}
+\end{tikzpicture}}
+
+% --- Succès du cache global selon le budget, cinq politiques (quatre genres en lecture).
+\newcommand{\GrapheCchSucces}{%
+\begin{tikzpicture}
+\begin{groupplot}[group style={group size=2 by 1, horizontal sep=1.0cm, y descriptions at=edge left},
+  memoire, width=0.52\linewidth, height=0.5\linewidth, xmin=4, xmax=41, ymin=0, ymax=1.0,
+  xlabel={\EF{budget (\% of experts)}{budget (\% des experts)}}, legend style={font=\scriptsize}]
+\nextgroupplot[title={gpt-oss-20b}, ylabel={\EF{hit rate}{taux de succès}}, legend to name=cchlegsucces, legend columns=3]
+  \addplot[SerieE, mark=*, mark size=1.4pt, line width=1.1pt] table[x=budget, y=belady] {\CsvLocalite/succes-gpt-oss-20b-lecture.csv}; \addlegendentry{Belady}
+  \addplot[SerieC, mark=diamond*, mark size=1.6pt] table[x=budget, y=lfu] {\CsvLocalite/succes-gpt-oss-20b-lecture.csv}; \addlegendentry{\EF{LFU (half-life 8)}{LFU (demi-vie 8)}}
+  \addplot[SerieA, mark=square*, mark size=1.4pt, line width=1.1pt] table[x=budget, y=lru] {\CsvLocalite/succes-gpt-oss-20b-lecture.csv}; \addlegendentry{LRU}
+  \addplot[SerieD, mark=triangle*, mark size=1.6pt] table[x=budget, y=statique_oracle] {\CsvLocalite/succes-gpt-oss-20b-lecture.csv}; \addlegendentry{\EF{fixed set, oracle}{ensemble fixe, oracle}}
+  \addplot[SerieF, mark=o, mark size=1.4pt] table[x=budget, y=statique_calibre] {\CsvLocalite/succes-gpt-oss-20b-lecture.csv}; \addlegendentry{\EF{fixed set, calibrated}{ensemble fixe, calibré}}
+  \addplot[black!50, densely dashed, no markers] table[x=budget, y=sans_localite] {\CsvLocalite/succes-gpt-oss-20b-lecture.csv}; \addlegendentry{\EF{no locality}{sans localité}}
+\nextgroupplot[title={gpt-oss-120b}]
+  \addplot[SerieE, mark=*, mark size=1.4pt, line width=1.1pt] table[x=budget, y=belady] {\CsvLocalite/succes-gpt-oss-120b-lecture.csv};
+  \addplot[SerieC, mark=diamond*, mark size=1.6pt] table[x=budget, y=lfu] {\CsvLocalite/succes-gpt-oss-120b-lecture.csv};
+  \addplot[SerieA, mark=square*, mark size=1.4pt, line width=1.1pt] table[x=budget, y=lru] {\CsvLocalite/succes-gpt-oss-120b-lecture.csv};
+  \addplot[SerieD, mark=triangle*, mark size=1.6pt] table[x=budget, y=statique_oracle] {\CsvLocalite/succes-gpt-oss-120b-lecture.csv};
+  \addplot[SerieF, mark=o, mark size=1.4pt] table[x=budget, y=statique_calibre] {\CsvLocalite/succes-gpt-oss-120b-lecture.csv};
+  \addplot[black!50, densely dashed, no markers] table[x=budget, y=sans_localite] {\CsvLocalite/succes-gpt-oss-120b-lecture.csv};
+\end{groupplot}
+\node[anchor=north] at ($(group c1r1.south)!0.5!(group c2r1.south) + (0,-1.0)$) {\pgfplotslegendfromname{cchlegsucces}};
+\end{tikzpicture}}
+
+% --- Les trois flux de la carte, l'hôte et le disque, et les événements qui les relient (M1).
+\newcommand{\SchemaCchFlux}{%
+\begin{tikzpicture}[x=1cm, y=1cm, font=\sffamily\scriptsize, scale=0.8, transform shape]
+  \foreach \yy/\nom in {4/\EF{host}{hôte}, 3/\EF{disk (IOCP)}{disque (IOCP)}, 2/\EF{copy stream}{flux de copie}, 1/\EF{decode stream}{flux de décodage}, 0/\EF{compute stream (high priority)}{flux de calcul (priorité haute)}}{
+    \node[anchor=east, font=\sffamily\small] at (-0.15,\yy) {\nom};
+    \draw[black!12] (0,\yy) -- (13.6,\yy);
+  }
+  % calcul : attention, routeur, attente, GEMV, combiner
+  \node[cchflux=Calcul, minimum width=1.6cm, anchor=west] (att) at (0.1,0) {attn $\ell$};
+  \node[cchflux=Accent, minimum width=0.8cm, anchor=west] (rout) at (1.75,0) {\EF{router}{routeur}};
+  \fill[pattern=north east lines, pattern color=black!25] (2.6,-0.21) rectangle (8.3,0.21);
+  \node[fill=white, inner sep=1pt] at (5.45,0) {\EF{waits for ``ready''}{attend « prêt »}};
+  \node[cchflux=Vram, minimum width=2.4cm, anchor=west] (gemv) at (8.35,0) {GEMV $\times 4$, \EF{combine}{combiner}};
+  \node[cchflux=Calcul, minimum width=1.6cm, anchor=west] at (10.85,0) {attn $\ell{+}1$};
+  % hôte
+  \node[cchflux=Accent, minimum width=1.5cm, anchor=west] (dem) at (2.75,4) {\texttt{demander}};
+  % disque
+  \node[cchflux=Disque, minimum width=2.2cm, anchor=west] (l1) at (3.0,3) {\EF{read}{lecture} 1};
+  \node[cchflux=Disque, minimum width=2.2cm, anchor=west] (l2) at (5.3,3) {\EF{read}{lecture} 2};
+  % copie
+  \node[cchflux=Pcie, minimum width=0.9cm, anchor=west] (c1) at (5.3,2) {DMA 1};
+  \node[cchflux=Pcie, minimum width=0.9cm, anchor=west] (c2) at (7.6,2) {DMA 2};
+  % décodage
+  \node[cchflux=Mant, minimum width=0.8cm, anchor=west] (d1) at (6.3,1) {\EF{dec}{déc} 1};
+  \node[cchflux=Mant, minimum width=0.8cm, anchor=west] (d2) at (8.55,1) {\EF{dec}{déc} 2};
+  \draw[cchlien, Accent] (rout.north) to[out=90, in=-90] node[cchnote, right, pos=0.35] {\EF{event + mailbox}{événement + boîte}} (dem.south);
+  \draw[cchlien] (dem.south east) -- (l1.north west);
+  \draw[cchlien, Pcie] (l1.south east) -- (c1.north west);
+  \draw[cchlien, Pcie] (l2.south east) -- (c2.north west);
+  \draw[cchlien, Mant] (c1.south east) -- (d1.north west);
+  \draw[cchlien, Mant] (c2.south east) -- (d2.north west);
+  \draw[cchlien, Vram] (d2.south east) -- (gemv.north west);
+  \draw[cchlien, Vram, densely dashed] (d1.south) to[out=-80, in=150] (gemv.north west);
+  \draw[cchlien, black!45, densely dotted] (d1.east) to[out=20, in=-160] (c2.west);
+  \node[cchnote, anchor=west, text width=2.4cm, align=left] at (10.0,1.55) {\EF{dotted: DMA 2 waits until dec 1 has left the shared VRAM arrival buffer}{pointillé : DMA 2 attend que déc 1 ait quitté le tampon d'arrivée VRAM commun}};
+  \draw[-{Latex}] (0,-0.75) -- (13.8,-0.75) node[right] {$t$};
+\end{tikzpicture}}
+
+% --- Une couche mesurée du 120b dont les quatre experts manquent (pas 8, couche 0).
+\newcommand{\GrapheCchChrono}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=0.96\linewidth, height=0.44\linewidth,
+  xlabel={\EF{time since the start of the step (ms)}{temps depuis le début du pas (ms)}},
+  xmin=0, xmax=25, ymin=-0.7, ymax=3.7, ytick={0,1,2,3},
+  yticklabels={\EF{compute}{calcul}, \EF{decode}{décodage}, \EF{copy}{copie}, \EF{disk}{disque}},
+  major y grid style={draw=none}, error bars/error bar style={line width=5.5pt}, error bars/error mark=none]
+  % Disque : de la soumission à la fin de la lecture, une rangée par expert (légèrement décalée).
+  \addplot[Disque, only marks, mark=none, error bars/.cd, x dir=plus, x explicit, error bar style={Disque!65}]
+    table[x=soumis, y expr={3.3 - 0.2*\thisrow{rang}}, x error expr={\thisrow{lu} - \thisrow{soumis}}] {\DonneesTomeDeux/t2o-chrono-couche.csv};
+  \addplot[Pcie, only marks, mark=none, error bars/.cd, x dir=plus, x explicit, error bar style={Pcie!75}]
+    table[x=copie_debut, y expr={2.3 - 0.2*\thisrow{rang}}, x error expr={\thisrow{copie_fin} - \thisrow{copie_debut}}] {\DonneesTomeDeux/t2o-chrono-couche.csv};
+  \addplot[Mant, only marks, mark=none, error bars/.cd, x dir=plus, x explicit, error bar style={Mant!75}]
+    table[x=dec_debut, y expr={1.3 - 0.2*\thisrow{rang}}, x error expr={\thisrow{dec_fin} - \thisrow{dec_debut}}] {\DonneesTomeDeux/t2o-chrono-couche.csv};
+  % Calcul : jusqu'au routeur, puis attente, puis la fin de la couche.
+  \addplot[Accent, only marks, mark=none, error bars/.cd, x dir=plus, x explicit, error bar style={Accent!75}]
+    table[x expr=0, y expr=0, x error=routeur] {\DonneesTomeDeux/t2o-chrono-couche.csv};
+  \addplot[Signe, only marks, mark=|, mark size=5pt, line width=1.4pt] table[x=fin_couche, y expr=0] {\DonneesTomeDeux/t2o-chrono-couche.csv};
+  \node[font=\scriptsize, anchor=south west] at (axis cs:0.2,0.15) {\EF{router}{routeur}};
+  \node[font=\scriptsize, anchor=south east] at (axis cs:23.6,0.15) {\EF{end of layer}{fin de la couche}};
+\end{axis}
+\end{tikzpicture}}
+
+% --- C6 : jetons/s en génération sur le 120b, troncons contre llama.cpp balayé.
+\newcommand{\GrapheCchVitesse}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, xbar, bar width=7pt, width=0.62\linewidth, height=0.6\linewidth,
+  xlabel={\EF{generation (tokens/s), gpt-oss-120b}{génération (jetons/s), gpt-oss-120b}},
+  xmin=0, xmax=2.6, ymin=-0.6, ymax=7.6, ytick={0,...,7}, y dir=reverse,
+  yticklabels from table={\DonneesTomeDeux/t2o-c6.csv}{\EF{etiquette_en}{etiquette_fr}},
+  major y grid style={draw=none}, tick label style={font=\scriptsize},
+  nodes near coords={\pgfmathprintnumber[fixed, precision=3]{\pgfplotspointmeta}}, point meta=x,
+  every node near coord/.style={font=\scriptsize, anchor=west, xshift=14pt}]
+  \addplot[fill=SerieA!55, draw=SerieA, error bars/.cd, x dir=both, x explicit]
+    table[x=moyenne, y=i, x error minus=moins, x error plus=plus] {\DonneesTomeDeux/t2o-c6.csv};
+  \draw[Signe, densely dashed] (axis cs:0.8838,-0.6) -- (axis cs:0.8838,7.6);
+\end{axis}
+\end{tikzpicture}}

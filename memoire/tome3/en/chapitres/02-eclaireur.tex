@@ -1,0 +1,384 @@
+% Volume~III, chapter 2: the scout (English version).
+% Translated on 2026-10-29 by translator EN1 from memoire/tome3/fr/chapitres/02-eclaireur.tex (writer A,
+% corrected: G2, G4, M11), number for number, same labels. Sources as in the French chapter:
+% genome/01-eclaireur.md, genome/etat-de-l-art-pour-le-memoire.md § 2, mesures/genome/etat-de-l-art/journaux/
+% and passes/, genome/05-synthese.md §§ 0 and 1.3.
+% Figure (judged, unchanged): III-2.1 \GrapheEclZeros. III-2.2 and III-2.3 are not drawn: their numbers are
+% in tables, drawn from borne-rd-passe1.json, diagnostic-L0-E0.json, choix-delta.json.
+\chapter{The scout: where the noise is, where the structure is}\label{t3ecl:ch}
+
+\begin{origine}
+\textbf{The starting point} is the frontier of \cref{t3que:ch}: 3.8431 bits per weight losslessly, the base of 2.6441 bits at 4.29\,\% error on the weights, and codes almost independent given their scale (0.005 bit for the neighbour). The reading had pointed to an empty box: choosing the symbols of a nested base by error feedback on the real inputs, under an entropy constraint, without touching the decoder.
+\textbf{This chapter establishes}, before designing anything, where the noise and the structure of the weights are: the sign of a zero is a perfect coin, and the energy is concentrated in a few blocks, so that the metric of the weights is not a judge. Then two mechanisms, each with its proof and its measurement. The first, the \emph{zero-synonym codon}, beats the frontier with no loss of value: 3.7061 bits instead of 3.8431 on the 12 reference tensors, logits of the f64 reference bit-identical. The second, the \emph{synonymous mutation}, first fails through overfitting, then, regularised and under an entropy constraint, beats the lossy frontier under the declared criterion: 2.563 bits instead of 2.642, and an expert output error divided by three to four on held-out inputs. End to end, its variant without entropy constraint lowers the KL against the reference by 27\,\%.
+\textbf{What remains} is a variant that is below the frontier both in bits and in KL (none is: the KL was measured only on the variant $\lambda = 0$, dearer by 0.011 bit); the porting of the zero codon into the format, which \cref{t3cod:ch} does; the synonymous genome as a second file, which \cref{t3sno:ch} does.
+Sources: \fichier{genome/01-eclaireur.md}; \fichier{genome/etat-de-l-art-pour-le-memoire.md} §\,2; \fichier{genome/05-synthese.md} §§\,0 and 1.3; \fichier{mesures/genome/etat-de-l-art/journaux/} (\texttt{zero-compte-*}, \texttt{zero-canonique}, \texttt{temoin-*}, \texttt{diagnostic-L0-E0}, \texttt{choix-delta}, \texttt{kl-*}) and \fichier{passes/}; \fichier{mesures/genome/construction/synthese/apparie-eclaireur.json}; tools under \fichier{outils/genome/eclaireur/}.
+\end{origine}
+
+\begin{enbref}
+A synonymous mutation changes a codon without changing the protein (\cref{t3int:sec:genome}). The scout looked, in the weights of gpt-oss, for the equivalent of this redundancy, keeping the analogy for what it is: an image that guides, not an argument. It found two. The first is in the format itself: MXFP4 has sixteen codes for fifteen values, because $+0$ and $-0$ are the same number; the sign of a zero is a piece of information that the computation never reads, like a part of the genome that codes for nothing, and removing it saves 3.6\,\% of the bytes without changing a single bit of the logits. The second is in the way of being wrong: a weight error in a direction that the real inputs of the expert do not excite is invisible at its output. Choosing the symbols of the base so as to store the error there costs the decoder nothing and divides the output error by three to four.
+\end{enbref}
+
+\section{The instruments and their controls}\label{t3ecl:sec:instruments}
+
+Each instrument has its control, declared before its first measurement, whose answer is known in advance, and its break, which forces the control to fail (\cref{t3ecl:tab:instruments}). The logs are under \fichier{mesures/genome/etat-de-l-art/journaux/}, the tools under \fichier{outils/genome/eclaireur/}. Three names in the table come from Volume~II: \texttt{trc-reference} is the exact reference, the program that computes gpt-oss in double precision (f64) to judge all the others; a \emph{fork} is a copy of it modified for a need of the round (here, capturing the inputs of the experts, or substituting a base for them); YaRN~\cite{peng2023yarn} is the scaling of the position frequencies by which gpt-oss extends its context, which the break of the first control removes, to check that the bitwise comparison can fail.
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.4cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+Tool & Role & Control (declared beforehand) & Result \mes \\
+\midrule
+\texttt{capture/} (Rust, fork of \texttt{trc-reference}) & captures the real inputs of the experts and the routing, substitutes bases, rewrites a code & logits of the fork equal to those of \texttt{trc-reference} to the bit (24 tokens); break: YaRN without scaling & 0 logits different; break: 4\,826\,112 (\texttt{temoin-fourche*.json}) \\
+\texttt{synonyme.py} & the frontier base and the synonymous mutation; weight and output errors & T0: error of the frontier on the 12 tensors $= 0.042\,919\,745$ to within $10^{-6}$; T1: $H = I$, $\lambda = 0$ reproduces the frontier; T2: $H_0 = 2.642$ to within 0.001 & T0 0.042\,919\,745\,124\,98 (break 0.4246); T1 0 symbols different (with the real $H$: 1\,789\,132); T2 2.6415 (\texttt{temoins*.json}) \\
+\texttt{zero-synonyme/} (Rust, fork of measurement F1) & real rANS coder, exact decoding, with or without $-0 \to +0$ & without the flag, reproduces F1 to the bit & all quantities of F1 equal (A\_ctx 3.843\,137; \texttt{zero-temoin-sans-drapeau.json}) \\
+\texttt{zero\_\allowbreak compte.py} & exact counts of the $\pm0$ & $H(\text{code})$ of the 12 tensors $= 3.860$ to within 0.001; break (code 1 counted as zero): the gap moves by more than 0.05 & 3.8598; break: 0.1369 $\to$ 0.3514 \\
+\texttt{borne\_rd.py} & the bound $R(D)$ of \cref{t3que:sec:frontiere} & B1: the ends of the curve; B2: a Gaussian to within 0.05 bit & pass 1: B1 fails; B2 holds ($10^{-5}$ bit); break fails; correction declared afterwards (\cref{t3que:sec:frontiere}) \\
+\bottomrule
+\end{tabularx}
+\caption[The instruments of the scout and their controls]{The instruments of the scout, their controls and their breaks \mes. Source: \fichier{genome/01-eclaireur.md} §\,1; logs under \fichier{mesures/genome/etat-de-l-art/journaux/}.}
+\label{t3ecl:tab:instruments}
+\end{table}
+
+\paragraph{The real inputs.} The fork of the f64 reference captured, at each layer, the normalised state that enters the experts (in f32) and the routing, on wiki.test tokenised by \texttt{trc-jetons}; its first ten windows equal those of the \texttt{.kld} logits file of the R1 judgement of Volume~II (checked by the tool, \fichier{journaux/capture-*.json}). The \textbf{calibration} is made of windows 10 to 21 (6\,132 positions), the \textbf{held-out evaluation} of windows 0 to 9 (5\,110 positions, those of R1). Each position sends its input to 4 experts out of 32 per layer: on average 766 calibration inputs and 639 evaluation inputs per expert \mes. This number, small compared with the dimension 2\,880, decides the first failure of \cref{t3ecl:sec:mutation}.
+
+\section{Where the noise is, where the structure is}\label{t3ecl:sec:bruit}
+
+\subsection{The sign of the zeros: pure noise}
+
+The exact counts of the $+0$ (code 0) and of the $-0$ (code 8) over all the expert tensors of the two models give \cref{t3ecl:tab:zeros} and \cref{fig:t3-ecl-zeros}. On gpt-oss-20b, 12.8\,\% of the codes are zeros, half $+0$, half $-0$; the entropy of the sign of a zero is 0.999\,999\,996\,7 bit, within $3\cdot10^{-9}$ of a perfect coin \mes.
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabular}{l r r r r r r}
+\toprule
+& $+0$ (code 0) & $-0$ (code 8) & $H(\text{sign}\mid\text{zero})$ & $H(\text{code})$ & $H(\text{value})$ & gap \\
+\midrule
+gpt-oss-20b, 72 tensors & 6.3920\,\% & 6.3929\,\% & 0.999\,999\,996\,7 & 3.8638 & 3.7360 & \textbf{0.1278} \\
+12 reference tensors & 6.8464\,\% & 6.8475\,\% & 0.999\,999\,99 & 3.8598 & 3.7228 & 0.1369 \\
+gpt-oss-120b, 108 tensors & 6.2779\,\% & 6.2789\,\% & 0.999\,999\,995\,1 & 3.8667 & 3.7411 & \textbf{0.1256} \\
+\bottomrule
+\end{tabular}
+\caption[The sign of the zeros]{The sign of the zeros in the MXFP4 codes of the experts \mes. Entropies in bits per weight (the sign: in bits per zero). 20b: 19\,110\,297\,600 weights; 120b: 114\,661\,785\,600. The gap $H(\text{code}) - H(\text{value})$ is what a lossless coder pays for a sign that the computation does not see. Data: \fichier{mesures/genome/etat-de-l-art/journaux/zero-compte-20b.json}, \fichier{zero-compte-120b.json}, \fichier{zero-compte-20b-12.json}.}
+\label{t3ecl:tab:zeros}
+\end{table}
+
+\begin{figure}[tbp]
+\centering
+\GrapheEclZeros
+\LegendeFigure{EclZeros}
+\label{fig:t3-ecl-zeros}
+\end{figure}
+
+\Cref{fig:t3-ecl-zeros} shows the gap tensor by tensor: it ranges from 0.117 to 0.196 bit per weight on the 20b, from 0.115 to 0.239 on the 120b, highest at layer 0, and nowhere goes below 0.11 bit. The ``whole model'' line is drawn under the bars: a first version placed it on top with a white halo that hid the top of 37 bars, and the judge of the third pass of the figures made it fail (GJ1, \fichier{memoire/tome3/JUGEMENT-figures3.md} §\,6) before it was redrawn (commit \texttt{bb01679}). No block has all its 32 codes zero (0 out of 597\,196\,800 for the 20b, 0 out of 3\,583\,180\,800 for the 120b): the scale of a block is never itself a synonym.
+
+\paragraph{Why the sign of a zero is random} \calc. An MXFP4 quantiser rounds to nearest. An original weight of small magnitude becomes $\pm0$ according to its own sign, and the signs of the small weights are equiprobable. The format keeps this sign because E2M1 codes the sign separately~\cite{ocpmx2023}; the computation never sees it, since $K[8] = -0 = K[0]$. It is information inherited from the quantisation, the sign of a BF16 weight that no longer exists, without any effect on the value.
+
+\subsection{The energy is concentrated}
+
+The metric of the frontier is the \emph{pooled} relative error on the weights. Yet the energy of the 12 reference tensors is concentrated in a few block exponents (\cref{t3ecl:tab:exposants}): the blocks of exponent 129 carry 54.8\,\% of the energy for 5.3\,\% of the weights; 129 and 130 together, 74.2\,\% for 5.8\,\%; the eight heaviest exponents, 96.9\,\% for 14.6\,\% \mes~\calc.
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabular}{r r r r r}
+\toprule
+rank & exponent $e$ & share of weights & share of energy & cumulative energy \\
+\midrule
+1 & 129 & 5.29\,\% & 54.80\,\% & 54.8\,\% \\
+2 & 130 & 0.47\,\% & 19.37\,\% & 74.2\,\% \\
+3 & 128 & 3.44\,\% & 8.90\,\% & 83.1\,\% \\
+4 & 127 & 5.37\,\% & 3.48\,\% & 86.6\,\% \\
+5 to 8 & 133, 134, 131, 136 & 0.01\,\% & 10.37\,\% & 96.9\,\% \\
+\bottomrule
+\end{tabular}
+\caption[The energy of the weights by block exponent]{The energy of the weights of the 12 reference tensors, by E8M0 block exponent, ranked by decreasing energy \mes~\calc. Energy of an exponent: number of weights $\times\, 4^{\,e-128}$, relative to the total (the law of the codes is the same from one exponent to another to first order). Data: \fichier{mesures/genome/etat-de-l-art/journaux/borne-rd-passe1.json}, field \texttt{exposants} (3\,185\,049\,600 weights); the proposed cumulative figure (III-2.2) is not drawn.}
+\label{t3ecl:tab:exposants}
+\end{table}
+
+The consequence is a warning that the whole round verified at its own expense. A rate allocation that served only the heavy blocks would ``beat'' the frontier in the pooled metric while destroying 85\,\% of the weights. \textbf{The metric of the weights is not a judge.} Hence the judge of \cref{t3ecl:sec:mutation} (the output error of the experts on held-out inputs), then that of \cref{t3ecl:sec:kl} (the end-to-end KL).
+
+\subsection{The bound of a memoryless coder}
+
+The third look is the rate--distortion bound of \cref{t3que:sec:frontiere}: at the error of the frontier, an ideal coder that looks only at the weights would read at most 2.168 bits, that is 0.476 bit less; this gain is in the shape of the quantiser, not in a structure of the weights. The three looks say the same thing: seen by itself, an MXFP4 weight is noise around its scale. The two mechanisms that follow therefore add no structure to the weights: the first removes what the computation does not read, the second moves the error to where the inputs do not look.
+
+\section{Mechanism 1: the zero-synonym codon}\label{t3ecl:sec:zero}
+
+\subsection{The mechanism}
+
+Before entropy coding, each nibble 8 ($-0$) becomes 0 ($+0$). The decoder does not change: it returns the canonical code, and the table of the stream no longer has a frequency for 8 (in the byte alphabet of A\_ctx, the 256 symbols become 225 possible ones, $15 \times 15$). The cost of transcription is zero. The analogy is that of non-coding DNA: a part of the file, 0.128 bit per weight, carries a sign that nobody reads.
+
+\subsection{Why the products do not change}
+
+\begin{proposition}[Bit exactness of a dot product after $-0 \to +0$]\label{t3ecl:prop:zero}
+Let $y = \mathrm{fl}(\cdots\mathrm{fl}(\mathrm{fl}(t_1 + t_2) + t_3)\cdots + t_n)$ be an IEEE~754 sum with round-to-nearest~\cite{ieee754}, in a fixed order, of terms $t_j = \mathrm{fl}(w_j x_j)$ with finite $x_j$, and $w'$ equal to $w$ except $w'_j = +0$ where $w_j = -0$. If at least one term $t_j$ is non-zero, then $y' = y$ to the bit. If all are zero, $y, y' \in \{+0, -0\}$ and $y = y'$ in value.
+\end{proposition}
+
+\begin{proof}
+We have $t'_j = t_j$ if $w_j \ne -0$, and $t_j, t'_j \in \{+0, -0\}$ otherwise, since $(\pm0)\cdot x_j = \pm0$ for finite $x_j$. Let $S_k$ and $S'_k$ be the partial sums. Induction hypothesis: $S_k = S'_k$ to the bit, or else $S_k, S'_k \in \{\pm0\}$. It holds for $k = 1$. At step $k+1$, three cases. (i) If $t_{k+1} = t'_{k+1}$ is non-zero: when $S_k = S'_k$, the operands are equal and so is the sum; when $S_k, S'_k \in \{\pm0\}$, $\mathrm{fl}(\pm0 + t) = t$ exactly for $t \ne 0$, so $S_{k+1} = S'_{k+1} = t_{k+1}$. (ii) If $t_{k+1}, t'_{k+1} \in \{\pm0\}$ and $S_k = S'_k \ne 0$: $\mathrm{fl}(S \pm 0) = S$ on both sides. (iii) If both partial sums and both terms are zero, both sums stay in $\{\pm0\}$: only the sign of a zero can differ, since $(+0) + (-0) = +0$ but $(-0) + (-0) = -0$. At the first non-zero term, (i) joins the two sequences again, and (ii) keeps them equal afterwards. If no term is non-zero, only (iii) applies.
+\end{proof}
+
+In an integer kernel (E2M1 values doubled into signed integers), $-0$ and $+0$ are already the same integer. The case of a product of 2\,880 terms all zero does not occur in gpt-oss, where no block is zero; if it did, only the sign of an output zero would change, then disappear at the non-zero bias of the expert. For the f64 reference, the same induction applies to each of its eight accumulators, then to their tree reduction.
+
+The proposition leaves open the sign of a zero partial sum. \emph{Proposition A1} of \cref{t3cod:ch} closes it for the GEMV kernel of the engine: an accumulator that starts from $+0$ and advances by FMA with round-to-nearest is never $-0$ (an exact zero sum of two terms that are not both $-0$ rounds to $+0$), so that a step on a zero code is the same in both computations, and bit equality holds at each step, even for an entirely zero sum. The proposition of this chapter suffices for the reference; A1 is what the engine needs.
+
+\subsection{The measurements}
+
+The threshold was declared before the pass, at the head of \fichier{outils/genome/eclaireur/zero-synonyme/src/main.rs}: the codon beats the frontier if A\_ctx falls by at least 0.05 bit per weight. \Cref{t3ecl:tab:zero} gives the measurements, all by the real rANS coder of F1, each stream decoded exactly.
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X@{}}
+\toprule
+Measurement (12 reference tensors) & without the codon (F1) & with & gap \\
+\midrule
+A\_ctx, everything included (bits per weight) & 3.843\,137 & \textbf{3.706\,142} & $-0.136\,995$ ($-3.56\,\%$) \\
+A\_ctx codes alone & 3.805\,616 & 3.668\,621 & $-0.136\,995$ \\
+A\_flux (format of study 03) & 3.843\,442 & 3.706\,406 & $-0.137\,036$ \\
+mean chunk (20b, aligned on 4\,KiB) & 11\,990\,368\,B & 11\,564\,160\,B & $-3.55\,\%$ \\
+base alone (level 0 of B) & 2.606\,647 & 2.559\,045 & $-0.047\,602$ \\
+nibbles rewritten & --- & 218\,097\,443 out of 3\,185\,049\,600 & 6.85\,\% \\
+\bottomrule
+\end{tabularx}
+\caption[The zero-synonym codon, measured]{The zero-synonym codon, measured by the real rANS coder \mes. Data: \fichier{mesures/genome/etat-de-l-art/journaux/zero-canonique.json} and \fichier{zero-temoin-sans-drapeau.json}; \fichier{genome/01-eclaireur.md} §\,4.3. The coder recovers the entropy gap to within 0.000\,04 bit (0.136\,995 against 0.1369).}
+\label{t3ecl:tab:zero}
+\end{table}
+
+\textbf{Measured: 0.137 bit, for a threshold of 0.05. The zero-synonym codon beats the frontier losslessly.} On the 72 expert tensors of the 20b, the entropy gap is 0.1278 bit; the next chapter of the round also measures it with the real codec on the two whole models (\cref{t3pre:sec:codons}).
+
+\paragraph{The proof to the bit.} On 24 tokens of the f64 reference, with the 759\,416\,633 $-0$ nibbles rewritten as $+0$ in all the experts read, \textbf{0 logits out of 4\,826\,112} differ to the bit, maximal absolute gap 0 (\fichier{journaux/temoin-zero.json}); the break makes all 4\,826\,112 differ (\fichier{temoin-zero-casse.json}). End to end on the 2\,550 positions of the ten windows of R1, the logits file of the canonical model is \textbf{identical byte for byte} to that of the reference: same SHA-256 fingerprint, \texttt{d97fc421\ldots 5362a38} (\fichier{journaux/kl-zero-canonique.sha256}) \mes.
+
+\paragraph{On gpt-oss-120b} \calc. At 0.1256 bit per weight, the 114\,661\,785\,600 expert weights make
+\[ 114\,661\,785\,600 \times 0.1256 / 8 = 1.800\cdot10^{9} \ \text{bytes}: \] \textbf{1.80\,GB} that no computation reads, out of the 60.9\,GB of the lossless file (03), that is $-3.0\,\%$. The real coder was run by the scout only on the 20b; \cref{t3pre:ch} ran it on the whole 120b.
+
+\paragraph{The roof} \calc. The expert bytes read per token fall by 3.56\,\%; when the disk limits, the roof~\eqref{t3que:eq:toit} rises by $1/(1 - 0.0356) - 1 = 3.7\,\%$, without changing anything else. \Cref{t3cod:ch} measures what the engine makes of it on Stone's disk, and why the measured number is not that one.
+
+\subsection{The same codon in the base}
+
+In the base (sign and class), a zero keeps its sign: the class $\{0,\,0.5\}$ is rebuilt as $\pm0.237\,s$. On the canonical code, this sign is no longer stored ($-0.0476$ bit, \cref{t3ecl:tab:zero}); the decoder can \emph{draw it from a hash of the position} (\texttt{splitmix64} of $rC + c$) without reading a bit. The error on the weights is the same to the weight, since $|0 - (\pm0.237\,s)|$ does not depend on the sign. A Weyl sequence as hash fails (neighbouring rows almost equal); \texttt{splitmix64} holds (correlation 0.01, at the noise level). The \emph{output} error of this variant has not been measured: its pass was stopped after 4 experts (\fichier{passes/frontiere0-ARRETEE-4-experts.log}). It remains ``equal in weight error at $-0.048$ bit, not judged on the output''.
+
+\section{Mechanism 2: the synonymous mutation}\label{t3ecl:sec:mutation}
+
+\subsection{Life, and what is transposed from it}
+
+The genetic code is not an arbitrary function from codons to amino acids: among a million possible codes, the natural code is one of the best at making the probable errors fall on similar amino acids~\cite{freeland1998}. The neuron, for its part, codes a continuous signal in spikes by carrying its error over to what follows, in the manner of a sigma-delta modulator~\cite{yoon2017sigmadelta}. Transposed, as an analogy: the ``phenotype'' of an expert matrix is its output $Wx$ on the inputs the model really gives it; a weight error in a direction that these inputs do not excite is a synonymous mutation. The mechanism chooses the symbols of the base so that the error goes there.
+
+\subsection{The derivation}
+
+\paragraph{The output error.} For a matrix $W$ of $R$ rows and $C$ columns, its inputs $x$ and the router weight $g$ of the expert, the output error of a reconstruction $\hat W$ is, by~\eqref{t3que:eq:sortie},
+\begin{equation}\label{t3ecl:eq:erreur}
+\E\bigl[g^2 \|(W - \hat W) x\|^2\bigr] = \E[g^2]\ \mathrm{tr}\bigl((W - \hat W)\, H\, (W - \hat W)^\top\bigr), \qquad H = \frac{\E[g^2 x x^\top]}{\E[g^2]} .
+\end{equation}
+The trace is a sum over the rows: the rows of $W$ are treated independently. For a row $w$, we seek $\min_q (w - q)^\top H (w - q)$, $q$ ranging over the reconstructions allowed column by column, $q_j = \pm c_k\, s_{b(j)}$, $c_k$ one of the four centres of the base and $s_{b(j)}$ the E8M0 scale of the block of column $j$.
+
+\begin{lemme}[Optimal error feedback]\label{t3ecl:lem:obs}
+Let $w$ be the current row (error already carried over included), $j$ a column and $F$ the set of columns still free, $j \in F$, $H_F$ the submatrix of $H$ on $F$. If column $j$ is fixed to $q_j$ and the other columns of $F$ are left to adjust, the minimal increase of the squared error $\delta^\top H_F \delta$ is
+\begin{equation}\label{t3ecl:eq:obs}
+\frac{(w_j - q_j)^2}{[H_F^{-1}]_{jj}}, \qquad \text{reached by } \delta = -\frac{w_j - q_j}{[H_F^{-1}]_{jj}}\ H_F^{-1} e_j ,
+\end{equation}
+where $\delta$ is the modification of $w$ on $F$; on the free columns other than $j$, the correction is $\delta_{F\setminus j} = -(w_j - q_j)\,[H_F^{-1}]_{F\setminus j,\,j} / [H_F^{-1}]_{jj}$.
+\end{lemme}
+
+\begin{proof}
+We minimise $\delta^\top H_F \delta$ under the constraint $e_j^\top (w + \delta) = q_j$, that is $e_j^\top \delta = q_j - w_j$. The Lagrangian is $L(\delta, \mu) = \delta^\top H_F \delta + \mu\,(e_j^\top \delta - (q_j - w_j))$. Its gradient in $\delta$, $2 H_F \delta + \mu e_j$, vanishes at $\delta = -\frac{\mu}{2} H_F^{-1} e_j$. The constraint gives $-\frac{\mu}{2}\,[H_F^{-1}]_{jj} = q_j - w_j$, that is $\frac{\mu}{2} = -\frac{q_j - w_j}{[H_F^{-1}]_{jj}}$, hence $\delta = \frac{q_j - w_j}{[H_F^{-1}]_{jj}} H_F^{-1} e_j$, which is the stated expression. The increase is $\delta^\top H_F \delta = \frac{(q_j - w_j)^2}{[H_F^{-1}]_{jj}^2}\, e_j^\top H_F^{-1} H_F H_F^{-1} e_j = \frac{(q_j - w_j)^2}{[H_F^{-1}]_{jj}}$. $H_F$ being positive definite, it is a minimum. This is the Optimal Brain Surgeon lemma~\cite{hassibi1992obs}, applied to quantisation by OBC and GPTQ~\cite{frantar2022obc,frantar2022gptq}.
+\end{proof}
+
+\paragraph{The sequential rule, through a single factor.} In the order of the columns $1, \ldots, C$, the free set at step $j$ is $F_j = \{j, \ldots, C\}$. The quantities $[H_{F_j}^{-1}]_{jj}$ and $[H_{F_j}^{-1}]_{F_j j}$ are read in the upper Cholesky factor $U$ of $H^{-1}$ ($U^\top U = H^{-1}$): $[H_{F_j}^{-1}]_{jj} = U_{jj}^2$, and the correction of the following columns is $-\frac{w_j - q_j}{U_{jj}}\, U_{j, F_j}$ (GPTQ). The factor is computed by a single factorisation.
+
+\begin{lemme}[The Cholesky factor of $H^{-1}$ by reversal]\label{t3ecl:lem:chol}
+Let $P$ be the permutation that reverses the order of the columns. If $PHP = LL^\top$, $L$ lower triangular with positive diagonal, then $U = P L^{-1} P$ is upper triangular with positive diagonal and $U^\top U = H^{-1}$: it is the upper Cholesky factor of $H^{-1}$.
+\end{lemme}
+
+\begin{proof}
+$P = P^\top = P^{-1}$. From $PHP = LL^\top$ comes $H = (PLP)(PLP)^\top = VV^\top$ with $V = PLP$, \emph{upper} triangular (reversing the order of the rows and columns of a lower triangular matrix makes it upper triangular). Then $H^{-1} = V^{-\top} V^{-1} = U^\top U$ with $U = V^{-1} = P L^{-1} P$, upper triangular as the inverse of an upper triangular matrix, with diagonal $1/L_{C+1-i,\,C+1-i} > 0$. The Cholesky factor with positive diagonal is unique: it is $U$.
+\end{proof}
+
+The cost is $n^3/3$ (Cholesky) plus $n^3/3$ (triangular inverse), instead of $n^3$ (inverse) plus $n^3/3$ \calc; the tool checked it against the direct computation, relative gap $7\cdot10^{-14}$ (\fichier{outils/genome/eclaireur/synonyme.py}, \texttt{facteur\_inverse}) \mes.
+
+\paragraph{The entropy constraint.} The symbol $k$ of column $j$ minimises
+\begin{equation}\label{t3ecl:eq:lagrange}
+\bigl(|w_j| - c_k\, s_{b(j)}\bigr)^2 + \lambda\, \bar c\, U_{jj}^2\, \ell(k), \qquad \ell(k) = -\log_2 p(k),
+\end{equation}
+$p$ being the law of the symbols of the frontier base of the tensor, $\bar c$ the mean error per weight of the frontier in the units of $H$. Divided by $U_{jj}^2$, this is, by~\eqref{t3ecl:eq:obs}, ``increase of the output error $+\,\lambda\,\bar c$ bits'': $\lambda$ is the price of a bit in units of frontier error. With $\lambda = 0$, it is feedback alone.
+
+\paragraph{The decoder does not change.} Same eight symbols, same four centres, same scales: the mechanism lives entirely in the coder, and its cost of transcription is zero.
+
+\begin{proposition}[The control that can fail: $H = I$ reproduces the frontier]\label{t3ecl:prop:temoin}
+If $H = I$ and $\lambda = 0$, the synonymous mutation chooses, for each weight, the symbol of the frontier base.
+\end{proposition}
+
+\begin{proof}
+With $H = I$, $H^{-1} = I$ and $U = I$: no correction is carried over, and each weight chooses the centre nearest to $|w_j|/s_{b(j)}$, with the sign of $w_j$. The centres are the centroids of a \emph{contiguous} partition of the magnitudes, $\{0,\,0.5\}$, $\{1,\,1.5,\,2\}$, $\{3,\,4\}$, $\{6\}$, with centres $0.237$; $1.424$; $3.419$; $6$. The Voronoi boundaries, midpoints of two neighbouring centres, are $0.831$; $2.421$; $4.709$ \calc. Each magnitude falls into the cell of its class: $0.5 < 0.831 < 1$, $2 < 2.421 < 3$, $4 < 4.709 < 6$. The symbol chosen is therefore that of the frontier function.
+\end{proof}
+
+Measured (control T1): 0 symbols different out of 8\,294\,400; with the real $H$, 1\,789\,132 \mes.
+
+\subsection{The protocol}
+
+Experts: layers 0, 8, 16 and 23, experts 0, 4, \ldots, 28 (96 matrices, 796 million weights); later passes on subsets declared before them. Calibration: windows 10 to 21; held-out evaluation: windows 0 to 9; output errors weighted by $g^2$. The \emph{expert} output error replaces the three matrices at once, with the bounded SwiGLU of gpt-oss between them. \textbf{Criterion, declared beforehand} (head of \texttt{synonyme.py}): rate at most that of the frontier, with the same estimator, \emph{and} expert output error lower on each of the two halves of the evaluation and in each of the four layers.
+
+\subsection{The first failure, and its reason: overfitting}
+
+The declared pass ($\lambda = 0$, $\delta = 0.01$, the damping of GPTQ: $H + \delta\,\overline{\mathrm{diag}\,H}\, I$) \textbf{does not beat} the frontier: rate 2.6789 bits ($H_0$) against 2.6381, and, on the evaluation, layer 0 is worse (0.094 and 0.067 expert output error, halves 1 and 2, against 0.059 and 0.052; \fichier{passes/synonyme-lam0-damp0.01.json}) \mes.
+
+The diagnosis, with hypothesis and predictions declared beforehand (\fichier{journaux/diagnostic-L0-E0.json}), explains it by a number. Each expert receives only about 766 calibration inputs in dimension 2\,880: the estimated covariance has rank at most 766, and the feedback pushes the error into the 2\,100 or so directions that the sample does not see, but that the evaluation excites. \Cref{t3ecl:tab:diagnostic} shows it on the gate matrix of expert 0, layer 0.
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X@{}}
+\toprule
+Gate matrix, layer 0, expert 0 & calibration inputs & output error, calibration & output error, evaluation \\
+\midrule
+frontier base & --- & 3.40\,\% & 3.49\,\% \\
+synonym, $\delta = 0.01$ & 762 & 0.21\,\% & 4.38\,\% \\
+synonym, $\delta = 0.1$ & 762 & 0.28\,\% & 3.27\,\% \\
+synonym, $\delta = 1$ & 762 & 0.72\,\% & 2.74\,\% \\
+synonym, $\delta = 10$ & 762 & 1.70\,\% & 2.82\,\% \\
+synonym, $\delta = 0.01$, half calibration & 381 & 1.61\,\% & 4.01\,\% \\
+synonym, $\delta = 1$, half calibration & 381 & 1.39\,\% & 2.82\,\% \\
+\bottomrule
+\end{tabularx}
+\caption[The diagnosis of overfitting]{The diagnosis of overfitting, gate matrix of expert 0, layer 0 (499 evaluation positions) \mes. Data: \fichier{mesures/genome/etat-de-l-art/journaux/diagnostic-L0-E0.json} (the proposed figure III-2.3 is not drawn).}
+\label{t3ecl:tab:diagnostic}
+\end{table}
+
+Predictions (1) and (2) hold: the gap between calibration and evaluation exists, and it narrows as $\delta$ grows. Prediction (3) \textbf{fails}: with half the inputs, the evaluation does not get worse (4.01\,\% against 4.38\,\% at $\delta = 0.01$; 2.82\,\% against 2.74\,\% at $\delta = 1$). The defect is therefore not first the number of inputs, it is the lack of regularisation of $H$: at $\delta = 0.01$, the feedback trusts badly estimated directions, whatever the size of the sample in this range. Over the 96 matrices, the median ratio of synonym to frontier is 0.044 in calibration and 0.84 in evaluation. \emph{The synonym of a sample is not the synonym of the law.}
+
+\paragraph{Choosing $\delta$ without looking at the evaluation.} Procedure declared beforehand (\fichier{journaux/choix-delta.json}): expert 2 of the four layers, outside the measured experts; the calibration cut in two (windows 10 to 15 to fit, 16 to 21 to judge); $\delta \in \{0.1,\ 0.3,\ 1,\ 3,\ 10\}$. Mean ratio of output error, synonym to frontier: 0.623; 0.563; \textbf{0.538}; 0.553; 0.589 \mes. Hence $\delta^\ast = 1$: $H + \overline{\mathrm{diag}\,H}\, I$, the measured covariance pulled towards isotropy with equal weight.
+
+\subsection{The results}
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabular}{l r r l}
+\toprule
+& Frontier & Synonym $\lambda = 0$ & Ratio \\
+\midrule
+rate $H_0$ of the symbols (bits) & 2.6381 & 2.6488 & $+0.011$ \\
+rate $H(\text{symbol}\mid\kappa)$ & 2.5953 & 2.6079 & $+0.013$ \\
+relative error on the weights (gate, up, down) & 4.40 / 4.25 / 4.40\,\% & 4.71 / 4.55 / 4.76\,\% & $\times 1.07$ \\
+output error of the matrices, evaluation & 3.16 / 3.60 / 2.89\,\% & 1.72 / 1.99 / 2.21\,\% & median $\times 0.59$ \\
+expert output error, halves 1 / 2 & 3.03 / 2.53\,\% & \textbf{0.84 / 0.65\,\%} & $\times 0.28$ / $\times 0.26$ \\
+\quad layer 0 & 5.85 / 5.19\,\% & 5.10 / 4.12\,\% & \\
+\quad layer 8 & 13.57 / 15.19\,\% & 5.96 / 6.62\,\% & \\
+\quad layer 16 & 7.87 / 8.47\,\% & 3.65 / 3.69\,\% & \\
+\quad layer 23 & 3.01 / 2.51\,\% & 0.83 / 0.64\,\% & \\
+experts improved & --- & 32 out of 32 & median $\times 0.67$ \\
+\bottomrule
+\end{tabular}
+\caption[The synonymous mutation without entropy constraint]{The synonymous mutation, $\lambda = 0$, $\delta^\ast = 1$, 8 experts per layer \mes. Data: \fichier{mesures/genome/etat-de-l-art/passes/synonyme-lam0-damp1.json} and \texttt{.csv}.}
+\label{t3ecl:tab:lam0}
+\end{table}
+
+\paragraph{$\lambda = 0$.} The output error falls everywhere (\cref{t3ecl:tab:lam0}), but the rate rises by 0.011 bit: under the strict declared criterion (rate at most that of the frontier), $\lambda = 0$ does not yet win. Hence the entropy constraint.
+
+\begin{table}[tbp]
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedright\arraybackslash}X@{}}
+\toprule
+& Frontier (same experts) & \textbf{Synonym $\lambda = 1$} & Gap \\
+\midrule
+rate $H_0$ of the symbols (bits) & 2.6415 & \textbf{2.5634} & $\mathbf{-0.078}$ \\
+rate $H(\text{symbol}\mid\kappa)$ & 2.5989 & 2.5232 & $-0.076$ \\
+rate read, $H_0$ + scales (0.0375) & 2.679 & \textbf{2.601} & $-0.078$ \\
+relative error on the weights & 4.26 / 4.20 / 4.44\,\% & 4.83 / 4.59 / 5.20\,\% & higher \\
+output error of the matrices, evaluation & 3.18 / 3.48 / 2.72\,\% & 1.78 / 1.94 / 2.09\,\% & median $\times 0.60$ (43 out of 48) \\
+expert output error, halves 1 / 2 & 3.94 / 3.14\,\% & \textbf{1.18 / 0.74\,\%} & $\times 0.30$ / $\times 0.24$ \\
+\quad layer 0 & 5.50 / 4.87\,\% & 5.32 / 4.29\,\% & $\times 0.97$ / $\times 0.88$ \\
+\quad layer 8 & 26.80 / 25.11\,\% & 10.70 / 10.44\,\% & $\times 0.40$ / $\times 0.42$ \\
+\quad layer 16 & 4.92 / 5.14\,\% & 2.98 / 3.11\,\% & $\times 0.61$ / $\times 0.61$ \\
+\quad layer 23 & 3.92 / 3.12\,\% & 1.17 / 0.73\,\% & $\times 0.30$ / $\times 0.23$ \\
+experts improved & --- & 14 out of 16 & median $\times 0.73$, worst $\times 1.10$ \\
+exact complement $H(\text{code}\mid\text{symbol})$ & 1.219 & 1.689 & $+0.47$ \\
+\bottomrule
+\end{tabularx}
+\caption[The synonymous mutation under entropy constraint]{The synonymous mutation, $\lambda = 1$, $\delta^\ast = 1$, experts 0, 8, 16 and 24 of each layer (subset declared before the pass), against the frontier redone on the same experts \mes. Data: \fichier{passes/synonyme-lam1-damp1-e0\_8\_16\_24.json}, \fichier{passes/frontiere-lam0-damp0.01-e0\_8\_16\_24.json}.}
+\label{t3ecl:tab:lam1}
+\end{table}
+
+\paragraph{$\lambda = 1$.} Under the criterion declared beforehand (\cref{t3ecl:tab:lam1}), \textbf{8 cells out of 8} (two halves, four layers), at 0.078 bit less: \textbf{the synonymous mutation beats the lossy frontier}. The thinnest margin is layer 0 ($\times 0.97$ on half 1).
+
+\paragraph{What this says about the structure.} The error on the weights \emph{rises} (from 4.3 to 4.9\,\%) while the output error is divided by three to four. The exploitable structure is not in the weights, it is in the \emph{inputs}; the weights are noise seen by themselves, and a base whose error is stored in the silent directions of the inputs costs less. This is the conclusion of \cref{t3que:sec:prediction}, measured.
+
+\paragraph{The price, in one number.} The exact complement behind the base costs 1.689 bits instead of 1.219: the base is no longer a function of the code ($H(\text{base}\mid\text{code}) > 0$). Read in two levels, the exact expert would cost $2.564 + 1.689 = 4.25$ bits instead of 3.86 \calc: \emph{the synonymous mutation is not a level 0 of the base + complement split}. Its use is that of a \textbf{second genome}: an exact file (the canonical code, 3.706 bits) and a separate synonym base (2.60 bits read), the disk paying for the room of both (about 6.3 bits per weight stored), the engine reading only one of them per expert miss. This is the ``fast mode and exact mode'' of Stone's idea; \cref{t3sno:ch} builds it.
+
+\paragraph{The aberrant expert.} Layer 8, expert 24: modest matrix errors (frontier from 2.4 to 3.9\,\%), but an expert output error of \textbf{67.6\,\%}; synonym $\lambda = 0$: 18.9\,\% \mes. The output of this expert is small compared with its intermediate terms (compensation between the SwiGLU and down): a small relative error upstream becomes large downstream. It weighs heavily in layer 8 and is the first candidate to remain exact.
+
+\paragraph{ECSQ without feedback, and the 1-bit lead.} An entropy-constrained scalar quantiser without feedback ($\lambda = 0.5$) slides along the curve: 2.615 bits ($H_0$), expert output error 3.18 / 2.72\,\% against 3.03 / 2.53; it does not win (\fichier{passes/ecsq-lam0.5-damp0.01.json}). The synonymous mutation with one magnitude bit (4 symbols, about 1.96 bits) was launched then \emph{stopped after 2 experts} to leave the machine to the KL: 20.5 and 19.5\,\% expert output error (layer 0, experts 0 and 8) against 25.7 and 25.1\,\% for the 1-bit frontier on the same experts (\fichier{passes/synonyme1-ARRETEE-2-experts.log}). Two experts do not make a measurement: it must be redone in full.
+
+\section{The end-to-end judgement: the KL against the f64 reference}\label{t3ecl:sec:kl}
+
+\paragraph{The judge, in five sentences.} At each position $t$ of a text, a language model returns a probability law over the next token; let $p_t$ be that of the f64 reference of lot R of Volume~II (the exact model, computed in double precision) and $q_t$ that of the model in which experts have been replaced. The \textbf{KL of the position} is the Kullback--Leibler divergence~\cite{kullback1951}
+\begin{equation}\label{t3ecl:eq:kl}
+\mathrm{KL}_t = \sum_i p_{t,i} \log \frac{p_{t,i}}{q_{t,i}} \quad \text{(in nats)},
+\end{equation}
+zero when the two laws are equal, and otherwise equal, up to the cut term, to the mean extra cost, in nats per token, of predicting with $q_t$ a text drawn from $p_t$. The instrument \texttt{juge kl} sums only the tokens $i$ such that $\log p_{t,i} > -16$: those to which the reference gives less than $e^{-16} \approx 1.1\cdot10^{-7}$ \calc{} are left aside, everywhere and for all models; without renormalisation, the sum so cut can be very slightly negative. The \textbf{KL of a pass} is the mean of $\mathrm{KL}_t$ over the scored positions; here, over the ten evaluation windows of wiki.test that Volume~II calls R1, that is 2\,550 positions (255 per window). It is the judge of the whole volume: an error on the weights or at the output of an expert is only a clue to it, and \cref{t3syn:def:kl} takes it up again with its two parts, the smooth part and the tail of routing flips (\cref{t3syn:sec:juge}).
+
+\paragraph{The protocol (P1 of the round).} The \texttt{kl} subcommand of the fork, then \texttt{juge kl} of lot R of Volume~II: the 10 windows of R1 (2\,550 scored positions), the f64 reference, experts 0, 4, \ldots, 28 of layers 0, 8, 16 and 23 replaced by their base, that is \textbf{32 experts out of 768}, each served at each position that routes it, against \texttt{ref-openai-20b.kld}. The divergence~\cite{kullback1951} is read position by position, in nats; the identical first choice is given with its Wilson interval~\cite{wilson1927},
+\begin{equation}\label{t3ecl:eq:wilson}
+\frac{\hat p + \frac{z^2}{2n} \pm z\sqrt{\frac{\hat p (1-\hat p)}{n} + \frac{z^2}{4n^2}}}{1 + \frac{z^2}{n}}, \qquad z = 1.96 ;
+\end{equation}
+for $\hat p = 0.8714$ and $n = 2\,550$, it gives $[0.8578,\ 0.8838]$ \calc, the interval that the log carries. Threshold, declared beforehand: the synonymous mutation is better end to end if its mean KL is below that of the frontier \emph{and} its rate of identical first choice is above.
+
+\paragraph{Which variant was judged.} The pass was written before the result of $\lambda = 1$: it judges the variant $\lambda = 0$, $\delta^\ast = 1$, at rate $+0.011$ bit, whose output errors are of the same order. The KL was measured on the variant $\lambda = 0$, at 2.649 bits; $\lambda = 1$ (2.563 bits) was judged only by the expert output error. The synthesis of the round had to correct an attribution of this KL to $\lambda = 1$ (\cref{t3syn:sec:frontiere}). \textbf{No variant of the synonymous mutation is therefore measured both below the frontier in bits and below it in KL.}
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabular}{l r r r}
+\toprule
+2\,550 positions, 32 experts out of 768 replaced & Frontier base & \textbf{Synonym $\lambda = 0$} & Gap \\
+\midrule
+mean KL ($\pm$ uncertainty of the judge) & 0.0360 $\pm$ 0.0029 & \textbf{0.0262 $\pm$ 0.0026} & $-27\,\%$ \\
+median KL & 0.0088 & \textbf{0.0038} & $-56\,\%$ \\
+KL, 90\textsuperscript{th} percentile & 0.061 & 0.037 & $-40\,\%$ \\
+KL, 99\textsuperscript{th} percentile & 0.495 & 0.410 & $-17\,\%$ \\
+KL, 99.9\textsuperscript{th} percentile & 1.59 & 1.70 & $+7\,\%$ \\
+identical first choice (Wilson 95\,\%) & 87.1\,\% [85.8, 88.4] & \textbf{90.9\,\% [89.7, 91.9]} & disjoint \\
+perplexity (reference 460.2) & 485.9 ($+5.4\,\%$) & \textbf{468.3 ($+1.8\,\%$)} & $\div 3$ \\
+\bottomrule
+\end{tabular}
+\caption[The end-to-end KL, base against synonymous mutation]{The end-to-end KL against the f64 reference (protocol P1) \mes. Data: \fichier{mesures/genome/etat-de-l-art/journaux/kl-frontiere-juge.json}, \fichier{kl-synonyme-d1-juge.json}; position by position: \fichier{kl-*-positions.csv}.}
+\label{t3ecl:tab:kl}
+\end{table}
+
+\paragraph{The declared threshold holds} (\cref{t3ecl:tab:kl}): lower mean KL, higher first choice, disjoint Wilson intervals. The scout had compared the two means without pairing them (gap of 0.0098, about 3.6 times the uncertainty of a mean). The synthesis paired them position by position, from the committed CSVs (\fichier{mesures/genome/construction/synthese/apparie-eclaireur.json}) \calc~on \mes. Its control, declared beforehand, recomputes each mean KL to within $10^{-12}$ (0.036\,013\,763\,948 on both sides, gap $1.8\cdot10^{-13}$) and its break (a line removed) fails. The paired difference, synonym minus base, is \textbf{$-0.009\,845$}; naive standard deviation 0.001\,90 (5.2\,$\sigma$), standard deviation by blocks of windows, which respects the correlation of the positions of a same window (they share their past, hence their flips), \textbf{0.003\,34, that is 2.9\,$\sigma$}. 2\,060 positions out of 2\,550 (80.8\,\%) have less KL with the synonymous mutation; the identical first choice rises by $3.73 \pm 0.59$ points. The derivation of the two uncertainties is in \cref{t3jug:ch}.
+
+\paragraph{What the tail says.} The 99.9\textsuperscript{th} percentile does not fall (1.59 $\to$ 1.70). The positions most affected are those where the routing flips (the R1 judgement of Volume~II: routing flips are the first amplifier of a perturbation), and a better base does not remove them. \Cref{t3syn:ch} makes them the second part of the KL, and \cref{t3tro:ch} measures it.
+
+\paragraph{What the KL says about the frontier itself.} Replacing 32 experts out of 768 (4\,\% of the experts, in 4 layers out of 24) by the 2.64-bit base already costs a KL of 0.036, six times the threshold of architecture B (0.0055, fondations/07 §\,4.2); the synonymous mutation brings it down to 0.026, still four times above. The base, even a synonym one, is a \textbf{fast mode} or a \textbf{draft}, not a silent replacement for the exact mode.
+
+\section{The verdict}\label{t3ecl:sec:verdict}
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{3.3cm} >{\raggedright\arraybackslash}p{2.6cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{2.6cm}}
+\toprule
+Mechanism & Bits per weight read & Error & Verdict at the declared threshold \\
+\midrule
+lossless frontier (F1) & 3.8431 & 0 & reference \\
+\textbf{zero-synonym codon} & \textbf{3.7061} (real rANS, 12 tensors); $-0.128$ on the whole 20b, $-0.126$ on the whole 120b & \textbf{0}: bit-identical logits; \texttt{.kld} equal byte for byte & \textbf{beats the lossless frontier} (threshold 0.05) \\
+frontier base (07, F1) & 2.6441 (rANS); 2.679 ($H_0$ + scales) & weights 4.29\,\%; expert output 3.9 / 3.1\,\% (16 experts) & reference \\
+frontier base on canonical code, hashed sign & 2.5965 (real rANS) & weights 4.29\,\%; output not measured & equal in weights at $-0.048$ bit; not judged \\
+ECSQ $\lambda = 0.5$, without feedback & 2.615 ($H_0$) & expert output 3.18 / 2.72\,\% against 3.03 / 2.53 & does not win \\
+synonym $\lambda = 0$, $\delta = 0.01$ (declared) & 2.679 ($H_0$) & expert output 1.03 / 0.79\,\%; layer 0 worse & \textbf{does not win} \\
+synonym $\lambda = 0$, $\delta^\ast = 1$ & 2.649 ($H_0$) & expert output 0.84 / 0.65\,\%; KL 0.0262 against 0.0360 & wins in error and in KL; not under the strict criterion ($+0.011$ bit) \\
+\textbf{synonym $\lambda = 1$, $\delta^\ast = 1$} & \textbf{2.563 ($H_0$), $-0.078$} & \textbf{expert output 1.18 / 0.74\,\% against 3.94 / 3.14\,\%}, 8 cells out of 8; KL not measured & \textbf{beats the lossy frontier} \\
+\bottomrule
+\end{tabularx}
+\caption[The verdict of the scout]{The verdict of the scout \mes. Source: \fichier{genome/01-eclaireur.md} §\,7, with the correction of \fichier{genome/05-synthese.md} §\,0 (the KL belongs to $\lambda = 0$).}
+\label{t3ecl:tab:verdict}
+\end{table}
+
+Seen from the weights, gpt-oss is noise: codes independent to within 0.005 bit, sign of the zeros at 1.0000 bit of entropy, and a rate--distortion bound that only a better quantiser or a vector code approaches, with nothing to ``generate''. The two mechanisms that win (\cref{t3ecl:tab:verdict}) add no structure to the weights: the first \textbf{removes information that the computation never reads}, the second \textbf{moves the error to where the real inputs do not see it}. Both are, in the sense of the analogy, synonyms: differences of code without difference of phenotype. The rest of the round took up both: the first enters the format (\cref{t3cod:ch}), the second becomes a second file (\cref{t3sno:ch}).
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{The zero codon and the fingerprint of the experts.} The \texttt{.trc} format checks the fingerprint of each decoded expert against the bytes of the GGUF; a canonical expert has other bytes. A fingerprint of the canonical code is needed: a decision of format, which \cref{t3cod:ch} takes.
+\item \textbf{Bit exactness} is proved for an IEEE dot product in fixed order and measured on the f64 reference (24 tokens at the logit, 2\,550 positions at the fingerprint of the \texttt{.kld}); for the kernels of the engine, it is proposition A1 of \cref{t3cod:ch} and its measurement.
+\item \textbf{The subset.} 4 layers out of 24, 8 then 4 experts out of 32 per layer; the gain of the synonymous mutation varies a great deal from one layer to another ($\times 0.97$ to $\times 0.23$); a layer where it would reverse is not excluded. The KL substitutes only 32 experts out of 768.
+\item \textbf{The rate estimator} of the synonymous mutation is the entropy ($H_0$ or $H\mid\kappa$), not a real coder. For the frontier, the real coder gives 2.6441 against $2.6066$ + scales; nothing indicates that the gap is different for the synonym symbols, but it is not measured.
+\item \textbf{$\delta^\ast$} was chosen on expert 2 of the four layers: other experts than those measured, but of the same layers.
+\item \textbf{The calibration and the evaluation} come from the same corpus (wiki.test), disjoint windows; an evaluation on another domain (code, dialogue) could reduce the gain.
+\item \textbf{The two comparisons} are made on different subsets ($\lambda = 1$ on 4 experts per layer, $\lambda = 0$ on 8), each against its own frontier.
+\item \textbf{The KL judges $\lambda = 0$, not $\lambda = 1$}: the 0.078-bit gain of $\lambda = 1$ is judged only by the expert output error, and the round showed that this error does not predict the KL (\cref{t3syn:ch}).
+\item \textbf{The bound of \cref{t3que:sec:frontiere}} assumes the codes independent given the scale; an unmeasured dependency would lower it.
+\end{itemize}
+\end{faux}

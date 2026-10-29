@@ -1,0 +1,125 @@
+% Sources du lot O (moteur), étape O1 : cache d'experts et simulateur (trc-cache).
+% Consultées le 2026-10-15 ; titre, auteurs, revue, volume, numéro, pages et année relus dans les
+% métadonnées Crossref de chaque DOI (https://api.crossref.org/works/<doi>), source primaire de
+% l'éditeur. Le cache d'experts LRU de Mixtral-offloading est déjà cité par l'étude 04
+% (clé mixtraloffload2023 dans 04-chargement.bib) : non dupliqué ici.
+
+% belady1966 : entrée unique dans commun.bib (chargé avant ce fichier) ;
+% doublon retiré par l'intégrateur du Tome II le 2026-10-16 (biber « Duplicate »).
+
+@article{mattson1970,
+  author       = {Mattson, R. L. and Gecsei, J. and Slutz, D. R. and Traiger, I. L.},
+  title        = {Evaluation techniques for storage hierarchies},
+  journaltitle = {IBM Systems Journal},
+  volume       = {9},
+  number       = {2},
+  pages        = {78--117},
+  date         = {1970},
+  doi          = {10.1147/sj.92.0078},
+  url          = {https://doi.org/10.1147/sj.92.0078},
+  urldate      = {2026-10-15},
+  note         = {Les algorithmes à pile (le contenu à la capacité C est inclus dans celui à C' > C) : LRU et MIN en sont ; c'est la propriété qui rend l'étage RAM inclusif de trc-cache égal à un cache unique de sa taille (lemme 2 du lot O).}
+}
+
+% ---- Étapes O2 à O4 (trc-modele, trc-ordo, troncons), consultées le 2026-10-15.
+
+@online{openai2025gptosscarte,
+  author       = {{OpenAI}},
+  title        = {gpt-oss-120b \& gpt-oss-20b Model Card},
+  date         = {2025-08-08},
+  eprint       = {2508.10925},
+  eprinttype   = {arXiv},
+  url          = {https://arxiv.org/abs/2508.10925},
+  urldate      = {2026-10-15},
+  note         = {Version 1, seule version. Le modèle que sert troncons : couches à fenêtre de 128 alternées, puits d'attention, MoE top-4, format de conversation harmony.}
+}
+
+@software{openai2025harmony,
+  author       = {{OpenAI}},
+  title        = {harmony : renderer for the harmony response format to be used with gpt-oss},
+  url          = {https://github.com/openai/harmony},
+  urldate      = {2026-10-15},
+  note         = {Apache-2.0. Jetons <|start|>, <|message|>, <|end|>, canaux analysis, commentary, final ; la conversation du § 8 point 6 est construite d'après ce format, les identifiants des jetons spéciaux retrouvés par leur texte dans le vocabulaire du GGUF.}
+}
+
+@manual{nvidia2026driverstream,
+  author       = {{NVIDIA}},
+  title        = {CUDA Driver API Reference Manual, v13.4 : Stream Management (cuStreamWaitEvent)},
+  date         = {2026-10-12},
+  url          = {https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html},
+  urldate      = {2026-10-15},
+  note         = {« Makes all future work submitted to hStream wait for all work captured in hEvent » : la sémantique sur laquelle repose l'ordre sûr des trois flux de trc-ordo (lemme 4).}
+}
+
+@manual{microsoft2024processmemorycounters,
+  author       = {{Microsoft}},
+  title        = {PROCESS\_MEMORY\_COUNTERS structure (psapi.h)},
+  date         = {2024-02-22},
+  url          = {https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-process_memory_counters},
+  urldate      = {2026-10-15},
+  note         = {PeakWorkingSetSize, l'ensemble de travail de pointe : la grandeur du critère C7 ; PagefileUsage, la charge engagée, publiée à côté.}
+}
+
+% ---- Ronde de corrections après l'épreuve J1 (2026-10-16). Pages Microsoft Learn lues le
+% 2026-10-16 (champ updated_at de la page : date de mise à jour) ; normes citées par leur DOI.
+
+@online{ms-jobobject-limit,
+  author       = {{Microsoft}},
+  title        = {{JOBOBJECT\_BASIC\_LIMIT\_INFORMATION} structure (winnt.h)},
+  url          = {https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_basic_limit_information},
+  date         = {2024-02-22},
+  urldate      = {2026-10-16},
+  note         = {JOB\_OBJECT\_LIMIT\_KILL\_ON\_JOB\_CLOSE : tous les processus de la tâche meurent à la fermeture de sa dernière poignée ; l'enfant nvidia-smi de l'échantillonneur (constat G2).}
+}
+
+@online{ms-createprocess,
+  author       = {{Microsoft}},
+  title        = {{CreateProcessW} function (processthreadsapi.h)},
+  url          = {https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw},
+  date         = {2025-07-01},
+  urldate      = {2026-10-16},
+  note         = {bInheritHandles = TRUE : chaque poignée héritable du parent passe à l'enfant ; la cause du tuyau tenu par l'orphelin (G2) ; d'où les poignées standard rendues non héritables.}
+}
+
+@online{ms-terminateprocess,
+  author       = {{Microsoft}},
+  title        = {{TerminateProcess} function (processthreadsapi.h)},
+  url          = {https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-terminateprocess},
+  date         = {2026-01-07},
+  urldate      = {2026-10-16},
+  note         = {Arrêt sans notification des bibliothèques (contrairement à ExitProcess), annulation des E/S en cours ; la sortie sur erreur sans destruction du moteur (G1).}
+}
+
+@techreport{fips180-4,
+  author       = {{National Institute of Standards and Technology}},
+  title        = {Secure Hash Standard ({SHS})},
+  type         = {Federal Information Processing Standards Publication},
+  number       = {180-4},
+  date         = {2015-08},
+  doi          = {10.6028/NIST.FIPS.180-4},
+  url          = {https://doi.org/10.6028/NIST.FIPS.180-4},
+  urldate      = {2026-10-16},
+  note         = {SHA-256, dont le préfixe de 64 bits est l'empreinte64 du format ; la garde de production (M1).}
+}
+
+@standard{ieee754-2019,
+  author       = {{IEEE}},
+  title        = {{IEEE} Standard for Floating-Point Arithmetic ({IEEE} Std 754-2019)},
+  date         = {2019},
+  doi          = {10.1109/IEEESTD.2019.8766229},
+  url          = {https://doi.org/10.1109/IEEESTD.2019.8766229},
+  urldate      = {2026-10-16},
+  note         = {binary16 (11 bits de précision : u = 2\textsuperscript{-11}) et binary32 (u = 2\textsuperscript{-24}) ; l'arrondi du cache KV (M5).}
+}
+
+@book{higham2002,
+  author       = {Higham, Nicholas J.},
+  title        = {Accuracy and Stability of Numerical Algorithms},
+  edition      = {2},
+  publisher    = {SIAM},
+  date         = {2002},
+  doi          = {10.1137/1.9780898718027},
+  url          = {https://doi.org/10.1137/1.9780898718027},
+  urldate      = {2026-10-16},
+  note         = {Bornes d'erreur d'un produit scalaire (gamma_n = n u / (1 − n u)) ; § 13.3 de O-pour-le-memoire.}
+}

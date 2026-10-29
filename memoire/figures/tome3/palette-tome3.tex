@@ -1,0 +1,188 @@
+% =====================================================================================================
+% Le dictionnaire des couleurs du Tome III (JUGEMENT-figures-design.md § 2.1, décision du juge de design
+% du 2026-10-27, réponse par délégation, réversible ; raison : un lecteur apprend une couleur une fois par
+% tome). Chaque entité récurrente a un nom sémantique, défini à partir des couleurs du préambule
+% (memoire/commun/preambule.tex) ; aucune valeur HTML n'est tapée ici. Une figure du Tome III n'emploie
+% plus SerieA... SerieF pour une entité de ce dictionnaire : elle emploie le nom sémantique. Une couleur
+% hors dictionnaire reste permise à l'intérieur d'une seule figure, si sa légende la dit.
+%
+% Les paires que les figures demandent de distinguer sont chiffrées par memoire/outils/tome3_palette.py
+% (ΔE CIE76 en vision normale, deutéranope, protanope et en gris, par les fonctions de l'outil du juge,
+% outils/genome/tome3/juge-design/palette.py, lu sans être modifié). Résultats :
+% \Racine/figures/tome3/donnees/palette-tome3-paires.csv. Critère (seuils du juge, § 2.2) : une paire
+% tient si ΔE ≥ 5 en gris et ΔE ≥ 10 en vision deutéranope. Cinq écarts au dictionnaire du juge, chacun
+% pour une paire qui tombait (le détail et les chiffres : memoire/tome3/CONVENTIONS-figures.md § 2) :
+%   - la base frontière (trait) passe de SerieF à SerieF!60 : frontière contre λ = 0 en gris, 0,9 → 19,6 ;
+%   - S* passe de SerieE à SerieE!70 : S* contre le synonyme, 7,3 en deutéranope et 4,3 en gris → 27 et 21 ;
+%   - les fenêtres neuves passent de SerieE à SerieE!70 : R1 contre neuves, 7,3 et 4,3 → 27 et 21 ;
+%   - la v1.0 passe de black!35 à black!25 : v1.0 contre v1.2 en gris, 4,6 → 13,8 ;
+%   - « mieux que la base » passe de Mant!8 à Mant!12, et « hors domaine » (black!6) prend des hachures :
+%     les deux fonds ne se séparaient en gris ni l'un de l'autre (1,4) ni du papier (Mant!8 : 3,8).
+% Une entité ajoutée au dictionnaire : le brin du génome (III-3.6, III-7.4), rouge ou bleu selon la figure
+% (D7 du juge ronde) ; il prend Disque (brun), qui tient contre la base, S* et l'encre. Les quatre
+% catégories de la version minimale de III-7.6 (G2) passent de SerieA, SerieD, Encre, SerieE à SerieA,
+% SerieC, Encre, SerieE!70 : SerieA contre SerieE tombait (7,3 et 4,3), SerieD contre SerieE!70 aussi.
+% Les fonds pâles ne se séparent pas par la couleur seule (ni du papier, ni l'un de l'autre) : le hors
+% domaine porte toujours ses hachures, la zone gagnante toujours son bord (le seuil, en t3 seuil).
+%
+% Gardé par \ifdefined\PaletteTomeTrois. Chargé par legende-tome3.tex, ou seul.
+% =====================================================================================================
+
+\ifdefined\PaletteTomeTrois\else
+\newcommand{\PaletteTomeTrois}{2026-10-27}
+
+% --- Le dictionnaire --------------------------------------------------------------------------------
+% Le signe : seul sens du rouge plein.
+\colorlet{CouleurSigne}{Signe}              % bit de signe, valeur négative (III-1.1, III-8.1, III-8.7)
+% Les variantes et leurs repères.
+\colorlet{CouleurFrontiere}{SerieF!60}      % base frontière F1, en trait (ajusté : SerieF -> SerieF!60)
+\colorlet{CouleurFrontiereMarque}{SerieF!50!black} % base frontière, en point : losange gris foncé
+\colorlet{CouleurSynonyme}{SerieA}          % synonyme λ = 1 (lot B)
+\colorlet{CouleurLambdaUn}{CouleurSynonyme} % le même, sous son autre nom
+\colorlet{CouleurLambdaZero}{SerieC}        % synonyme λ = 0
+\colorlet{CouleurQdeux}{SerieD}             % llama.cpp Q2_0
+\colorlet{CouleurExact}{Encre}              % moteur exact, poids exacts, référence
+\colorlet{CouleurSetoile}{SerieE!70}        % S* (ajusté : SerieE -> SerieE!70)
+\colorlet{CouleurBrin}{Disque}              % le brin du génome (ajouté)
+% Les deux modèles : seul autre usage permis du rouge, toujours doublé d'une forme.
+\colorlet{CouleurVingtB}{SerieA}            % gpt-oss-20b, cercle
+\colorlet{CouleurCentVingtB}{SerieB}        % gpt-oss-120b, losange
+% Le format et son compagnon (III-8.6).
+\colorlet{CouleurVunZero}{black!25}         % v1.0 (ajusté : black!35 -> black!25)
+\colorlet{CouleurVunDeux}{Echelle}          % v1.2 : la couleur du rayon fondu de III-8.1
+\colorlet{CouleurCompagnon}{SerieF}         % compagnon rapide
+% Les deux jeux de fenêtres (III-9.3, III-10.1, III-10.3), toujours doublés d'une forme.
+\colorlet{CouleurRun}{SerieA}               % R1, cercle
+\colorlet{CouleurNeuves}{SerieE!70}         % fenêtres neuves, losange (ajusté : SerieE -> SerieE!70)
+% Ce qui se déclare ou se contrôle : l'encre, distinguée par le trait.
+\colorlet{CouleurSeuil}{Encre}              % seuil ou règle déclarée : tirets
+\colorlet{CouleurTemoin}{Encre}             % témoin : trait long et point
+\colorlet{CouleurCassure}{Encre}            % cassure d'un témoin : croix
+% Les fonds.
+\colorlet{CouleurGagne}{Mant!12}            % « mieux que la base », zone gagnante (ajusté : Mant!8 -> Mant!12)
+\colorlet{CouleurHorsDomaine}{black!6}      % hors du domaine mesuré ; toujours avec ses hachures
+\colorlet{CouleurHachures}{black!22}        % les hachures du hors domaine
+% Quatre catégories sans ordre (version minimale de III-7.6, G2), vérifiées deux à deux.
+\colorlet{CouleurCategorieA}{SerieA}
+\colorlet{CouleurCategorieB}{SerieC}
+\colorlet{CouleurCategorieC}{Encre}
+\colorlet{CouleurCategorieD}{SerieE!70}
+\colorlet{CouleurAutres}{black!12}          % le reste d'un nuage, derrière les catégories
+
+% --- Les styles de série (préfixe t3) : couleur, trait et marque ensemble ------------------------------
+% Une paire qui tombe en gris se sépare par le trait ; une marque double toujours la couleur des points.
+% Les styles s'emploient dans \addplot et dans \draw. « t3 X » trace la ligne, « t3 X point » la marque.
+\tikzset{
+  t3 frontiere/.style={draw=CouleurFrontiere, line width=1.3pt, solid},
+  t3 frontiere point/.style={mark=diamond*, mark size=2.8pt,
+    mark options={solid, fill=CouleurFrontiereMarque, draw=CouleurFrontiereMarque}},
+  t3 synonyme/.style={draw=CouleurSynonyme, line width=0.9pt, dash pattern=on 4pt off 2pt},
+  t3 synonyme point/.style={mark=*, mark size=2pt,
+    mark options={solid, fill=CouleurSynonyme, draw=CouleurSynonyme}},
+  t3 lambda zero/.style={draw=CouleurLambdaZero, line width=0.9pt,
+    dash pattern=on 4pt off 1.5pt on 1pt off 1.5pt},
+  t3 lambda zero point/.style={mark=square*, mark size=1.8pt,
+    mark options={solid, fill=CouleurLambdaZero, draw=CouleurLambdaZero}},
+  t3 qdeux/.style={draw=CouleurQdeux, line width=1.1pt, dash pattern=on 1pt off 1.5pt},
+  t3 qdeux point/.style={mark=pentagon*, mark size=2.2pt,
+    mark options={solid, fill=CouleurQdeux, draw=CouleurQdeux}},
+  t3 exact/.style={draw=CouleurExact, line width=0.9pt, solid},
+  t3 exact point/.style={mark=triangle*, mark size=2.3pt,
+    mark options={solid, fill=CouleurExact, draw=CouleurExact}},
+  t3 setoile/.style={draw=CouleurSetoile, line width=0.9pt, dash pattern=on 2.5pt off 1.2pt},
+  t3 setoile point/.style={mark=star, mark size=2.6pt,
+    mark options={solid, draw=CouleurSetoile, line width=0.8pt}},
+  t3 brin/.style={draw=CouleurBrin, line width=0.9pt, solid},
+  t3 brin point/.style={mark=halfcircle*, mark size=2.2pt,
+    mark options={solid, fill=CouleurBrin, draw=CouleurBrin}},
+  t3 vingtb point/.style={mark=*, mark size=1.8pt,
+    mark options={solid, fill=CouleurVingtB, draw=CouleurVingtB}},
+  t3 centvingtb point/.style={mark=diamond*, mark size=2.3pt,
+    mark options={solid, fill=CouleurCentVingtB, draw=CouleurCentVingtB}},
+  t3 run point/.style={mark=*, mark size=1.8pt,
+    mark options={solid, fill=CouleurRun, draw=CouleurRun}},
+  t3 neuves point/.style={mark=diamond*, mark size=2.3pt,
+    mark options={solid, fill=CouleurNeuves, draw=CouleurNeuves}},
+  % Barres (III-8.6) : le remplissage dit la version, le contour reste celui de l'encre.
+  t3 vunzero barre/.style={fill=CouleurVunZero, draw=Encre!70, line width=0.4pt},
+  t3 vundeux barre/.style={fill=CouleurVunDeux, draw=Encre!70, line width=0.4pt},
+  t3 compagnon barre/.style={fill=CouleurCompagnon, draw=Encre!70, line width=0.4pt},
+  % Ce qui se déclare : plus fin que les séries, pour ne pas leur voler l'œil.
+  t3 seuil/.style={draw=CouleurSeuil, line width=0.6pt, dash pattern=on 3pt off 2pt},
+  t3 temoin/.style={draw=CouleurTemoin, line width=0.6pt, dash pattern=on 6pt off 2pt on 1.5pt off 2pt},
+  t3 cassure point/.style={mark=x, mark size=3pt, mark options={solid, draw=CouleurCassure, line width=1pt}},
+  % Les fonds.
+  t3 gagne/.style={fill=CouleurGagne, draw=none},
+  t3 hors domaine/.style={fill=CouleurHorsDomaine, draw=none,
+    postaction={pattern=north east lines, pattern color=CouleurHachures}},
+  t3 autres point/.style={mark=*, mark size=0.6pt,
+    mark options={solid, fill=CouleurAutres, draw=CouleurAutres}},
+}
+
+% --- Le nuancier : chaque couleur du dictionnaire, telle quelle, en gris et en vision deutéranope -------
+% Les rendus en gris et en deutéranope viennent de palette-tome3-vues.tex, écrit par tome3_palette.py ;
+% le nuancier ne sert qu'aux pilotes et aux juges, il n'entre pas dans le mémoire.
+% Chaque entrée : nom de la couleur (sans « Couleur ») / sorte (trait, point, aplat, fond) / style de série
+% (« - » pour un aplat) / anglais / français. Un fond se montre avec ses hachures.
+\newcommand{\PaletteEntrees}{%
+  Signe/aplat/-/{sign bit, negative value}/{bit de signe, valeur négative},
+  Frontiere/trait/t3 frontiere/{frontier base (line)}/{base frontière (trait)},
+  FrontiereMarque/point/t3 frontiere point/{frontier base (point)}/{base frontière (point)},
+  Synonyme/trait/t3 synonyme/{synonym $\lambda = 1$}/{synonyme $\lambda = 1$},
+  LambdaZero/trait/t3 lambda zero/{synonym $\lambda = 0$}/{synonyme $\lambda = 0$},
+  Qdeux/trait/t3 qdeux/{llama.cpp Q2\_0}/{llama.cpp Q2\_0},
+  Exact/trait/t3 exact/{exact engine, reference}/{moteur exact, référence},
+  Setoile/trait/t3 setoile/{$S^{*}$}/{$S^{*}$},
+  Brin/trait/t3 brin/{genome strand}/{brin du génome},
+  VingtB/point/t3 vingtb point/{gpt-oss-20b}/{gpt-oss-20b},
+  CentVingtB/point/t3 centvingtb point/{gpt-oss-120b}/{gpt-oss-120b},
+  VunZero/aplat/-/{format v1.0}/{format v1.0},
+  VunDeux/aplat/-/{format v1.2}/{format v1.2},
+  Compagnon/aplat/-/{fast companion}/{compagnon rapide},
+  Run/point/t3 run point/{R1 windows}/{fenêtres R1},
+  Neuves/point/t3 neuves point/{new windows}/{fenêtres neuves},
+  Seuil/trait/t3 seuil/{declared threshold}/{seuil déclaré},
+  Temoin/trait/t3 temoin/{control}/{témoin},
+  Cassure/point/t3 cassure point/{broken control}/{cassure},
+  Gagne/aplat/-/{better than the base}/{mieux que la base},
+  HorsDomaine/fond/-/{outside the measured domain}/{hors du domaine mesuré},
+  CategorieA/aplat/-/{category A}/{catégorie A},
+  CategorieB/aplat/-/{category B}/{catégorie B},
+  CategorieC/aplat/-/{category C}/{catégorie C},
+  CategorieD/aplat/-/{category D}/{catégorie D}}
+% \PaletteNom{<nom>} : le nom lisible d'une entrée, dans la langue du document (légendes des pilotes).
+\newcommand{\PaletteNom}[1]{\ifcsname PaletteNom-#1\endcsname\csname PaletteNom-#1\endcsname\else#1\fi}
+\expandafter\def\csname PaletteNom-blanc\endcsname{\EF{paper}{papier}}
+\foreach \nom/\sorte/\style/\en/\fr in \PaletteEntrees {%
+  \edef\PaletteTmp{\noexpand\gdef\expandafter\noexpand\csname PaletteNom-\nom\endcsname
+    {\noexpand\EF{\unexpanded\expandafter{\en}}{\unexpanded\expandafter{\fr}}}}\PaletteTmp}
+\def\PaletteSorteTrait{trait}\def\PaletteSortePoint{point}\def\PaletteSorteFond{fond}
+\newcommand{\NuancierPalette}{%
+\IfFileExists{\Racine/figures/tome3/donnees/palette-tome3-vues.tex}%
+  {\input{\Racine/figures/tome3/donnees/palette-tome3-vues.tex}}{}%
+\begin{tikzpicture}[x=1cm, y=-0.56cm, every node/.style={font=\sffamily\scriptsize}]
+  \foreach \x/\en/\fr in {6.8/colour/couleur, 8.2/grey/gris, 9.6/deuteranope/deutéranope,
+                          11.4/{line, mark}/{trait, marque}}
+    \node[anchor=base, font=\sffamily\scriptsize\bfseries] at (\x,-0.35) {\EF{\en}{\fr}};
+  \node[anchor=base west, font=\sffamily\scriptsize\bfseries] at (0,-0.35) {\EF{entity}{entité}};
+  \node[anchor=base west, font=\sffamily\scriptsize\bfseries] at (3.65,-0.35) {\EF{name}{nom}};
+  \foreach \nom/\sorte/\style/\en/\fr [count=\i] in \PaletteEntrees {
+    \node[anchor=base west] at (0,\i-0.45) {\EF{\en}{\fr}};
+    \node[anchor=base west, text=black!55, font=\ttfamily\scriptsize] at (3.65,\i-0.45) {\nom};
+    \foreach \x/\v in {6.3/, 7.7/Gris, 9.1/Deuter}
+      \fill[Couleur\nom\v] (\x,\i-1) rectangle ++(1.0,0.82);
+    \ifx\sorte\PaletteSorteFond
+      \foreach \x/\v in {6.3/, 7.7/Gris, 9.1/Deuter}
+        \fill[pattern=north east lines, pattern color=CouleurHachures\v] (\x,\i-1) rectangle ++(1.0,0.82);
+    \fi
+    \foreach \x in {6.3, 7.7, 9.1}
+      \draw[black!15, line width=0.3pt] (\x,\i-1) rectangle (\x+1.0,\i-0.18);
+    \ifx\sorte\PaletteSorteTrait
+      \draw[\style] (10.6,\i-0.59) -- (12.2,\i-0.59);
+    \fi
+    \ifx\sorte\PaletteSortePoint
+      \path[\style] plot coordinates {(10.8,\i-0.59) (11.4,\i-0.59) (12.0,\i-0.59)};
+    \fi
+  }
+\end{tikzpicture}}
+\fi

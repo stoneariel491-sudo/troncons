@@ -1,0 +1,24 @@
+2026-10-15T15:24:03 j'attends : llama en cours ['llama-perplexity.exe']
+2026-10-15T15:35:43 j'attends : disque chargé (0.516 Go/s)
+Traceback (most recent call last):
+  File "~\dev\active\troncons\mesures\moteur\E\pilote_e1.py", line 138, in main
+    rendre_verrou()
+    ~~~~~~~~~~~~~^^
+  File "~\dev\active\troncons\mesures\moteur\E\pilote_e1.py", line 79, in rendre_verrou
+    os.remove(p0.VERROU)
+    ~~~~~~~~~^^^^^^^^^^^
+PermissionError: [WinError 32] Le processus ne peut pas accéder au fichier car ce fichier est utilisé par un autre processus: '~\\dev\\verrou-carte.txt'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "~\dev\active\troncons\mesures\moteur\E\pilote_e1.py", line 166, in <module>
+    main()
+    ~~~~^^
+  File "~\dev\active\troncons\mesures\moteur\E\pilote_e1.py", line 158, in main
+    rendre_verrou()
+    ~~~~~~~~~~~~~^^
+  File "~\dev\active\troncons\mesures\moteur\E\pilote_e1.py", line 79, in rendre_verrou
+    os.remove(p0.VERROU)
+    ~~~~~~~~~^^^^^^^^^^^
+PermissionError: [WinError 32] Le processus ne peut pas accéder au fichier car ce fichier est utilisé par un autre processus: '~\\dev\\verrou-carte.txt'

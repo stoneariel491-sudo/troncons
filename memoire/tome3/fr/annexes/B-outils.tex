@@ -1,0 +1,69 @@
+% Tome~III, annexe B : les outils (version française). Rédacteur D, 2026-10-29.
+% Modèle : memoire/tome2/fr/annexes/B-outils.tex. Les tables des outils et des figures sont engendrées par
+% memoire/outils/tome3_annexes.py depuis le commit 4b071d0 (memoire/tome3/annexes/outils-tome3.tex, figures-tome3.tex).
+
+\chapter{Outils}\label{t3ann:outils}
+
+\begin{origine}
+\textbf{Au départ}, l'annexe des outils des Tomes~I et II : chaque outil rangé par étude ou par lot, avec la première phrase de sa propre description, et la chaîne qui construit le mémoire.
+\textbf{Cette annexe établit} la même chose pour le Tome~III : la chaîne qui le construit et ce qu'elle vérifie ; chaque outil commité de la quête, du mimétisme, des pistes, des juges des figures et du mémoire, rangé par chapitre ; chaque figure au style du tome et les fichiers qu'elle lit ; les licences des dépendances.
+\textbf{Il reste} \barre{à mettre l'outil des annexes dans la cible tome3 de construire.sh} : rien, pour la chaîne ; l'outil des annexes y est depuis le 2026-10-29 (commit 57db4ce), et il lit le commit plutôt que l'arbre de travail depuis le commit e5ce266 (\cref{t3ann:sec:chaine}).
+\end{origine}
+
+\section{La chaîne du Tome~III}\label{t3ann:sec:chaine}
+
+Le Tome~III se construit comme les deux premiers, par le même script et la même configuration de \texttt{latexmk} (\fichier{memoire/construire.sh}, \fichier{memoire/latexmkrc}), depuis \fichier{memoire/} :
+\begin{itemize}
+\item \texttt{./construire.sh tome3} (ou \texttt{tome3-fr}, \texttt{tome3-en}) lance d'abord les huit outils de données des figures, un par lot, sous \fichier{memoire/outils/} : \texttt{tome3\_} suivi de \texttt{eclaireur}, \texttt{genome}, \texttt{duplication}, \texttt{synthese}, \texttt{codon}, \texttt{synonyme}, \texttt{juge} ou \texttt{latents}, puis \texttt{.py}. Chacun relit les journaux commités, écrit ses CSV et ses nombres sous \fichier{memoire/figures/tome3/donnees/}, et s'arrête à sa première garde ; leur régénération redonne les fichiers commités au bit (\fichier{memoire/tome3/JUGEMENT-figures3.md}, § 4.3).
+\item Il engendre alors les quatre tables des annexes A, B et C par \fichier{memoire/outils/tome3_annexes.py} (\cref{t3ann:tab:seuils-dates,t3ann:tab:outils,t3ann:tab:figures,t3ann:tab:journaux}), depuis le commit \barre{; il refuse de tourner si un fichier qu'il compte diffère du commit} de publication du tome, \texttt{4b071d0} (paragraphe « L'outil des annexes », ci-dessous).
+\item Il compile ensuite, à part, les figures de la piste des spectres : \fichier{genome/pistes/spectres/figures/spectres-figures.tex} est un document autonome dont les chemins de données sont relatifs à son dossier, en lecture seule ; il se compile donc dans ce dossier, sa sortie sous \fichier{memoire/tome3/pistes/} (ignoré par git), où le chapitre des spectres prend ses pages.
+\item Il construit enfin les deux PDF par \texttt{latexmk} (lualatex, biber) dans \fichier{memoire/tome3/fr/} et \fichier{memoire/tome3/en/}, et s'arrête en erreur sur toute référence ou citation indéfinie et sur tout fichier de données absent.
+\end{itemize}
+Deux outils n'ont pas leur place dans une construction, et n'y sont pas : \fichier{memoire/outils/tome3_palette.py}, qui réécrit ses fichiers avec d'autres fins de ligne (égaux au contenu seulement), et \fichier{memoire/outils/tome3_cassures.py}, qui force les gardes à faux (annexe~\ref{t3ann:protocoles}).
+
+\paragraph{L'outil des annexes.} \fichier{memoire/outils/tome3_annexes.py} engendre les quatre tables des annexes A, B et C depuis le commit \barre{HEAD} de publication du tome (\texttt{git ls-tree}, \texttt{git cat-file}, \texttt{git log}) : les outils, les figures et leurs données, les dossiers de journaux, les fichiers de seuils datés. Son témoin : tout fichier cité par la ligne « Données » d'une figure (chemin complet, motifs \texttt{*} et \texttt{\{a,b\}} permis) existe dans le dépôt ; sa cassure (\texttt{--casser}, un fichier inexistant ajouté à la première figure) le fait tomber, code 1 \mes. \barre{Il n'est pas encore dans la cible tome3 de construire.sh, que ce rédacteur n'avait pas le droit de modifier} ; il y est depuis le 2026-10-29 (commit 57db4ce) : la cible \texttt{tome3} de \fichier{memoire/construire.sh} le lance avant latexmk, et chaque construction du tome réécrit ses tables depuis le dépôt. Corrigé le 2026-10-29 (commit e5ce266, grave G3 de \fichier{memoire/tome3/JUGEMENT-final.md}) : il comptait les lignes et les octets dans l'arbre de travail, si bien qu'une modification non commitée d'une autre session y donnait 124 lignes à \fichier{outils/mimetisme/humain/e4b_defauts.py}, qui en a 122 au commit, et que les volumes de l'annexe~\ref{t3ann:journaux} dépendaient des fins de ligne de la copie (\fichier{mesures/genome/construction/codon/} : \SI{2.47}{\Mo} dans une copie, \SI{2.43}{\Mo} au commit). Il compte désormais les lignes sur le contenu des objets git et les volumes sur leur taille, \barre{et il refuse de tourner, code 1, si un fichier qu'il compte diffère du commit dans l'arbre de travail} \mes. \emph{Figé le 2026-10-29} au commit de publication du tome, \texttt{4b071d0}, comme les outils des Tomes~I et II : lu au commit HEAD, il refusait de tourner dès qu'une autre session laissait un fichier compté non commité ; lu à ce commit, il redonne les quatre tables au bit, et ni l'arbre de travail ni les commits postérieurs n'y entrent plus.
+
+\section{Les outils commités}\label{t3ann:sec:outils}
+
+Tout nombre \mes{} ou \calc{} de ce tome sort d'un outil commité. \Cref{t3ann:tab:outils} les liste, rangés par chapitre, chacun avec la première ligne de sa propre description, citée telle qu'écrite (en français), et son nombre de lignes. Les outils de la quête, du mimétisme et des pistes appartiennent à leurs flux ; le mémoire les cite et ne les modifie pas. Ceux du second tirage de P3, en travail dans une autre session, n'y sont pas (réserve R6).
+
+\input{\Racine/tome3/annexes/outils-tome3}
+
+\section{Chaque figure et les fichiers qu'elle lit}\label{t3ann:sec:figures}
+
+Une figure belle reste une figure vraie : elle se tire des données commitées, par un script commité. \Cref{t3ann:tab:figures} donne, pour chaque figure au style du Tome~III, les fichiers que sa ligne « Données » cite ; ce sont ceux que lit l'outil du lot nommé à la fin de la ligne. Les figures hors du style commun (le mimétisme, les deux pistes) citent leurs données dans leur légende, au chapitre qui les place.
+
+\input{\Racine/tome3/annexes/figures-tome3}
+
+\section{Les licences}\label{t3ann:sec:licences}
+
+Le SOCLE demande d'écrire la licence de chaque dépendance et de chaque dépôt étudié. Aucun dépôt de code extérieur n'a été lu par la quête du génome : l'état de l'art n'a lu que des articles et leurs résumés (\fichier{genome/00-etat-de-l-art.md}), et aucune licence de code n'y est en jeu. Les dépendances sont celles du \cref{t3ann:tab:licences}, chacune lue dans le paquet installé sur la machine.
+
+\begin{table}[ht]
+\centering\footnotesize
+\caption[Les licences des dépendances du Tome~III]{Les licences des dépendances des outils et du mémoire du Tome~III, lues dans les paquets installés le 29 octobre 2026.}
+\label{t3ann:tab:licences}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.22\linewidth}>{\raggedright\arraybackslash}p{0.30\linewidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+Dépendance & Licence & Où elle est lue \\
+\midrule
+numpy 2.5.4 & BSD-3-Clause (et 0BSD, MIT, Zlib, CC0-1.0 pour des parties) & \texttt{License-Expression} de \texttt{numpy-2.5.4.dist-info/METADATA} \\
+scipy 1.18.1 & BSD à trois clauses & \texttt{scipy-1.18.1.dist-info/LICENSE.txt} \\
+rayon 1.12.0, half 2.7.1, anyhow 1.0.104 (Rust) & MIT ou Apache-2.0 & champ \texttt{license} de leur \texttt{Cargo.toml} (registre local de Cargo) \\
+llama.cpp b11515 & MIT & Tome~I, annexe des outils (sources officielles du même commit) \\
+pgfplots & GNU GPL, version 3 ou ultérieure & en-tête de \texttt{pgfplots.code.tex} (MiKTeX) \\
+PGF/TikZ & LPPL et/ou GNU GPL & en-tête de \texttt{tikz.sty} (MiKTeX) \\
+biblatex & LPPL 1.3c & en-tête de \texttt{biblatex.sty} (MiKTeX) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section*{Ce qui pourrait être faux}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{La première ligne d'une description} est celle que l'outil donne de lui-même ; elle peut avoir vieilli. L'outil des annexes la cite, il ne la juge pas.
+\item \textbf{Le témoin des figures} vérifie que les fichiers cités existent, pas qu'ils sont ceux que l'outil lit vraiment ; c'est la régénération au bit des données (juge de la troisième passe des figures) qui le vérifie.
+\item \textbf{Les licences} sont lues dans les paquets installés ; une autre version peut en avoir une autre.
+\end{itemize}
+\end{faux}

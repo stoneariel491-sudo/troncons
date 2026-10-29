@@ -1,0 +1,128 @@
+{
+ "outil": "chargement_localite.py",
+ "mode": "temoins",
+ "casser": false,
+ "rapport": {
+  "T1_reutilisation": {
+   "mesure": 0.0613356464116029,
+   "attendu": 0.0625,
+   "tolerance": 0.0027066677414425365,
+   "reussi": true
+  },
+  "T1_lru_C8": {
+   "mesure": 0.0613203125,
+   "attendu": 0.0625,
+   "tolerance": 0.002706329386826371,
+   "reussi": true
+  },
+  "T1_lfu_C8": {
+   "mesure": 0.0613203125,
+   "attendu": 0.0625,
+   "tolerance": 0.002706329386826371,
+   "reussi": true
+  },
+  "T1_lru_C16": {
+   "mesure": 0.124453125,
+   "attendu": 0.125,
+   "tolerance": 0.00369754986443726,
+   "reussi": true
+  },
+  "T1_lfu_C16": {
+   "mesure": 0.12390625,
+   "attendu": 0.125,
+   "tolerance": 0.00369754986443726,
+   "reussi": true
+  },
+  "T1_lru_C32": {
+   "mesure": 0.2501484375,
+   "attendu": 0.25,
+   "tolerance": 0.004841229182759271,
+   "reussi": true
+  },
+  "T1_lfu_C32": {
+   "mesure": 0.25009375,
+   "attendu": 0.25,
+   "tolerance": 0.004841229182759271,
+   "reussi": true
+  },
+  "T1_lru_C64": {
+   "mesure": 0.5011953125,
+   "attendu": 0.5,
+   "tolerance": 0.005590169943749474,
+   "reussi": true
+  },
+  "T1_lfu_C64": {
+   "mesure": 0.5011953125,
+   "attendu": 0.5,
+   "tolerance": 0.005590169943749474,
+   "reussi": true
+  },
+  "T2_reutilisation": {
+   "mesure": 1.0,
+   "attendu": 1.0,
+   "reussi": true
+  },
+  "T2_lru_C8": {
+   "mesure": 0.99975,
+   "attendu_min": 0.99975,
+   "reussi": true
+  },
+  "T2_lru_C16": {
+   "mesure": 0.99975,
+   "attendu_min": 0.99975,
+   "reussi": true
+  },
+  "T2_lru_C32": {
+   "mesure": 0.99975,
+   "attendu_min": 0.99975,
+   "reussi": true
+  },
+  "T2_lru_C64": {
+   "mesure": 0.99975,
+   "attendu_min": 0.99975,
+   "reussi": true
+  },
+  "T3_reutilisation": {
+   "mesure": 0.6043542135533884,
+   "attendu": 0.6,
+   "tolerance": 0.016144577023314434,
+   "reussi": true
+  },
+  "T4_belady_borne": {
+   "violations": 0,
+   "reussi": true
+  },
+  "T3_caches": {
+   "8": {
+    "lru": 0.604203125,
+    "lfu": 0.604203125,
+    "statique_calibre": 0.06302951388888889,
+    "statique_oracle": 0.0773046875,
+    "belady": 0.604203125
+   },
+   "16": {
+    "lru": 0.6304765625,
+    "lfu": 0.630484375,
+    "statique_calibre": 0.12559895833333334,
+    "statique_oracle": 0.1496640625,
+    "belady": 0.720234375
+   },
+   "32": {
+    "lru": 0.6833984375,
+    "lfu": 0.6828984375,
+    "statique_calibre": 0.24991319444444443,
+    "statique_oracle": 0.28814062500000004,
+    "belady": 0.8113984375
+   },
+   "64": {
+    "lru": 0.7893984375,
+    "lfu": 0.788625,
+    "statique_calibre": 0.4983246527777778,
+    "statique_oracle": 0.5476796875000001,
+    "belady": 0.9082109375
+   }
+  }
+ },
+ "echecs": [],
+ "verdict": "INSTRUMENT VALIDE"
+}

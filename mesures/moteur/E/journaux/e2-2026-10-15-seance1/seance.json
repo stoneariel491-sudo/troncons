@@ -1,0 +1,108 @@
+{
+  "seance": "e2-2026-10-15-seance1",
+  "debut": "2026-10-15T20:54:27",
+  "commit": "d6ff09ff25c3a4c72a238fca76f6d98641374f1a",
+  "instantane_des_crates": "81e275b53deb35bc18414e2e70847bf25803609c",
+  "banc": "~\\dev\\cibles\\troncons-E\\release\\banc-chemin.exe",
+  "banc_sha256": "66d810f2fe800eddb6259aaaf95a8b4df7973d82a80432b754485fe21d557151",
+  "fichier": "~\\dev\\modeles\\trc\\gpt-oss-20b.trc",
+  "copie": "~\\dev\\modeles\\trc\\casse\\gpt-oss-20b-casse-E2.trc",
+  "etapes": [
+    {
+      "nom": "casser-copie",
+      "commande": [
+        "~\\dev\\cibles\\troncons-E\\release\\banc-chemin.exe",
+        "casser-copie",
+        "--source",
+        "~\\dev\\modeles\\trc\\gpt-oss-20b.trc",
+        "--copie",
+        "~\\dev\\modeles\\trc\\casse\\gpt-oss-20b-casse-E2.trc",
+        "--graine",
+        "20261015",
+        "--n",
+        "12",
+        "--journal",
+        "~\\dev\\active\\troncons\\mesures\\moteur\\E\\journaux\\e2-2026-10-15-seance1\\casser-copie.json"
+      ],
+      "code": 0,
+      "secondes": 69.20687866210938,
+      "avant": {
+        "heure": "2026-10-15T21:11:53",
+        "batterie": 2,
+        "carte": "488, 8188, 3, P3, 4, 8, 55, 2250"
+      },
+      "apres": {
+        "heure": "2026-10-15T21:13:02",
+        "batterie": 2,
+        "carte": "432, 8188, 5, P0, 4, 8, 56, 2250"
+      }
+    },
+    {
+      "nom": "cassure",
+      "commande": [
+        "~\\dev\\cibles\\troncons-E\\release\\banc-chemin.exe",
+        "chemin",
+        "--fichier",
+        "~\\dev\\modeles\\trc\\casse\\gpt-oss-20b-casse-E2.trc",
+        "--temoin-seul",
+        "--attendus",
+        "~\\dev\\active\\troncons\\mesures\\moteur\\E\\journaux\\e2-2026-10-15-seance1\\casser-copie.json",
+        "--graine",
+        "20261022",
+        "--journal",
+        "~\\dev\\active\\troncons\\mesures\\moteur\\E\\journaux\\e2-2026-10-15-seance1\\cassure.json"
+      ],
+      "code": 0,
+      "secondes": 27.751436710357666,
+      "avant": {
+        "heure": "2026-10-15T21:13:20",
+        "batterie": 2,
+        "carte": "432, 8188, 0, P3, 4, 8, 56, 2250"
+      },
+      "apres": {
+        "heure": "2026-10-15T21:13:48",
+        "batterie": 2,
+        "carte": "338, 8188, 0, P0, 4, 8, 57, 2700"
+      }
+    },
+    {
+      "nom": "chemin-1",
+      "commande": [
+        "~\\dev\\cibles\\troncons-E\\release\\banc-chemin.exe",
+        "chemin",
+        "--fichier",
+        "~\\dev\\modeles\\trc\\gpt-oss-20b.trc",
+        "--graine",
+        "20261115",
+        "--tours-abba",
+        "2",
+        "--residents",
+        "48",
+        "--chronogrammes",
+        "~\\dev\\active\\troncons\\mesures\\moteur\\E\\journaux\\e2-2026-10-15-seance1\\chrono-1",
+        "--journal",
+        "~\\dev\\active\\troncons\\mesures\\moteur\\E\\journaux\\e2-2026-10-15-seance1\\chemin-1.json"
+      ],
+      "code": 0,
+      "secondes": 65.23532819747925,
+      "avant": {
+        "heure": "2026-10-15T21:14:04",
+        "batterie": 2,
+        "carte": "338, 8188, 0, P8, 1, 8, 54, 210"
+      },
+      "apres": {
+        "heure": "2026-10-15T21:15:09",
+        "batterie": 2,
+        "carte": "338, 8188, 0, P0, 4, 8, 56, 2685"
+      },
+      "passes_a_propres": 4
+    }
+  ],
+  "attentes": [
+    {
+      "heure": "2026-10-15T20:54:28",
+      "raison": "verrou tenu ('lot F, second chemin de C1 (lecture disque intensive, pas de carte), pris le 2026-10-15 20:52:51')"
+    }
+  ],
+  "fin": "2026-10-15T21:15:09"
+}

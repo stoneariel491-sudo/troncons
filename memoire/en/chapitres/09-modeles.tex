@@ -1,0 +1,171 @@
+\chapter{The target models}\label{ch:modeles}
+
+\begin{origine}
+\textbf{At the start}, the mission speaks of \enquote{any ultra-heavy model}: we had to say which exist, what they read per token, under which licence, and how to judge troncons against a baseline.
+\textbf{This chapter establishes} an inventory of 49 official repositories read from their headers, without downloading a single weight, validated against the publishers' numbers by a control that fails; the bytes read per token of the exact candidate files; their ceilings on the machine, recomputed at the measured disk throughput; the 2026 trends that play for troncons; and a judging protocol in which one measurement has already corrected an assumption.
+\textbf{What remains} is the routing trace of a 2026 model and the first baseline run on gpt-oss, downloaded and verified.
+Source: \fichier{fondations/06-modeles.md}, \fichier{fondations/journaux/06-modeles/}.
+\end{origine}
+
+\section{What \enquote{ultra heavy} means here}
+
+The machine offers about 6.5\,GB of VRAM and 11\,GB of RAM for weights (stated assumptions: 8\,188\,MiB minus the display, the context and a short KV cache; 15.6\,GB minus the system), about 17.5\,GB in all, and 404\,GB of free disk. A model is \enquote{ultra heavy} when its file clearly exceeds these 17.5\,GB; it becomes interesting for troncons when it is a multiple of it (three times or more) \textbf{and} its bytes read per token stay small. A dense model reads all its weights at every token: at 4 bits, Llama-3.3-70B reads 34.8\,GB per token \calc; the ground is the mixture of experts.
+
+\section{The inventory, read from the headers}\label{sec:inventaire}
+
+\paragraph{The method.} A safetensors file starts with 8 bytes of length followed by a JSON giving the type and shape of every tensor. Two HTTP range requests per shard suffice: we get the exact shape of every tensor of a 2.8-trillion-parameter model without downloading its weights (\texttt{inventaire\_modeles.py}). The tool sorts each tensor into a category: routed experts (one of $E$ read per router choice), always read, embedding (one row per token), MTP (read only during speculative decoding), lookup (Engram or n-gram tables), non-text. Active parameters per token $=$ always read $+ \sum_{\text{layers}} (k_e/E) \times$ routed experts of the layer. For the GGUF files we would download, the tool reads the header of the exact file (from the public specification~\cite{gguf2026}); its built-in control, the sum of tensor sizes plus the header equals the file size, holds to the byte for the 8 files read.
+
+\paragraph{The control, and its fault.} Second path: the numbers published by the publisher. Thresholds declared in the tool before the first run: total within $\pm 3$\,\% (publishers round to the billion; 3\,\% lets through neither a factor of 2 nor duplicated files), active within $\pm\max(0.6\,\mathrm{G} ; 10\,\%)$.
+\begin{itemize}
+\item \textbf{Pass 3 (the good one)}: 37 agreements out of 38; the only failure, Qwen3.8-Flash-Next (6.67\,G active against \enquote{6B}), is explained by the output head (0.636\,G), which we count: without it, 6.03\,G. The threshold stays as it was and the failure is written down.
+\item \textbf{Pass 2 (the fault)}: the same control finds 6 failures, and they are 6 real bugs that pass 3 fixes: Mistral counted twice (two copies of the same weights at the root), MiMo V2.6 and Kimi K3 counted at half (FP4 packed in bytes not recognized), Kimi K3 with 50 active experts instead of 16 (the \texttt{top\_k} key of its configuration is a sampling parameter), Step-3.5-Flash at 196\,G active, Qwen3.8 at 57.9\,G active (the n-gram table counted as always read).
+\end{itemize}
+A predecessor's first pass gave \barre{DeepSeek-V4-Flash: 149.2\,G in total, 10.6\,G active} (packed FP4 not recognized, output head missed); corrected: 284.3\,G without MTP and 13.27\,G active, against 284\,G and 13\,G in the paper~\cite{deepseekv4_2026}.
+
+\begin{figure}[ht]
+\centering
+\GrapheMoE
+\caption[Total and active parameters of 2026 mixtures of experts]{Total (text) parameters against active parameters per token of the mixtures of experts inventoried from their headers \mes. Most 2025--2026 models activate only 3 to 10\,\% of their parameters per token: the property that makes an \enquote{ultra-heavy} model playable on 8\,GB.}
+\label{fig:moe-inventaire}
+\sourcefig{\fichier{fondations/journaux/06-modeles/octets-par-jeton.json} (\fichier{outils/inventaire\_modeles.py}, pass 3).}
+\end{figure}
+
+\begin{table}[ht]
+\centering\small
+\caption[The target mixtures of experts, read from their headers]{A selection of the inventoried mixtures of experts: text total, active per token, architecture, licence \mes~(literature where stated). $L$ layers, $E$ routed experts, $k_e$ active, P shared experts.}
+\label{tab:moe-inventaire}
+\begin{tabularx}{\linewidth}{@{}lrrXl@{}}
+\toprule
+Model & total & active & architecture, published format & licence \\
+\midrule
+gpt-oss-20b~\cite{gptoss2025} & 20.9\,G & 3.61\,G & $L$ 24, $E$ 32, $k_e$ 4; MXFP4 & Apache-2.0 \\
+gpt-oss-120b~\cite{gptoss2025} & 116.8\,G & 5.13\,G & $L$ 36, $E$ 128, $k_e$ 4; GQA 64/8, sliding window every other layer; native MXFP4 experts & Apache-2.0 \\
+Qwen3-Next-80B-A3B & 81.3\,G & 3.56\,G & $L$ 48, $E$ 512, $k_e$ 10 + P; Gated DeltaNet 3:1 & Apache-2.0 \\
+Qwen3.5-122B-A10B & 124.6\,G & 9.01\,G & $L$ 48, $E$ 256, $k_e$ 8 + P, MTP & Apache-2.0 \\
+Qwen3.8-Flash-Next & 179.6\,G & 6.67\,G & $L$ 48, $E$ 512, $k_e$ 10 + P; 51.2\,G n-gram table & qwen-community \\
+DeepSeek-V4-Flash-0731~\cite{deepseekv4_2026} & 284.3\,G & 13.27\,G & $L$ 43, $E$ 256, $k_e$ 6 + 1; 3 hash-routed layers; FP4 experts & MIT \\
+DeepSeek-V4.1-Flash & 762.7\,G & 16.13\,G & $E$ 384, $k_e$ 6 + 1; 196.6\,G Engram~\cite{engram2026} & MIT \\
+Kimi-K2.6~\cite{kimik2_2025} & 1\,026\,G & 31.69\,G & $L$ 61, $E$ 384, $k_e$ 8 + 1, MLA; native INT4 & modified MIT \\
+Kimi-K3 & 2\,780\,G & 104.19\,G & $L$ 93, $E$ 896, $k_e$ 16 + 2; native MXFP4 & kimi-k3 \\
+GLM-4.5-Air~\cite{glm45_2025} & 110.5\,G & 12.80\,G & $L$ 46, $E$ 128, $k_e$ 8 + 1, MTP & MIT \\
+Qwen3-235B-A22B~\cite{qwen3_2025} & 235.1\,G & 21.57\,G & $L$ 94, $E$ 128, $k_e$ 8 & Apache-2.0 \\
+LongCat-Flash-Lite & 69.1\,G & 4.51\,G & $L$ 14, $E$ 256, $k_e$ 12; 31.4\,G n-grams & MIT \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Bytes read per token}\label{sec:octets-jeton}
+
+With $A$ the always-read parameters, $R$ the routed expert parameters read per token and $b$ the bits per weight of the experts, two formulas:
+\begin{equation}\label{eq:octets-jeton}
+O_{\text{uniform}} = (A + R)\,\frac{b}{8}, \qquad O_{\text{mixed}} = A\,\frac{8.5}{8} + R\,\frac{b}{8},
+\end{equation}
+the second being the real choice of dynamic quantizations (always-read tensors in Q8\_0). Embedding, lookup tables and MTP are excluded. Second path: the headers of the exact files (\cref{tab:octets-fichiers}).
+
+\begin{table}[ht]
+\centering\small
+\caption[Bytes read per token: headers against formula]{Bytes read per token, GGUF headers of the exact files \mes~against the mixed formula \calc.}
+\label{tab:octets-fichiers}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+File & always read + experts read (exact) & mixed formula & gap \\
+\midrule
+gpt-oss-120b MXFP4 & 1.69 + 1.91 = 3.60\,GB & 3.55\,GB & $-1.4$\,\% \\
+DeepSeek-V4-Flash UD-Q2\_K\_XL & 6.69 + 2.10 = 8.79\,GB & 8.83\,GB & +0.5\,\% \\
+Qwen3.8-Flash-Next UD-Q2\_K\_XL & 3.54 + 0.90 = 4.44\,GB & 5.17\,GB & +16\,\% \\
+Kimi-K2.6 UD-Q2\_K\_XL & 8.52 + 6.90 = 15.42\,GB & 16.49\,GB & +7\,\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The formula is right where the always-read tensors really are at 8 bits; it overestimates Qwen3.8 (part of its always-read tensors are at 4 to 6 bits) and errs in the other direction on Kimi. \textbf{To decide, we take the file header, never the formula.} Two readings of the published sizes: gpt-oss-120b weighs about 63\,GB at every quantization level, because its experts stay in MXFP4 and only the attention changes type; and for models born at 4 bits (Kimi-K2.6, DeepSeek-V4-Flash), the \enquote{8-bit} level weighs almost as much as the \enquote{4-bit}: there is nothing above native 4-bit to keep.
+
+\section{The physical judge}\label{sec:juge-modeles}
+
+The study's cost model (\texttt{modeles\_physique.py}, declared before any use): always-read tensors reside on the card if they fit in 6.5\,GB; routed experts share a cache of 11\,GB of RAM plus the remaining VRAM, and the disk; routing is assumed uniform and memoryless, so the hit rate is $h = C/E_{\text{bytes}}$, the cache's worst case; experts found in RAM are computed by the processor at 41.6\,GB/s, misses are read from disk;
+\begin{equation}\label{eq:cout-modeles}
+t_{\text{opt}} = \max\Bigl(\frac{A}{256},\ \frac{hR}{41.6},\ \frac{(1-h)R}{W_{\mathrm{disk}}}\Bigr), \qquad t_{\text{pess}} = \text{the sum}.
+\end{equation}
+The study took the link ceiling (7.877\,GB/s) for $W_{\mathrm{disk}}$. \Cref{ch:machine} measured 2.82\,GB/s: we recompute the column that depends on it.
+
+\begin{table}[ht]
+\centering\small
+\caption[The candidate files and their ceilings]{The candidate files and their tokens/s ceiling, uniform routing, at the link ceiling (study 06) and at the measured disk throughput \calc.}
+\label{tab:candidats}
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+File & size & always read & experts read & $h$ & ceiling, 7.877 & ceiling, 2.82 \\
+\midrule
+gpt-oss-20b MXFP4 & 12.1\,GB & --- & 1.27\,GB & 100\,\% & 32.7 & 32.7 \\
+gpt-oss-120b MXFP4 & 63.4\,GB & 1.69\,GB & 1.91\,GB & 26\,\% & \barre{5.6} & \textbf{2.0} \\
+Qwen3.8-Flash-Next UD-Q2\_K\_XL & 78.9\,GB & 3.54\,GB & 0.90\,GB & 30\,\% & \barre{12.6} & \textbf{4.5} \\
+Qwen3.8-Flash-Next UD-Q4\_K\_XL & 111.3\,GB & 4.83\,GB & 1.50\,GB & 16\,\% & \barre{6.3} & \textbf{2.2} \\
+DeepSeek-V4-Flash UD-Q2\_K\_XL & 96.8\,GB & 6.69\,GB & 2.10\,GB & 12\,\% & \barre{4.3} & \textbf{1.5} \\
+DeepSeek-V4-Flash UD-Q4\_K\_XL & 155.1\,GB & --- & 3.45\,GB & 7\,\% & \barre{2.5} & \textbf{0.9} \\
+Kimi-K2.6 UD-Q2\_K\_XL & 340.5\,GB & 8.52\,GB & 6.90\,GB & 3\,\% & \barre{1.2} & \textbf{0.4} \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{fondations/journaux/06-modeles/plafonds-fichiers.md}, recomputed by \cref{eq:cout-modeles} with $W_{\mathrm{disk}} = 2.82$\,GB/s.}
+\end{table}
+
+\noindent The crossed-out ceilings assumed the disk at its link ceiling; at the measured throughput, they are 2.8 times lower, because the disk is the bound wherever the cache does not serve everything (\cref{tab:candidats}). The ranking does not change: \textbf{the best useful-to-physical trade-off is Qwen3.8-Flash-Next UD-Q2\_K\_XL, then gpt-oss-120b}, which has the decisive advantage of a lossless reference (its published weights are already at 4 bits). DeepSeek-V4-Flash overflows the card with its always-read tensors (6.69\,GB in UD-Q2\_K\_XL); Kimi-K2.6 fits on disk (340\,GB of 404) but tops out below half a token per second: it is the \enquote{one trillion parameters on a laptop} demonstration, not a tool. The dominant lever is the expert-cache hit rate (\cref{fig:sensibilite-h}).
+
+\section{What changed in 2026 and serves troncons}
+
+\begin{enumerate}
+\item \textbf{Lookup tables, made to live outside the card.} The Engram paper~\cite{engram2026} sets the principle: rows addressed by a deterministic hash of token n-grams, hence known before computation and prefetchable; it measures a 100\,G table in host DRAM and proposes, without measuring it, an NVMe tier. Three open models carry such a table (26 to 45\,\% of their parameters): DeepSeek-V4.1-Flash, Qwen3.8-Flash-Next and LongCat-Flash-Lite. A Qwen3.8 token reads 16 rows there, about 1.4\,KiB of useful data in a 28.8\,GB file \calc: less than a thousandth of a token's disk budget. llama.cpp can already leave such a table on disk (\texttt{TENSOR\_READ\_LAZY}, prefetching only the requested rows).
+\item \textbf{Weights born at 4 bits}: gpt-oss (MXFP4), Kimi K2-Thinking and K2.6 (INT4 through quantization-aware training), Kimi K3 (MXFP4), DeepSeek V4 and MiMo V2.6 (FP4 experts). On these models, the only lossless compression left is entropy coding of the 4-bit codes and their scales; the E8M0 scales of V4-Flash weigh 9.3\,GB for 148.2\,GB of FP4 codes (6.3\,\%) \mes.
+\item \textbf{Hash routing}: DeepSeek V4 routes its first 3 layers by a token $\to$ experts table; those experts (about 7\,\% of the expert bytes) are known as soon as the token is sampled, a full pass ahead. Nobody uses it to prefetch.
+\item \textbf{Built-in multi-token prediction} (DeepSeek, GLM, Qwen, MiMo): a free draft, under the condition of \cref{prop:spec-moe}.
+\item \textbf{Hybrid linear attention} (Gated DeltaNet, KDA): the KV cache stops being a constraint at short context on 8\,GB; the cost is in the experts.
+\end{enumerate}
+
+\section{The judging protocol}\label{sec:protocole-jugement}
+
+\paragraph{The baseline.} llama.cpp b11515 as is, loaded with mmap (the only mode that starts for a file larger than RAM), all layers on the card and the experts in RAM or mmap (\texttt{--cpu-moe}, or \texttt{--n-cpu-moe N} tuned for the best); both points are published.
+
+\paragraph{A run.} \texttt{modeles-base.py} runs a completion on a fixed real text (the first 3\,000 bytes of wikitext-2 test, SHA-256 recorded), 256 tokens, greedy, and records tokens per second, process memory (peak and last reading, every 100\,ms), VRAM, bytes read from disk (system counter read through the PDH API under its English name, integrated, after 10\,s of rest to quantify the others' load) and the hash of the produced text. Why not \texttt{llama-bench}: its generation starts from meaningless tokens, whereas for an out-of-memory MoE the choice of experts, hence the bytes read, depends on the content.
+
+\paragraph{What the controls have already taught.} The starting assumption, \barre{the correctness control of a lossless engine is equality of greedy tokens with llama.cpp}, was refuted by measurement: llama.cpp itself, on the same file, produces a different greedy text depending on the compute engine (divergence near the 25th token between card and processor). Three levels, measured on Qwen3.5-4B:
+\begin{itemize}
+\item \textbf{instrument floor} (same engine, the card against its own logits): mean KL divergence zero, maximum $6.8\cdot10^{-5}$, same top choice 100\,\%;
+\item \textbf{gap between two correct engines} (processor alone against card, same weights): mean KL 0.0055, 99.9th percentile 0.187, same top choice 95.96\,\%: the order of magnitude of one quantization step;
+\item \textbf{the instrument fails when it should}: Qwen3.5-9B against the 4B baseline, mean KL 0.294, same top choice 76.9\,\%.
+\end{itemize}
+Resulting rule: \textbf{a lossless engine is judged against a baseline on the same compute stage}, and must fall back within the instrument floor there (KL at most $7\cdot10^{-5}$, top choice 100\,\%). That is why gpt-oss comes first: its MXFP4 is the original weight, so any divergence above the same-stage floor is a troncons error, not a quantization effect.
+
+\paragraph{Quality and decision.} Wikitext-2 perplexity (40 windows of 512), KL divergence against reference logits, HellaSwag, Winogrande, MMLU and ARC, identical for the baseline and for troncons; validated on Qwen3.5-4B (perplexity 8.7259 $\pm$ 0.2295, deterministic; HellaSwag 72.50\,\%; Winogrande 67.50 $\pm$ 2.34). ABBA series repeated at least twice; a difference is real only if it exceeds twice the largest noise and 3\,\%. For a lossy variant, no arbitrary threshold: we plot mean KL against bytes read per token for the standard quantizations of the same model, and the variant wins if it falls below that frontier. Physical efficiency (measured tokens/s over computed ceiling) is published with every result.
+
+\section{The downloads}\label{sec:telechargements}
+
+With Stone's agreement (\enquote{au nom de la science tu as mon accord}, \enquote{in the name of science you have my agreement}, 2026-10-15), the orchestrator chose the first two files recommended by the study, and they are on the machine, SHA-256 hashes verified against Hugging Face:
+\begin{itemize}
+\item \textbf{gpt-oss-20b MXFP4}~\cite{hfgptoss20b}: 12\,109\,566\,624 bytes, Apache-2.0; same architecture and format as the 120b, but fits in RAM: the engine is developed on it and the in-memory and streamed versions are compared token for token;
+\item \textbf{gpt-oss-120b MXFP4}~\cite{hfgptoss120b}: 63\,387\,346\,208 bytes (45 resumptions after server cut-offs), Apache-2.0; 3.6 times the usable memory, 5.1\,G active, original weights: \textbf{the first ultra-heavy model}.
+\end{itemize}
+Next, in the recommended order: Qwen3.8-Flash-Next UD-Q4\_K\_XL (111\,GB, n-gram table) and DeepSeek-V4-Flash UD-Q2\_K\_XL (97\,GB, hash routing, FP4-born experts); Kimi-K2.6 only after a proof on the previous ones.
+
+\paragraph{Licences.} Apache-2.0 and MIT restrict nothing for personal research in Canada; the modified licences (Kimi, Qwen3.8, GLM-5.3, Llama) only impose attribution or a separate agreement beyond revenue or user thresholds; none excludes Canada (a non-lawyer's reading, not legal advice).
+
+\section{What is missing in the world}
+
+\begin{enumerate}
+\item \textbf{No published measurement of a lookup table served from a consumer NVMe}, although three open models put 26 to 45\,\% of their parameters in one.
+\item \textbf{No token-by-token routing locality data on real text for 2026 models} (512 experts in Qwen3.5 and 3.8, 896 in Kimi K3).
+\item \textbf{DeepSeek V4's hash routing is exploited by nobody to prefetch.}
+\item \textbf{DeepSeek V4.1-Flash has no local baseline} (no architecture in llama.cpp as of 2026-10-15).
+\item \textbf{No standard \enquote{out-of-memory} benchmark} that publishes bytes read per token and physical efficiency.
+\item \textbf{Lossless compression of 4-bit-born models} is the only lossless path left on gpt-oss, Kimi, DeepSeek V4 and MiMo.
+\end{enumerate}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{The two assumed capacities} (6.5\,GB of VRAM, 11\,GB of RAM for weights) govern $h$ and the ceilings; they are replaced by measurements at the first trial.
+\item \textbf{Compute is not free}: the processor may not dequantize at 41.6\,GB/s, and the measured RAM delivers only 15.6\,GB/s (\cref{sec:ram}).
+\item \textbf{Uniform routing} is pessimistic by construction; it is not a forecast.
+\item \textbf{The definition of active parameters} includes the output head and excludes the embedding and MTP; other counts give $\pm 0.5$ to 1\,G.
+\item \textbf{Mirrors} (Llama 4 read on copies, Llama 3.1 405B on Hermes-3) and publishers' cards can be wrong.
+\item \textbf{The judge's validation covers a single model}, a hybrid; on gpt-oss (classical attention), the gap between engines may differ.
+\item \textbf{Licences}: a non-lawyer's summary.
+\end{itemize}
+\end{faux}

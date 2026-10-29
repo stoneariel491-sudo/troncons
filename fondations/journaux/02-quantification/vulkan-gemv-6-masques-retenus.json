@@ -1,0 +1,39 @@
+{
+ "outil": "quant-vulkan-gemv", "api": "vulkan", "adaptateur": "NVIDIA GeForce RTX 4060 Laptop GPU", "pilote": "NVIDIA 591.91",
+ "M": 16384, "K": 16384, "horodatage_carte": true, "casser": false,
+ "temoins": [
+  {"format": "scalaire-2b", "erreur_relative_max": 2.517e-6, "tient": true},
+  {"format": "treillis-mul1-dot4-v2", "erreur_relative_max": 2.480e-6, "tient": true},
+  {"format": "treillis-parite", "erreur_relative_max": 1.958e-5, "tient": true}
+ ],
+ "temoin": "tient",
+ "repetitions": 50, "mesures": [
+  {"serie": 0, "format": "scalaire-2b", "role": "A", "ms": 3.9712, "go_s": 16.9},
+  {"serie": 0, "format": "treillis-mul1-dot4-v2", "role": "B", "ms": 1.8755, "go_s": 35.8},
+  {"serie": 0, "format": "treillis-mul1-dot4-v2", "role": "B", "ms": 0.6837, "go_s": 98.2},
+  {"serie": 0, "format": "scalaire-2b", "role": "A", "ms": 0.3709, "go_s": 180.9},
+  {"serie": 0, "format": "scalaire-2b", "role": "A", "ms": 0.3710, "go_s": 180.9},
+  {"serie": 0, "format": "treillis-parite", "role": "B", "ms": 1.3058, "go_s": 51.4},
+  {"serie": 0, "format": "treillis-parite", "role": "B", "ms": 1.2888, "go_s": 52.1},
+  {"serie": 0, "format": "scalaire-2b", "role": "A", "ms": 0.3251, "go_s": 206.4},
+  {"serie": 0, "format": "lecture-seule", "role": "plafond", "ms": 0.2812, "go_s": 238.7},
+  {"serie": 1, "format": "scalaire-2b", "role": "A", "ms": 0.3215, "go_s": 208.7},
+  {"serie": 1, "format": "treillis-mul1-dot4-v2", "role": "B", "ms": 0.5537, "go_s": 121.2},
+  {"serie": 1, "format": "treillis-mul1-dot4-v2", "role": "B", "ms": 0.5537, "go_s": 121.2},
+  {"serie": 1, "format": "scalaire-2b", "role": "A", "ms": 0.3254, "go_s": 206.2},
+  {"serie": 1, "format": "scalaire-2b", "role": "A", "ms": 0.3214, "go_s": 208.8},
+  {"serie": 1, "format": "treillis-parite", "role": "B", "ms": 1.2877, "go_s": 52.1},
+  {"serie": 1, "format": "treillis-parite", "role": "B", "ms": 1.2870, "go_s": 52.1},
+  {"serie": 1, "format": "scalaire-2b", "role": "A", "ms": 0.3215, "go_s": 208.7},
+  {"serie": 1, "format": "lecture-seule", "role": "plafond", "ms": 0.2816, "go_s": 238.3},
+  {"serie": 2, "format": "scalaire-2b", "role": "A", "ms": 0.3198, "go_s": 209.9},
+  {"serie": 2, "format": "treillis-mul1-dot4-v2", "role": "B", "ms": 0.5531, "go_s": 121.3},
+  {"serie": 2, "format": "treillis-mul1-dot4-v2", "role": "B", "ms": 0.5527, "go_s": 121.4},
+  {"serie": 2, "format": "scalaire-2b", "role": "A", "ms": 0.3203, "go_s": 209.5},
+  {"serie": 2, "format": "scalaire-2b", "role": "A", "ms": 0.3255, "go_s": 206.2},
+  {"serie": 2, "format": "treillis-parite", "role": "B", "ms": 1.3195, "go_s": 50.9},
+  {"serie": 2, "format": "treillis-parite", "role": "B", "ms": 1.2980, "go_s": 51.7},
+  {"serie": 2, "format": "scalaire-2b", "role": "A", "ms": 0.3258, "go_s": 206.0},
+  {"serie": 2, "format": "lecture-seule", "role": "plafond", "ms": 0.2998, "go_s": 223.9}
+ ]
+}

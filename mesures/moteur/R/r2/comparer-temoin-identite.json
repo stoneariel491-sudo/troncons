@@ -1,0 +1,84 @@
+{
+  "a_contre_verite": {
+    "dp_rms": 0.0,
+    "kl_incertitude": 0.0,
+    "kl_max": 0.0,
+    "kl_mediane": 0.0,
+    "kl_min": 0.0,
+    "kl_moyenne": 0.0,
+    "kl_p90": 0.0,
+    "kl_p99": 0.0,
+    "kl_p999": 0.0,
+    "ln_rapport_ppl": 0.0,
+    "ln_rapport_ppl_incertitude": 9.313225746154785e-10,
+    "meme_premier": 1.0,
+    "meme_premier_incertitude": 0.0,
+    "meme_premier_wilson95": [
+      0.9984958115518776,
+      1.0
+    ],
+    "n": 2550,
+    "ppl_p": 455.0050009757978,
+    "ppl_q": 455.0050009757978
+  },
+  "apparie": {
+    "kl_difference_b_moins_a": 0.0,
+    "kl_ecart_type": 0.0,
+    "premier_difference_b_moins_a": 0.0,
+    "premier_ecart_type": 0.0
+  },
+  "b_contre_verite": {
+    "dp_rms": 0.0,
+    "kl_incertitude": 0.0,
+    "kl_max": 0.0,
+    "kl_mediane": 0.0,
+    "kl_min": 0.0,
+    "kl_moyenne": 0.0,
+    "kl_p90": 0.0,
+    "kl_p99": 0.0,
+    "kl_p999": 0.0,
+    "ln_rapport_ppl": 0.0,
+    "ln_rapport_ppl_incertitude": 9.313225746154785e-10,
+    "meme_premier": 1.0,
+    "meme_premier_incertitude": 0.0,
+    "meme_premier_wilson95": [
+      0.9984958115518776,
+      1.0
+    ],
+    "n": 2550,
+    "ppl_p": 455.0050009757978,
+    "ppl_q": 455.0050009757978
+  },
+  "commande": [
+    "~\\dev\\cibles\\troncons-R\\release\\juge.exe",
+    "comparer",
+    "--verite",
+    "~/dev/essais/troncons/lot-R/r0/processeur.kld",
+    "--a",
+    "~/dev/essais/troncons/lot-R/r0/processeur.kld",
+    "--b",
+    "~/dev/essais/troncons/lot-R/r0/processeur.kld",
+    "--fils",
+    "4",
+    "--json",
+    "mesures/moteur/R/r2/comparer-temoin-identite.json"
+  ],
+  "duree_s": 13.1966136,
+  "fenetres": 10,
+  "fin_unix": 1792092755,
+  "kl_inverse": {
+    "a": 0.0,
+    "b": 0.0,
+    "difference": 0.0,
+    "ecart_type": 0.0
+  },
+  "outil": "juge comparer",
+  "positions": 2550,
+  "regle": "littéral : KL_B ≤ KL_A et premier_B ≥ premier_A ; statistique : d̄ ≤ 2σ(d̄) et ē ≥ −2σ(ē) (différences appariées, mêmes positions, même vérité)",
+  "verdicts": {
+    "litteral_kl": true,
+    "litteral_premier": true,
+    "statistique_kl": true,
+    "statistique_premier": true
+  }
+}

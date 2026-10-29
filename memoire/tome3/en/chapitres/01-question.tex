@@ -1,0 +1,250 @@
+% Volume~III, chapter 1: the question of the genome (English version).
+% Translated on 2026-10-29 by translator EN1 from memoire/tome3/fr/chapitres/01-question.tex (writer A,
+% corrected), number for number, same labels. Sources as in the French chapter: genome/00-etat-de-l-art.md,
+% genome/01-eclaireur.md § 3, genome/etat-de-l-art-pour-le-memoire.md, mesures/genome/etat-de-l-art/
+% (borne-rd.json, borne-rd-passe1.json, zero-canonique.json, zero-temoin-sans-drapeau.json),
+% memoire/figures/tome3/donnees/eclaireur-nombres.csv.
+% Figures (judged, unchanged): III-1.1 \GrapheEclBloc, III-1.2 \GrapheEclBorne.
+\chapter{The question of the genome: the roof, the bits read per weight, the frontier}\label{t3que:ch}
+
+\begin{origine}
+\textbf{The starting point} is two volumes and an idea. Volume~I set the roof: when the disk limits, the speed of a token is the throughput of the disk divided by the bytes it must read, and only the number of bits per weight has a slope of $-1$ on that roof with nothing in return. Volume~II built the engine and the \texttt{.trc} format, which reads the experts of gpt-oss at \textbf{3.8431 bits per weight losslessly} (MXFP4 codes in rANS with one table per lane, scales as deviations from the row median; the arbiter's measurement F1) and provides for a base of \textbf{2.6441 bits} (sign and four magnitude classes) at \textbf{4.29\,\%} relative squared error on the weights. Study 03 had measured that, given the scale of their block, the codes are almost independent: the neighbouring code brings only 0.005 bit. Stone, finally, had set out an idea (\fichier{idees/biomimetisme-genome-des-poids.md}) and an instruction, on 2026-10-16: ``le but est de concevoir un systeme fonctionnel'' (the goal is to design a working system).
+\textbf{This chapter establishes} the question in bits; the MXFP4 block to the bit, with the law of its fifteen values; the frontier to beat and what a rate--distortion bound computed in the domain of the weights says about it, set out as an \emph{upper bound} on $R(D)$ and proved to be one; the state of the art in twelve families, each passed through two filters (which dependency does it exploit? which error does it measure?); the box that nobody had filled on a model born in 4 bits; and what the reading predicts, which the next four chapters measure.
+\textbf{What remains} is the measurements themselves: the scout (\cref{t3ecl:ch}), the recipe (\cref{t3gen:ch}), duplication (\cref{t3dup:ch}), predictive coding and pruning (\cref{t3pre:ch}), then the synthesis of the round (\cref{t3syn:ch}).
+Sources: \fichier{genome/00-etat-de-l-art.md}; \fichier{genome/etat-de-l-art-pour-le-memoire.md}; \fichier{genome/01-eclaireur.md} §\,3; \fichier{mesures/genome/etat-de-l-art/journaux/borne-rd.json}, \fichier{borne-rd-passe1.json}, \fichier{zero-canonique.json}, \fichier{zero-temoin-sans-drapeau.json}; \fichier{mesures/genome/etat-de-l-art/sources.csv}, \fichier{recherches.csv}; Volume~I, chapter 3 (the roof).
+\end{origine}
+
+\begin{enbref}
+A language model is a very long text of numbers: 19 billion expert weights for gpt-oss-20b, 115 billion for the 120b. Stone's idea fits in an image: life does not store an organism, it stores a genome, a few billion letters from which the organism is built. Can we, likewise, store a \emph{recipe} of the weights rather than the weights? The image is an analogy, not a proof, and this chapter translates it into a question the machine can judge: how many bits must be read from disk per weight, and at what error? Information theory's answer is harsh: if the weights, seen by themselves, behave like independent draws, no recipe describes them more briefly than their entropy coding. The reading of the literature therefore says first where each ``genomic'' idea bets on a dependency, then where the only remaining margin lies: not in the weights, but in the error one chooses to measure.
+\end{enbref}
+
+\section{The roof: what a token must read}\label{t3que:sec:toit}
+
+Volume~I proved it (the roof theorem, chapter 3): under the sole assumption that a stage of throughput $W$ passes at most $W\tau$ bytes in a time $\tau$, a token that must read $O$ bytes on that stage lasts at least $O/W$. For weights read once each, $O = N b / 8$ ($N$ weights read per token, $b$ bits per weight), hence
+\begin{equation}\label{t3que:eq:toit}
+\text{tokens/s} \;\le\; \frac{8\,W}{N\,b}, \qquad \frac{\partial \ln(\text{tokens/s})}{\partial \ln b} = -1 .
+\end{equation}
+On Stone's machine, the slowest stage is the disk: 2.82\,GB/s measured \mes~(\fichier{fondations/journaux/01-machine/debits-mesures.json}, cited by \fichier{genome/00-etat-de-l-art.md} §\,1). Halving the bits read per weight doubles the roof; removing 3.56\,\% of the expert bytes read raises it by $1/(1 - 0.0356) - 1 = 3.7\,\%$ \calc. The whole quest of the genome is therefore judged in \textbf{bits read per weight}, at a given error.
+
+Computation is not the bottleneck. The card has on the order of 214 free operations per compressed byte read (fondations/01), 926 at the real throughput of the engine's disk according to the correction of Volume~II (m12) \calc. A mechanism whose transcription costs less than this budget is free in time: it is judged only by its bits and its error. The chapters of the round count this cost whenever it is not zero (\cref{t3gen:sec:transcription}).
+
+\section{The MXFP4 block to the bit}\label{t3que:sec:mxfp4}
+
+The experts of gpt-oss are published in MXFP4~\cite{openai2025gptoss}, the small floating-point format of the Microscaling family~\cite{rouhani2023microscaling,ocpmx2023}. A block carries 32 consecutive weights of a row in 17 bytes (\cref{fig:t3-ecl-bloc}): one E8M0 scale byte, an exponent alone, and sixteen bytes of codes, two 4-bit codes per byte.
+
+\begin{figure}[tbp]
+\centering
+\GrapheEclBloc
+\LegendeFigure{EclBloc}
+\label{fig:t3-ecl-bloc}
+\end{figure}
+
+\paragraph{The E2M1 code.} A 4-bit code $c$ reads $c = (s, E_1E_0, M)$: one sign bit, two exponent bits, one mantissa bit. Its value is
+\begin{equation}\label{t3que:eq:e2m1}
+\mathrm{E2M1}(c) = (-1)^{s} \times
+\begin{cases}
+M/2 & \text{if } E = 0 \quad(\text{subnormal}),\\
+2^{E-1}\,(1 + M/2) & \text{if } E \in \{1, 2, 3\},
+\end{cases}
+\end{equation}
+which gives the eight magnitudes $\{0,\ 0.5,\ 1,\ 1.5,\ 2,\ 3,\ 4,\ 6\}$ \calc. Sixteen patterns for fifteen values: code $0 = (0, 00, 0)$ and code $8 = (1, 00, 0)$ are both worth zero, one $+0$, the other $-0$. The figure says so in its caption: it is the first synonymous codon of the volume, and the next chapter measures its price.
+
+\paragraph{The value of a weight.} Weight $i$ of block $b$ is $w_{32b+i} = 2^{\,e_b - 127}\,\mathrm{E2M1}(c_i)$, $e_b$ being the E8M0 byte of the block. The following chapters often write the equivalent form of the kernels of llama.cpp and of \texttt{trc-reference}, with a doubled table:
+\begin{equation}\label{t3que:eq:k}
+w = \pm K[m]\cdot 2^{\,e-128}, \qquad K = \{0, 1, 2, 3, 4, 6, 8, 12\},
+\end{equation}
+where $m$ is the 3-bit magnitude; the two writings give the same products since $K[m] = 2\,|\mathrm{E2M1}(c)|$ and $2^{e-128} = 2^{e-127}/2$ \calc. A block costs $8 + 32 \times 4 = 136$ bits, that is 4.25 bits per weight before any coding \calc. A row of 2\,880 weights has 90 blocks; an expert matrix of gpt-oss, $2\,880 \times 2\,880 = 8\,294\,400$ weights.
+
+\paragraph{The law of the values.} On the 12 reference tensors of the frontier (layers 0, 8, 16 and 23 of gpt-oss-20b, gate, up and down matrices, 3\,185\,049\,600 weights), the fifteen values have the law of \cref{t3que:tab:loi} \mes~(\fichier{mesures/genome/etat-de-l-art/journaux/borne-rd-passe1.json}, field \texttt{loi\_v}). It is symmetric to within $1.3\cdot 10^{-5}$, and zero is the most frequent value in it: 13.69\,\% of the weights. Its entropy is $H(V) = 3.7228$ bits, against $H(C) = 3.8598$ for the sixteen codes of the same tensors (\fichier{genome/01-eclaireur.md} §\,2.1): the gap, 0.137 bit, is the price of the sign of the zeros.
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabular}{l *{8}{r}}
+\toprule
+$|K|$ (doubled units) & 0 & 1 & 2 & 3 & 4 & 6 & 8 & 12 \\
+$|\mathrm{E2M1}|$ & 0 & 0.5 & 1 & 1.5 & 2 & 3 & 4 & 6 \\
+\midrule
+$P(V = +|K|)$ (\%) & \multirow{2}{*}{13.694} & 8.601 & 10.152 & 5.461 & 7.883 & 5.595 & 3.998 & 1.462 \\
+$P(V = -|K|)$ (\%) & & 8.602 & 10.153 & 5.460 & 7.882 & 5.595 & 3.998 & 1.462 \\
+\bottomrule
+\end{tabular}
+\caption[The law of the fifteen MXFP4 values]{The law of the fifteen MXFP4 values on the 12 reference tensors of gpt-oss-20b, $\pm0$ merged \mes. Data: \fichier{mesures/genome/etat-de-l-art/journaux/borne-rd-passe1.json} (\texttt{loi\_v}, in doubled units $K$); $E[V^2] = 17.847$ in these units. The law is symmetric: only the deviation of the scale from the row median (the context $\kappa$ of the format) and the magnitude class carry information beyond this table.}
+\label{t3que:tab:loi}
+\end{table}
+
+\section{The frontier, and the rate--distortion bound}\label{t3que:sec:frontiere}
+
+\subsection{What a weight costs today}
+
+Two points form the frontier that the round had to beat (\fichier{genome/00-etat-de-l-art.md}, In brief, point 1; the arbiter's measurement F1, reported in Volume~II, chapter 2):
+\begin{itemize}
+\item \textbf{lossless}: 3.8431 bits per weight (A\_ctx: codes in rANS with one table per lane and per scale context, E8M0 scales as deviations from the row median, tables and headers counted), each stream decoded exactly \mes;
+\item \textbf{lossy}, the \emph{base} of the fast mode: the sign and four contiguous magnitude classes, $\{0,\,0.5\}$, $\{1,\,1.5,\,2\}$, $\{3,\,4\}$, $\{6\}$ in E2M1 units, each rebuilt by its centroid weighted by $s^2$ (0.237\,166; 1.424\,298; 3.418\,577; 6; \fichier{mesures/genome/genome/frontiere.json}), at \textbf{2.6441 bits} read for a relative squared error on the weights $D = \sum s^2 (v - \hat v)^2 / \sum s^2 v^2 = $ \textbf{4.2920\,\%} \mes.
+\end{itemize}
+The base is a \emph{function of the code}: the exact code is recovered behind it by a lossless complement, which the format reserves for its two-level version. That is its strength (it nests) and its constraint (it is scalar and fixed in advance); the bound that follows says how much this constraint costs.
+
+\subsection{The bound of a memoryless coder, in the domain of the weights}
+
+\paragraph{The model.} We write $w = s\,v$, with $v$ drawn i.i.d. from the law of \cref{t3que:tab:loi} ($\pm0$ merged), and $s = 2^{e-128}$ known to the decoder. The distortion is the pooled relative error $D = \sum s^2 (v-\hat y)^2 / \sum s^2 v^2$. A single quantiser for all blocks (a single slope, called \emph{uniform} allocation) is exactly the constraint of the frontier base. The rate--distortion function of the discrete source $V$ under $d(v, \hat y) = (v - \hat y)^2$ is
+\begin{equation}\label{t3que:eq:rd}
+R(D) = \min_{Q(\hat y \mid v)\,:\ \E\, d(V, \hat Y) \le D}\ I(V ; \hat Y),
+\end{equation}
+and the source coding theorem with a fidelity criterion~\cite{shannon1959} says that every rate above $R(D)$ is achievable by long enough codes, none below.
+
+\paragraph{The Blahut--Arimoto algorithm.} For a slope $\beta > 0$ (bits per unit of distortion), one iterates to the fixed point~\cite{blahut1972}
+\begin{equation}\label{t3que:eq:ba}
+Q(\hat y \mid v) = \frac{q(\hat y)\, 2^{-\beta (v - \hat y)^2}}{\sum_{y'} q(y')\, 2^{-\beta (v - y')^2}}, \qquad q(\hat y) = \sum_v p(v)\, Q(\hat y \mid v),
+\end{equation}
+then reads $R = \sum_{v, \hat y} p(v) Q(\hat y\mid v) \log_2 \frac{Q(\hat y\mid v)}{q(\hat y)}$ and $D = \sum p(v) Q(\hat y\mid v)(v - \hat y)^2$. At low slopes, the number of iterations needed grows like $1/\beta$; that is where the tool struggled.
+
+\paragraph{The history of the passes, as it is.} Pass 1 of \texttt{borne\_rd.py} made its own control B1 fail at the low end of the curve (at $\beta = 10^{-6}$, the point had not converged), while B2 held (a Gaussian follows $2^{-2R}$ to within $10^{-5}$ bit) and its break failed. Pass 2, with the correction declared after the failure (a point of distortion above $\E[v^2]$ is replaced by the zero-rate point), made B1bis and B2 hold, but only 243 points out of 1\,619 converged, and the curve with optimal allocation between exponents was read outside its domain: it is not published. Pass 3 computed only the uniform allocation. In the zone from 1.8 to 3.2 bits, Blahut--Arimoto did not reach the declared tolerance ($10^{-11}$) in 200\,000 iterations; by the rule declared before pass 3, no \emph{converged} number is therefore published at 2.64 bits nor at 4.29\,\%. What remains true without convergence, and which was read \emph{after} pass 3 (the reading is stated as such, \fichier{genome/01-eclaireur.md} §\,3), is the following lemma.
+
+\begin{lemme}[Every iterate is an achievable point]\label{t3que:lem:ba}
+For every test channel $Q(\hat y \mid v)$ and every law $q$ on the reproductions,
+\begin{equation}\label{t3que:eq:ba-borne}
+\sum_{v, \hat y} p(v)\, Q(\hat y\mid v) \log_2 \frac{Q(\hat y\mid v)}{q(\hat y)} \;\ge\; I(V ; \hat Y) \;\ge\; R\bigl(\E\, d(V, \hat Y)\bigr),
+\end{equation}
+with equality on the left if and only if $q$ is the marginal $m(\hat y) = \sum_v p(v) Q(\hat y \mid v)$. The point $(D, R)$ read at any iteration of Blahut--Arimoto is therefore above the curve: $R(D) \le R$.
+\end{lemme}
+
+\begin{proof}
+Write $\log_2 \frac{Q}{q} = \log_2 \frac{Q}{m} + \log_2 \frac{m}{q}$ under the sum. The first term gives $\sum p(v) Q(\hat y\mid v) \log_2 \frac{Q(\hat y\mid v)}{m(\hat y)} = I(V ; \hat Y)$, by definition of the mutual information of the pair $(V, \hat Y)$ with law $p(v) Q(\hat y \mid v)$. The second depends only on $\hat y$: $\sum_{\hat y} \bigl(\sum_v p(v) Q(\hat y\mid v)\bigr) \log_2 \frac{m(\hat y)}{q(\hat y)} = \sum_{\hat y} m(\hat y) \log_2 \frac{m(\hat y)}{q(\hat y)} = D(m \,\|\, q)$, the Kullback--Leibler divergence~\cite{kullback1951}, non-negative and zero if and only if $q = m$ (Gibbs' inequality, \cite{cover2006}, §\,2.6). Hence the first inequality. The second is definition~\eqref{t3que:eq:rd}: $Q$ is an admissible channel for the distortion $D = \E\, d(V, \hat Y)$ it achieves, so $R(D)$, the minimum over these channels, is at most $I(V ; \hat Y)$.
+\end{proof}
+
+Two consequences make the figure readable. First, the curve traced by the iterates, converged or not, is an \textbf{upper bound} on $R(D)$, never an estimate from below. Second, $R(D)$ is convex; every segment between two achievable points is achievable by time sharing (coding a fraction $\theta$ of the blocks with the first code and the rest with the second gives $(\theta D_1 + (1-\theta) D_2,\ \theta R_1 + (1-\theta) R_2)$), and the lower convex hull of the iterates remains an upper bound. It is the hull that is read at the error and at the rate of the frontier.
+
+\begin{figure}[tbp]
+\centering
+\GrapheEclBorne
+\LegendeFigure{EclBorne}
+\label{fig:t3-ecl-borne}
+\end{figure}
+
+\paragraph{What the bound says.} The 40 iterates of the uniform allocation, 25 of them converged, are plotted in \cref{fig:t3-ecl-borne} \mes~\calc~(\fichier{memoire/figures/tome3/donnees/eclaireur-nombres.csv}, drawn from \fichier{borne-rd.json}). \Cref{t3que:tab:borne} keeps the four points that the scout published. At the error of the frontier, the chord between two iterates gives $R(4.29\,\%) \le 2.168$ bits, \textbf{0.476 bit below the frontier}; at its rate (2.6441 bits), the distortion is at most 1.84\,\%, \textbf{0.43 times its error} \calc. The scout wrote ``about 0.47 bit less'' and ``less than half its error'' (\fichier{genome/01-eclaireur.md} §\,3); the judge of the figures redid the chord through the convex hull of the 40 iterates and found the same numbers (\fichier{memoire/tome3/JUGEMENT-figures2-ronde.md}, M12).
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabular}{r r l}
+\toprule
+Rate (bits per weight) & Relative distortion $D$ & Reading \\
+\midrule
+2.1284 & 4.55\,\% & roughly the error of the frontier, 0.51 bit less \\
+2.2631 & 3.67\,\% & below the frontier in rate \emph{and} in error \\
+2.5091 & 2.38\,\% & \\
+2.6095 & 1.96\,\% & at the rate of the frontier, less than half its error \\
+\bottomrule
+\end{tabular}
+\caption[Four points of the rate--distortion bound]{Four points of pass 3 (uniform allocation, a single quantiser for all blocks), each an upper bound on $R(D)$ by \cref{t3que:lem:ba} \mes. Data: \fichier{mesures/genome/etat-de-l-art/journaux/borne-rd.json} (\texttt{uniforme\_precis}); \fichier{genome/01-eclaireur.md} §\,3.}
+\label{t3que:tab:borne}
+\end{table}
+
+\paragraph{An accounting precaution.} The bound is that of codes \emph{that know the scale}: the scales are not counted in it, whereas the 2.6441 bits of the frontier count them (with its context $\kappa$). On the 16 experts of the scout's protocol where the frontier was redone with the entropy estimator, the scales cost 0.0375 bit per weight and the symbols alone $H_0 = 2.6415$ bits; against this $H_0$, the gap is 0.473 bit instead of 0.476 \calc~(\fichier{eclaireur-nombres.csv}, after \fichier{passes/frontiere-lam0-damp0.01-e0\_8\_16\_24.json}). The conclusion does not change.
+
+\paragraph{Where the gap is.} It is not in a structure of the weights: the model of the bound assumes them independent given the scale, which study 03 measured to be true to within 0.005 bit. It is in \textbf{the shape of the quantiser}. The frontier is scalar and constrained to be a function of the code; the bound is reached by long, free codes. The gap is shared between two known gains. The first is that of an entropy-constrained scalar quantiser, which chooses its cells for their cost in bits and not for their number. The second is the space-filling gain of a vector or trellis code: at high rate, a spherical quantisation cell in high dimension has, at equal volume, a moment of inertia smaller than the cube of a uniform scalar quantiser by a factor $\pi e / 6$, that is at most
+\begin{equation}\label{t3que:eq:pavage}
+10 \log_{10} \frac{\pi e}{6} = 1.53\ \text{dB}, \qquad \frac12 \log_2 \frac{\pi e}{6} = 0.2546\ \text{bit per weight}
+\end{equation}
+at equal error \calc~\cite{gish1968,marcellin1990}. A generator of weights (seed, automaton, dictionary) has no other structure to exploit than this one: it can only aim at the same bound. The chapter on the recipe (\cref{t3gen:ch}) finds exactly this split, measured.
+
+\section{The state of the art, in twelve families}\label{t3que:sec:familles}
+
+\subsection{Two filters}
+
+\paragraph{First filter: which dependency?} An i.i.d. source has no structure other than its law. Its shortest description, on average, is its entropy coding~\cite{shannon1948}; the theorem holds for every description, generating programs included, in the sense of Kolmogorov complexity, whose expectation per symbol tends to the entropy for an i.i.d. source~\cite[chapter 14]{cover2006}. A ``genomic'' idea can therefore win losslessly only the dependency it exploits, and that dependency must exist in our weights. On the 72 expert tensors of gpt-oss-20b, study 03 and measurement F1 had given \mes~(\fichier{genome/00-etat-de-l-art.md} §\,1): an order-0 $H(\text{code})$ of 3.860 bits out of 4; a contribution of the previous code of 0.005 bit; a contribution of the scale context of about 0.035 bit (2.642 $\to$ 2.607 for the base); the E8M0 scales given the row median at 1.01 bits for 32 weights, that is 0.032 bit per weight.
+
+\paragraph{Second filter: which error?} With loss, what counts is not $\|\Delta W\|$ but what the error changes at the output. For a matrix $W$ and its inputs $x$, with second-moment matrix $H = \E[x x^\top]$,
+\begin{equation}\label{t3que:eq:sortie}
+\E\,\|\Delta W x\|^2 = \E\bigl[x^\top \Delta W^\top \Delta W x\bigr] = \E\,\mathrm{tr}\bigl(\Delta W x x^\top \Delta W^\top\bigr) = \mathrm{tr}\bigl(\Delta W\, H\, \Delta W^\top\bigr),
+\end{equation}
+by the cyclicity of the trace and the linearity of expectation \calc. If $H$ were proportional to the identity, the output error would be the error on the weights; it is not: the activations of language models have dominant channels, and protecting the hundredth of the weights that read them reduces the error a great deal~\cite{lin2023awq} \litt. The whole margin of a lossy mechanism lies in~\eqref{t3que:eq:sortie}.
+
+\subsection{The families}
+
+\Cref{t3que:tab:familles} arranges the twelve families read by the scout, at the primary source (the abstract of each paper, through the arXiv or Crossref API, on 2026-10-16; the published formulation for the works whose mechanism counts: GPTQ, OBC, QMoE, MatGPTQ, SeedLM, Tied Trit-Planes; \fichier{mesures/genome/etat-de-l-art/sources.csv}). The authors' numbers are publisher's numbers, not reproduced here \litt. For each: what it proposes, and what we lack to use it on weights born in MXFP4.
+
+\begin{table}[p]
+\centering\scriptsize
+\renewcommand{\arraystretch}{1.15}
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.3cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+Family & What it proposes (literature, not reproduced) & What we lack \\
+\midrule
+1. Seeded recipe & SeedLM~\cite{shafipour2024seedlm}: a block approximated by a few pseudo-random columns of an LFSR, seed and coefficients stored; PRANC~\cite{nooralinejad2022pranc}, NOLA~\cite{koohpayegani2023nola}, intrinsic dimension~\cite{li2018intrinsic} & PRANC, NOLA and the intrinsic dimension train \emph{in} the subspace; SeedLM works after the fact but lossily, on BF16; a random subspace of dimension $k$ keeps on average $k/C$ of the energy of a block \\
+2. Generating networks & HyperNetworks~\cite{ha2016hypernetworks}, HyperNEAT~\cite{stanley2009hyperneat}, neural cellular automata~\cite{mordvintsev2020nca}, HyperNCA~\cite{najarro2022hypernca} & all generate weights \emph{trained to be generable}; none describes after the fact a model trained freely \\
+3. Kinship and merging of experts & MC-SMoE~\cite{li2023mcsmoe}, Merging Experts into One~\cite{he2023meo}, HC-SMoE~\cite{chen2024hcsmoe}, Sub-MoE~\cite{li2025submoe}, D$^2$-MoE~\cite{gu2025d2moe}, MoBE~\cite{chen2025mobe}, OMP-MoE~\cite{li2026ompmoe} & all start from BF16 and measure a task accuracy; none measures kinship in bits on 4-bit codes \\
+4. Differential coding & BitDelta~\cite{liu2024bitdelta} (the delta of a fine-tuning in 1 bit), Delta-CoMe~\cite{ping2024deltacome} & a parent: a fine-tuning has one, an expert does not, unless it was born by copy \\
+5. Predictive and lossless entropy coding & predictive cortex~\cite{rao1999}, DeepCABAC~\cite{wiedemann2019deepcabac}, ZipNN~\cite{hershcovitch2024zipnn}, DFloat11~\cite{zhang2025dfloat11}, Huff-LLM~\cite{yubeaton2025huffllm}, TRACE~\cite{xie2025trace} & all win on the BF16 exponent, highly redundant; an MXFP4 code no longer has an exponent per weight, there remains 0.14 bit of redundancy per code ($4 - 3.86$) and 0.14 on the scales, already taken \\
+6. Pruning & synaptic density~\cite{huttenlocher1979}, OBD~\cite{lecun1989obd}, OBS~\cite{hassibi1992obs}, Deep Compression~\cite{han2015deepcompression}, removed experts~\cite{lu2024notallexperts,martin2026ests} & sensitivity is read in the output, not in the weights; OBS is the first ``error feedback'' \\
+7. Dictionaries and vector codes & sparse coding~\cite{olshausen1996}, AQLM~\cite{aqlm2024}, QuIP\#~\cite{quipsharp2024}, QTIP~\cite{genome-qtip}, HyperQuant~\cite{domb2026hyperquant}, MASA~\cite{zhussip2025masa} & they \emph{replace} the grid and start from BF16; on an i.i.d. source, they win only the space-filling gain~\eqref{t3que:eq:pavage} \\
+8. Error feedback & OBC~\cite{frantar2022obc}, GPTQ~\cite{frantar2022gptq}, QMoE~\cite{frantar2023qmoe}, AWQ~\cite{lin2023awq}, MoEQuant~\cite{hu2025moequant}, EAQuant~\cite{fu2025eaquant}, sigma-delta neuron~\cite{yoon2017sigmadelta} & a starting point born in 4 bits, an imposed and nested grid, the cost in rate; and the constraint that a lossless complement return the exact code behind the base \\
+9. Nested formats, models born in 4 bits & Matryoshka~\cite{nair2025matquant}, Any-Precision~\cite{park2024anyprecision}, MatGPTQ~\cite{kleinegger2026matgptq}, MX~\cite{rouhani2023microscaling}, MXFP4 training~\cite{tseng2025mxfp4}, gpt-oss~\cite{openai2025gptoss}, Scale-QLoRA~\cite{li2026scaleqlora}, Tied Trit-Planes~\cite{tiedtrit2026}, BitNet~\cite{bitnet2024} & MatGPTQ, the closest, starts from BF16 and truncates the high bits of an integer; Tied Trit-Planes requantises MXFP4 experts read from SSD, but at 4.06 bits and without nesting \\
+10. DNA in the proper sense & computation~\cite{adleman1994}, storage~\cite{church2012dna,goldman2013dna,erlich2017fountain}, error-correcting genetic code~\cite{freeland1998}, codon usage bias~\cite{sharp1987cai} & the density of DNA is physical, not informational; what transposes is the arrangement of a code so that the error falls where the phenotype does not see it \\
+11. The evolution of codes & EvoPress~\cite{sieberling2024evopress}, HyperNEAT & an optimiser, not a representation: it creates no information \\
+12. Distributed memories and indexes & holographic representations~\cite{plate1995hrr}, hippocampal index~\cite{teyler1986} & an index recalls only a memory already stored: it is a cache, already built in Volume~II \\
+\bottomrule
+\end{tabularx}
+\caption[The twelve families of the state of the art]{The twelve ``genomic'' families of the state of the art, read at the primary source \litt. Synthesis of \fichier{genome/00-etat-de-l-art.md} §\,2; addresses, publication and consultation dates: \fichier{mesures/genome/etat-de-l-art/sources.csv} and \fichier{memoire/sources/genome-etat-de-l-art.bib}.}
+\label{t3que:tab:familles}
+\end{table}
+
+\paragraph{Two computations that judge the seed before any measurement.} SeedLM approximates a block of $C$ weights by $k$ columns of a pseudo-random matrix. If $V$ is a uniform random subspace of dimension $k$ and $w$ a fixed vector, $\E\,\|P_V w\|^2 = \frac{k}{C}\|w\|^2$: by rotation invariance, $P_V$ has the same law as $O^\top P_0 O$ for $O$ uniform and $P_0$ the projector onto the first $k$ coordinates, and $\E\,[O^\top P_0 O] = \frac{\mathrm{tr}\,P_0}{C} I = \frac{k}{C} I$ \calc. A block of almost i.i.d. weights therefore leaves a residual of relative energy close to $1 - k/C$. SeedLM buys it back by choosing the best seed among $2^{16}$; but one cannot gain more information than the index one stores: 16 bits per block at most \calc. \Cref{t3gen:sec:graine} derives the exact law (the best of $N$ subspaces follows a Beta law) and confronts it with the real weights.
+
+\section{What has never been tried on a model born in 4 bits}\label{t3que:sec:case}
+
+The scout queried the arXiv API on 2026-10-16, queries logged with their number of answers (\fichier{mesures/genome/etat-de-l-art/recherches.csv}): ``MXFP4 AND gpt-oss'', ``lossless AND MXFP4'', ``gpt-oss AND compression'', ``Matryoshka AND quantization'', ``any-precision AND LLM'', ``DNA AND neural network AND weight compression'' (0 answers), ``cellular automata AND weights AND compress'' (0), ``dictionary learning AND large language model AND weight AND compression'', ``genetic code AND error AND quantization'' (0). \Cref{t3que:tab:case} crosses the moves with their application to a model born in 4 bits.
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+Move & Done elsewhere & On a model born in 4 bits? \\
+\midrule
+lossless on MX codes and scales & ZipNN, DFloat11, TRACE: on BF16 & troncons (03, F1: 3.84 bits); nothing else found \\
+base nested in the native code, exact complement & Matryoshka, Any-Precision, MatGPTQ: on integers, from BF16 & troncons (07, F1: base a function of the code) \\
+requantising the published MXFP4 experts & Tied Trit-Planes (4.06 bits, SSD), ESTS (after pruning and re-fine-tuning) & never \emph{below} 4 bits with an exact complement \\
+error feedback on the real inputs & OBC, GPTQ, QMoE, MatGPTQ: from BF16 & \textbf{never} to choose a base nested in an MXFP4 code \\
+entropy constraint in the feedback & QMoE codes the entropy after the fact; HyperQuant codes with Rice & \textbf{never} in the choice of the symbols of a native base \\
+seed, hypernetwork, automaton, dictionary after the fact & SeedLM, MoBE, Sub-MoE, D$^2$-MoE (BF16) & not found; \cref{t3gen:ch,t3dup:ch} \\
+\bottomrule
+\end{tabularx}
+\caption[The empty box]{What has been done elsewhere and what has not been done on a model born in 4 bits \litt. ``Never'' means ``not found by the logged queries'', not ``non-existent''. Source: \fichier{genome/00-etat-de-l-art.md} §\,3.}
+\label{t3que:tab:case}
+\end{table}
+
+\paragraph{The box taken.} Rows 4 and 5 together, within the frame of rows 2 and 3: \emph{choosing the symbols of the nested base by error feedback on the real inputs, under an entropy constraint, without touching the decoder or the exact code}. The reason for the choice is a number: it is the only move of the list that does not bet on a dependency between weights, which 03 measured to be absent (0.005 bit); it bets on a dependency between \emph{inputs}, which the engine can measure. Life has the same move, and the scout took it as a guide, as an analogy: the genetic code is arranged so that the probable point errors fall on similar amino acids, to the point that it is ``one in a million'' among the possible codes~\cite{freeland1998}; the neuron codes a continuous signal in spikes by carrying its error over to what follows, in the manner of a sigma-delta modulator~\cite{yoon2017sigmadelta}. \Cref{t3ecl:ch} builds this mechanism, the ``synonymous mutation'', and measures it.
+
+\section{What the reading predicts}\label{t3que:sec:prediction}
+
+\Cref{t3que:tab:pronostic} is the prognosis written on 2026-10-16, before any measurement of the round (\fichier{genome/00-etat-de-l-art.md} §\,4). It says, for each family, the dependency it exploits and the measurement of troncons that judges it. \Crefrange{t3ecl:ch}{t3pre:ch} confront it with the numbers; \cref{t3syn:ch} draws up the balance. This chapter announces no result: it fixes what could have contradicted them.
+
+\begin{table}[tbp]
+\centering\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.6cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+Family & Dependency exploited & Measurement that judges it & Prognosis \\
+\midrule
+seed, hypernetwork, automaton & regularity of the weights & 0.005 bit for the neighbour (03) & no lossless gain; lossy, at best the bound $R(D)$ of the weights \\
+expert kinship, delta & correlation between experts & mutual information between experts (\cref{t3dup:ch}) & a gain if and only if the mutual information is large \\
+lossless predictive & sequential dependency & 0.005 bit (03) & at most 0.005 bit \\
+pruning & useless weights & measured sensitivity (\cref{t3pre:ch}) & depends on the output, not on the weights \\
+vector code, dictionary & shape of the law & space-filling gain, at most 0.2546 bit & at most 0.25 bit, new decoder \\
+\textbf{synonymous mutation} & \textbf{correlation of the inputs} & $H = \E[g^2 x x^\top]$ on the real inputs (\cref{t3ecl:ch}) & \textbf{the only one that can go beyond the bound of the weights} \\
+\bottomrule
+\end{tabularx}
+\caption[The prognosis of the reading]{The prognosis of the reading, declared before the measurements of the round \calc~\litt. Source: \fichier{genome/00-etat-de-l-art.md} §\,4.}
+\label{t3que:tab:pronostic}
+\end{table}
+
+The last row calls for a clarification, which the rest of the volume makes necessary: ``going beyond the bound of the weights'' does not mean going below the $R(D)$ of \cref{fig:t3-ecl-borne}, which is impossible in its metric. It means \emph{changing the metric}: a base whose error on the weights \emph{rises} can make less error at the output~\eqref{t3que:eq:sortie}, and that is the only way in which a lossy mechanism gains something the bound of the weights does not forbid it. The following chapters will also show that one must go further still, to the Kullback--Leibler divergence on text, because the output error of an expert misleads in its turn.
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{Only abstracts were read}, plus the published formulations of the six key methods: a number from an abstract is a publisher's number, never reproduced. A paper may contain an experiment on an MXFP4 model that its abstract does not mention: ``never tried'' means ``not found by the logged queries''.
+\item \textbf{The searches covered only arXiv and Crossref}: conference proceedings not deposited on arXiv may be missing.
+\item \textbf{The near-independence of the codes} comes from 03 (order 1, neighbour in the row, scale context). A higher-order, long-range or between-experts dependency is not measured there; \cref{t3dup:ch,t3pre:ch} measure it.
+\item \textbf{The Kolmogorov argument is on average over the source}: a particular tensor may have a short description (the seed that initialised it, for example); after training, nothing indicates it, and that seed is not published.
+\item \textbf{The bound of \cref{fig:t3-ecl-borne}} assumes the codes independent given the scale; an unmeasured dependency would lower it further. It is an upper bound by \cref{t3que:lem:ba}; reading the non-converged iterates as bounds was set out \emph{after} pass 3, and the rule declared beforehand published only converged points. It does not count the scales (0.0375 bit).
+\item \textbf{The space-filling gain} (0.2546 bit) is an asymptotic high-rate bound; at 2 or 3 bits it is smaller, which strengthens the prognosis.
+\item \textbf{The metric of the bound} is the pooled error on the weights, dominated by a small share of the blocks (\cref{t3ecl:sec:bruit}): it locates the frontier, it judges no mechanism.
+\end{itemize}
+\end{faux}

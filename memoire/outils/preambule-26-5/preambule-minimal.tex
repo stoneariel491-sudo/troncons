@@ -1,0 +1,64 @@
+% Document minimal : l'erreur « \c@proposition already defined » du préambule commun sous MiKTeX 26.5,
+% et son correctif. Même ordre que memoire/commun/preambule.tex : amsthm, hyperref, cleveref, thmtools.
+% Depuis memoire/essai/construction-tomes/minimal/ (deux passes chacune) :
+%   lualatex -jobname=m-erreur       "\input{../../preambule-minimal.tex}"                       l'erreur
+%   lualatex -jobname=m-sans-thmtools "\def\SANSTHMTOOLS{1}\input{../../preambule-minimal.tex}"  témoin : amsthm seul
+%   lualatex -jobname=m-sans-sibling  "\def\SANSSIBLING{1}\input{../../preambule-minimal.tex}"   témoin : sans sibling
+%   lualatex -jobname=m-corrige       "\def\CORRIGE{1}\input{../../preambule-minimal.tex}"       le correctif
+%   lualatex -jobname=m-ancien        "\def\ANCIEN{1}\def\CORRIGE{1}\input{../../preambule-minimal.tex}"
+%       noyau d'avant simulé : sans les premiers soins d'amsthm ni \newcounteralias, correctif en place.
+%   lualatex -jobname=m-doublon       "\def\DOUBLON{1}\def\CORRIGE{1}\input{../../preambule-minimal.tex}"
+%       témoin qui doit tomber : deux vrais défauts d'alias, que le correctif ne doit pas taire.
+\ifdefined\ANCIEN
+  \RemoveFromHook{package/amsthm/after}[firstaid/aliascounter]
+  \let\newcounteralias\undefined
+\fi
+\documentclass{scrbook}
+\usepackage{amsthm}
+\usepackage{hyperref}
+\usepackage[french, nameinlink, noabbrev]{cleveref}
+\ifdefined\SANSTHMTOOLS
+  \newtheorem{theoreme}{Théorème}[chapter]
+  \newtheorem{proposition}[theoreme]{Proposition}
+  \newtheorem{lemme}[theoreme]{Lemme}
+\else
+  \usepackage{thmtools}
+  \ifdefined\CORRIGE
+    % Les lignes du correctif, telles que dans memoire/commun/preambule.tex.
+    \ifdefined\newcounteralias
+      \let\AliasCompteurNoyau\newcounteralias
+      \renewcommand*{\newcounteralias}[2]{%
+        \ifcsname c@#1\endcsname
+          \expandafter\ifx\csname c@#1\expandafter\endcsname\csname c@#2\endcsname
+          \else\AliasCompteurNoyau{#1}{#2}\fi
+        \else\AliasCompteurNoyau{#1}{#2}\fi}
+    \fi
+  \fi
+  \ifdefined\SANSSIBLING
+    \declaretheorem[numberwithin=chapter, name=Théorème]{theoreme}
+    \declaretheorem[numberwithin=chapter, name=Proposition]{proposition}
+    \declaretheorem[numberwithin=chapter, name=Lemme]{lemme}
+  \else
+    \declaretheorem[numberwithin=chapter, name=Théorème]{theoreme}
+    \declaretheorem[sibling=theoreme, name=Proposition]{proposition}
+    \declaretheorem[sibling=theoreme, name=Lemme]{lemme}
+  \fi
+  % Témoin : le correctif ne doit taire que l'alias déjà fait. Un vrai doublon (lemme sur chapter)
+  % et un compteur absent doivent encore lever leur erreur (deux erreurs attendues).
+  \ifdefined\DOUBLON \newcounteralias{lemme}{chapter}\newcounteralias{zzz}{absent}\fi
+  \ifdefined\AliasCompteurNoyau \let\newcounteralias\AliasCompteurNoyau \fi
+\fi
+\crefname{theoreme}{théorème}{théorèmes}
+\crefname{lemme}{lemme}{lemmes}
+\crefname{proposition}{proposition}{propositions}
+\begin{document}
+\chapter{Un}
+\begin{theoreme}\label{t}A.\end{theoreme}
+\begin{proposition}\label{p}B.\end{proposition}
+\begin{lemme}\label{l}C.\end{lemme}
+\begin{proposition}\label{p2}D.\end{proposition}
+RENVOIS : \ref{t}, \ref{p}, \ref{l}, \ref{p2} ; \cref{t}, \cref{p}, \cref{l}, \cref{p2}.
+\chapter{Deux}
+\begin{lemme}\label{l2}E.\end{lemme}
+SUITE : \cref{l2}.
+\end{document}

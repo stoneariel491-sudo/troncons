@@ -1,0 +1,543 @@
+\chapter{Le chemin des octets}\label{ch:t2-chemin}
+\ifdefined\GrapheChmSync\else\input{\Racine/figures/tome2/chemin-figures}\fi
+
+\begin{origine}
+\textbf{Au départ}, la décision d'architecture tenait le chemin des octets pour réalisable sous CUDA sur la foi de trois mesures faites par d'autres moyens : une DMA à 12,2\,Go/s depuis un tampon hôte de Vulkan, la mémoire épinglée plus rapide de 21\,\% et un recouvrement copie-calcul mesurés par le runtime CUDA de llama.cpp appelé depuis Python, un disque à 2,58\,Go/s en blocs de 4\,Mio. Trois choses n'étaient mesurées nulle part : épingler plusieurs gigaoctets sous WDDM sur une machine de 16\,Go partagée ; lire le disque sans tampon \emph{directement} dans la mémoire que lit la DMA ; et ce que coûte, à chaque couche, la lecture du routeur par l'hôte.
+\textbf{Ce chapitre établit} deux bibliothèques à nous, sans aucune bibliothèque de CUDA liée (\texttt{trc-cuda}, l'API du pilote chargée à l'exécution ; \texttt{trc-es}, la lecture sans tampon par port de complétion) ; les trois essais qui répondent aux trois questions, chacun avec son témoin, sa cassure et son seuil déclaré ; un fait de la machine que personne n'avait relevé (la carte n'a qu'un moteur de copie sous WDDM) ; le banc de bout en bout qui transporte les \num{768} experts de gpt-oss-20b et les \num{4608} de gpt-oss-120b au bit près ; et une découverte : \textbf{sur cette machine, le débit d'une lecture sans tampon dépend de sa seule longueur}, en deux régimes, et toutes les longueurs de tronçon tombent dans le lent. Lire une longueur rapide fixe (12\,Mio) rend $\times 1{,}335$.
+\textbf{Il reste} la décision de l'arbitre sur la longueur des lectures, le mécanisme des deux régimes, l'épinglage de 11\,Go au calme, et la carte des longueurs du fichier du 120b.
+Sources : \fichier{moteur/E-pour-le-memoire.md}, \fichier{moteur/REPRISE-E.md}, \fichier{mesures/moteur/E/journaux/}, \fichier{mesures/moteur/E/csv/} ; pour le moteur, \fichier{moteur/O-pour-le-memoire.md} et \fichier{mesures/moteur/O/csv/}.
+\end{origine}
+
+\section{Ce que le chemin doit faire}\label{sec:t2c-tache}
+
+Un défaut de cache, dans le moteur, c'est un expert de gpt-oss qui manque en VRAM au moment où le routeur de la couche le demande. Il faut alors amener son \emph{tronçon} (la partie codée de ses trois matrices et de leurs biais, \num{12013664} octets en moyenne sur le 20b) depuis le fichier \texttt{.trc} jusqu'à un emplacement de la carte, décodé, avant que les produits matrice-vecteur de la couche ne le lisent. Entre les deux, quatre étages traversés dans l'ordre : le disque, la mémoire hôte, le lien PCIe, la VRAM et ses unités de calcul (\cref{fig:t2c-pile}).
+
+\begin{figure}[ht]
+\centering
+\resizebox{\linewidth}{!}{\SchemaChmPile}
+\caption[La pile du chemin des octets]{La pile du chemin des octets, telle qu'elle est construite. À gauche la lecture (\texttt{trc-es}, puis les couches de Windows qu'une lecture sans tampon traverse : le système de fichiers, le filtre de BitLocker qui déchiffre chaque octet sur le processeur, le pilote du contrôleur VMD) ; à droite la carte (\texttt{trc-cuda}, le pilote, le moteur de copie unique). Au milieu, la fenêtre épinglée : la même page physique est écrite par la DMA du NVMe et lue par celle de la carte, sans copie par le processeur.}
+\label{fig:t2c-pile}
+\sourcefig{\fichier{mesures/moteur/E/journaux/e1-2026-10-15-seance3/resume.json}, \fichier{e2-2026-10-15-seance1/resume.json}, \fichier{e2-2026-10-15-v12/resume.json}, \fichier{2026-10-15-seance3/resume.json} ; GEMV : \fichier{mesures/moteur/K/csv/k2-debit-passes.csv}.}
+\end{figure}
+
+Le budget se lit dans l'équation du jeton du Tome~I : dans le scénario LRU calé, le temps disque d'un jeton du 120b vaut 157\,ms (07 § 3.3). Chaque étage doit donc soit se cacher derrière le disque, soit coûter peu devant lui. Trois questions n'avaient pas de réponse mesurée, et c'est par elles que commence le lot E :
+\begin{enumerate}
+\item \textbf{E0\,(a)} : peut-on épingler plusieurs gigaoctets de mémoire hôte sous WDDM, sur une machine de 16\,Go que cinq lots se partagent ?
+\item \textbf{E0\,(b)} : une lecture sans tampon (\texttt{FILE\_FLAG\_NO\_BUFFERING}) peut-elle écrire directement dans la mémoire épinglée, puis la DMA la lire à pleine vitesse, octets égaux ?
+\item \textbf{E0\,(c)} : que coûte au jeton la lecture des quatre indices du routeur par l'hôte, une fois par couche, 36 fois par jeton sur le 120b ?
+\end{enumerate}
+
+\section{\texttt{trc-cuda} : l'API du pilote, sans bibliothèque liée}\label{sec:t2c-cuda}
+
+\paragraph{Le choix.} Le moteur ne livre aucune DLL d'exécution de CUDA : le pilote installé (591.91, CUDA 13.1) suffit. \texttt{trc-cuda} charge \texttt{nvcuda.dll} à l'exécution, par \texttt{LoadLibraryExW} limité au dossier \texttt{System32} (aucune DLL déposée dans le dossier courant ne peut se faire passer pour le pilote), puis lit chaque point d'entrée par son nom exporté exact. Les noms sont ceux que \texttt{cuda.h} de CUDA 13.1 choisit par ses \texttt{\#define} : \texttt{cuMemAlloc} est exporté sous \texttt{cuMemAlloc\_v2}, \texttt{cuMemcpyHtoDAsync} sous \texttt{cuMemcpyHtoDAsync\_v2}~\cite{nvidia2026driverapi}. Un symbole absent fait échouer le chargement \emph{avec son nom} : un pilote trop ancien se dit, il ne plante pas trois appels plus loin (\cref{lst:t2c-charger}).
+
+\lstinputlisting[style=tdeux, language=Rust, float=ht, caption={[Chargement de la table du pilote]Le chargement de la table des points d'entrée (\fichier{moteur/crates/trc-cuda/src/api.rs}, lignes 60 à 76, commit \texttt{014bd11}). La macro \texttt{table!} engendre un champ par point d'entrée, typé selon \texttt{cuda.h} ; \texttt{symbole} rend une erreur qui nomme le symbole manquant.}, label={lst:t2c-charger}]{\ListingsTdeux/trc-cuda-charger.rs}
+
+\paragraph{Le contexte primaire.} \texttt{cuCtxCreate} est devenu \texttt{cuCtxCreate\_v4} en CUDA 13 ; le contexte primaire, lui, n'a pas changé d'interface~\cite{nvidia2026primaryctx}. \texttt{trc-cuda} retient donc le contexte primaire, et tout objet qu'il crée (flux, événement, mémoire de la carte, mémoire épinglée, module) tient une référence comptée sur un objet interne qui ne relâche le contexte qu'après le dernier d'entre eux. Le contexte est rendu courant au besoin, fil par fil, et une \emph{génération} distingue un contexte relâché puis repris d'un contexte resté courant. Le témoin \texttt{duree\_de\_vie\_du\_contexte} exerce cet ordre.
+
+\paragraph{Un fait de la machine.} L'attribut \texttt{CU\_DEVICE\_\allowbreak ATTRIBUTE\_\allowbreak ASYNC\_\allowbreak ENGINE\_\allowbreak COUNT} vaut \textbf{1} sur la RTX 4060 Laptop sous WDDM \mes : la carte n'a qu'un moteur de copie pour les deux sens~\cite{nvidia2026bestpractices}. Le premier témoin d'ordre de \texttt{trc-cuda} l'a montré à son insu : il cherchait une course entre une copie aller et une copie retour posées sur deux flux sans événement, et ne l'a jamais vue en 20 essais. Les deux copies passaient par la même file. Refait avec un noyau qui lit la VRAM pendant la copie, il voit la course au premier essai : \num{66393069} octets sur \num{67108864} lus avant leur arrivée \mes. La \cref{sec:t2c-dma} en tire les conséquences.
+
+\section{\texttt{trc-es} : lire sans tampon, par port de complétion}\label{sec:t2c-es}
+
+Une lecture sans tampon ne passe pas par le cache de Windows : le contrôleur écrit directement dans le tampon de l'appelant. Elle exige un décalage, une longueur et une adresse multiples du secteur~\cite{microsoft2025filebuffering} ; le format \texttt{.trc} aligne tout sur \num{4096} octets pour cette raison. Avec \texttt{FILE\_FLAG\_OVERLAPPED}, chaque lecture est confiée au système sans attendre, et son achèvement arrive comme un paquet dans un \emph{port de complétion} (IOCP), qu'un fil récolte~\cite{microsoft2025iocp}.
+
+\subsection{Les structures, au bit près}
+
+\begin{table}[ht]
+\centering\small
+\caption[Une lecture de \texttt{trc-es} en mémoire]{Une lecture de \texttt{trc-es} en mémoire. \texttt{Vol} est \texttt{\#[repr(C)]}, alloué sur le tas, à adresse stable jusqu'à sa récolte : l'adresse de l'\texttt{OVERLAPPED} que rend le port est celle du \texttt{Vol}, et sert de clé à la table des lectures confiées.}
+\label{tab:t2c-vol}
+\begin{tabularx}{\linewidth}{@{}llp{3.2cm}X@{}}
+\toprule
+structure & octets & champ & contenu \\
+\midrule
+\texttt{Vol} & 0--7 & \texttt{Internal} (u64) & NTSTATUS de la lecture, écrit par le système \\
+ & 8--15 & \texttt{InternalHigh} (u64) & octets transférés \\
+ & 16--19 & \texttt{Offset} (u32) & décalage, 32 bits bas \\
+ & 20--23 & \texttt{OffsetHigh} (u32) & décalage, 32 bits hauts \\
+ & 24--31 & \texttt{hEvent} & nul (le port remplace l'événement) \\
+ & 32--39 & \texttt{jeton} (u64) & identifiant rendu à l'appelant \\
+ & 40-- & \texttt{depart} & instant de la remise au système \\
+\midrule
+\texttt{Requete} & & jeton, décalage, longueur, destination & u64, u64, u32, pointeur ; les trois derniers multiples de \num{4096} \\
+\texttt{Achevement} & & jeton, octets, erreur, durée & u64, u32, code Windows ou rien, u32 en µs (de la remise à la récolte) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Le lecteur tient au plus $q$ lectures confiées au système (sa \emph{profondeur}) ; au-delà, les requêtes attendent dans une file interne, et chaque récolte en confie de nouvelles. La \cref{fig:t2c-automate} donne l'automate d'une requête, erreurs comprises.
+
+\begin{figure}[ht]
+\centering
+\SchemaChmAutomate
+\caption[L'automate d'une requête de \texttt{trc-es}]{L'automate d'une requête de \texttt{trc-es}. Un échec synchrone de \texttt{ReadFile} (code autre que \texttt{ERROR\_IO\_PENDING}) ne produira jamais de paquet : l'erreur est rendue tout de suite. Un succès immédiat produit quand même un paquet (\texttt{FILE\_SKIP\_\allowbreak COMPLETION\_\allowbreak PORT\_\allowbreak ON\_\allowbreak SUCCESS} n'est pas posé), si bien que tout ce qui est confié finit dans le port. À l'abandon du lecteur, l'\texttt{OVERLAPPED} n'est libéré qu'après son paquet.}
+\label{fig:t2c-automate}
+\end{figure}
+
+\subsection{L'exclusion, démontrée}
+
+Le danger d'un port de complétion est la course entre le fil qui confie une lecture et celui qui la récolte : si le paquet arrive avant que le lanceur ait inscrit la lecture dans sa table, la récolte cherche une clé absente.
+
+\begin{lemme}[Toute clé rendue par le port est dans la table]\label{lem:t2c-exclusion}
+Dans \texttt{trc-es}, quand la récolte cherche une adresse d'\texttt{OVERLAPPED} rendue par \texttt{GetQueued\allowbreak Completion\allowbreak StatusEx}, cette adresse figure déjà dans la table des lectures confiées.
+\end{lemme}
+
+\begin{proof}
+L'appel à \texttt{ReadFile} et l'insertion de la clé dans la table se font sous le même verrou (\texttt{lancer} est appelée verrou tenu, par \texttt{soumettre} ou par \texttt{recolter}). La récolte attend le port \emph{hors} du verrou, puis prend le verrou avant toute recherche. Soit un paquet qui arrive avant l'insertion de sa clé : à cet instant le lanceur tient le verrou (il est entre \texttt{ReadFile} et l'insertion) ; la récolte, réveillée, attend donc ce verrou, que le lanceur ne rend qu'après l'insertion. Dans tous les cas la recherche suit l'insertion. Une clé n'est retirée que par la récolte de son propre paquet, et un \texttt{OVERLAPPED} ne produit qu'un paquet.
+\end{proof}
+
+Le même raisonnement fonde l'abandon : un \texttt{OVERLAPPED} appartient au système depuis l'appel à \texttt{ReadFile} jusqu'au retrait de son paquet~\cite{microsoft2025iocp}. Le destructeur annule donc tout (\texttt{CancelIoEx}), puis attend chaque paquet avant de libérer quoi que ce soit ; si aucun paquet ne vient en 10\,s, il préfère \emph{fuir} les \texttt{OVERLAPPED} que libérer une mémoire que le système pourrait encore écrire.
+
+\lstinputlisting[style=tdeux, language=Rust, caption={[Soumettre, lancer, récolter]\texttt{soumettre}, \texttt{lancer} et \texttt{recolter} (\fichier{moteur/crates/trc-es/src/lib.rs}, lignes 170 à 263, commit \texttt{014bd11}). Le verrou couvre \texttt{ReadFile} et l'insertion ; l'attente du port se fait hors du verrou (\cref{lem:t2c-exclusion}).}, label={lst:t2c-lecteur}]{\ListingsTdeux/trc-es-lecteur.rs}
+
+\paragraph{Témoins.} Dix tests tiennent : aller-retour hôte $\to$ carte $\to$ hôte sur quatre tailles non rondes, ordre entre deux flux par un événement, noyau PTX écrit à la main et chargé par l'API, douze lectures de 1\,Mio comparées page par page, dernière page partielle, refus des requêtes non alignées, abandon en vol, soumission et récolte sur deux fils. Puis le \emph{témoin des témoins} : chaque témoin est forcé à faux par une variable d'environnement (\texttt{TRC\_E\_CASSER}), et l'on vérifie qu'il tombe \emph{sur son propre message} ; 7 cassures sur 7 tombent, la suite restaurée tient \mes~(\fichier{mesures/moteur/E/journaux/e1-temoins/}).
+
+\section{Épingler : l'essai E0\,(a)}\label{sec:t2c-epingler}
+
+\texttt{cuMemHostAlloc} verrouille des pages en mémoire physique et les rend visibles de la carte. Une épingle de 11\,Go sur une machine de 16\,Go aurait fait paginer les quatre autres lots ; le protocole déclare donc une marge : une taille n'est tentée que si la RAM disponible dépasse la taille plus 1,5\,Go (réponse par délégation du 2026-10-15, réversible).
+
+\begin{table}[ht]
+\centering\small
+\caption[E0\,(a) : épingler de 0,25 à 4\,Go]{E0\,(a), séance du 2026-10-15 à 16 h 46, sur secteur, carte libre \mes. La DMA est une copie de 64\,Mio faite juste après l'allocation, sans chauffe.}
+\label{tab:t2c-epingler}
+\begin{tabular}{@{}rrrrrl@{}}
+\toprule
+taille & allocation & libération & RAM avant & DMA en fin & verdict \\
+\midrule
+0,25\,Go & 96\,ms & 46\,ms & 8,57\,Go & 10,36\,Go/s & réussie, 0 écart \\
+1\,Go & 343\,ms & 133\,ms & 8,51\,Go & 10,93\,Go/s & réussie, 0 écart \\
+4\,Go & \num{1331}\,ms & 594\,ms & 8,47\,Go & 11,00\,Go/s & réussie, 0 écart \\
+11\,Go & — & — & 8,29\,Go & — & non tentée ($8{,}29 < 11 + 1{,}5$) \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/moteur/E/csv/2026-10-15-seance3-a.csv}.}
+\end{table}
+
+L'allocation coûte environ $\num{1331}/4 = 333$\,ms par gigaoctet \calc : c'est un coût d'ouverture, pas de chemin. Le critère d'abandon K3 de l'architecture (aucune mémoire épinglée importante) ne se déclenche pas. Une taille « non tentée » n'est pas une taille refusée par le pilote : la question des 11\,Go attend une machine calme.
+
+\begin{proposition}[La fenêtre épinglée du mode A0]\label{prop:t2c-fenetre-a0}
+En mode A0 (aucun cache tiède en RAM), le moteur épingle $d \cdot k$ tampons d'arrivée de la taille du plus grand tronçon, plus une boîte aux lettres et une ligne d'enchâssement. Pour le 20b, $d = 3$ couches d'avance et $k = 4$ :
+\[
+3 \times 4 \times \num{12144640} + \num{4096} + \num{8192} = \num{145747968}\ \text{octets} \approx 0{,}146\ \text{Go}.
+\]
+\end{proposition}
+
+\begin{proof}
+C'est la définition de la fenêtre (architecture § 5.8) : $3 \times 4 \times \num{12144640} = \num{145735680}$ octets de tampons d'arrivée (\num{12144640} est le plus grand tronçon du 20b), la boîte \num{4096}, la ligne d'enchâssement \num{8192} (une ligne de \num{3060}\,o lue dans une lecture alignée) \calc.
+\end{proof}
+
+La fenêtre épinglée du mode A0 est donc 27 fois plus petite que la plus grande épingle réussie \calc : la mesure (a) laisse au mode A (cache tiède) toute la place qu'il pourrait demander jusqu'à 4\,Go.
+
+\section{Le lien : l'essai E0\,(b) et le moteur de copie unique}\label{sec:t2c-dma}
+
+\paragraph{Justesse.} 32 morceaux de 12\,Mio lus sans tampon dans la mémoire épinglée, copiés vers la VRAM puis redescendus : 0 écart avec une lecture indépendante du même intervalle (\texttt{std::fs}, par le cache de Windows), 0 écart au retour ; la cassure (un octet faussé dans la mémoire épinglée après la lecture) donne exactement 1 écart \mes. La lecture sans tampon écrit donc bien, et seulement, dans la page que lit la DMA.
+
+\paragraph{Débit.} Seuil déclaré : 11,0\,Go/s, soit le 12,2 de l'étude 01 moins 10\,\% de bruit. La série ABBA de 16 copies de 12\,Mio (la taille d'un tronçon) et de 16 copies de 64\,Mio (la taille de la mesure de 01) donne la \cref{fig:t2c-dma}.
+
+\begin{figure}[ht]
+\centering
+\GrapheChmDma
+\caption[E0\,(b) : la DMA depuis la mémoire épinglée]{E0\,(b) : chaque copie hôte $\to$ carte de la série ABBA \mes. Médiane à 12\,Mio : \textbf{12,495\,Go/s} (12,33 à 12,67, bruit miroir 1,4\,\%) ; à 64\,Mio : 12,517 (bruit 1,6\,\%). Les deux tailles ne diffèrent pas (règle de 06 § 7.5). Second chemin : l'horloge de l'hôte donne 12,45 et 12,51, jamais au-dessus des événements de la carte (0 sur 32). Le lien plafonne à 15,754\,Go/s (PCIe 4.0 $\times$8) ; la DMA en tire 79\,\%.}
+\label{fig:t2c-dma}
+\sourcefig{\fichier{mesures/moteur/E/csv/2026-10-15-seance3-b-dma.csv}, réordonné par \fichier{memoire/outils/tome2\_chemin\_noyaux.py} (\fichier{t2c-dma.csv}).}
+\end{figure}
+
+\begin{proposition}[Le lien ne limite pas un tronçon]\label{prop:t2c-pcie}
+Soient $B_d$ le débit du disque et $B_c$ celui de la DMA, mesurés à la taille $b$ d'un tronçon. Si $\rho = B_d / B_c < 1$, la copie d'un tronçon tient entière dans l'ombre de la lecture du tronçon suivant, et le moteur de copie reste libre une fraction $1 - \rho$ du temps.
+\end{proposition}
+
+\begin{proof}
+Un tronçon occupe le disque $b/B_d$ secondes et le moteur de copie $b/B_c$. En régime établi le disque livre un tronçon toutes les $b/B_d$ secondes ; le moteur de copie le traite en $b/B_c = \rho \cdot b/B_d < b/B_d$, donc avant que le suivant n'arrive, et chôme le reste.
+\end{proof}
+
+Avec les mesures de la séance, $\rho = 2{,}44 / 12{,}50 = 0{,}195$ \calc : la copie d'un tronçon de 12\,Mio prend $\num{12582912} / 12{,}50\cdot10^9 = 1{,}01$\,ms, contre 5,2\,ms de disque ; le moteur de copie chôme 80\,\% du temps. Ce n'est pas le lien qui fera la vitesse.
+
+\begin{proposition}[Le moteur de copie unique]\label{prop:t2c-moteur-unique}
+Avec un seul moteur de copie, les copies des deux sens forment une seule file premier entré, premier sorti. Une copie carte $\to$ hôte soumise derrière $k$ tronçons en vol attend au pire $k\,b / B_c$.
+\end{proposition}
+
+\begin{proof}
+Le moteur exécute une copie à la fois, dans l'ordre de soumission (c'est ce qu'a vu le témoin d'ordre : aucune course entre deux copies de sens opposés sur deux flux, en 20 essais). Une copie soumise derrière $k$ copies de $b$ octets ne commence qu'après elles, soit au plus $k\,b/B_c$ plus tard.
+\end{proof}
+
+Pour $k = 4$ tronçons de 12\,Mio à 11\,Go/s, l'attente atteint $4 \times \num{12582912} / 11\cdot10^9 \approx 4{,}6$\,ms \calc. Trois conséquences pour le moteur (\cref{fig:t2c-moteur-copie}) : (i) le mode témoin, qui redescend chaque expert décodé vers l'hôte, ralentit le chemin des tronçons et ne se chronomètre pas ; (ii) les logits d'un pas ($\num{201088} \times 4$\,o $\approx 0{,}8$\,Mo, $\approx 73$\,µs de copie) attendent derrière les tronçons en vol ; (iii) la boîte aux lettres du routeur, écrite par un noyau directement dans la mémoire hôte projetée, \emph{échappe} à la file : c'est elle qui porte la décision de chaque couche.
+
+\begin{figure}[ht]
+\centering
+\SchemaChmMoteurCopie
+\caption[Le moteur de copie unique]{Le moteur de copie unique. Toute copie, aller ou retour, passe par une seule file FIFO ; une écriture d'un noyau dans la mémoire hôte projetée (la boîte aux lettres du routeur) passe par le bus sans passer par cette file.}
+\label{fig:t2c-moteur-copie}
+\end{figure}
+
+\section{Lire le routeur, une fois par couche : l'essai E0\,(c)}\label{sec:t2c-routeur}
+
+Dans un mélange d'experts, l'hôte ne sait quels tronçons lire qu'une fois le routeur de la couche calculé sur la carte. Il faut donc, à chaque couche, que l'hôte observe la fin du routeur, lise ses quatre indices, décide (succès ou défaut), et lance la suite. C'est une synchronisation de l'hôte par couche : 36 par jeton sur le 120b.
+
+\subsection{La boîte aux lettres, au bit près}
+
+Le routeur écrit sa décision dans une \emph{boîte aux lettres} : une mémoire hôte épinglée et projetée (\texttt{cuMemHostAlloc} avec \texttt{DEVICEMAP}), où le noyau écrit par le bus et où l'hôte lit sans copie. Une case de 64 octets par couche, 36 cases (\num{2304} octets, dans une page de \num{4096}), \cref{fig:t2c-boite}.
+
+\begin{figure}[ht]
+\centering
+\resizebox{\linewidth}{!}{\SchemaChmBoite}
+\caption[La case de la boîte aux lettres d'une couche]{La case de 64 octets d'une couche, et l'ordre des opérations. Le noyau écrit les indices et les poids, pose une barrière système, puis écrit le numéro de séquence $s = 64t + \ell + 1$ ($t$ le jeton, compteur global ; $\ell$ la couche). L'hôte lit $s$ par une lecture volatile ; s'il vaut la valeur attendue, il lit les indices. Le moteur du lot O reprend ce protocole tel quel (\texttt{routeur\_topk}, \cref{ch:t2-noyaux}).}
+\label{fig:t2c-boite}
+\end{figure}
+
+Le numéro ne revient jamais pour un même jeton (le jeton est un compteur global) : une case lue avant son écriture porte toujours un numéro faux.
+
+\begin{proposition}[Un hôte qui lit le bon numéro lit les bons indices]\label{prop:t2c-visibilite}
+Si le noyau écrit les mots 1 à 8, exécute \texttt{\_\_threadfence\_system()}, puis écrit le mot 0, et si l'hôte (x86-64) lit le mot 0 par une lecture volatile puis les mots 1 à 8, alors un hôte qui lit $s$ attendu lit les indices et les poids écrits avec ce $s$.
+\end{proposition}
+
+\begin{proof}
+\texttt{\_\_threadfence\_system()} se traduit en PTX par \texttt{membar.sys} : toute écriture du fil faite avant elle est visible de tout observateur, l'hôte compris, avant toute écriture faite après elle~\cite{nvidia2026cppext}. Donc quand le mot 0 vaut $s$ pour l'hôte, les mots 1 à 8 écrits avant portent déjà leurs valeurs pour lui. Sur x86-64 (ordre TSO), deux lectures ne se réordonnent pas entre elles : la lecture des indices, faite après celle du numéro dans le programme, se fait après elle. La lecture volatile empêche le compilateur de la déplacer ou de la supprimer.
+\end{proof}
+
+Le témoin le vérifie (0 indice faux, 0 séquence absente dans toutes les variantes synchrones), et la cassure le montre nécessaire : lire la boîte sans attendre rend \num{3141} indices faux sur la séance \mes.
+
+\lstinputlisting[style=tdeux, language=CUDA, float=ht, caption={[Le routeur simulé de l'essai E0\,(c)]Le routeur simulé (\fichier{moteur/bins/banc-chemin/noyaux/essais.cu}, lignes 45 à 64, commit \texttt{94ac4c4}). \texttt{occuper} attend en temps (registre \texttt{\%globaltimer}), pas en cycles : la durée ne dépend pas de l'horloge du moment de la puce. Les indices attendus viennent d'un mélange de 32 bits que l'hôte recalcule~\cite{wellons2018hash}.}, label={lst:t2c-routeur}]{\ListingsTdeux/essais-routeur.cu}
+
+\subsection{Le seuil, et le premier modèle}
+
+\paragraph{Le seuil (D1).} On admet que la lecture du routeur coûte au plus 10\,\% du temps disque d'un jeton : $0{,}1 \times 157 = 15{,}7$\,ms par jeton, soit $15{,}7 / 36 = 436$\,µs par synchronisation \calc. Au-delà, ce coût cesse d'être négligeable et devient un étage de l'équation du jeton (critère d'abandon K4).
+
+\begin{proposition}[Modèle D2 : le coût d'une synchronisation]\label{prop:t2c-d2}
+Soient, pour une couche, $t_r$ la durée du routeur sur la carte et $t_e$ celle des experts. Sans attente de l'hôte, les lancements sont en file d'avance et $T_{\mathrm{async}} = L(t_r + t_e) + \varepsilon$. Avec une lecture du routeur par couche,
+\[
+T_{\mathrm{sync}} = L\,(t_r + d_{\mathrm{sig}} + d_{\text{hôte}} + d_{\mathrm{lanc}} + t_e) + \varepsilon',
+\]
+où $d_{\mathrm{sig}}$ est le délai entre la fin du noyau et le moment où l'hôte l'observe, $d_{\text{hôte}}$ le travail de l'hôte (lire quatre indices, préparer les arguments), $d_{\mathrm{lanc}}$ le délai entre \texttt{cuLaunchKernel} et le début du noyau. Le coût par jeton $T_{\mathrm{sync}} - T_{\mathrm{async}} = L\,s$, $s = d_{\mathrm{sig}} + d_{\text{hôte}} + d_{\mathrm{lanc}}$, ne dépend ni de $t_r$ ni de $t_e$.
+\end{proposition}
+
+\begin{proof}
+Sans attente, la carte enchaîne les $2L$ noyaux déjà en file : son temps est la somme de leurs durées, plus le premier lancement. Avec attente, l'expert de la couche $\ell$ ne peut commencer qu'après que l'hôte a vu la fin du routeur ($d_{\mathrm{sig}}$), a travaillé ($d_{\text{hôte}}$) et a lancé ($d_{\mathrm{lanc}}$) ; ces trois délais s'ajoutent en série à chaque couche, et rien d'autre ne change tant que la carte ne recouvre rien.
+\end{proof}
+
+Le modèle porte en lui son témoin : mesuré à deux charges (0/0 et 50/250\,µs), le coût doit être le même. La \cref{fig:t2c-sync-modele} le dessine à l'échelle.
+
+\begin{figure}[ht]
+\centering
+\SchemaChmSync
+\caption[Le modèle D2, à l'échelle]{Le modèle D2 pour trois couches, à l'échelle de l'essai sous charge (routeur 50\,µs, experts 250\,µs). En asynchrone, la carte enchaîne ; en synchrone, chaque couche montre le trou $s$ entre la fin du routeur et le début des experts, pendant lequel l'hôte voit l'événement, lit la boîte et lance.}
+\label{fig:t2c-sync-modele}
+\end{figure}
+
+\subsection{Ce que la mesure a changé au modèle}
+
+Cinq variantes sont mesurées : \texttt{evenement} (l'hôte attend un événement enregistré après le routeur, puis lit la boîte), \texttt{sondage} (il sonde l'événement), \texttt{boite} (il sonde la boîte elle-même), \texttt{boite\_\allowbreak sans\_\allowbreak vidage} (de même, sans pousser le lancement par \texttt{cuStreamQuery}), \texttt{bloquant} (événement à attente bloquante : le fil dort et le système le réveille).
+
+\begin{figure}[ht]
+\centering
+\GrapheChmSync
+\caption[E0\,(c) : coût d'une synchronisation, à vide et sous charge]{E0\,(c), séance du 2026-10-15 à 16 h 46 \mes : coût d'une synchronisation, $(T_{\mathrm{sync}} - T_{\mathrm{async}})/36$, par variante. Barres d'erreur : bruit des passes miroirs. Le seuil (436\,µs) est hors du cadre. La variante retenue, \texttt{evenement}, coûte 18,5\,µs sous charge, soit 0,666\,ms par jeton, \textbf{23 fois sous le seuil}.}
+\label{fig:t2c-sync}
+\sourcefig{\fichier{mesures/moteur/E/journaux/2026-10-15-seance3/resume.json} (\texttt{modele\_D2}), réordonné dans \fichier{t2c-sync.csv}.}
+\end{figure}
+
+Le seuil tient largement (\cref{fig:t2c-sync}) : sous charge, \texttt{evenement} coûte 0,666\,ms par jeton, \texttt{sondage} 0,692, \texttt{boite} 0,750, \texttt{bloquant} 3,12 ; avec un contexte en attente bloquante, \texttt{evenement} coûte 0,630 \mes. Ce coût est même au niveau du bruit de l'essai : la passe synchrone dure 11,779\,ms contre 11,114 en asynchrone, et le résumé de la séance classe l'écart de \texttt{evenement} comme « non distinct du bruit ».
+
+\textbf{Mais le témoin du modèle tombe.} Le coût sous charge vaut 3,6 à 4,8 fois le coût à vide pour quatre variantes (5,1 contre 18,5\,µs pour \texttt{evenement}), et 8,7 fois pour \texttt{boite\_\allowbreak sans\_\allowbreak vidage} \mes. \barre{rapports 3,6 à 4,8 selon la variante} La note du lot E écrivait « 3,6 à 4,8 selon la variante » : c'est vrai des quatre variantes retenues, pas de la cinquième (8,7, lue dans \texttt{modele\_D2}).
+
+\begin{proposition}[Modèle D2 bis : le débit des lancements]\label{prop:t2c-d2bis}
+Soit $\lambda$ l'intervalle minimal entre deux lancements vus par la carte. La base asynchrone vaut $T_{\mathrm{async}} = \max\bigl(L(t_r + t_e),\, 2L\lambda\bigr) + \varepsilon$. À vide ($t_r + t_e \ll 2\lambda$), la carte attend déjà les lancements, et la synchronisation n'ajoute que la part de $d_{\mathrm{sig}} + d_{\text{hôte}}$ qui ne se cache pas derrière $\lambda$. Sous charge ($t_r + t_e \gg 2\lambda$), la carte est saturée en asynchrone, et la synchronisation expose la chaîne entière : $s \approx d_{\mathrm{sig}} + d_{\text{hôte}} + d_{\mathrm{lanc}}$, avec $d_{\mathrm{lanc}} \ge \lambda$.
+\end{proposition}
+
+\begin{proof}
+Un lancement ne peut atteindre la carte plus souvent qu'une fois par $\lambda$ : $2L$ noyaux durent au moins $2L\lambda$, d'où le maximum. À vide, le terme $2L\lambda$ domine les deux passes, et seule la part des délais de l'hôte qui excède $\lambda$ allonge la passe synchrone. Sous charge, le premier terme domine la passe asynchrone, et chaque couche de la passe synchrone attend la chaîne complète, dont le lancement lui-même.
+\end{proof}
+
+\paragraph{Le calcul.} À vide, la passe asynchrone de 72 lancements dure 0,831\,ms, d'où $\lambda \approx 831/72 = 11{,}5$\,µs \mes, bien au-dessus de $t_r + t_e \approx 0$. Sous charge, $L(t_r + t_e) = 36 \times 300 = 10{,}8$\,ms et la passe asynchrone dure 11,114\,ms ($\varepsilon \approx 0{,}31$\,ms) : la carte est saturée. Estimation : $s_{\mathrm{charge}} \approx s_{\mathrm{vide}} + \lambda = 5{,}1 + 11{,}5 = 16{,}6$\,µs, contre 18,5 mesurés (écart de 10\,\% ; $d_{\mathrm{lanc}}$ ne se mesure pas seul ici, c'est une hypothèse) \calc. \textbf{Le cas qui compte est le second} : un vrai expert lit 13\,Mo en des centaines de microsecondes. C'est pourquoi le seuil se juge sous charge. Leçon, gardée dans les recettes : mesurer une synchronisation à vide seulement donne un coût quatre fois trop bas.
+
+\section{Le disque seul : l'étape E1}\label{sec:t2c-disque}
+
+\subsection{Le seuil, et ce qu'est une passe propre}
+
+Seuil déclaré avant toute passe : la médiane des passes A (12\,Mio, profondeur 4) doit atteindre $0{,}8 \times 2{,}58 = 2{,}064$\,Go/s, où 2,58\,Go/s est le débit de l'étude 01 en lectures aléatoires de 4\,Mio et $0{,}8 = 1 - 2 \times 10\,\%$ de bruit. Mais la machine est partagée : un autre programme qui lit le disque pendant la passe lui prend une part de sa bande. Il faut savoir combien d'octets les autres ont lus pendant chaque passe.
+
+\begin{lemme}[Les octets étrangers par deux relevés bruts]\label{lem:t2c-pdh}
+Le compteur PDH \texttt{Disk Read Bytes/\allowbreak sec} de l'objet \texttt{PhysicalDisk(\_Total)} est de type \texttt{PERF\_COUNTER\_BULK\_COUNT} ; sa donnée brute $N$ est le nombre cumulé d'octets lus par toute la machine. Les octets lus pendant une passe valent exactement $N_1 - N_0$, et les octets étrangers $E = (N_1 - N_0) - b\,n$, où $b\,n$ sont les octets livrés par notre lecteur.
+\end{lemme}
+
+\begin{proof}
+Pour ce type de compteur, la valeur affichée est $(N_1 - N_0) / ((D_1 - D_0)/F)$, avec $D$ l'horodatage brut et $F$ sa fréquence~\cite{microsoft2025countervalues} : $N$ est donc un cumul d'octets, et sa différence entre deux relevés compte exactement les octets de l'intervalle, sans intégrer un débit échantillonné~\cite{microsoft2025pdhraw}. Nos lectures sans tampon vont au disque ; elles sont comptées dans $N_1 - N_0$ ; le reste appartient aux autres.
+\end{proof}
+
+Le lemme donne un témoin gratuit : $N_1 - N_0 \ge b\,n$ à chaque passe (un compteur qui ne verrait pas le disque, ou une lecture servie par un cache, le ferait tomber) ; il tient à toutes les passes de toutes les séances \mes. Ce chemin est indépendant de celui du lot R, qui intègre le débit formaté.
+
+\lstinputlisting[style=tdeux, language=Rust, float=ht, caption={[Le cumul brut du compteur de disque]Le cumul brut (\fichier{moteur/bins/banc-chemin/src/disque.rs}, lignes 46 à 63, commit \texttt{1cca7f3}). Le compteur est ajouté par son nom anglais (\texttt{PdhAddEnglishCounterW}) : ce Windows est en français.}, label={lst:t2c-cumul}]{\ListingsTdeux/disque-cumul.rs}
+
+\begin{definition}[Passe propre]\label{def:t2c-propre}
+Règle 1 : une passe est propre si $E/T \le 0{,}1 \times 2{,}58 = 0{,}26$\,Go/s, la charge étrangère restant dans le bruit déjà admis. Règle 2, ajoutée après la séance 1 et avant la séance 2 : de plus, les autres programmes occupent au plus 40\,\% du processeur pendant la passe (source : 01 § 2.3, gros blocs reproductibles à quelques pour cent sous 35 à 40\,\% d'occupation). Un verdict ne se rend que sur au moins deux passes A propres ; sinon la série est « non jugée », jamais « tombée ».
+\end{definition}
+
+Ce n'est pas une correction du débit (on ne retranche rien) : c'est un tri.
+
+\subsection{Une séance sous charge, une séance au calme}
+
+\begin{figure}[ht]
+\centering
+\GrapheChmEun
+\caption[E1 : le lecteur sur le disque seul, deux séances]{E1, chaque passe du lecteur (128 lectures de 12\,Mio à décalages tirés) \mes. Plein : passe propre ; creux : sale (règle 1). À gauche, la séance 1 (15 h 39) : médiane des A propres \textbf{1,506\,Go/s}, sous le seuil ; le processeur était occupé à 69--84\,\% par d'autres lots (juge f64, traceur, antivirus), et BitLocker déchiffre chaque octet sur ce même processeur. À droite, la séance 3 (20 h 40, règle 2) : médiane \textbf{2,439\,Go/s}, quatre passes A propres sur quatre : \textbf{E1 tient}.}
+\label{fig:t2c-e1}
+\sourcefig{\fichier{mesures/moteur/E/csv/e1-2026-10-15-seance1-lecteur-passes.csv}, \fichier{e1-2026-10-15-seance3-lecteur-passes.csv} (\fichier{t2c-e1-s1.csv}, \fichier{t2c-e1-s3.csv}).}
+\end{figure}
+
+La séance 1 tombe sous la règle déclarée, et son verdict reste publié tel quel (\cref{fig:t2c-e1}) : il dit que \emph{sous cette charge} le lecteur ne tient pas 2,06\,Go/s. Ce que la règle 1 ne regardait pas, c'est le processeur. La séance 3, au calme, tient : 2,453 / 2,335 / 2,666 / 2,426\,Go/s en QD\,4, 2,328 / 2,285 / 2,224 / 2,383 en QD\,1 \mes. Le bruit miroir des A vaut 13,4\,\%, celui des B 2,7\,\% ; QD\,4 et QD\,1 ne se distinguent pas (5,6\,\% $< 2 \times 13{,}4\,\%$).
+
+\subsection{La loi de Little, second chemin du débit}
+
+\begin{theoreme}[Little, 1961]\label{thm:t2c-little}
+Dans un système stable, le nombre moyen de clients présents $\bar N$, leur débit d'arrivée $\lambda$ et leur temps de séjour moyen $\bar R$ vérifient $\bar N = \lambda \bar R$~\cite{little1961}.
+\end{theoreme}
+
+\begin{corollaire}[Le débit d'un lecteur à profondeur fixe]\label{cor:t2c-little}
+Un lecteur qui garde en permanence $q$ lectures de $b$ octets en vol, chacune de durée moyenne $\bar R$ (de la remise au système à la récolte), lit $X = q\,b / \bar R$ octets par seconde.
+\end{corollaire}
+
+\begin{proof}
+Les clients sont les lectures en vol : $\bar N = q$. Leur débit est $\lambda = X/b$ lectures par seconde. Le \cref{thm:t2c-little} donne $q = (X/b)\,\bar R$.
+\end{proof}
+
+Le journal publie la latence \emph{médiane} d'une lecture, non sa moyenne ; or une latence à queue longue a une moyenne au-dessus de sa médiane, et $q\,b/R_{\mathrm{médiane}}$ surestime alors le débit. La \cref{fig:t2c-little} confronte les deux chemins.
+
+\begin{figure}[ht]
+\centering
+\GrapheChmLittle
+\caption[La loi de Little contre le mur]{Second chemin du débit du disque : $q\,b/R_{\mathrm{médiane}}$ contre le débit du mur, chaque passe \mes. Au calme, Little surestime de 8 à 23\,\% (rapport 1,08 à 1,23 en séance 3) : la latence médiane n'est pas la moyenne, la queue est longue (p90 de 27,8\,ms pour une médiane de 18,7). Sous charge (séance 1), la dispersion monte jusqu'à 1,56.}
+\label{fig:t2c-little}
+\sourcefig{\fichier{e1-*-lecteur-passes.csv} et \fichier{2026-10-15-seance3-b-disque.csv} (colonnes \texttt{go\_s}, \texttt{go\_s\_little}), dans \fichier{t2c-little.csv}.}
+\end{figure}
+
+\paragraph{Ce que Little dit de plus : le disque sert une lecture de 12\,Mio à la fois.} En séance 3, la latence médiane vaut 18,7\,ms à QD\,4 (passes A : \num{18717}, \num{19864}, \num{17563}, \num{18678}\,µs) et 4,62\,ms à QD\,1 (passes B : \num{4664}, \num{4631}, \num{4608}, \num{4567}\,µs) \mes ; le rapport vaut $18{,}7 / 4{,}62 = 4{,}05$ \calc. Quatre lectures en vol attendent donc chacune environ quatre fois plus longtemps qu'une seule : si le disque sert un débit $\mu$ quel que soit $q$, alors $\bar R(q) \approx q\,b/\mu$ et le corollaire donne $X = \mu$, indépendant de $q$. C'est ce qu'on observe (QD\,4 et QD\,1 indiscernables). [hyp.] Une lecture de 12\,Mio occupe à elle seule tout le parallélisme interne du NVMe (ses canaux) ; ajouter des lectures en vol ne fait qu'allonger la file. Le chronogramme du moteur (\cref{sec:t2c-moteur}) montrera la même chose sur le chemin réel. Inversement, à QD\,1 Little surestime de 16 à 23\,\% : entre deux lectures, le disque chôme pendant la récolte et la remise suivante.
+
+\section{De bout en bout : l'étape E2}\label{sec:t2c-e2}
+
+E2 fait tout le chemin, sans modèle : chaque tronçon du fichier lu sans tampon en une requête de \texttt{longueur0} (sa partie de niveau 0, § 4.7 du format) dans la fenêtre épinglée, copié sur le flux de copie vers un tampon d'arrivée en VRAM, attendu par événement, décodé par les deux noyaux du lot K sur le flux de décodage dans un emplacement de disposition SoA (\cref{ch:t2-noyaux}). Profondeur 4 (le $k$ de gpt-oss), ordre : une permutation des 768 experts tirée d'une graine publiée, nouvelle à chaque passe.
+
+\subsection{Le seuil, posé avant la mesure}
+
+\begin{proposition}[Le seuil d'E2 en experts servis]\label{prop:t2c-seuil-e2}
+Si le disque livre $B_d$ octets de tronçons par seconde et qu'un tronçon de $b$ octets rend un expert de $o$ octets d'origine, le débit d'experts servis, compté à la taille d'origine, vaut $X_{\mathrm{servi}} = B_d \cdot o / \bar b = B_d \cdot r$, avec $r = o / \bar b$ le rapport de compression moyen.
+\end{proposition}
+
+\begin{proof}
+En une seconde le disque livre $B_d / \bar b$ tronçons, chacun décodé en un expert de $o$ octets.
+\end{proof}
+
+La spécification prend $B_d = 2{,}58$\,Go/s, $r(F1) = \num{13253760} / \num{11990368} = 1{,}105367$ (§ 4.14) et la règle $0{,}8 = 1 - 2 \times 10\,\%$ : seuil $0{,}8 \times 2{,}58 \times 1{,}105367 = \mathbf{2{,}28148}$\,Go/s d'experts servis \calc. Le fichier réel a $\bar b = \num{12013664}$\,o, soit $r = 1{,}103224$ ; le même seuil demande alors $2{,}28148 / 1{,}103224 = 2{,}068$\,Go/s de tronçons, 0,2\,\% au-dessus du seuil d'E1 (2,064) : les deux étapes jugent presque le même disque, l'une seul, l'autre au bout du chemin.
+
+\begin{theoreme}[Débit d'une chaîne d'étages et nombre d'emplacements]\label{thm:t2c-chaine}
+Soit une chaîne de trois étages que chaque tronçon traverse dans l'ordre : le disque (débit $B_d$ à $q$ lectures en vol), le moteur de copie (une copie à la fois, $t_c = b/B_c$), le flux de décodage (un expert à la fois, $t_k$). En régime établi :
+\begin{enumerate}
+\item $X \le \min(B_d,\ B_c,\ b/t_k)$ octets de tronçons par seconde ;
+\item pour que le disque, s'il est l'étage le plus lent, travaille à $q$ lectures en vol, il faut $S \ge q + \lceil N_{\mathrm{hors}} \rceil$ emplacements, où $N_{\mathrm{hors}} = (X/b)\,(t_c + t_k + \delta)$ et $\delta$ est le délai de l'hôte entre la fin d'un décodage et la remise en service de l'emplacement.
+\end{enumerate}
+\end{theoreme}
+
+\begin{proof}
+(1) Un étage qui sert chaque objet ne peut en sortir plus vite que sa capacité ; la chaîne sort au rythme du plus lent. (2) Un emplacement est tenu de la soumission de sa lecture à la fin de son décodage plus $\delta$. Hors du disque, il séjourne $t_c + t_k + \delta$ (plus une attente éventuelle) ; par le \cref{thm:t2c-little} appliqué à cette partie du système, le nombre moyen d'emplacements occupés hors du disque vaut $N_{\mathrm{hors}} = (X/b)(t_c + t_k + \delta)$. Le disque ne garde $q$ lectures en vol que si un emplacement libre attend chaque achèvement : il faut $S - N_{\mathrm{hors}} \ge q$ en moyenne.
+\end{proof}
+
+\paragraph{Le calcul.} Avec $X/b \approx 2{,}44\cdot10^{9} / 1{,}2\cdot10^{7} \approx 203$ tronçons par seconde, $t_c \approx 0{,}96$\,ms, $t_k \approx 0{,}35$ à $0{,}40$\,ms, et $\delta$ de 0,1 à 0,5\,ms (sondage des événements, sommeil de 100\,µs), $N_{\mathrm{hors}} \approx 203 \times 1{,}8\cdot10^{-3} \approx 0{,}37$ \calc. Il faut donc $S \ge q + 1 = 5$ emplacements en moyenne ; on en prend $q + 2 = 6$ pour les fluctuations, afin qu'une lecture lente (le p90) ne prive pas les autres de place. Fenêtre épinglée : $6 \times \num{12144640} = 72{,}9$\,Mo ; VRAM : $6 \times (\num{12144640} + \num{13254144}) = 152{,}4$\,Mo (\cref{fig:t2c-fenetre}).
+
+\begin{figure}[ht]
+\centering
+\SchemaChmFenetre
+\caption[La fenêtre d'E2 et la vie d'un emplacement]{La fenêtre d'E2 et la vie d'un emplacement. Les durées sont les médianes mesurées en E2 (lecture de \texttt{longueur0} / de 12\,Mio ; copie ; décodage) \mes. Dans la passe témoin, l'emplacement n'est libéré qu'après son retour vers l'hôte et ses deux empreintes.}
+\label{fig:t2c-fenetre}
+\sourcefig{\fichier{mesures/moteur/E/csv/e2-2026-10-15-seance1-passes.csv}, \fichier{e2-2026-10-15-v12-passes.csv}.}
+\end{figure}
+
+Le point (1) du \cref{thm:t2c-chaine} donne un témoin qu'aucune mesure juste ne peut violer : \textbf{la médiane des passes A ne doit pas dépasser le plus petit étage de la séance de plus de 10\,\%}. Au-delà, soit un étage est mal mesuré, soit la passe A ne fait pas ce qu'elle dit (lecture servie par un cache, horloge arrêtée trop tôt, expert compté sans décodage). Sa cassure naturelle est la passe B elle-même : même suite de lectures, même fenêtre, même lecteur, sans copie ni décodage.
+
+\subsection{Le transport exact, et ce que chaque contrôle voit}
+
+\paragraph{C2.} Dans la passe témoin, chaque emplacement redescend vers l'hôte ; l'expert est remis dans la disposition d'origine et son empreinte comparée au répertoire ; l'empreinte des octets utiles arrivés dans la fenêtre épinglée est comparée à celle de la partie ; les compteurs de contrôle de la carte (voies hors de $L$, format, pointeurs) doivent être nuls. \textbf{768 experts sur 768}, à chacune des 8 passes témoin de la soirée ; et sur le 120b, \textbf{\num{4608} sur \num{4608}}, aux deux passes témoin \mes.
+
+\begin{proposition}[Ce que chaque contrôle peut voir d'une corruption (D14)]\label{prop:t2c-controles}
+Soit un bit retourné dans les octets utiles d'une partie. (i) L'empreinte64 des octets arrivés diffère de celle du répertoire, sauf collision du préfixe de 64 bits de SHA-256, de probabilité $2^{-64}$ par expert si SHA-256 se comporte comme une fonction aléatoire. (ii) L'empreinte de l'expert d'origine refaite depuis l'emplacement ne voit que les corruptions \emph{qui changent la sortie} : un bit des flux bruts (médianes, biais) change exactement un octet d'échelle par bloc concerné ou un biais ; un bit d'un mot ou d'un état rANS change la suite des états, donc presque toujours les symboles ; mais un champ que le décodeur ne lit pas pour produire la sortie (couche et expert de l'en-tête de partie) ne change rien. (iii) Les compteurs de la carte, seul contrôle du mode de production, voient les fautes de format et les voies qui ne finissent pas sur $L$, mais ni les flux bruts ni l'identité de la partie.
+\end{proposition}
+
+\begin{proof}
+(i) est l'hypothèse sur SHA-256. (ii) : les médianes et les biais sont recopiés ou ajoutés sans transformation entropique (une médiane entre dans $e = (\text{méd} + \delta - 128) \bmod 256$ de chaque bloc de sa ligne) ; un état ou un mot faux fait diverger la récurrence $x \leftarrow f\,(x \gg 12) + b$ ; l'identité de l'en-tête n'est lue par aucun noyau. (iii) : les noyaux ne comptent que ce qu'ils vérifient (magie, sortes, en-têtes de flux, retour à $L$, pointeur final).
+\end{proof}
+
+La cassure déclarée place un bit dans chaque famille, un expert par bit, dans une copie du fichier de 11,16\,Go (graine 20261015). Le \cref{tab:t2c-cassure} en est la table des détections.
+
+\begin{table}[ht]
+\centering\small
+\caption[E2 : la table des détections de la cassure]{E2 : la table des détections, contrôle par contrôle \mes. ● : le contrôle voit la corruption. Partie : empreinte des octets utiles arrivés dans la fenêtre ; origine : empreinte de l'expert refaite depuis l'emplacement décodé ; compteurs : compteurs de contrôle de la carte. \textbf{12 détectés sur 12, aucun en trop} (un expert est « détecté » si un contrôle du témoin tombe). Le mode de production en voit 9 : ni les médianes, ni les biais, ni l'identité de la partie, comme la \cref{prop:t2c-controles} le prédisait.}
+\label{tab:t2c-cassure}
+\begin{tabular}{@{}lrrcccc@{}}
+\toprule
+ & & & \multicolumn{3}{c}{passe témoin} & \\
+\cmidrule(lr){4-6}
+région du bit & couche & expert & partie & origine & compteurs & production \\
+\midrule
+MEDIANES & 23 & 4 & ● & ● & & \\
+BIAIS & 21 & 24 & ● & ● & & \\
+DELTA, débuts de tuile & 16 & 20 & ● & ● & ● & ● \\
+DELTA, états & 14 & 28 & ● & ● & ● & ● \\
+DELTA, mots & 18 & 30 & ● & ● & ● & ● \\
+CODES\_CTX, débuts & 4 & 25 & ● & ● & ● & ● \\
+CODES\_CTX, états & 11 & 20 & ● & ● & ● & ● \\
+CODES\_CTX, mots & 2 & 19 & ● & ● & ● & ● \\
+CODES\_CTX, en-tête ($P$) & 12 & 8 & ● & ● & ● & ● \\
+table des flux (sorte) & 16 & 18 & ● & ● & ● & ● \\
+en-tête de partie, magie & 19 & 24 & ● & ● & ● & ● \\
+en-tête de partie, identité & 19 & 22 & ● & & & \\
+\midrule
+total & & & 12 & 11 & 9 & 9 \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/moteur/E/csv/e2-2026-10-15-seance1-cassure.csv}, \fichier{journaux/e2-2026-10-15-seance1/resume.json}.}
+\end{table}
+
+La dernière ligne est un vrai trou du mode de production d'alors : un répertoire qui pointerait vers le tronçon d'un autre expert serait décodé sans erreur. La garde d'intégrité ajoutée par la ronde de corrections après l'épreuve indépendante le ferme : elle compare l'empreinte des octets utiles de chaque tronçon lu à celle du répertoire, et l'en-tête de partie (identité comprise) fait partie de ces octets \calc~(\fichier{moteur/O-pour-le-memoire.md}, proposition 8).
+
+\paragraph{La passe témoin ne se chronomètre pas (D15).} Chaque emplacement de \num{13254144}\,o redescend par le moteur de copie unique (\cref{prop:t2c-moteur-unique}), et l'hôte hache environ 25\,Mo par expert par SHA-256 sur un fil, à 1,5 à 2\,Go/s : 12 à 17\,ms par expert, trois fois le temps disque d'un tronçon \calc. Son débit est publié pour mémoire, jamais jugé ; le seuil se juge sur les passes de production, où rien ne redescend que les compteurs, en fin de passe (\num{12288}\,o).
+
+\subsection{Le débit : le verdict tombe, et le témoin dit pourquoi}
+
+\begin{figure}[ht]
+\centering
+\GrapheChmEdeux
+\caption[E2 : experts servis par passe]{E2, experts servis par passe (Go/s, comptés à la taille d'origine) \mes. À gauche, la séance de 21 h 13 telle que spécifiée (N : lecture de \texttt{longueur0}) et la variante de 21 h 29 (V : lectures de 12\,Mio) ; A : production ; B : disque seul, mêmes lectures, compté de même. À droite, la série N V V N de 21 h 30, passes A : V / N $= \times 1{,}335$ (médianes des huit passes A de chaque lettre : 2,851 et 2,135\,Go/s), soit $+33{,}5\,\%$ pour un bruit miroir de 1,5\,\% au plus.}
+\label{fig:t2c-e2}
+\sourcefig{\fichier{mesures/moteur/E/csv/e2-2026-10-15-seance1-passes.csv}, \fichier{e2-2026-10-15-v12-passes.csv}, \fichier{e2-nvvn-2026-10-15-nvvn.csv} (\fichier{t2c-e2-n.csv}, \fichier{t2c-e2-v.csv}, \fichier{t2c-nvvn.csv}).}
+\end{figure}
+
+Telle que spécifiée, E2 \textbf{tombe} : passes A à 2,120 / 2,092 / 2,186 / 2,215\,Go/s servis, médiane \textbf{2,153 < 2,2815}, 5,6\,\% sous le seuil ; 2,135 dans la série N V V N \mes. Les huit passes étaient propres (processeur des autres 6 à 12\,\%, octets étrangers $\le 0{,}001$\,Go/s). Le verdict est celui-là.
+
+Mais le témoin de la chaîne tient, et il localise le défaut (\cref{fig:t2c-etages}) : la médiane des A vaut 1,951\,Go/s de tronçons, le disque seul (B) 1,921, la DMA 12,66, le décodage 34,27 (0,350\,ms par expert) ; $A/\min = 1{,}016 \le 1{,}10$ \mes. A et B ne diffèrent pas (1,6\,\% pour un bruit de 1,6\,\%). \textbf{Le chemin ne coûte rien au disque ; c'est le disque lui-même qui lit ce fichier à 1,92\,Go/s}, contre 2,44 pour le GGUF 34 minutes plus tôt. La DMA a 6,5 fois de marge, le décodage 18 fois.
+
+\begin{figure}[ht]
+\centering
+\GrapheChmEtages
+\caption[E2 : les étages]{E2 : le bout en bout et ses trois étages mesurés dans la même séance, en Go/s de tronçons lus (échelle logarithmique) \mes. Le disque est le goulot d'un ordre de grandeur ; A colle au disque seul, sous la borne du \cref{thm:t2c-chaine}.}
+\label{fig:t2c-etages}
+\sourcefig{\fichier{e2-2026-10-15-seance1-etages.csv}, \fichier{e2-2026-10-15-v12-etages.csv} et les passes (\fichier{t2c-etages.csv}).}
+\end{figure}
+
+La \cref{fig:t2c-chrono} montre le chemin vivre : chaque tronçon est une ligne, de sa soumission au disque à la fin de son décodage. La copie (\SI{1.0}{\milli\second} environ) et le décodage (0,35\,ms) tiennent dans l'ombre des quatre lectures en vol, et la pente de l'escalier n'est que celle du disque.
+
+\begin{figure}[ht]
+\centering
+\GrapheChmChrono
+\caption[E2 : chronogramme des 40 premiers tronçons]{Chronogramme des 40 premiers tronçons d'une passe A (second tour), même ordre tiré dans les deux séances \mes. La lecture d'un tronçon (soumis $\to$ lu) dure 23,5\,ms en médiane à \texttt{longueur0}, 18,6\,ms en 12\,Mio ; les 40 tronçons finissent à 261\,ms contre 182, les 768 à \num{4657}\,ms contre \num{3584}. La copie et le décodage sont les petits segments au bout de chaque lecture.}
+\label{fig:t2c-chrono}
+\sourcefig{\fichier{mesures/moteur/E/journaux/e2-2026-10-15-seance1/chrono-1/chrono-A-t1-r0.csv}, \fichier{e2-2026-10-15-v12/chrono-v12582912-1/chrono-A-t1-r0.csv}.}
+\end{figure}
+
+\paragraph{Little sur le chemin.} À \texttt{longueur0}, $q\,\bar b/R = 4 \times \num{12013664} / 23{,}7\cdot10^{-3} = 2{,}03$\,Go/s prédits contre 1,95 mesurés (rapport 1,04) ; en 12\,Mio, $4 \times \num{12582912} / 18{,}6\cdot10^{-3} = 2{,}71$ contre 2,69 (1,01) \calc. Sur le chemin réel, la latence est plus serrée qu'au lecteur (p90 de 24 à 32\,ms) et Little tombe presque juste.
+
+\section{La découverte : deux régimes selon la seule longueur}\label{sec:t2c-regimes}
+
+Le disque lisait le GGUF à 2,44\,Go/s, et le même disque lisait le \texttt{.trc} à 1,92 au bout du chemin. Pourquoi ? Chaque hypothèse a été déclarée avant la mesure qui la départage, avec sa règle (deux fichiers ou deux réglages diffèrent si l'écart des médianes dépasse deux fois le plus grand bruit miroir et 3\,\%).
+
+\begin{table}[ht]
+\centering\small
+\caption[Les hypothèses, tuées ou gardées par les nombres]{Les hypothèses sur la lenteur d'E2, dans l'ordre où elles ont été déclarées, le 2026-10-15 entre 21 h 16 et 21 h 22 \mes. G : le GGUF ; T : le \texttt{.trc} ; L : le lecteur d'E1 ; C : le chemin d'E2.}
+\label{tab:t2c-hypotheses}
+\begin{tabularx}{\linewidth}{@{}p{3.6cm}Xp{2.2cm}@{}}
+\toprule
+hypothèse & mesure & verdict \\
+\midrule
+H1, le fichier (fragments) & lecteur G T T G : G 2,571 et 2,591 ; \textbf{T 3,039 et 3,023}\,Go/s ; G a \num{2737} fragments, T en a 33 & tombe, à l'envers \\
+H2, le disque ralenti après la copie de 11\,Go & G reste à 2,6 $\ge 2{,}064$, 1 min 30 s après E2 & tombe \\
+H2 bis, encore ralenti à 21 h 14 & L C C L : L 3,04 à 3,09 ; C, disque seul, 1,93 à 2,04, adjacent et propre & tombe \\
+H3, la manière dont E2 lit & même fenêtre : C reste 36\,\% sous L & tient \\
+H3a, la longueur des lectures & S M M S, mêmes décalages : \textbf{S (\num{12582912}\,o) 3,00 à 3,09}\,Go/s, latence 16,3\,ms ; \textbf{M (\num{12013568}\,o) 2,06 à 2,11}, latence 23,4\,ms & \textbf{tient} : $-32\,\%$ \\
+« un grain d'alignement » & 12\,Mio $- g$ : rapides $g \le 128$\,Kio et $g = 1$\,Mio ; lentes $g = 256$\,Kio, 512\,Kio, 2\,Mio & tombe : pas de grain \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{mesures/moteur/E/journaux/e2-diag-2026-10-15/} (\texttt{lecteur-*}, \texttt{lccl-*}, \texttt{smms-*}, \texttt{grain-*}, \texttt{extents-*.txt}), \fichier{moteur/REPRISE-E.md}.}
+\end{table}
+
+H3a est la seule qui tient : \textbf{pour moins d'octets, la lecture est 32\,\% plus lente}. Les décalages étant tirés sur \num{4096} dans les deux cas, ni le début ni la fin n'ont à être alignés plus finement : c'est la longueur qui compte. Le premier balayage tue l'idée d'un grain (une longueur de 11\,Mio rapide entre deux lentes) ; le second balayage, déclaré avant dans \fichier{balayage\_longueurs.py}, mesure 23 longueurs de 8 à 13\,Mio par pas de 0,25\,Mio (plus \num{12013568} et \num{12144640}), en deux répliques d'ordres tirés, quatre passes chacune (\cref{fig:t2c-longueurs}).
+
+\begin{figure}[ht]
+\centering
+\GrapheChmLongueurs
+\caption[La découverte : le débit selon la longueur de la lecture]{\textbf{Le débit d'une lecture sans tampon dépend de sa seule longueur}, en deux régimes \mes. Lectures en QD\,4 à décalages tirés sur le fichier du 20b ; deux répliques en ordres tirés. Rapides (2,87 à 3,36\,Go/s) : 8 ; 8,25 ; 8,75 ; 9 ; 9,75 ; 10,25 ; 10,5 ; 11 ; 11,25 ; 12 ; 12,25 ; 12,75 ; 13\,Mio. Lentes (1,80 à 2,10\,Go/s, latence $\times 1{,}5$) : 8,5 ; 9,25 ; 10 ; 10,75 ; 11,457 ; 11,5 ; 11,582 ; 11,75 ; 12,5\,Mio. En bande : les longueurs des tronçons du 20b (11,29 à 11,58\,Mio, foncée) et du 120b (11,22 à 11,68\,Mio, claire). Les répliques s'accordent sur 22 longueurs sur 23 ; 9,5\,Mio reste entre les deux (2,71 puis 2,99, pour un seuil de 2,77).}
+\label{fig:t2c-longueurs}
+\sourcefig{\fichier{mesures/moteur/E/csv/e2-balayage-2026-10-15-longueurs.csv}, \fichier{journaux/e2-balayage-2026-10-15/}.}
+\end{figure}
+
+Deux faits rendent la carte crédible : les deux ordres tirés la dessinent pareil (une dérive dans le temps aurait dessiné deux courbes différentes), et la latence suit le débit (panneau du bas : 1,5 fois plus longue dans le régime lent). \textbf{Toutes les longueurs de tronçon tombent dans une bande lente ; 12\,Mio est rapide} (3,07\,Go/s aux deux répliques).
+
+\paragraph{Ce que la mesure n'établit pas : le mécanisme.} [hyp.] La découpe d'une requête en transferts par le pilote du contrôleur (VMD, \texttt{iaStorVD}) ou par le filtre de BitLocker (\texttt{fvevol}), dont la dernière part tomberait mal pour certaines longueurs. Rien ne se voit d'ici sans traçage du noyau (ETW). C'est un fait mesuré et inexpliqué, publié comme tel.
+
+\begin{proposition}[Experts servis avec une longueur de lecture fixe]\label{prop:t2c-longueur-fixe}
+Si chaque tronçon est lu en une requête de longueur fixe $\ell \ge b_{\max}$ (le plus grand tronçon), au débit $B(\ell)$ de cette longueur, alors le débit d'experts servis vaut
+\[
+X_{\mathrm{servi}} = B(\ell) \cdot \frac{\bar b}{\ell} \cdot r = B(\ell) \cdot \frac{o}{\ell}.
+\]
+\end{proposition}
+
+\begin{proof}
+Le disque livre $B(\ell)/\ell$ requêtes par seconde, chacune un tronçon entier (puisque $\ell \ge b_{\max}$) ; les octets en trop appartiennent au tronçon suivant, ne sont ni copiés ni décodés. Chaque requête rend un expert de $o$ octets.
+\end{proof}
+
+Pour $\ell = 12$\,Mio, $o/\ell = \num{13253760} / \num{12582912} = 1{,}0533$ ; mesuré en E2-V12, $B(\ell) \approx 2{,}69$\,Go/s aux décalages des tronçons, d'où $2{,}83$\,Go/s servis prédits, \textbf{2,834 et 2,851 mesurés} \calc. La lecture en trop (au plus 0,75\,Mio par tronçon, 4,7\,\% en moyenne) est payée, et rendue sept fois par le changement de régime. \barre{prédiction : $3{,}07 \times \num{12013664} / \num{12582912} \times 1{,}103 \approx 3{,}2$\,Go/s servis} La prédiction écrite avant la variante (3,2, avec le $B(\ell) = 3{,}07$ du lecteur) était fausse de 12\,\% : aux décalages des tronçons, le régime rapide ne donne que 2,7\,Go/s ; cet écart-là n'est pas expliqué non plus. \barre{lecture d'un tronçon en 12\,Mio : $\approx 16$\,ms} La note du lot E dessinait la lecture d'un tronçon en 12\,Mio à environ 16\,ms ; c'est la latence du lecteur (S M M S), pas celle du chemin, où la médiane vaut 18,6\,ms (\fichier{e2-2026-10-15-v12-passes.csv}).
+
+\paragraph{Le gain, jugé par l'ABBA.} Pour ne pas comparer deux séances à 14 minutes l'une de l'autre, la série N V V N a été déclarée avant : V / N $= \times 1{,}335$, soit $+33{,}5\,\%$ : c'est le rapport des médianes des huit passes A de chaque lettre, V 2,851 et N 2,135\,Go/s servis \calc~(\fichier{e2-nvvn-2026-10-15-nvvn.csv}) ; les médianes par passe, N 2,126 et 2,142, V 2,811 et 2,853, donnent par leurs moyennes $2{,}832 / 2{,}134 = 1{,}327$, pas le chiffre publié. \barre{Écart de 25\,\%} : c'est $1 - 1/1{,}335$, N sous V, non le gain de V. Le bruit miroir vaut au plus 1,5\,\% ; 16 passes A propres sur 16 ; C2 tient aux quatre \mes. Sur le 120b (une séance, non jugée) : N 2,063, V 2,877, $\times 1{,}39$ ; décodage 0,353\,ms par expert, DMA 11,07\,Go/s ; la prédiction déclarée (N $\approx 2{,}1$, V $\approx 2{,}8$) tient \mes~(\fichier{journaux/e2-120b-2026-10-15/}).
+
+\paragraph{La proposition à l'arbitre.} Arrondir chaque requête à une \emph{longueur rapide calibrée sur la machine} (ici 12\,Mio couvre tous les tronçons du 20b et du 120b) ; aucun octet du format ne change ; coût : une fenêtre épinglée de 12\,Mio par tampon au lieu de 11,58 (+3,6\,\%) et au plus 0,75\,Mio lus en trop par tronçon, déjà comptés dans le $\times 1{,}335$. Autre voie, non retenue : bourrer les tronçons à une longueur rapide au codeur (+4,7\,\% de fichier, et la longueur rapide dépend de la machine). Le calibrage (\fichier{balayage\_longueurs.py}) deviendrait un pas d'installation du moteur. La décision n'est pas prise à l'heure où ce chapitre s'écrit.
+
+\section{Le chemin dans le moteur}\label{sec:t2c-moteur}
+
+Le moteur du lot O (\texttt{troncons}) emprunte ce chemin tel quel : même lecteur, même mémoire épinglée, même boîte aux lettres, même décodeur. Son option \texttt{--chronogramme} date chaque défaut (soumission, lecture, copie, décodage), le routeur et la fin de chaque couche.
+
+\begin{figure}[ht]
+\centering
+\GrapheChmCouche
+\caption[Le moteur : deux couches du 120b, chaque défaut daté]{Le moteur sur gpt-oss-120b, pas 8, couches 0 et 1, où les quatre experts manquent \mes. Couche 0 : le routeur finit à 0,61\,ms ; les quatre lectures, soumises à 1,28 / 1,96 / 2,68 / 3,18\,ms, finissent à 6,86 / 9,81 / 16,14 / 21,17\,ms : \textbf{le disque les sert l'une après l'autre}, environ 5\,ms pour 12\,Mo chacune ; chaque copie (1,0\,ms) et chaque décodage (0,85\,ms) suivent leur lecture sans attendre les autres ; la couche finit à 23,73\,ms.}
+\label{fig:t2c-couche}
+\sourcefig{\fichier{mesures/moteur/O/csv/chronogramme-120b.csv} (8 pas, \num{1048} défauts datés), extrait dans \fichier{t2c-couche.csv}.}
+\end{figure}
+
+La \cref{fig:t2c-couche} retrouve sur le chemin réel ce que Little disait du lecteur (\cref{sec:t2c-disque}) : quatre lectures confiées ensemble ne finissent pas ensemble, elles finissent à la file, espacées de 3 à 6\,ms. Le moteur souffre en plus d'une file courte : la couche ne connaît ses défauts qu'après son routeur, et n'en a en moyenne que 1,6 (59 défauts par jeton sur 36 couches, séance O4) \mes. Le disque seul, en tronçons tirés à profondeur 4, lit 1,848\,Go/s ; le moteur tire 0,707\,Go en 457\,ms par jeton, soit 1,55\,Go/s utiles \calc. Ce qui limite J1, c'est la profondeur de file par couche, que le préchargement devait remplir (tué par la mesure, $-11\,\%$ : 31\,\% des lectures anticipées étaient fausses sur un disque qui limite déjà ; voir le chapitre du moteur).
+
+\paragraph{Les lectures de 12\,Mio dans le moteur.} La série L12 du lot O (A : J1 avec préremplissage par flux ; B : la même, \texttt{-{}-\allowbreak longueur-\allowbreak lecture} \texttt{12582912}), déclarée avant, donne la \cref{fig:t2c-l12}. En génération, B fait +30\,\% en médiane (2,179 et 2,182 contre 2,613 et 3,073\,jetons/s), chaque passe B au-dessus de chaque passe A ; mais les deux passes B diffèrent de 0,46\,jeton/s, soit un bruit $\beta = 0{,}46 / 2{,}843 = 16{,}2\,\%$ par la définition du \cref{t2res-def:reel} (\barre{21\,\%} selon le lot O, qui rapportait l'écart à la moyenne de A), et la règle déclarée (gain $> 2 \times$ bruit $+ 3\,\%$, ici $2 \times 16{,}2 + 3 = 35{,}4\,\%$ contre $+30{,}4\,\%$ \calc) \textbf{n'est pas franchie} en quatre passes : L12 n'est ni établi ni réfuté. Les textes des quatre passes sont égaux (les logits ne dépendent pas de la longueur des lectures).
+
+\begin{figure}[ht]
+\centering
+\GrapheChmLdouze
+\caption[Le moteur : lectures de 12\,Mio (L12)]{Le moteur sur le 120b, série A B B A du 2026-10-16 (séance 2) \mes. A : J1 et préremplissage par flux ; B : la même avec des lectures de 12\,Mio. À gauche, la génération, le critère déclaré : non franchi. À droite, le préremplissage par flux, qui n'était pas le critère déclaré.}
+\label{fig:t2c-l12}
+\sourcefig{\fichier{mesures/moteur/O/csv/o-jetons-s.csv} (passes \texttt{2026-10-16-s2-15} à \texttt{18}), dans \fichier{t2c-l12.csv}.}
+\end{figure}
+
+\textbf{Une observation, calculée ici sur les passes publiées, non déclarée avant} : au préremplissage par flux, qui lit chaque expert demandé d'une couche à la file, A vaut 27,44 et 27,39\,jetons/s (écart 0,2\,\%), B 34,55 et 34,33 (0,6\,\%) : $+25{,}6\,\%$, très au-delà de $2 \times 0{,}6\,\% + 3\,\% = 4{,}3\,\%$ \calc. Le préremplissage, qui garde le disque plein, montre le gain du régime rapide presque entier ($\times 1{,}26$, contre $\times 1{,}335$ sur E2) ; la génération, à file courte, le montre noyé dans sa variance. Ce n'est pas un verdict (le critère n'était pas celui-là) ; c'est ce qu'une série plus longue devra confirmer.
+
+\paragraph{La garde sur le chemin.} Depuis la ronde de corrections, chaque lecture achevée est hachée (empreinte64 de ses octets utiles) par quatre fils en parallèle de la copie et du décodage, et le jeton n'est rendu qu'après la vérification de toutes les lectures du pas. Le débit de l'empreinte est mesuré à 1,07 à 1,10\,Go/s par fil ; au chemin critique ne reste que le hachage de la dernière lecture, au plus $12{,}25\,\text{Mo} / 1{,}07\,\text{Go/s} \approx 11{,}4$\,ms moins le travail de carte qui la suit ; mesuré : 5,2 à 5,4\,ms d'attente par jeton, $-1{,}6\,\%$ à débit de disque égal \mes~(\fichier{mesures/moteur/O/corrections/csv/vitesse-2026-10-16-passes.csv} ; la note du lot O, § 13.2, écrivait \barre{5,2 à 5,3\,ms} et \barre{$-1{,}7\,\%$}, \cref{t2res-sec:garde}). Avec des lectures de 12\,Mio, la garde ne hache que les octets utiles : les octets en trop ne lui coûtent rien. La combinaison L12 et garde n'a pas été mesurée.
+
+\section{Ce que le chapitre a barré}\label{sec:t2c-barres}
+
+\begin{itemize}
+\item \barre{Ce qui reste : E2, le banc de bout en bout, qui attend le décodeur du lot K et le format du lot F.} E2 est fait (2026-10-15, 21 h 13 à 21 h 35).
+\item \barre{Modèle D2 : coût indépendant de la charge.} Le témoin du modèle tombe ; D2 bis (\cref{prop:t2c-d2bis}) le remplace.
+\item \barre{rapports 3,6 à 4,8 selon la variante} : 3,6 à 4,8 pour quatre variantes, 8,7 pour \texttt{boite\_\allowbreak sans\_\allowbreak vidage}.
+\item \barre{E2-V12 : $\approx 3{,}2$\,Go/s servis prédits} : 2,834 mesurés ; le régime rapide aux décalages des tronçons ne donne que 2,7\,Go/s.
+\item \barre{lecture d'un tronçon en 12\,Mio : $\approx 16$\,ms} : 18,6\,ms en médiane sur le chemin (16,3\,ms est la latence du lecteur).
+\end{itemize}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{La carte des longueurs est celle d'une machine, d'un fichier, d'une soirée} : 23 longueurs, deux répliques, le fichier du 20b. Le régime d'une longueur peut dépendre du pilote du contrôleur, de la version de BitLocker, du micrologiciel du NVMe, du remplissage du disque ; la carte ne se transporte pas, elle se recalibre. 9,5\,Mio est resté entre les deux régimes ; une longueur rapide ici peut être lente sur le fichier du 120b (non mesuré).
+\item \textbf{Le seuil d'E2 repose sur 2,58\,Go/s mesurés en blocs de 4\,Mio}, une longueur que le balayage n'a pas couverte. Si 4\,Mio est dans un régime rapide, le seuil compare un régime rapide à une lecture dans un régime lent : le verdict « tombe » d'E2 dit d'abord cela. Il en va de même du plancher de C5 et des plafonds du Tome~I.
+\item \textbf{E2-V12 lit des octets du tronçon suivant} : sans effet sur la justesse (C2 tient aux passes témoin en 12\,Mio), mais un moteur qui lirait deux tronçons voisins lirait deux fois la frontière.
+\item \textbf{La passe témoin vérifie l'expert redescendu}, pas l'emplacement lu par la GEMV au moment du calcul : une écriture d'un autre noyau entre le décodage et la GEMV ne se verrait pas ici (le moteur l'exclut par l'épinglage du cache, lemme 4 du lot O).
+\item \textbf{Les essais E0\,(c) simulent la couche}, ils ne la calculent pas : une carte occupée par une vraie GEMV pourrait retarder le lancement suivant plus qu'une attente active d'un seul fil. Les deux charges l'encadrent, sans le prouver pour toutes.
+\item \textbf{La machine est partagée} : le pilote refuse de mesurer quand un \texttt{llama-*} ou le traceur tourne et journalise l'état de la carte avant et après chaque passe, mais un programme qui n'est ni l'un ni l'autre échappe au test ; les octets étrangers et le processeur des autres le bornent.
+\item \textbf{E0\,(a) ne tente que ce que la RAM disponible permet} : 11\,Go « non tenté » n'est pas un refus du pilote.
+\item \textbf{La variante \texttt{boite\_\allowbreak sans\_\allowbreak vidage}} repose sur un comportement non documenté (l'ordonnancement matériel de WDDM, actif ici~\cite{pronovost2020hags}, soumet le lancement sans appel qui le pousse) ; elle est publiée, jamais retenue.
+\item \textbf{La lecture « le disque sert une lecture de 12\,Mio à la fois »} est une interprétation de Little et du chronogramme, pas une mesure du contrôleur.
+\item \textbf{L'observation L12 au préremplissage} n'a pas été déclarée avant ; elle repose sur deux paires de passes.
+\item \textbf{\texttt{Lecteur::soumettre} et \texttt{copier\_vers\_hote} sont des fonctions sûres} qui confient au système ou au pilote une écriture asynchrone : le contrat d'ordre est documenté, pas vérifié par le type. \texttt{Contexte::memoire} rend (0, 0) sur une erreur du pilote.
+\end{itemize}
+\end{faux}
+
+\paragraph{D'où l'on part, où l'on va.} Le chemin est construit et exact, de bout en bout, sur les deux modèles ; aucun de ses étages autres que le disque ne coûte quoi que ce soit au jeton (DMA $\times 6{,}5$, décodage $\times 18$, synchronisation $\times 23$ sous leurs seuils). Ce qui reste est tout entier du côté du disque : la décision sur la longueur des lectures, son mécanisme, la carte du 120b, et une file plus profonde par couche, que seul un meilleur prédicteur que celui essayé pourra remplir.

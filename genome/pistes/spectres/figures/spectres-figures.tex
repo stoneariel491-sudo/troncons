@@ -1,0 +1,174 @@
+% Piste spectres : figures du Tome III, tirées des CSV commités de mesures/pistes/spectres/.
+% Compiler depuis ce dossier : lualatex spectres-figures.tex  (une page par figure).
+\documentclass[tikz,border=6pt]{standalone}
+\usepackage{fontspec}
+\usepackage{pgfplots}
+\usepgfplotslibrary{groupplots}
+\pgfplotsset{compat=1.18}
+\usepackage{pgfplotstable}
+
+% La palette du mémoire (memoire/commun), reprise telle quelle.
+\definecolor{Encre}{HTML}{1A1A1A}
+\definecolor{SerieA}{HTML}{1F5C99}
+\definecolor{SerieB}{HTML}{C0392B}
+\definecolor{SerieC}{HTML}{2E8B57}
+\definecolor{SerieD}{HTML}{D68910}
+\definecolor{SerieE}{HTML}{8E44AD}
+\definecolor{SerieF}{HTML}{6C7A89}
+\definecolor{Fond}{HTML}{F4F6F8}
+
+\def\M{../../../../mesures/pistes/spectres}
+
+\pgfplotsset{
+  troncons/.style={
+    width=12cm, height=7.4cm,
+    axis line style={Encre!70, line width=0.5pt},
+    tick style={Encre!70},
+    every tick label/.append style={font=\footnotesize, text=Encre},
+    label style={font=\small, text=Encre},
+    title style={font=\small\bfseries, text=Encre},
+    legend style={font=\footnotesize, draw=none, fill=white, fill opacity=0.85, text opacity=1},
+    legend cell align=left,
+    grid=major, major grid style={Encre!10, line width=0.3pt},
+  },
+}
+
+\begin{document}
+
+% ---------------------------------------------------------------- F1 : la fonction de survie
+\begin{tikzpicture}
+\begin{axis}[troncons, xmode=log, ymode=log,
+    xlabel={$\lambda/\bar\lambda$ (valeur propre de $W^{\top}W$ sur sa moyenne)},
+    ylabel={part des valeurs propres $\geq \lambda$},
+    title={Queue du spectre, couche 12 : réel, permuté, hasard},
+    ymin=2e-4, ymax=1.3, xmin=1e-3,
+    legend pos=south west]
+  \addplot[SerieA, line width=1.1pt] table[x=lambda_norm, y=ccdf, col sep=comma] {\M/fig-ccdf-L12.gate.E01.csv};
+  \addlegendentry{gate (L12 E1)}
+  \addplot[SerieC, line width=1.1pt] table[x=lambda_norm, y=ccdf, col sep=comma] {\M/fig-ccdf-L12.up.E01.csv};
+  \addlegendentry{up}
+  \addplot[SerieB, line width=1.1pt] table[x=lambda_norm, y=ccdf, col sep=comma] {\M/fig-ccdf-L12.down.E01.csv};
+  \addlegendentry{down}
+  \addplot[SerieE, line width=1.1pt] table[x=lambda_norm, y=ccdf, col sep=comma] {\M/fig-ccdf-L12.attn_q.csv};
+  \addlegendentry{attn\_q}
+  \addplot[SerieB!45, line width=0.8pt, densely dashed] table[x=lambda_norm, y=ccdf, col sep=comma] {\M/fig-ccdf-L12.down.E01.perm.csv};
+  \addlegendentry{down, entrées permutées}
+  \addplot[SerieF, line width=0.9pt, dotted] table[x=lambda_norm, y=ccdf, col sep=comma] {\M/fig-ccdf-MP_2880x2880.csv};
+  \addlegendentry{Marchenko-Pastur}
+  \addplot[SerieD, line width=0.9pt, dashdotted] table[x=lambda_norm, y=ccdf, col sep=comma] {\M/fig-ccdf-Pareto_2_5.csv};
+  \addlegendentry{Pareto $\alpha=2{,}5$ (témoin)}
+\end{axis}
+\end{tikzpicture}
+
+% ---------------------------------------------------------------- F2 : les exposants
+\begin{tikzpicture}
+\begin{axis}[troncons, width=13cm,
+    ylabel={exposant $\hat\alpha$ de la queue ($\rho(\lambda)\propto\lambda^{-\alpha}$)},
+    xmin=0, xmax=16, ymin=1,
+    xtick={1.5,5.5,9.5,13.5}, xticklabels={gate, up, down, attention},
+    extra x ticks={4,8,12}, extra x tick labels={}, extra x tick style={grid=major, major grid style={Encre!35}},
+    title={Exposant par matrice : couches 0, 12, 23 de gauche à droite dans chaque famille},
+    legend pos=north east]
+  \addplot[only marks, mark=*, mark size=2.2pt, color=SerieA, error bars/.cd, y dir=both, y explicit]
+    table[x=x, y=alpha, y error=alpha_err, col sep=comma, restrict expr to domain={\thisrow{compatible}}{1:1}] {\M/fig-alpha.csv};
+  \addlegendentry{« compatible loi de puissance »}
+  \addplot[only marks, mark=o, mark size=2.2pt, color=SerieB, error bars/.cd, y dir=both, y explicit]
+    table[x=x, y=alpha, y error=alpha_err, col sep=comma, restrict expr to domain={\thisrow{compatible}}{0:0}] {\M/fig-alpha.csv};
+  \addlegendentry{non compatible}
+  \addplot[only marks, mark=x, mark size=2pt, color=SerieF]
+    table[x=x, y=perm_alpha, col sep=comma] {\M/fig-alpha.csv};
+  \addlegendentry{même matrice permutée}
+\end{axis}
+\end{tikzpicture}
+
+% ---------------------------------------------------------------- F3 : le levier
+\begin{tikzpicture}
+\begin{groupplot}[group style={group size=3 by 1, horizontal sep=1.6cm},
+    troncons, width=6cm, height=6cm, xmode=log, log basis x=2,
+    xlabel={rang $r$}, xtick={1,4,16,64}, xticklabels={1,4,16,64}]
+  \nextgroupplot[title={L1, sans perte (codes MXFP4)}, ylabel={gain net (bit par poids)}]
+  \addplot[Encre!40, line width=0.4pt, forget plot] coordinates {(1,0.05) (64,0.05)};
+  \foreach \f/\c in {gate/SerieA, up/SerieC, down/SerieB} {
+    \edef\tmp{\noexpand\addplot[only marks, mark=*, mark size=1.1pt, color=\c, opacity=0.7]
+      table[x=rang, y=L1, col sep=comma] {\M/fig-levier-\f.csv};}
+    \tmp
+  }
+  \addplot[only marks, mark=x, mark size=1.2pt, color=SerieF] table[x=rang, y=L1_temoin, col sep=comma] {\M/fig-levier-down.csv};
+  \nextgroupplot[title={L2, borne gaussienne ($D=0{,}044$)}]
+  \addplot[Encre!40, line width=0.4pt, forget plot] coordinates {(1,0.05) (64,0.05)};
+  \foreach \f/\c in {gate/SerieA, up/SerieC, down/SerieB, attention/SerieE} {
+    \edef\tmp{\noexpand\addplot[only marks, mark=*, mark size=1.1pt, color=\c, opacity=0.7]
+      table[x=rang, y=L2, col sep=comma] {\M/fig-levier-\f.csv};}
+    \tmp
+  }
+  \addplot[only marks, mark=x, mark size=1.2pt, color=SerieF] table[x=rang, y=L2_temoin, col sep=comma] {\M/fig-levier-down.csv};
+  \nextgroupplot[title={L3d, quantificateur tramé ($D=0{,}044$)},
+      legend style={at={(1.05,0.5)}, anchor=west}]
+  \addplot[Encre!40, line width=0.4pt, forget plot] coordinates {(1,0.05) (64,0.05)};
+  \foreach \f/\c in {gate/SerieA, up/SerieC, down/SerieB, attention/SerieE} {
+    \edef\tmp{\noexpand\addplot[only marks, mark=*, mark size=1.1pt, color=\c, opacity=0.7]
+      table[x=rang, y=L3d, col sep=comma] {\M/fig-levier-\f.csv};}
+    \tmp
+    \addlegendentryexpanded{\f}
+  }
+  \addplot[only marks, mark=x, mark size=1.2pt, color=SerieF] table[x=rang, y=L3d_temoin, col sep=comma] {\M/fig-levier-down.csv};
+  \addlegendentry{témoin (down)}
+\end{groupplot}
+\end{tikzpicture}
+
+
+% ---------------------------------------------------------------- P1 : le plafond par rang, et ce que coûte la base
+\begin{tikzpicture}
+\begin{axis}[troncons, xmode=log, log basis x=2, width=13cm, height=8cm,
+    xlabel={rang $r$ des directions propres offertes au décodeur},
+    ylabel={plafond $G_r$ (bit par poids, $D = 0{,}044$)},
+    title={Plafond par rang et coût des facteurs (médianes)},
+    xmin=1, xmax=2880, ymin=0, ymax=1.05,
+    xtick={1,4,16,64,256,1024}, xticklabels={1,4,16,64,256,1\,024},
+    yticklabel style={/pgf/number format/.cd, fixed, use comma},
+    legend style={at={(0.5,-0.2)}, anchor=north}, legend columns=4]
+  \addplot[SerieA, line width=1.1pt, mark=*, mark size=1.3pt] table[x=r, y=G_reel, col sep=comma] {\M/fig-plafond-rang-gate.csv};
+  \addlegendentry{gate}
+  \addplot[SerieC, line width=1.1pt, mark=*, mark size=1.3pt] table[x=r, y=G_reel, col sep=comma] {\M/fig-plafond-rang-up.csv};
+  \addlegendentry{up}
+  \addplot[SerieB, line width=1.1pt, mark=*, mark size=1.3pt] table[x=r, y=G_reel, col sep=comma] {\M/fig-plafond-rang-down.csv};
+  \addlegendentry{down}
+  \addplot[SerieE, line width=1.1pt, mark=*, mark size=1.3pt] table[x=r, y=G_reel, col sep=comma] {\M/fig-plafond-rang-attention.csv};
+  \addlegendentry{attn\_q, attn\_output}
+  \addplot[SerieF, line width=0.9pt, densely dashed] table[x=r, y=G_perm, col sep=comma] {\M/fig-plafond-rang-down.csv};
+  \addlegendentry{down, entrées permutées}
+  \addplot[SerieD, line width=1pt, dashdotted, mark=diamond*, mark size=1.6pt] table[x=r, y=G_plante, col sep=comma] {\M/fig-plafond-rang-plante.csv};
+  \addlegendentry{témoin : rang 8 planté}
+  \addplot[Encre, line width=0.8pt, domain=1:2880, samples=80] {16*x*2/2880};
+  \addlegendentry{coût des facteurs, $b = 16$}
+  \addplot[Encre!55, line width=0.8pt, dotted, domain=1:2880, samples=80] {4*x*2/2880};
+  \addlegendentry{coût, $b = 4$ (optimiste)}
+\end{axis}
+\end{tikzpicture}
+
+% ---------------------------------------------------------------- P2 : l'exposant désigne le levier
+\begin{tikzpicture}
+\begin{axis}[troncons, width=12.5cm, height=8cm,
+    xlabel={exposant $\hat\alpha$ de la queue (§ 4)},
+    ylabel={levier payé $\max_r N_r(16)$ (bit par poids)},
+    title={L'exposant désigne les matrices où un rang faible se paie (exploratoire)},
+    xmin=1.3, xmax=9, ymin=-0.045, ymax=0.18,
+    ytick={-0.05,0,0.05,0.1,0.15},
+    yticklabel style={/pgf/number format/.cd, fixed, fixed zerofill, precision=2, use comma},
+    xticklabel style={/pgf/number format/.cd, use comma},
+    legend pos=north east]
+  \fill[SerieB!7] (axis cs:1.3,0.05) rectangle (axis cs:2,0.18);
+  \draw[Encre!60, dashed, line width=0.6pt] (axis cs:1.3,0.05) -- (axis cs:9,0.05) node[pos=0.9, above, font=\scriptsize, text=Encre!70] {seuil 0,05};
+  \draw[Encre!60, dashed, line width=0.6pt] (axis cs:2,-0.045) -- (axis cs:2,0.18) node[pos=0.03, right, font=\scriptsize, text=Encre!70] {$\hat\alpha = 2$};
+  \addplot[only marks, mark=*, mark size=2.3pt, color=SerieA] table[x=alpha, y=N16, col sep=comma] {\M/fig-alpha-levier-gate.csv};
+  \addlegendentry{gate}
+  \addplot[only marks, mark=square*, mark size=2.1pt, color=SerieC] table[x=alpha, y=N16, col sep=comma] {\M/fig-alpha-levier-up.csv};
+  \addlegendentry{up}
+  \addplot[only marks, mark=triangle*, mark size=2.8pt, color=SerieB] table[x=alpha, y=N16, col sep=comma] {\M/fig-alpha-levier-down.csv};
+  \addlegendentry{down}
+  \addplot[only marks, mark=diamond*, mark size=2.8pt, color=SerieE] table[x=alpha, y=N16, col sep=comma] {\M/fig-alpha-levier-attention.csv};
+  \addlegendentry{attention}
+\end{axis}
+\end{tikzpicture}
+
+\end{document}

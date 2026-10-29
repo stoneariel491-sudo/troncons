@@ -1,0 +1,124 @@
+{
+  "alimentation": {
+    "ACLineStatus": 1,
+    "BatteryFlag": 1,
+    "BatteryLifePercent": 80,
+    "secteur": true
+  },
+  "base": "~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld",
+  "commande": "evaluer --modele ~/dev/modeles/trc/gpt-oss-120b-brut.trc --base ~/dev/essais/troncons/lot-R/r1/ref-openai-20b.kld --fenetres 10 --positions 512 --flux --brut --sortie ~/dev/essais/troncons/epreuve-J1/c3brut-2026-10-16/00-E120b.kld --empreintes ~/dev/essais/troncons/epreuve-J1/c3brut-2026-10-16/00-E120b-empreintes.csv --journal ~/dev/essais/troncons/epreuve-J1/c3brut-2026-10-16/00-E120b.json",
+  "compteurs": {
+    "acces": 31102,
+    "defauts_disque": 31102,
+    "emplacements": 325,
+    "evictions": 30777,
+    "experts_decodes": 31102,
+    "experts_verifies": 0,
+    "h_vram": 0.0,
+    "lectures_enchassement": 5120,
+    "lectures_troncons": 31102,
+    "ms_copie_carte": 0.0,
+    "ms_decodage_carte": 0.0,
+    "octets_copies_cache": 412246310912,
+    "octets_disque_cache": 412246310912,
+    "octets_dma": 412246310912,
+    "octets_lus": 413973929984,
+    "octets_lus_enchassement": 41943040,
+    "octets_lus_troncons": 412246310912,
+    "pas": 0,
+    "pf_emis": 0,
+    "pf_octets": 0,
+    "pf_utiles": 0,
+    "s_attente_routeur": 0.0,
+    "s_fin_jeton": 0.0,
+    "s_lectures": 0.0,
+    "s_pas": 285.0479655,
+    "succes_ram": 0,
+    "succes_vram": 0,
+    "tiedes": 0
+  },
+  "date_utc": "2026-10-16T08:17:34Z",
+  "empreinte_csv_sha256": "a80f5f04f28f82ccb4f874dfea0890a18f242545bb0ffd807b0cfee97f1d9498",
+  "fenetres": 10,
+  "flux": true,
+  "flux_experts": 31102,
+  "flux_positions": 5120,
+  "moteur": {
+    "arrivees": 12,
+    "brut": true,
+    "carte": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "chargement": {
+      "empreintes_verifiees": 470,
+      "lectures": 101,
+      "octets_lus": 1685676032,
+      "octets_tenseurs": 1685668608,
+      "secondes": 1.8383774000000002,
+      "tenseurs": 470
+    },
+    "contexte": 4096,
+    "couches": 36,
+    "couches_d_avance": 3,
+    "emplacements": 325,
+    "enchassement_en_ram": false,
+    "etapes_memoire": [
+      {
+        "ensemble_travail": 4739072,
+        "etape": "avant"
+      },
+      {
+        "ensemble_travail": 18157568,
+        "etape": "fichier"
+      },
+      {
+        "ensemble_travail": 128081920,
+        "etape": "contexte_flux"
+      },
+      {
+        "ensemble_travail": 129081344,
+        "etape": "noyaux"
+      },
+      {
+        "ensemble_travail": 130449408,
+        "etape": "modele"
+      },
+      {
+        "ensemble_travail": 130449408,
+        "etape": "luts"
+      },
+      {
+        "ensemble_travail": 291946496,
+        "etape": "fenetre_et_tampons"
+      },
+      {
+        "ensemble_travail": 292655104,
+        "etape": "emplacements_cache_evenements"
+      }
+    ],
+    "experts": 128,
+    "fichier": "~/dev/modeles/trc/gpt-oss-120b-brut.trc",
+    "k": 4,
+    "longueur_arrivee": 13254656,
+    "longueur_lecture": null,
+    "octets_emplacement": 13254144,
+    "octets_epingles": 159883264,
+    "octets_vram_moteur": 6309013808,
+    "ouverture_s": 2.1718323,
+    "prechargement": false,
+    "profondeur_es": 4,
+    "ram_tiede_go": 0.0,
+    "temoin": false,
+    "tiedes": 0,
+    "vocab": 201088,
+    "vram_plafond_mio": 7179
+  },
+  "n_ctx": 512,
+  "outil": "troncons evaluer",
+  "pas": 0,
+  "pas_s": 0.0,
+  "positions_notees": 2550,
+  "positions_par_fenetre": 512,
+  "ppl_positions_notees": 422.20558522791305,
+  "secondes": 285.0620899,
+  "sortie": "~/dev/essais/troncons/epreuve-J1/c3brut-2026-10-16/00-E120b.kld",
+  "version": "0.1.0"
+}

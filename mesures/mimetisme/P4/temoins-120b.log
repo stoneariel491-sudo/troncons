@@ -1,0 +1,10 @@
+N = 326 L = 36
+T0 défauts dict / liste : 1195 1195 -> égal
+T0b N=60 défauts dict / liste : 2000 2000
+T1 w=80.0 ms/jeton : jeton de base sans o = 464.9 ms ; o par couche = -0.137 ms
+NOTE o < 0 : la base simulée dépasse 460 ms ; o négatif gardé comme décalage d'étalonnage (dit)
+T2 parfait d=1 priorité, w=80.0: x1.1786 (octets +0.000, défauts/jeton de base 78.8)
+T2 fenêtre retenue w = 80.00 ms/jeton ; x1.1786 ; o = -0.137 ms/couche (étalonnage : False)
+T3 FIFO synthétique : x1.0488 (gain +4.9 %, attendu -11 +/- 4) ; octets +0.338 (attendu +0,34) ; MANQUE ; répétitions [(np.float64(1.0487939717351755), np.float64(0.33789193985398813)), (np.float64(1.0488251639244641), np.float64(0.3381357686077022))]
+T3b mêmes chargements en priorité : x1.1479 ; octets +0.034
+écrit mesures/mimetisme/P4/temoins-120b.json (282 s)

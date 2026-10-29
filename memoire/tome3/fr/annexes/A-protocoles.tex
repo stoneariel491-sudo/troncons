@@ -1,0 +1,142 @@
+% Tome~III, annexe A : les protocoles, seuils déclarés et témoins (version française). Rédacteur D, 2026-10-29.
+% Modèle : memoire/tome2/fr/annexes/A-protocoles.tex. La table datée des fichiers de seuils est engendrée par
+% memoire/outils/tome3_annexes.py depuis git ls-files et git log (memoire/tome3/annexes/seuils-tome3.tex) ;
+% les autres tableaux sont tirés des fichiers de seuils, des livrables et des jugements cités dans leurs lignes.
+
+\chapter{Protocoles : seuils déclarés et témoins}\label{t3ann:protocoles}
+
+\begin{origine}
+\textbf{Au départ}, la méthode des Tomes~I et II : chaque mesure a son témoin, et tout témoin neuf doit pouvoir échouer ; un seuil dérive d'une grandeur nommée et se déclare avant la mesure, par un commit daté ; un coût se juge en séries ABBA ; tout chiffre dont on dépend se refait par un second chemin ; une phrase démentie se barre.
+\textbf{Cette annexe établit}, pour le Tome~III, la liste des seuils déclarés avec la grandeur dont chacun dérive et son verdict ; la table, engendrée depuis git, de chaque fichier de seuils et de l'heure du commit qui l'a créé ; les témoins et leurs cassures ; les amendements faits avant lecture, et ceux faits après, dits comme tels ; les protocoles des juges.
+\textbf{Il reste} ce que git ne peut pas prouver : qu'aucune lecture exploratoire n'a précédé un seuil (\cref{t3ann:sec:faux-a}).
+Sources : les fichiers de seuils de \cref{t3ann:tab:seuils-dates}, les livrables et les jugements des chapitres, \fichier{memoire/tome3/JUGEMENT-figures3.md} (§ 4.4), \fichier{memoire/outils/tome3_cassures.py}.
+\end{origine}
+
+\section{Ce qui est hérité}\label{t3ann:sec:herite}
+
+Les règles ne changent pas d'un tome à l'autre ; elles sont posées au Tome~I (annexe des protocoles) et appliquées au programme dans le Tome~II (son annexe A). Le Tome~III en a une pratique plus dense, parce que la quête du génome a déclaré, du 16 au 27 octobre 2026, trente-cinq fichiers de seuils, de critères et d'amendements (\cref{t3ann:tab:seuils-dates}), souvent par des agents qui travaillaient en même temps : la règle « le seuil se déclare avant la passe, et l'heure du commit fait foi » y est la seule qui permette de lire l'ordre des événements. Trois formes y reviennent, que le tome nomme partout de la même façon :
+\begin{itemize}
+\item \textbf{succès et mort} : un mécanisme a un seuil de succès et un seuil de mort ; entre les deux, il est « non concluant » ou « ouvert », et le dit (le tri du mimétisme les déclare ainsi pour ses six pistes) ;
+\item \textbf{la règle des différences appariées} : une variante $b$ est meilleure qu'une variante $a$ si $\bar d + 2\sigma < 0$, $d = \mathrm{KL}_b - \mathrm{KL}_a$ position par position, $\sigma$ l'écart-type par fenêtres ; égale si $\lvert \bar d\rvert \le 2\sigma$ ; pire sinon (règle du lot R, Tome~II ; \cref{t3jug:sec:sigma} pour la raison du $\sigma$ par fenêtres) ;
+\item \textbf{le gain annoncé} : un rapport de vitesses médian ne s'annonce que s'il dépasse $1 + 2\sigma$, $\sigma$ le bruit relatif d'un fichier contre lui-même dans la même séance ; le juge de la construction a resserré la règle à $\sigma = \max$ des fichiers de la séance (\cref{t3jug:sec:plan}).
+\end{itemize}
+
+\section{Les seuils déclarés, étape par étape}\label{t3ann:sec:seuils}
+
+\Cref{t3ann:tab:criteres} donne les critères qui décident d'un verdict du tome, chacun avec la grandeur dont il dérive ; \cref{t3ann:tab:seuils-dates} donne, pour chaque fichier de seuils, de critères ou d'amendement, le commit qui l'a créé. Le verdict est celui du juge de l'étape quand il y en a un.
+
+\begingroup\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.16\linewidth}>{\raggedright\arraybackslash}p{0.33\linewidth}>{\raggedright\arraybackslash}p{0.27\linewidth}>{\raggedright\arraybackslash}p{0.18\linewidth}@{}}
+\caption[Les critères qui décident, et leurs verdicts]{Les critères déclarés avant leur mesure qui décident d'un verdict du Tome~III, la grandeur dont chacun dérive, et le verdict (celui du juge quand il y en a un).}\label{t3ann:tab:criteres}\\
+\toprule
+Étape & Critère déclaré & D'où il dérive & Verdict \\
+\midrule
+\endfirsthead
+\toprule
+Étape & Critère déclaré & D'où il dérive & Verdict \\
+\midrule
+\endhead
+\multicolumn{4}{@{}l}{\textsf{\bfseries La ronde (ch.~\ref{t3gen:ch} à~\ref{t3pre:ch}, \ref{t3syn:ch})}} \\
+génome, W & le brin lit moins de bits par poids que la base de B à erreur sur les poids égale, sur chacun des 12 tenseurs & la base de B : \num{2.6441} bits à \SI{4.29}{\percent} d'erreur relative & tient (12 sur 12, $-\num{0.319}$ bit) ; \cref{t3gen:ch} \\
+génome, O et F & l'erreur de \emph{sortie} d'une couche d'experts sous celle de la base & la sortie est ce que le modèle lit & tombent ; \cref{t3gen:ch} \\
+génome, S\textsuperscript{*} & déclaré avant sa passe : sortie sous la base sur les 8 experts entiers & idem & tient (8 sur 8) ; KL égale à la base sur K10 \\
+duplication, D1 & bits de l'enfant conditionné au parent sous A\_ctx sur chacune des matrices et en global & la frontière sans perte, \num{3.8431} bits & ne marche pas (gain net \num{0.0019} bit, 21 matrices sur 48) ; \cref{t3dup:ch} \\
+\multicolumn{4}{@{}l}{\textsf{\bfseries Le mimétisme (ch.~\ref{t3mim:ch}) : succès et mort, \fichier{mesures/mimetisme/tri/00-seuils-declares.md}}} \\
+P1 & LFU à demi-vie $-$ LRU $\ge +0{,}02$ de succès sur les deux générations ; mort sous $+0{,}005$ & 0,02 sur 0,2621 de défauts en LRU, soit $\times 1{,}083$ si le disque borne tout & ouvert (juge P1) \\
+P2 & part disque $-\SI{15}{\percent}$ à $R = 336$ et copies $\le \SI{25}{\percent}$ du jeton ; mort sous $\SI{5}{\percent}$ & la moitié du $-\SI{29.6}{\percent}$ simulé, jugé trop optimiste & ouvert \\
+P3 & défauts $-\SI{10}{\percent}$ pour une KL excédentaire $\le \num{0.038}$ ; mort au-delà de \num{0.07} & la pente du mode rapide, 0,13 de KL pour $-\SI{34}{\percent}$ d'octets & à la limite (ce qui est jugé ; R6) \\
+P4 & gain simulé $\ge +\SI{5}{\percent}$ pour $\le \SI{5}{\percent}$ d'octets de plus ; mort sous $+\SI{2}{\percent}$ & les trois quarts du $\times 1{,}07$ calculé sous le plafond $\times 1{,}21$ & ouvert, plutôt tombe \\
+P5 & erreur tenue à l'écart $-\SI{10}{\percent}$ contre Babai sur 6 experts sur 8 ; mort sous $\SI{3}{\percent}$ & la moitié du gain de la mutation synonyme ($-0{,}0098$) & ouvert \\
+P6 & $r(\theta) \le 0{,}7$ à $\theta = 0{,}20$ pour $\ge \SI{8}{\percent}$ d'octets ; mort au-delà de 0,9 & la moitié de la KL proportionnelle du tout-rapide & ouvert ; B tient à l'étape 0 \\
+\multicolumn{4}{@{}l}{\textsf{\bfseries La construction (ch.~\ref{t3cod:ch} à~\ref{t3jug:ch})}} \\
+lot A, A-C1 & 0 empreinte de logits différente sur \num{5120} pas & proposition A1 (exactitude par construction) & tient (lot A, juge) \\
+lot A, A-C2 & gain $\ge \num{0.12}$ bit par poids d'expert & deux fois la part des $-0$ mesurée & tient (\num{0.12791}, \num{0.12562}) \\
+lot A, A-C3 & pas de régression : $r \ge 1 - 2\sigma$ & bruit de la séance & tient ; gain $\times 1{,}44$ (R1) \\
+lot B, B2 (i) & synonyme meilleure que la frontière : $\bar d + 2\sigma < 0$ & règle du lot R & tient (\num{3.8}\,$\sigma$) \\
+lot B, B2 des $\lambda$ & $\lambda = 0$ retenue si $\bar d + 2\sigma < 0$ contre $\lambda = 1$, sinon $\lambda = 1$ & déclarée après B0, avant le codage $\lambda = 0$ & tient (\num{2.09}\,$\sigma$ ; juge \num{3.6}\,$\sigma$) \\
+lot B, S3-K & KL(f64 rapide $\Vert$ moteur rapide) $\le \num{0.011}$, premier choix $\ge \SI{95}{\percent}$ & $3 \times$ l'écart C4 du moteur exact (\num{0.00368}) & tient (trois variantes ; juge) \\
+lot B, S3-V & gain annoncé si $B/A > 1 + 2\sigma_A$ & bruit des passes A & annoncé, puis barré comme gain du mode (G1, G2) \\
+juge, J-V2 et J-V3 & gain du mode si $r(R/B) \ge g\,(1 - 2\sigma)$, $\sigma = \max$ & borne basse d'un rapport de médianes & tombent (\num{1.284} contre \num{1.769} ; \num{0.942} contre \num{1.227}) \\
+juge, J-K2 & B2 refait hors de R1, même règle ; prédiction « égales » & $\Phi(z - 2) \approx 0{,}54$ & tient, renforcé ; prédiction démentie \\
+\multicolumn{4}{@{}l}{\textsf{\bfseries Les pistes (ch.~\ref{t3tro:ch} et~\ref{t3spe:ch})}} \\
+tropicale & la garde vaut d'être construite si elle attrape $\ge \SI{80}{\percent}$ des bascules pour $\le \SI{10}{\percent}$ des cellules & cahier de la synthèse ; prédiction écrite : 55 à \SI{65}{\percent} & tombe (\SI{57.1}{\percent} ; juge) \\
+spectres & loi de puissance si la méthode de Clauset, Shalizi et Newman la préfère à la log-normale, sur au moins 2/3 de l'échantillon & 32 matrices sur 48 & amendé avant lecture (sans puissance) ; 0 sur 48, 9 compatibles (juge) \\
+\bottomrule
+\end{longtable}
+\endgroup
+
+\paragraph{La table datée.} \Cref{t3ann:tab:seuils-dates} est engendrée par \fichier{memoire/outils/tome3_annexes.py} depuis \texttt{git log} : pour chaque fichier, le commit qui l'a créé et son heure, puis le nombre de commits qui l'ont touché (un amendement daté fait monter ce nombre ; il se lit dans le fichier, avec son heure et la raison). Elle est rangée par heure de création. Le second tirage de P3 (fichiers \texttt{07*}), en travail dans une autre session, n'y est pas (réserve R6).
+
+\input{\Racine/tome3/annexes/seuils-tome3}
+
+\section{Les témoins et leurs cassures}\label{t3ann:sec:temoins}
+
+\Cref{t3ann:tab:temoins} rassemble les témoins qui portent un verdict du tome. Chacun a une réponse connue d'avance, et une cassure qui l'a fait tomber : sans elle, le témoin ne prouve rien.
+
+\begingroup\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.17\linewidth}>{\raggedright\arraybackslash}p{0.30\linewidth}>{\raggedright\arraybackslash}p{0.27\linewidth}>{\raggedright\arraybackslash}p{0.18\linewidth}@{}}
+\caption[Les témoins et leurs cassures]{Les témoins qui portent un verdict du Tome~III : la réponse connue d'avance, la cassure, et le résultat \mes.}\label{t3ann:tab:temoins}\\
+\toprule
+Témoin & Réponse connue d'avance & Cassure & Résultat \\
+\midrule
+\endfirsthead
+\toprule
+Témoin & Réponse connue d'avance & Cassure & Résultat \\
+\midrule
+\endhead
+éclaireur, T1 & avec $H = I$, la synonyme rend la frontière (0 symbole différent) & le $H$ réel & \num{1789132} symboles différents \\
+lot B, W1 & refaire L00-E00 rend le fichier de l'éclaireur octet pour octet & $\delta = 0{,}99$ & \num{117501} symboles différents \\
+lot B, W2 & second chemin égal au journal à $10^{-9}$ relatif & un bit de classe sur une ligne & $7{,}2\cdot10^{-3}$ \\
+lot B, substitutions & substitués = lus & la passe de l'éclaireur (32 sur 731) & tient ; témoin d'abord mal déclaré, barré \\
+lot B, \texttt{gemv\_base} & égale à la f64 au bit sur un cas exact & le mode exact sur les mêmes octets & 0 ligne sur \num{2880} ; tombe \\
+lot B, S3-T1 & 768 experts égaux au \texttt{.sym}, aux échelles, aux empreintes & \texttt{--casser C X} & l'expert visé, et lui seul \\
+lot B, S3-K & moteur rapide = f64 rapide & f64 \emph{frontière} contre moteur synonyme & \num{0.190} et \num{0.149} : tombe \\
+juge, J-T1 & v1.0 : décodé = GGUF ; changés v1.0 $\to$ v1.2 = les $-0$ & mot de flux, canonisation retirée, bit de biais & 40 sur 40 ; trois cassures tombent \\
+juge, J-C1 & v1.2 évalué deux fois : CSV identiques & biais retourné sur la couche 0 & 512 sur 512 différentes \\
+juge, KL & sa KL = \texttt{juge kl} à $10^{-6}$ & $Q$ décalé d'une position & $1{,}1\cdot 10^{-8}$ ; \num{1.634} \\
+juge, fenêtres & chaque fenêtre fondue égale à sa source & une fenêtre décalée & tombe \\
+tropicale, T2 & routage de A imposé à C : 0 bascule & --- & 0 ; cassure 1 \\
+tropicale, T3 & marges permutées : la garde au hasard & --- & \SI{10.0}{\percent} ; oracles \SI{100}{\percent} \\
+spectres, juge & témoins du juge & sa cassure & tombe sur les deux témoins visés \\
+annexes, \fichier{tome3_annexes.py} & tout fichier cité par une ligne « Données » existe & un fichier inexistant ajouté & tombe (code 1) \\
+\bottomrule
+\end{longtable}
+\endgroup
+
+\paragraph{Les gardes des figures.} Les outils de données des figures (\fichier{memoire/outils/tome3_*.py}) s'arrêtent à leur première garde ; le juge de la troisième passe des figures en a forcé neuf à faux par son propre moyen, dans une copie, et toutes ont arrêté leur script (\fichier{memoire/tome3/JUGEMENT-figures3.md}, § 4.4) : GN2 (III-8.5, un débit du codec réel changé), GN1 (III-10.1, 767 experts décodés au lieu de 768), G7 (III-9.6, la règle de cadre), J5 et J6 (III-8.6 bis), le compagnon (III-8.6 bis), $j = 11$ (la rangée de III-9.1), E1 (III-9.7), la seconde pointe (III-7.4, où c'est la compilation qui s'arrête) et DN7 (III-4.8). \fichier{memoire/outils/tome3_cassures.py} rejoue quatre de ces cassures ; il n'a pas sa place dans une construction, puisqu'il force les gardes à faux.
+
+\section{Les amendements}\label{t3ann:sec:amendements}
+
+Un seuil peut changer : avant la lecture, avec sa raison et son heure ; après, jamais sans le dire. Le tome en compte de trois sortes.
+
+\paragraph{Avant la lecture, parce que l'instrument ne pouvait pas répondre.} La piste des spectres a amendé son verdict principal le 21 octobre (§ 4 bis de \fichier{genome/pistes/spectres/seuil.md}, commit \texttt{bfc1c8c}), avant toute lecture des spectres réels : un essai de l'instrument sur 40 tirages de Pareto vrais ($n = \num{2880}$, $\alpha = 2{,}5$ et $3{,}5$) les avait tous rendus « non départagés » contre la log-normale. Le critère n'avait aucune puissance ; le juge de la piste a montré depuis qu'il est impossible à satisfaire à toute taille (\cref{t3spe:ch}). Le verdict principal est rapporté tel que déclaré, à côté du verdict amendé.
+
+\paragraph{Avant la mesure, parce qu'une mesure antérieure le demandait.} Le lot B a déclaré la règle de départage des deux $\lambda$ à 12 h 15 le 17 octobre, après B0 et avant le codage $\lambda = 0$ (\cref{t3sno:sec:b2}), puis les règles de calme de la séance s2 le 21 à 23 h 59, avant toute passe. P1 a déclaré ses analyses post hoc avant de les calculer (\fichier{genome/mimetisme/P1/posthoc-declare.md}) ; P2 sa démotion sélective, hypothèse post hoc dite, avant d'ouvrir le 20b (\fichier{seuil-declare-selectif.md}) ; P4 un amendement de lecture du protocole, avant tout lancement ; P5 trois addenda, chacun avant son lancement ; P6 l'amendement A1, avant toute simulation (\cref{t3mim:ch}).
+
+\paragraph{Après une lecture, dit comme tel.} Deux témoins du lot B ont été corrigés après la passe qui les avait fait tomber sans cause : le compteur des substitutions (« 768 » devenu « substitués = lus ») et la tolérance de la KL recalculée ($10^{-12}$ absolu devenu $10^{-9}$ relatif). Ni l'un ni l'autre ne décide d'un verdict ; tous deux sont barrés à leur place, avec l'heure (\cref{t3sno:sec:protocole}). Le critère pondéré par la marge de P3 a été déclaré après la lecture de $N = 146$ et avant toute passe neuve, ce que son fichier dit dans son titre.
+
+\section{Les protocoles des juges}\label{t3ann:sec:juges}
+
+Chaque étape du tome a eu son juge, qui n'avait rien construit de ce qu'il jugeait. Leur protocole est le même partout :
+\begin{enumerate}
+\item déclarer ses seuils avant toute mesure, avec une prédiction (le juge de la construction : « égales » pour B2, $\times 1{,}38$ pour $r(R/B)$ ; les deux démenties, et publiées comme telles) ;
+\item refaire chaque chiffre publié par un chemin propre (un autre décodeur, une autre KL, un autre texte, un autre plan d'expérience), sans lire le code jugé avant d'avoir écrit le sien ;
+\item par défaut, \emph{un chiffre non reproduit ne tient pas} ; un chiffre reproduit mais mal attribué est barré comme attribution et gardé comme mesure ;
+\item lire le livrable phrase à phrase contre ses journaux, et classer ce qui ne tient pas en graves (qui changent ce que le projet ferait ensuite) et mineurs ;
+\item porter les barres dans le livrable jugé, sans rien retirer, et écrire sa propre section « Ce qui pourrait être faux ».
+\end{enumerate}
+Le jugement d'un juge peut lui-même tomber : celui de la construction attribuait l'écart de l'étage disque à « l'état physique des fichiers » ; le juge du placement disque l'a fait tomber le 27 octobre, et le jugement porte la correction à chaque endroit (réserve R1, \cref{t3jug:sec:r1}).
+
+\section{Ce qui pourrait être faux}\label{t3ann:sec:faux-a}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{Git date un commit, pas une lecture.} Que le seuil soit commité avant le premier journal ne prouve pas qu'aucune lecture exploratoire ne l'a précédé ; le juge de la piste tropicale le dit de sa propre piste (les 222 lignes de code commitées 74 secondes après le seuil étaient écrites avant lui ; écrire un lecteur n'est pas lire).
+\item \textbf{Les heures écrites dans les notes} ne concordent pas toujours avec git, de quelques minutes ; c'est l'heure du commit qui fait foi.
+\item \textbf{La table des critères est choisie} : elle retient ceux qui décident d'un verdict du tome ; les fichiers de seuils en contiennent d'autres (témoins de second rang, critères de lecture sans verdict), qui se lisent dans les fichiers de \cref{t3ann:tab:seuils-dates}.
+\item \textbf{Les verdicts du mimétisme} sont ceux des juges de chaque piste, rapportés par le \cref{t3mim:ch} ; le second tirage de P3, en travail ailleurs, peut changer le sien.
+\item \textbf{La table datée} ne voit que les fichiers dont le nom dit « seuil », « critère » ou « déclaré » ; un seuil écrit dans un autre fichier (un cahier, un livrable) lui échappe.
+\end{itemize}
+\end{faux}

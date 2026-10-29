@@ -1,0 +1,48 @@
+% Graphes du chapitre « Sparsité et décodage spéculatif ».
+
+% Jetons produits par lecture complète des poids, E(alpha, k), et leurs asymptotes 1/(1 - alpha).
+\newcommand{\GrapheAmortissement}{%
+\begin{tikzpicture}
+\begin{semilogxaxis}[memoire, width=\linewidth, height=0.62\linewidth, log basis x=2,
+  xlabel={\EF{drafted tokens per pass $k$}{jetons proposés par passe $k$}},
+  ylabel={$\mathcal{E}(\alpha,k)$ \EF{(tokens per read)}{(jetons par lecture)}},
+  xmin=0.9, xmax=40, ymin=1, ymax=21, xtick={1,2,4,8,16,32}, xticklabels={1,2,4,8,16,32},
+  legend pos=north west, legend columns=2]
+\addplot[SerieF, mark=*, mark size=1.5pt] table[x=k, y=E] {\Donnees/sparse-E-50.csv}; \addlegendentry{$\alpha=\num{0.5}$}
+\addplot[SerieD, mark=*, mark size=1.5pt] table[x=k, y=E] {\Donnees/sparse-E-60.csv}; \addlegendentry{$\alpha=\num{0.6}$}
+\addplot[SerieC, mark=*, mark size=1.5pt] table[x=k, y=E] {\Donnees/sparse-E-70.csv}; \addlegendentry{$\alpha=\num{0.7}$}
+\addplot[SerieA, mark=*, mark size=1.5pt] table[x=k, y=E] {\Donnees/sparse-E-80.csv}; \addlegendentry{$\alpha=\num{0.8}$}
+\addplot[SerieB, mark=*, mark size=1.5pt] table[x=k, y=E] {\Donnees/sparse-E-90.csv}; \addlegendentry{$\alpha=\num{0.9}$}
+\addplot[SerieE, mark=*, mark size=1.5pt] table[x=k, y=E] {\Donnees/sparse-E-95.csv}; \addlegendentry{$\alpha=\num{0.95}$}
+\foreach \a/\c in {2/SerieF, 2.5/SerieD, 3.333/SerieC, 5/SerieA, 10/SerieB, 20/SerieE}{
+  \edef\tmp{\noexpand\draw[\c, densely dotted, line width=0.5pt] (axis cs:0.9,\a) -- (axis cs:40,\a);}\tmp
+}
+\end{semilogxaxis}
+\end{tikzpicture}}
+
+% Union des masques top-k de n jetons consécutifs (entrée de down, SmolLM2-135M).
+\newcommand{\GrapheUnions}{%
+\begin{tikzpicture}
+\begin{semilogxaxis}[memoire, width=\linewidth, height=0.58\linewidth, log basis x=2,
+  xlabel={\EF{tokens verified together $n$}{jetons vérifiés ensemble $n$}},
+  ylabel={\EF{share of columns to read}{part des colonnes à lire}}, xmin=0.9, xmax=36, ymin=0, ymax=1.05,
+  xtick={1,2,4,8,16,32}, xticklabels={1,2,4,8,16,32}, legend pos=south east]
+\addplot[SerieA, mark=*] table[x=n, y=union] {\Donnees/sparse-union-s25.csv}; \addlegendentry{\EF{25\,\% sparsity}{sparsité 25\,\%}}
+\addplot[SerieB, mark=square*] table[x=n, y=union] {\Donnees/sparse-union-s50.csv}; \addlegendentry{\EF{50\,\% sparsity}{sparsité 50\,\%}}
+\addplot[SerieB, densely dashed, no markers] table[x=n, y=independant] {\Donnees/sparse-union-s50.csv}; \addlegendentry{\EF{50\,\%, if independent}{50\,\%, si indépendants}}
+\addplot[SerieC, mark=triangle*] table[x=n, y=union] {\Donnees/sparse-union-s70.csv}; \addlegendentry{\EF{70\,\% sparsity}{sparsité 70\,\%}}
+\addplot[SerieE, mark=diamond*] table[x=n, y=union] {\Donnees/sparse-union-s90.csv}; \addlegendentry{\EF{90\,\% sparsity}{sparsité 90\,\%}}
+\end{semilogxaxis}
+\end{tikzpicture}}
+
+% Temps d'une passe de n jetons, Qwen3.5-4B tout en VRAM (indicatif : machine partagée).
+\newcommand{\GrapheCn}{%
+\begin{tikzpicture}
+\begin{semilogxaxis}[memoire, width=\linewidth, height=0.55\linewidth, log basis x=2,
+  xlabel={\EF{tokens per pass $n$}{jetons par passe $n$}}, ylabel={\EF{pass time (ms)}{temps d'une passe (ms)}},
+  xmin=0.8, xmax=320, ymin=0, ymax=180, xtick={1,2,4,8,16,32,64,128,256}, xticklabels={1,2,4,8,16,32,64,128,256}]
+\addplot[SerieA, mark=*, error bars/.cd, y dir=both, y explicit, error bar style={line width=0.6pt}]
+  table[x=n, y=ms, y error plus=plus, y error minus=moins] {\Donnees/sparse-cn.csv};
+\draw[black!45, dashed] (axis cs:30,0) -- (axis cs:30,180) node[pos=0.92, left, font=\scriptsize, black!65] {$n^\star \approx 30$};
+\end{semilogxaxis}
+\end{tikzpicture}}

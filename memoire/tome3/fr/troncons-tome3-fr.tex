@@ -1,0 +1,61 @@
+% Mémoire de troncons, Tome III : le génome des poids (version française).
+% Construction : depuis memoire/, ./construire.sh tome3-fr (ou latexmk -r ../../latexmkrc dans ce dossier,
+% après avoir compilé les figures des spectres : voir memoire/tome3/commun/figures.tex).
+% Même classe, même préambule et même configuration que le Tome II (memoire/tome2/fr/troncons-tome2-fr.tex) ;
+% seuls les chemins changent, parce que ce maître se compile deux niveaux plus bas (memoire/tome3/fr/).
+% Plan, sources et figures de chaque chapitre : memoire/tome3/PLAN-redaction.md.
+\documentclass[11pt, a4paper, twoside, openright, parskip=false, headings=big,
+               chapterprefix=true, numbers=noenddot, bibliography=totoc,
+               listof=totoc]{scrbook}
+\newif\ifanglais
+\anglaisfalse
+\newcommand{\Racine}{../..}               % memoire/
+\newcommand{\Depot}{../../..}             % racine du dépôt troncons
+\input{\Racine/commun/preambule}
+\input{\Racine/tome3/commun/bibliographie}
+\input{\Racine/tome3/commun/figures}
+
+\title{troncons, Tome III : le génome des poids}
+\author{Stone}
+\date{29 octobre 2026}
+
+\begin{document}
+\frontmatter
+\input{\Racine/tome3/commun/page-titre}
+\input{resume}
+\tableofcontents
+\listoffigures
+\listoftables
+\lstlistoflistings
+\input{\Racine/tome3/commun/notations}
+
+\mainmatter
+\input{chapitres/00-introduction}
+
+\part{La question et la ronde}
+\input{chapitres/01-question}
+\input{chapitres/02-eclaireur}
+\input{chapitres/03-genome}
+\input{chapitres/04-duplication}
+\input{chapitres/05-predictif}
+\input{chapitres/06-mimetisme}
+\input{chapitres/07-synthese}
+
+\part{La construction}
+\input{chapitres/08-codon}
+\input{chapitres/09-synonyme}
+\input{chapitres/10-juge}
+
+\part{Les pistes et le bilan}
+\input{chapitres/11-tropicale}
+\input{chapitres/12-spectres}
+\input{chapitres/13-discussion}
+
+\appendix
+\input{annexes/A-protocoles}
+\input{annexes/B-outils}
+\input{annexes/C-journaux}
+
+\backmatter
+\input{\Racine/tome3/commun/fin}
+\end{document}

@@ -1,0 +1,26 @@
+% Juge de la troisième passe : document minimal pour la cause B (\textsubscript dans un nœud TikZ, LaTeX 2026-06-01).
+% Hypothèse à éprouver (lue dans latex.ltx) : \check@mathfonts finit par \def\init@restore@glb@settings{\aftergroup
+% \restglb@settings}, LOCALEMENT. En mode mathématique, ce \def meurt avec le groupe de la formule ; mais sous le
+% noyau 2026-06-01, \textsuperscript (et une marque de note) appelle \check@mathfonts hors des maths : au niveau du
+% texte courant, le \def reste. Un nœud TikZ d'une autre taille qui appelle ensuite \textsubscript fait alors
+% \aftergroup\restglb@settings dans le groupe de son texte : le jeton tombe après l'accolade du nœud.
+% Variantes (deux passes chacune, depuis memoire/essai/juge3/minimal/) :
+%   lualatex -jobname=b-nu       "\input{minimal-b-juge3}"                         un exposant au niveau du texte, puis le nœud
+%   lualatex -jobname=b-sans     "\def\SANSEXPOSANT{1}\input{minimal-b-juge3}"     le nœud seul (témoin : doit passer)
+%   lualatex -jobname=b-maths    "\def\SANSEXPOSANT{1}\def\MATHS{1}\input{minimal-b-juge3}"  une formule, pas d'exposant
+%   lualatex -jobname=b-corr     "\def\CORRB{1}\input{minimal-b-juge3}"            le correctif B du préambule
+%   lualatex -jobname=b-note     "\def\SANSEXPOSANT{1}\def\NOTE{1}\input{minimal-b-juge3}"   une note de bas de page
+\documentclass{article}
+\usepackage{tikz}
+\ifdefined\CORRB \input{correctif-b}\fi
+\begin{document}
+\ifdefined\SANSEXPOSANT\else Le 1\textsuperscript{er} essai.\fi
+\ifdefined\MATHS Une formule $x^2$ au niveau du texte.\fi
+\ifdefined\NOTE Une note\footnote{au bas de la page}.\fi
+
+\begin{tikzpicture}
+\node[font=\tiny] (a) at (0,0) {ctx\textsubscript{0}};
+\node (b) at (1.5,0) {b};
+\end{tikzpicture}
+FIN
+\end{document}

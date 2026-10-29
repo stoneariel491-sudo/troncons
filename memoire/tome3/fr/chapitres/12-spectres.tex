@@ -1,0 +1,238 @@
+% Tome~III, chapitre 12 : les spectres des matrices et la fractale (version française).
+% Rédacteur B, 2026-10-29. Plan et réserves : memoire/tome3/PLAN-redaction.md § 12.
+% Chaque nombre vient d'un fichier commité lu au moment d'écrire : genome/pistes/spectres/spectres.md (avec ses
+% phrases barrées), pour-le-memoire.md, seuil.md (et son amendement § 4 bis, avant lecture), juge-seuil.md,
+% JUGEMENT.md, et les journaux de mesures/pistes/spectres/. Tout ce dossier est en lecture seule. La piste
+% n'est pas close (passe du plafond par rangée inachevée au jugement, § 0 du livrable vide) : seul ce que le
+% juge a jugé (verdict principal et amendé, exposants, comparaison au permuté) est donné comme résultat ;
+% le reste (levier, plafonds, test de prédiction, normalisation) porte l'étiquette « non jugé ». Les figures
+% sont les pages 1 et 2 de genome/pistes/spectres/figures/spectres-figures.tex, compilé à part par
+% construire.sh ; les pages 3 à 5 ne sont pas jugées et ne sont pas placées.
+
+\chapter{Les spectres des matrices et la fractale}\label{t3spe:ch}
+
+\begin{origine}
+\textbf{Au départ}, aucune mesure de pente. Stone avait proposé l'image d'une fractale : des poids qui se ressembleraient d'une échelle à l'autre, et qu'on pourrait décrire par peu de paramètres. Les données commitées donnaient seulement, pour l'expert 0 de chaque tenseur, la part d'énergie à sept rangs : un excès modeste sur le hasard pour gate et up, fort pour down (\fichier{genome/05-synthese.md} §\,3.3). La littérature (Martin et Mahoney) donnait une hypothèse, celle de spectres « à queue lourde » dans les réseaux entraînés, pas la réponse pour gpt-oss ; le pronostic de la synthèse pour la compression était défavorable.
+\textbf{Ce chapitre établit}, par la méthode de Clauset, Shalizi et Newman sur 48 matrices de gpt-oss-20b tirées avant de regarder, que ces matrices \emph{ne suivent pas} une loi de puissance : 0 sur 48 au critère déclaré, 9 sur 48 au critère amendé avant la lecture, quand il en fallait 32. Il pose pourquoi le critère déclaré ne pouvait jamais dire oui (un théorème du juge : la loi de puissance est le bord de la log-normale tronquée), et ce qui est vrai quand même : toutes les matrices ont plus de queue que leur version permutée (48 sur 48), et cette queue, la plus lourde dans down et attn\_output de la couche 0, a la forme d'une log-normale. Une phrase de la piste est barrée (« le seul endroit » : onze matrices, pas quatre).
+\textbf{Il reste}, non jugé : le levier de compression (aucun dans les poids, sur l'échantillon), le plafond spectral et sa part au-delà des échelles de rangée (passe inachevée), le test de la règle « $\hat\alpha < 2$ » (elle tombe) ; et, non mesurés : les 21 couches non tirées, le 120b, les poids d'origine avant quantification.
+Sources : \fichier{genome/pistes/spectres/spectres.md}, \fichier{pour-le-memoire.md}, \fichier{seuil.md}, \fichier{juge-seuil.md}, \fichier{JUGEMENT.md} ; \fichier{mesures/pistes/spectres/} (\fichier{ajustements.out}, \fichier{second-chemin-v2.out}, \fichier{temoins.out}, \fichier{puissance-critere.out}, \fichier{rapport.json}, \fichier{fig-*.csv}, \fichier{juge/}).
+\end{origine}
+
+\begin{enbref}
+Une matrice de poids peut se décrire par ses valeurs singulières : combien d'énergie elle met dans chacune de ses directions. Pour une matrice tirée au hasard, cette distribution est connue et bornée, sans queue. Une « fractale », au sens où Stone l'entendait, laisserait une signature précise : une loi de puissance, la même forme à toutes les échelles. La fractale est ici une image, et la question qu'elle pose se mesure. La réponse est non : l'entraînement a bien mis de l'énergie dans quelques directions, partout, mais la forme de cette queue n'est pas une loi de puissance ; là où elle est la plus lourde, elle recopie la loi de quelques rangées géantes, les canaux aberrants, qu'une simple échelle par rangée prend déjà.
+\end{enbref}
+
+% =====================================================================================================
+\section{La question et la grandeur}\label{t3spe:sec:grandeur}
+
+Trois questions : les spectres de gpt-oss suivent-ils une loi de puissance ; avec quels exposants, par rôle et par couche ; et ce spectre ouvre-t-il un levier de compression mesurable, en bits par poids ? Ce chapitre répond aux deux premières, jugées, et rapporte la troisième comme non jugée.
+
+\begin{definition}[Densité spectrale empirique]\label{t3spe:def:esd}
+Pour $W \in \mathbb{R}^{m \times n}$, $m \le n$ (sinon on transpose), la matrice de corrélation $X = WW^\top/n$ a les valeurs propres $\lambda_i = \sigma_i^2/n$, où les $\sigma_i$ sont les valeurs singulières de $W$. La densité spectrale empirique est $\rho_W(\lambda) = \frac1m\sum_i \delta(\lambda - \lambda_i)$. Une \emph{queue en loi de puissance} est $\rho(\lambda) \propto \lambda^{-\alpha}$ au-delà d'un seuil $\lambda_{\min}$.
+\end{definition}
+L'exposant dépend de la grandeur ajustée : si $\rho(\lambda) \propto \lambda^{-\alpha}$, alors avec $\lambda = \sigma^2$, $\rho(\sigma) = \rho(\lambda)\,|\dd\lambda/\dd\sigma| \propto \sigma^{-2\alpha}\,\sigma = \sigma^{-(2\alpha - 1)}$. On ajuste sur $\lambda$, comme Martin et Mahoney \cite{martin2018implicit,martin2021predicting}, qui décrivent dans les réseaux de l'état de l'art une auto-régularisation « à queue lourde » et montrent que des métriques tirées de ces lois jugent la qualité d'un modèle mieux que les normes (résumés lus par la piste le 2026-10-21 ; leurs seuils numériques d'$\alpha$, dans le corps des articles, ne sont pas cités ici).
+
+\paragraph{L'échantillon, tiré avant de regarder} (graine 20261021, \fichier{seuil.md} §\,1 ; le juge refait le tirage et retrouve les mêmes experts). Couches 0, 12, 23 ; experts [0, 6, 22, 24] (couche 0), [1, 3, 19, 31] (couche 12), [7, 21, 26, 27] (couche 23) ; gate, up et down de chacun (36 matrices $2\,880 \times 2\,880$, MXFP4 déquantifiées en f64 exact), plus attn\_q, attn\_k, attn\_v, attn\_output des trois couches (12 matrices Q8\_0). En tout 48 matrices et 124\,032 valeurs singulières, $36 \times 2\,880 + 3 \times (2\,880 + 512 + 512 + 2\,880)$, sauvées avec celles des 48 matrices permutées et des témoins ; 617\,s de calcul sur le processeur \mes.
+
+% =====================================================================================================
+\section{Le témoin du hasard : Marchenko-Pastur}\label{t3spe:sec:mp}
+
+Pour $W$ à entrées indépendantes de variance $s^2$, quand $m, n \to \infty$ avec $q = m/n \le 1$ fixé, la densité spectrale de $X = WW^\top/n$ tend vers la loi de Marchenko et Pastur \cite{marchenko1967distribution}
+\begin{equation}\label{t3spe:eq:mp}
+\rho_{\mathrm{MP}}(\lambda) = \frac{\sqrt{(\lambda_+ - \lambda)(\lambda - \lambda_-)}}{2\pi s^2 q\,\lambda}, \qquad \lambda \in [\lambda_-, \lambda_+], \quad \lambda_\pm = s^2(1 \pm \sqrt q)^2 .
+\end{equation}
+Pour une matrice carrée ($q = 1$), le support est $[0, 4s^2]$, la densité diverge en $\lambda^{-1/2}$ en 0 et s'annule en racine carrée au bord droit. \emph{Le support est borné} : il n'y a pas de queue, et la plus grande valeur propre ne dépasse $\lambda_+$ que de fluctuations d'ordre $n^{-2/3}$. Pour $q = 512/2\,880 = 0{,}178$ (attn\_k et attn\_v vues par leur côté court), $\lambda_\pm = s^2(1 \pm 0{,}4216)^2$, soit $[0{,}3345\,s^2 ;\ 2{,}021\,s^2]$ \calc. Un ajustement de loi de puissance sur un tel spectre ne doit rien trouver : c'est le témoin T-MP, qui doit tomber.
+
+Le second témoin, \emph{T-perm}, permute les entrées de chaque matrice : il garde la loi marginale des entrées (et leur kurtosis, jusqu'à 2\,000 sur down) et détruit toute structure de rang. L'écart entre $W$ et sa permutée est ce que l'entraînement a mis dans les directions.
+
+% =====================================================================================================
+\section{L'instrument : Clauset, Shalizi et Newman, pas à pas}\label{t3spe:sec:csn}
+
+La méthode \cite{clauset2009power} est écrite de zéro par la piste (\fichier{outils/pistes/spectres/csn.py}). Les références de journal des articles de CSN, de Marchenko et Pastur et de Vuong, données de mémoire par la piste, ont été vérifiées par la rédaction le 2026-10-29 dans leurs notices Crossref (DOI \texttt{10.1137/070710111}, \texttt{10.1070/SM1967v001n04ABEH001994}, \texttt{10.2307/1912557}) : revue, volume, numéro et première page concordent ; les articles ne sont pas relus.
+
+\paragraph{L'exposant par maximum de vraisemblance.} Pour la loi continue $p(x) = \frac{\alpha - 1}{x_{\min}}\bigl(\frac{x}{x_{\min}}\bigr)^{-\alpha}$, $x \ge x_{\min}$, la log-vraisemblance de $n$ points de la queue est $\ell(\alpha) = n\ln(\alpha - 1) - n\ln x_{\min} - \alpha\sum_i \ln(x_i/x_{\min})$. En annulant $\dd\ell/\dd\alpha = n/(\alpha - 1) - \sum_i\ln(x_i/x_{\min})$,
+\begin{equation}\label{t3spe:eq:alpha}
+\hat\alpha = 1 + \frac{n}{\sum_i \ln(x_i/x_{\min})}, \qquad \sigma_{\hat\alpha} = \frac{\hat\alpha - 1}{\sqrt n},
+\end{equation}
+l'erreur type venant de l'information de Fisher, $\dd^2\ell/\dd\alpha^2 = -n/(\alpha - 1)^2$.
+
+\paragraph{Le seuil par Kolmogorov-Smirnov.} Pour chaque candidat $x_{\min}$ (valeurs observées, queue d'au moins 50 points), $\hat F(x) = 1 - (x/x_{\min})^{1-\hat\alpha}$ et $D = \max_x|S(x) - \hat F(x)|$, $S$ la répartition empirique de la queue ; aux points triés $t_{(j)}$, $D = \max\bigl(\max_j ((j+1)/n - \hat F(t_{(j)})),\ \max_j (\hat F(t_{(j)}) - j/n)\bigr)$. On retient le $x_{\min}$ de $D$ minimale.
+
+\paragraph{Les concurrentes, tronquées en $x_{\min}$.} L'exponentielle, $p(x) = \lambda e^{-\lambda(x - x_{\min})}$, de maximum de vraisemblance $\hat\lambda = 1/(\bar x - x_{\min})$ ; la log-normale, $p(x) = \varphi\bigl((\ln x - \mu)/\sigma\bigr)/\bigl(x\sigma\,(1 - \Phi((\ln x_{\min} - \mu)/\sigma))\bigr)$, sans forme close, maximisée numériquement.
+
+\paragraph{Le rapport de Vuong} \cite{vuong1989likelihood}. Avec $\ell_i = \ln p_{\mathrm{PL}}(x_i) - \ln p_{\mathrm{alt}}(x_i)$ et $R = \sum_i \ell_i$, sous l'hypothèse « les deux lois sont aussi proches de la vraie », $R/(\hat\sigma\sqrt n)$ suit asymptotiquement $\Normale(0, 1)$ ; $p = \operatorname{erfc}\bigl(|R|/(\hat\sigma\sqrt{2n})\bigr)$. $R > 0$ avec $p$ petit : la loi de puissance est préférée.
+
+\paragraph{La plausibilité.} Des répliques tirent chaque point, avec la probabilité $n_{\text{queue}}/N$, de la loi de puissance ajustée ($x = x_{\min} u^{-1/(\hat\alpha - 1)}$), sinon parmi les points sous $x_{\min}$ ; on ré-estime $x_{\min}$ et $\alpha$, et $p_{\mathrm{gof}}$ est la part des répliques dont le $D$ est au moins celui des données (100 répliques).
+
+\subsection{Le seuil déclaré, et pourquoi il a été amendé avant la lecture}\label{t3spe:sec:amendement}
+
+\textbf{Seuil déclaré} (\fichier{genome/pistes/spectres/seuil.md}, commit \texttt{a171622}, 2026-10-21 23:22:25) : ne dire « loi de puissance » d'une matrice que si la méthode la préfère à l'exponentielle \emph{et} à la log-normale avec $p < 0{,}05$, et des matrices de gpt-oss que si deux tiers de l'échantillon (32 sur 48) le sont. Un essai de l'instrument sur des tirages synthétiques, \emph{avant} tout ajustement de gpt-oss, a montré que ce critère ne pouvait pas dire oui (\cref{t3spe:tab:puissance}).
+
+\begin{table}[tbp]
+\centering\small
+\caption[La puissance des deux critères]{La puissance des deux critères, sur des tirages synthétiques de $n = 2\,880$, avant la lecture des spectres réels \mes.}
+\label{t3spe:tab:puissance}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+20 tirages & critère déclaré & critère amendé « compatible » & $\hat\alpha$ médian \\
+\midrule
+Pareto $\alpha = 2{,}5$ & 0 / 20 & \textbf{18 / 20} & 2,496 \\
+Pareto $\alpha = 3{,}5$ & 0 / 20 & \textbf{20 / 20} & 3,510 \\
+exponentielle & 0 / 20 & 0 / 20 & --- \\
+log-normale $\sigma = 1$ & 0 / 20 & 4 / 20 & --- \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/pistes/spectres/puissance-critere.out} (commit \texttt{fdf5929}) ; \fichier{genome/pistes/spectres/spectres.md} §\,2.}
+\end{table}
+
+D'où l'\textbf{amendement} (\fichier{seuil.md} §\,4 bis, commit \texttt{bfc1c8c}, 23:25:57, huit minutes avant que les spectres réels n'existent dans le dépôt) : le verdict déclaré est rapporté tel quel, et l'on ajoute le verdict « \emph{compatible loi de puissance} » de CSN (leur « modéré ou mieux ») : $p_{\mathrm{gof}} \ge 0{,}1$, l'exponentielle écartée ($R > 0$, $p < 0{,}05$) et la log-normale non préférée. Il se lit toujours « loi de puissance, ou log-normale de très grand $\sigma$, indiscernables ici ». Il n'était retenu que s'il disait « compatible » sur au moins 18 Pareto sur 20 et au plus 2 exponentielles sur 20 : il passe, au bord, avec 18 sur 20 à $\alpha = 2{,}5$. Le juge note deux réserves de forme (\fichier{JUGEMENT.md} §\,1) : l'amendement cite des $p$ médians de 0,59 et 0,63 contre la log-normale, qui viennent d'un essai sans journal ; le seul journal commité donne 0,61 et 0,69, que le livrable cite.
+
+\subsection{Le critère déclaré ne peut jamais dire oui : le théorème du juge}\label{t3spe:sec:theoreme}
+
+La piste expliquait l'absence de puissance par la taille : « sur une étendue observée de quelques unités de $y$, la courbure qui les sépare est sous le bruit ». Le juge l'a posé, avant calcul, comme un théorème plus fort (\fichier{juge-seuil.md}, J1 ; \fichier{JUGEMENT.md} §\,2).
+
+\begin{theoreme}[La loi de puissance est le bord de la log-normale tronquée]\label{t3spe:thm:bord}
+Sur une queue $\lambda \ge \lambda_{\min}$, posons $y = \ln(\lambda/\lambda_{\min}) \ge 0$. Pour tout échantillon, le rapport de vraisemblance $R = \ell_{\mathrm{PL}}(\hat\alpha) - \sup \ell_{\mathrm{LN}}$ de la loi de puissance contre la log-normale tronquée ajustée à son maximum est $\le 0$, à toute taille $n$. Le critère « $R > 0$ et $p < 0{,}05$ contre la log-normale » est donc impossible.
+\end{theoreme}
+\begin{proof}
+En $y$, la log-normale tronquée de paramètres $(\mu, \sigma)$ a pour densité (le jacobien $1/\lambda$ de la loi en $\lambda$ s'annule avec $\dd\lambda = \lambda\,\dd y$)
+\[
+g(y) \propto \exp\!\Bigl(-\frac{(y + \ln\lambda_{\min} - \mu)^2}{2\sigma^2}\Bigr) \propto \exp(-c_1 y^2 + b\,y), \qquad c_1 = \frac{1}{2\sigma^2} > 0,\quad b = \frac{\mu - \ln\lambda_{\min}}{\sigma^2},
+\]
+une gaussienne tronquée. La loi de puissance $\rho(\lambda) \propto \lambda^{-\alpha}$ a pour densité en $y$ $(\alpha - 1)\,e^{-(\alpha - 1)y}$ : c'est le même modèle au bord $c_1 = 0$, $b = -(\alpha - 1)$. La log-vraisemblance $\ell(c_1, b) = \sum_i(-c_1 y_i^2 + b\,y_i) - n\ln Z(c_1, b)$, avec $Z = \int_0^\infty e^{-c_1 y^2 + by}\,\dd y = \tfrac12\sqrt{\pi/c_1}\,\operatorname{erfcx}\bigl(-b/(2\sqrt{c_1})\bigr)$, est continue jusqu'au bord ($Z \to 1/|b|$ quand $c_1 \to 0^+$, $b < 0$) et concave (famille exponentielle de statistiques $-y^2$, $y$). Donc $\sup_{c_1 > 0} \ell \ge \ell(0, -(\hat\alpha - 1)) = \ell_{\mathrm{PL}}(\hat\alpha)$, et $R \le 0$. Les jacobiens, communs aux deux lois, s'annulent dans $R$.
+\end{proof}
+
+Vérifié sur les 141 spectres du juge (48 réels, 48 permutés, 45 témoins) : $R_{\text{log-normale}} \le 2{,}7 \times 10^{-13}$, le zéro de la machine \mes. La vraisemblance log-normale atteint le bord ($\sigma = \infty$) sur 11 des 48 matrices réelles et sur la plupart des Pareto vrais. Corollaire : les \emph{treize} valeurs $R_{\text{log-normale}} > 0$ du tableau de la piste (jusqu'à $+0{,}096$ sur L12.down.E19) sont des optima numériques inachevés de la paramétrisation $(\mu, \sigma)$, qui part vers $\mu \to -\infty$ sans l'atteindre ; aucun verdict n'en dépend ($p \ge 0{,}34$ partout là), et c'est aussi la vraie raison de l'écart de $p$ contre la log-normale entre les deux chemins de la piste. Le verdict déclaré n'est donc pas « sans puissance à $n = 2\,880$ » : il est vide par construction.
+
+\subsection{Les témoins, la cassure, le second chemin}\label{t3spe:sec:temoins}
+
+\begin{table}[tbp]
+\centering\small
+\caption[Les témoins de l'instrument]{Les témoins de l'instrument, sous les deux critères \mes.}
+\label{t3spe:tab:temoins}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.2\linewidth}llr@{}}
+\toprule
+Témoin & attendu & critère déclaré & critère amendé & $\hat\alpha$ \\
+\midrule
+T-Pareto ($\alpha = 2{,}5$ planté, passé par une SVD) & reconnu, $\alpha \in [2{,}3 ; 2{,}7]$ & échec (prévu) & \textbf{tient} & $2{,}492 \pm 0{,}032$ \\
+T-MP $2\,880 \times 2\,880$ & pas loi de puissance & tient & \textbf{tient} & 16,9 \\
+T-MP, trois autres formes & pas loi de puissance & tient & \textbf{tient} & 14,9 ; 15,8 ; 8,8 \\
+T-exponentielle & pas loi de puissance & tient & \textbf{tient} & 5,75 \\
+T-log-normale ($\sigma = 1$) & rapporté & non départagée & non compatible & 3,03 \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{mesures/pistes/spectres/temoins.out}, \fichier{temoins-casse.out} ; \fichier{genome/pistes/spectres/spectres.md} §\,2.}
+\end{table}
+
+La \textbf{cassure} échange les entrées de T-Pareto et de T-MP carré : sous le critère amendé, les deux tombent (T-Pareto non compatible, $\hat\alpha = 16{,}9$ ; T-MP compatible, $\hat\alpha = 2{,}49$) : l'instrument sait dire oui et non, et c'est la donnée qui décide (\cref{t3spe:tab:temoins}). Sous le critère déclaré, la cassure ne fait tomber que T-Pareto : un verdict qui ne dit jamais oui ne peut pas faire échouer un témoin négatif, seconde preuve, par l'instrument, de son absence de puissance. Une remarque sert à lire la suite : le hasard pur rend $\hat\alpha = 9$ à 17, parce que la chute d'un spectre à support borné, vue par le haut, ressemble à une pente très raide. \emph{Un $\hat\alpha$ petit veut dire une queue lourde ; un $\hat\alpha$ de 10 et plus veut dire « pas de queue ».}
+
+\paragraph{Le second chemin} (\fichier{second-chemin-v2.out}) refait la déquantification depuis la spécification (E2M1 décodé bit à bit, échelle E8M0 $= 2^{e - 127}$), les valeurs propres par la matrice de Gram, le balayage de $x_{\min}$ et $\alpha$ autrement : 48 empreintes SHA-256 égales sur 48, valeurs propres de la queue à $3{,}8 \times 10^{-14}$, $\lambda_{\min}$ égaux, $\alpha$ à $2{,}2 \times 10^{-7}$, verdicts égaux \mes. Sa première version était fausse : \barre{$\hat\alpha$ de 1,1 à 2,5 au lieu de 1,6 à 6,9} ; sa vraisemblance portait $-\alpha\sum\ln t_i$ au lieu de $-\alpha\sum\ln(t_i/\lambda_{\min})$, et ses empreintes différaient sur le signe des zéros (le décodeur bit à bit rend $-0{,}0$ pour le code 8, la table $+0{,}0$ : le codon synonyme du projet, retrouvé ici par accident).
+
+% =====================================================================================================
+\section{Le verdict : pas une loi de puissance}\label{t3spe:sec:verdict}
+
+\begin{table}[tbp]
+\centering\small
+\caption[Le verdict par famille]{Le verdict par famille, 48 matrices de gpt-oss-20b \mes. Refait à l'identique par le juge, avec les mêmes neuf matrices compatibles (accord 48 / 48).}
+\label{t3spe:tab:verdict}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lrrrrrrr@{}}
+\toprule
+& & critère & critère & expon. & log-norm. & & permuté \\
+Famille & $n$ & déclaré & \textbf{amendé} & écartée & préférée & $p_{\mathrm{gof}} \ge 0{,}1$ & compatible \\
+\midrule
+gate & 12 & 0 & \textbf{4} & 4 & 0 & 12 & 0 \\
+up & 12 & 0 & \textbf{0} & 0 & 3 & 6 & 0 \\
+down & 12 & 0 & \textbf{3} & 7 & 4 & 5 & 0 \\
+attention & 12 & 0 & \textbf{2} & 5 & 2 & 9 & 1 \\
+\midrule
+\textbf{tout} & \textbf{48} & \textbf{0} & \textbf{9} & 16 & 9 & 32 & 1 \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/pistes/spectres/ajustements.out}, \fichier{rapport.json} ; juge : \fichier{mesures/pistes/spectres/juge/juge-csn.csv}, \fichier{comparaison-juge-csn.txt}.}
+\end{table}
+
+\textbf{Au seuil déclaré} : 0 matrice sur 48 au critère déclaré, 9 sur 48 au critère amendé ; il en fallait 32. \emph{On ne peut pas écrire que les matrices de gpt-oss-20b suivent une loi de puissance} : ni sous le critère déclaré, qui ne peut rien dire, ni sous le critère amendé, qui pouvait dire oui et dit non (\cref{t3spe:tab:verdict}). Aucune famille n'atteint ses deux tiers ; gate est la plus proche (4 sur 12). Le juge refait tout par un chemin propre (KS bilatérale exacte, log-normale en paramètres naturels partant des moments, répliques d'une autre graine) : 0 / 48, 9 / 48, les mêmes neuf matrices, $\lambda_{\min}$ et $\hat\alpha$ égaux sur 48 / 48. Le nombre 9 dépend un peu de ses bords (quatre compatibles écartent l'exponentielle de justesse, trois non-compatibles la manquent de peu) ; même en faisant basculer tous ces cas dans le sens favorable, on atteint 12, loin de 32. Avec un critère plus lâche encore (l'exponentielle écartée, rien d'autre), 16 sur 48 : le verdict ne dépend pas du choix du critère.
+
+\begin{figure}[tbp]
+\centering
+\FigureSpectres{1}
+\caption[La queue des spectres de la couche 12]{\textbf{Toutes les familles ont plus de queue que le hasard, mais aucune ne trace la droite d'une loi de puissance.} \mes~Part des valeurs propres $\ge \lambda$ contre $\lambda/\bar\lambda$, en log-log, pour une matrice de chaque famille à la couche 12 (gate, up, down de l'expert 1 ; attn\_q), la même down aux entrées permutées, la loi de Marchenko-Pastur (chute verticale au bord de son support) et le témoin de Pareto $\alpha = 2{,}5$ (une droite de pente $-(\alpha - 1)$). Page 1 des figures de la piste, jugée. \HorsStyle\sourcefig{\fichier{mesures/pistes/spectres/fig-ccdf-*.csv} ; \fichier{genome/pistes/spectres/figures/spectres-figures.tex}, page 1.}}
+\label{fig:t3-spec-survie}
+\end{figure}
+
+\paragraph{Ce que sont les 39 non-compatibles} (\cref{fig:t3-spec-survie}). Le plus souvent une \emph{queue trop courte pour trancher} : la queue retenue par KS ne garde que 50 à 120 valeurs propres pour 18 matrices, quelques directions en pointe au-dessus d'une masse quasi aléatoire, et l'exponentielle n'est écartée que pour 16 matrices sur 48. Pour up, une \emph{queue plus légère} : l'exponentielle ou une log-normale de petit $\sigma$ (0,17 à 0,85 pour 10 sur 12) est préférée ou équivalente. Pour down et attn\_output de la couche 0, une \emph{queue lourde mais courbée} : $\hat\alpha \approx 1{,}6$ à 1,7 sur 565 à 973 valeurs propres, mais la log-normale est préférée pour les cinq ($p \le 0{,}0044$ ; $\sigma = 1{,}8$ à 3,0), et la loi de puissance n'est même pas plausible pour les quatre down ($p_{\mathrm{gof}} = 0$).
+
+\subsection{Les exposants, par rôle et par couche}\label{t3spe:sec:exposants}
+
+\begin{table}[tbp]
+\centering\small
+\caption[Les exposants par rôle et par couche]{Les exposants $\hat\alpha$ (sur $\lambda = \sigma^2$), \textbf{médianes par couche} ; entre crochets, les quatre matrices dans l'ordre du tirage, en gras les compatibles ; dernière ligne, les médianes des matrices permutées \mes. Les $\hat\alpha$ individuels vont de 2,70 à 5,95 pour gate et de 3,50 à 8,32 pour up.}
+\label{t3spe:tab:alpha}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+& couche 0 & couche 12 & couche 23 \\
+\midrule
+gate & 3,75 [4,15 ; 3,35 ; 5,95 ; \textbf{2,98}] & 3,96 [3,67 ; 3,78 ; 4,54 ; 4,13] & 3,02 [\textbf{3,04} ; 3,00 ; \textbf{2,70} ; \textbf{3,21}] \\
+up & 5,84 [6,24 ; 5,43 ; 6,94 ; 3,96] & 4,33 [3,83 ; 4,83 ; 3,50 ; 8,32] & 3,70 [3,75 ; 3,64 ; 3,57 ; 4,12] \\
+down & \textbf{1,63} [1,65 ; 1,61 ; 1,71 ; 1,61] & 3,09 [\textbf{2,72} ; 3,18 ; \textbf{2,99} ; 3,60] & 6,44 [6,06 ; 6,83 ; \textbf{2,74} ; 7,25] \\
+attention (q, k, v, o) & 6,20 ; 4,23 ; 6,04 ; 1,72 & 2,87 ; 2,95 ; 5,12 ; \textbf{2,89} & \textbf{1,90} ; 1,50 ; 1,71 ; 4,05 \\
+permuté (gate ; up ; down ; att.) & 15,4 ; 17,2 ; 7,9 ; 8,9 & 12,5 ; 17,3 ; 5,4 ; 7,9 & 14,9 ; 13,5 ; 16,3 ; 8,7 \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{mesures/pistes/spectres/rapport.json} (champ \texttt{alpha}) ; \fichier{genome/pistes/spectres/spectres.md} §\,4.1 ; juge : $\hat\alpha$ égaux sur les 48 matrices et les 48 permutées.}
+\end{table}
+
+\begin{figure}[tbp]
+\centering
+\FigureSpectres{2}
+\caption[Les exposants par matrice]{\textbf{L'exposant réel est sous celui de la même matrice permutée dans les 48 cas ; seules neuf matrices sont compatibles avec une loi de puissance.} \mes~$\hat\alpha$ par matrice et son erreur type $(\hat\alpha - 1)/\sqrt{n_q}$, par famille, couches 0, 12, 23 de gauche à droite dans chaque famille ; disques pleins : compatibles ; cercles : non compatibles ; croix : la même matrice aux entrées permutées. Page 2 des figures de la piste, jugée. \HorsStyle\sourcefig{\fichier{mesures/pistes/spectres/fig-alpha.csv} ; \fichier{genome/pistes/spectres/figures/spectres-figures.tex}, page 2.}}
+\label{fig:t3-spec-alpha}
+\end{figure}
+
+Les erreurs types vont de 0,02 (down, couche 0) à 0,99 (up, couche 12, E31, sur 55 points) \mes~(\cref{t3spe:tab:alpha,fig:t3-spec-alpha}). La piste rendait « gate 3,0 à 4,0 ; up 3,7 à 5,8 » : ce sont les médianes par couche, pas des étendues, et le juge demande de l'écrire ainsi.
+
+\paragraph{Ce qu'ils disent.}
+(1) \emph{Toutes les matrices ont plus de queue que le hasard} : le $\hat\alpha$ réel est sous celui de la même matrice permutée dans les 48 cas (rapport permuté sur réel de 1,26 à 8,81, médiane 3,49, refait par le juge) ; l'entraînement a mis de l'énergie dans quelques directions (la part des 5\,\% premières directions est 1,25 à 5,3 fois celle du hasard). C'est le seul résultat « positif » de la piste, et il est large.
+(2) \emph{up est la plus proche du hasard} ($\hat\alpha$ 3,5 à 8,3, aucune compatible) ; gate est intermédiaire et se durcit avec la profondeur (3 compatibles sur 4 à la couche 23). Une lecture, non mesurée : gate et up reçoivent la même entrée, mais seule la sortie de gate passe la non-linéarité qui décide quel canal s'ouvre.
+(3) \emph{down et attn\_output de la couche 0, et q, k, v de la couche 23, ont des queues très lourdes} ($\hat\alpha = 1{,}5$ à 1,9 : sous 2, la loi ajustée n'a même pas de moyenne finie) ; ce sont aussi les matrices dont les entrées ont un kurtosis énorme (down de la couche 0 : 60 à 1\,988). Les matrices qui écrivent dans le flux résiduel à la couche 0 sont celles qui fabriquent ses canaux aberrants.
+(4) \emph{Cette queue lourde n'est pas une loi de puissance} : pour down de la couche 0, la log-normale est préférée et la loi de puissance rejetée.
+(5) La piste écrivait : \barre{« La couche 12 de down est le seul endroit où la loi de puissance et la log-normale se confondent vraiment »}. C'est faux (\fichier{JUGEMENT.md} §\,4.1) : la log-normale ajustée \emph{est} la loi de puissance, au bord $c_1 = 0$ du \cref{t3spe:thm:bord}, sur onze matrices : les quatre down de la couche 12, mais aussi L00.gate.E22, L00.attn\_k, L12.gate.E01, L12.attn\_output, L23.down.E07, E21 et E27 ; le tableau publié le montrait déjà ($\mu = -69$ à $-118$ pour ces sept-là).
+
+\paragraph{Rapport à Martin et Mahoney.} Ce qui est mesuré ici s'accorde avec la première moitié de leur description (des queues plus lourdes que le hasard dans 48 matrices sur 48, un excès qui varie fortement par rôle et par couche) et ne confirme pas la seconde au sens strict : au test de CSN, la queue n'est une loi de puissance plausible que dans 9 matrices sur 48, et la plus lourde de toutes est une log-normale. Une différence de méthode (ils ajustent souvent la densité de $W^\top W/N$ avec la bibliothèque \texttt{powerlaw}) peut déplacer $\alpha$ d'une fraction d'unité ; elle ne change pas la forme.
+
+% =====================================================================================================
+\section{Le levier et le plafond : ce qui n'est pas jugé}\label{t3spe:sec:levier}
+
+Le juge de la piste n'a jugé ni le levier, ni le plafond spectral, ni le plafond par rang, ni le test de prédiction, ni la mesure exploratoire de normalisation, ni la passe du plafond par rangée, qui tournait encore (\fichier{JUGEMENT.md} §\,5). Cette section en pose les dérivations, qui ne dépendent d'aucune mesure, et en rapporte les nombres avec l'étiquette \etiq{Signe}{non jugé} ; leurs figures (pages 3 à 5 du fichier de la piste) ne sont pas placées. Tous ces gains sont \emph{dans le domaine des poids}, et la synthèse de la ronde a montré que l'erreur de poids ne prédit pas la KL : un levier ici serait une condition nécessaire, jamais suffisante.
+
+\paragraph{Le plafond spectral.} On lit $W$ comme $\max(m, n)$ vecteurs gaussiens de dimension $p = \min(m, n)$, de covariance de valeurs propres $\lambda_j$. À erreur relative $D$, le remplissage inverse dans la base propre (la transformée de Karhunen-Loève) donne $D_j = \min(\theta, \lambda_j)$, $\sum_j D_j = D\sum_j\lambda_j$, et le débit $R_{\mathrm{KLT}} = \frac1p\sum_j\max\bigl(0, \tfrac12\log_2(\lambda_j/\theta)\bigr)$ bits par poids \litt~(Cover et Thomas~\cite{cover2006} ; le passage est cité d'après la note de la piste, non relu ici). Le spectre plat de même énergie coûte $R_{\text{blanc}} = \tfrac12\log_2(1/D)$, soit 2,2535 bits à $D = 0{,}044$. Le plafond $G = R_{\text{blanc}} - R_{\mathrm{KLT}}$ majore le gain de toute méthode qui code dans une base, sous ce modèle : coder coordonnée par coordonnée avec ses propres variances est permis, et ne fait pas mieux que la transformée (à haut débit, c'est l'inégalité de Hadamard, $\det C \le \prod_i c_{ii}$), qui elle-même ne fait pas pire que la base blanche (inégalité des moyennes). À haut débit, si $\theta < \lambda_{\min}$,
+\begin{equation}\label{t3spe:eq:platitude}
+G = \tfrac12\log_2\frac{\bar\lambda}{\lambda_g},
+\end{equation}
+le logarithme du rapport des moyennes arithmétique et géométrique du spectre, une mesure de platitude où les petites valeurs pèsent autant que les grandes. Deux formes closes s'en tirent \calc : pour Marchenko-Pastur de rapport 1, $\E\ln\lambda = -1$ et $G = \tfrac12\log_2 e = 0{,}7213$ bit ; pour un Pareto ($\lambda \ge 1$, $\alpha > 2$), $\bar\lambda = (\alpha - 1)/(\alpha - 2)$, $\E\ln\lambda = 1/(\alpha - 1)$, et
+\begin{equation}\label{t3spe:eq:pareto}
+G_{\text{Pareto}}(\alpha) = \tfrac12\log_2\frac{\alpha - 1}{\alpha - 2} - \frac{1}{2(\alpha - 1)\ln 2},
+\end{equation}
+qui vaut $0{,}7925 - 0{,}4809 = 0{,}3116$ à $\alpha = 2{,}5$, \emph{moins} que le hasard carré (0,5899 à $D = 0{,}044$). Une queue lourde en haut ne fait pas, à elle seule, un grand plafond ; c'est pourquoi le premier témoin positif de la piste, \barre{« Pareto au-dessus de MP »}, est tombé, attente fausse remplacée avant toute lecture de gpt-oss par un rang 8 planté (prédit $\approx 0{,}24$, mesuré 0,216), et pourquoi l'excès se lit contre la permutée de la même matrice. Sur l'échantillon, l'excès pondéré vaut 0,424 bit par poids \etiq{Signe}{non jugé}, le plus grand dans down et attn\_output de la couche 0 et q, k, v de la couche 23 : exactement les matrices de $\hat\alpha < 2$.
+
+\paragraph{Ce qu'il en reste une fois la base payée.} Offrir au décodeur les $r$ premières directions coûte $b$ bits par coefficient de facteur, $b\,r\,(m + n)/(mn)$ bits par poids, soit $0{,}0111\,r$ à $b = 16$ pour une matrice carrée \calc ; une base complète coûte au moins $b$ bits par poids, pour un plafond qui ne dépasse pas 1,8 bit sur les 48 matrices : elle ne se paie jamais. Les deux tiers du plafond vivent au-delà de la 64\textsuperscript{e} direction, et à $b = 16$ aucune famille n'a de levier au seuil de 0,05 bit (down : 0,042) \etiq{Signe}{non jugé}. Le levier mesuré sur les matrices elles-mêmes, sans perte sur les codes MXFP4 par l'information mutuelle conditionnelle $I(C ; B_r \mid E)$ et avec perte par une borne gaussienne par rangée et un quantificateur réel, ne vaut sur l'échantillon que 0,0009, 0,0036 et 0,0007 bit par poids \etiq{Signe}{non jugé}. Le quantificateur réel demande un tramage soustractif : sur une source déjà discrète, un quantificateur uniforme sans tramage mesure la grille et non la structure (le témoin permuté rendait le même gain), alors qu'avec un tramage $u \sim U(-\tfrac12, \tfrac12)$ connu du décodeur, l'erreur devient uniforme et indépendante du signal quelle que soit sa loi (résultats de Schuchman et de Zamir et Feder, cités d'après la note de la piste, non relus), d'énergie $N\Delta^2/12$ exactement.
+
+\paragraph{Où est passée la structure.} Le plafond mêle deux choses : l'inégalité des variances par rangée, que prend n'importe quel codeur avec une échelle par rangée, et la structure entre rangées, que seule une base prend. La chaîne $R_{\mathrm{KLT}} \le R_{\text{rangée}} \le R_{\text{blanc}}$ les sépare \calc. Pour L00.down.E24, $R_{\text{rangée}} = 0{,}755$ bit au lieu de 2,254 : les échelles seules prennent 1,50 des 1,74 bit du plafond. MXFP4 a mieux encore, une échelle par bloc de 32 poids. Une mesure exploratoire, non déclarée et non jugée, le confirme pour la queue : normaliser les rangées de down et attn\_output de la couche 0 fait passer leur $\hat\alpha$ de 1,6--1,7 à 3,4--7,0, normaliser les colonnes ne le change pas ; leur plus grande valeur singulière n'est que 1,1 à 1,4 fois leur plus grande norme de rangée. La queue la plus lourde est la loi de quelques rangées géantes, recopiée. Enfin, la règle « $\hat\alpha < 2$ désigne les matrices où un rang faible se paie », vue avant d'être déclarée, a été testée sur 36 matrices neuves (couches 3, 9 et 21) : 4 sur 6 sous 2, mais 5 sur 30 au-dessus pour 10\,\% permis : elle tombe \etiq{Signe}{non jugé}. L'idée de la fractale ne donne ici ni une loi, ni un sélecteur.
+
+% =====================================================================================================
+\section{Ce qui pourrait être faux}\label{t3spe:sec:faux}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{L'échantillon} : 48 matrices sur les 2\,400 du modèle (2\,\%), 3 couches sur 24, 4 experts sur 32. Le verdict tient pour cet échantillon tiré au hasard ; une couche non tirée pourrait différer, et les pentes avec la profondeur sont lues sur trois points.
+\item \textbf{La grandeur} : les spectres sont ceux des poids déquantifiés (MXFP4, Q8\_0), pas des poids d'origine en BF16, non téléchargés. La quantification ajoute un bruit à peu près blanc qui relève le bas du spectre et peut raccourcir la queue apparente ; son effet sur $\alpha$ n'est pas mesuré.
+\item \textbf{La garde de 50 points} sur la queue est un choix déclaré, pas une dérivation ; cinq matrices ont leur $\lambda_{\min}$ à la garde ou tout près, et pour elles rien n'est décidable.
+\item \textbf{Le critère amendé} est posé après avoir vu que le critère déclaré n'avait aucune puissance, mais avant toute lecture des spectres réels ; il passe son épreuve de puissance au bord (18 / 20). Le verdict ne dépend pas de ce choix (16 / 48 au plus lâche).
+\item \textbf{Le permuté est une seule permutation par matrice} ; à l'écart mesuré (rapport $\ge 1{,}26$), une autre graine ne renverserait pas « 48 / 48 », mais ce n'est pas mesuré.
+\item \textbf{Les références} : Martin et Mahoney ne sont connus que par leurs résumés ; les notices de CSN, Marchenko-Pastur et Vuong sont vérifiées, pas les articles ; Cover et Thomas, Schuchman, Zamir et Feder, Gray et Markel sont cités d'après la note de la piste, sans vérification.
+\item \textbf{Tout ce qui est étiqueté « non jugé »} (levier, plafonds, test de la règle, normalisation) n'a pas eu de second regard ; la piste n'est pas close (passe du plafond par rangée inachevée au jugement, résumé du livrable non écrit).
+\item \textbf{Les figures} sont celles de la piste, hors du style commun ; seules les deux pages jugées sont placées.
+\end{itemize}
+\end{faux}

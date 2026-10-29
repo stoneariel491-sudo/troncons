@@ -1,0 +1,125 @@
+% Sources primaires du sujet « genome » (génome des poids : recette graine + coefficients, motifs
+% partagés, lecture par codons glissants). Consultées le 2026-10-16 ; métadonnées vérifiées par
+% l'API arXiv (export.arxiv.org) et par Crossref (api.crossref.org), User-Agent troncons-recherche/1.0.
+% Clés neuves seulement (préfixe genome-).
+
+@misc{genome-seedlm,
+  author       = {Shafipour, Rasoul and Harrison, David and Horton, Maxwell and Marker, Jeffrey and Bedayat, Houman and Mehta, Sachin and Rastegari, Mohammad and Najibi, Mahyar and Naderiparizi, Saman},
+  title        = {{SeedLM}: Compressing {LLM} Weights into Seeds of Pseudo-Random Generators},
+  year         = {2024},
+  eprint       = {2410.10714},
+  archiveprefix= {arXiv},
+  note         = {Version 2 du 16 octobre 2024 (lue en entier, page HTML d'arXiv) ; configurations (C, P, K) = (8, 3, 16) à 4 bits et (12, 4, 16) à 3 bits, tableau 1},
+  url          = {https://arxiv.org/abs/2410.10714v2},
+  urldate      = {2026-10-16}
+}
+
+@misc{genome-qtip,
+  author       = {Tseng, Albert and Sun, Qingyao and Hou, David and De Sa, Christopher},
+  title        = {{QTIP}: Quantization with Trellises and Incoherence Processing},
+  year         = {2024},
+  eprint       = {2406.11235},
+  archiveprefix= {arXiv},
+  note         = {Version 4 du 18 juin 2025 (NeurIPS 2024), sections 2.3 à 3.2 et annexe A.1.1 lues ; erreur 0,069 d'un treillis de 256 dimensions à 2 bits sur une gaussienne, tableau 1 ; 0,0733 (tableau 2, treillis à queue mordue)},
+  url          = {https://arxiv.org/abs/2406.11235v4},
+  urldate      = {2026-10-16}
+}
+
+@article{genome-marcellin1990,
+  author  = {Marcellin, Michael W. and Fischer, Thomas R.},
+  title   = {Trellis Coded Quantization of Memoryless and {Gauss-Markov} Sources},
+  journal = {IEEE Transactions on Communications},
+  volume  = {38},
+  number  = {1},
+  pages   = {82--93},
+  year    = {1990},
+  doi     = {10.1109/26.46532},
+  note    = {Métadonnées vérifiées par Crossref le 2026-10-16},
+  urldate = {2026-10-16}
+}
+
+@article{genome-fischer1991,
+  author  = {Fischer, Thomas R. and Marcellin, Michael W. and Wang, Min},
+  title   = {Trellis-Coded Vector Quantization},
+  journal = {IEEE Transactions on Information Theory},
+  volume  = {37},
+  number  = {6},
+  pages   = {1551--1566},
+  year    = {1991},
+  doi     = {10.1109/18.104316},
+  urldate = {2026-10-16}
+}
+
+@inproceedings{genome-mao2010,
+  author    = {Mao, Mark Z. and Gray, Robert M.},
+  title     = {Stationary and Trellis Encoding for {IID} Sources and Simulation},
+  booktitle = {2010 Data Compression Conference},
+  pages     = {3--12},
+  year      = {2010},
+  doi       = {10.1109/DCC.2010.8},
+  note      = {Le treillis « à décalage » et le codeur à permutation aléatoire (RPTC)},
+  urldate   = {2026-10-16}
+}
+
+@article{genome-max1960,
+  author  = {Max, Joel},
+  title   = {Quantizing for Minimum Distortion},
+  journal = {IRE Transactions on Information Theory},
+  volume  = {6},
+  number  = {1},
+  pages   = {7--12},
+  year    = {1960},
+  doi     = {10.1109/TIT.1960.1057548},
+  note    = {Le quantificateur de Lloyd-Max ; 0,1175 à quatre niveaux sur une gaussienne (témoin de l'outil des motifs)},
+  urldate = {2026-10-16}
+}
+
+@article{genome-shannon1948,
+  author  = {Shannon, Claude E.},
+  title   = {A Mathematical Theory of Communication},
+  journal = {Bell System Technical Journal},
+  volume  = {27},
+  number  = {3},
+  pages   = {379--423},
+  year    = {1948},
+  doi     = {10.1002/j.1538-7305.1948.tb01338.x},
+  urldate = {2026-10-16}
+}
+
+@inproceedings{genome-shannon1959,
+  author    = {Shannon, Claude E.},
+  title     = {Coding Theorems for a Discrete Source with a Fidelity Criterion},
+  booktitle = {IRE National Convention Record},
+  volume    = {7},
+  number    = {4},
+  pages     = {142--163},
+  year      = {1959},
+  note      = {La fonction débit-distorsion et sa preuve par un livre de codes aléatoire : la « graine » idéale ; pas de DOI, référence classique},
+  urldate   = {2026-10-16}
+}
+
+@article{genome-crick1961,
+  author  = {Crick, F. H. C. and Barnett, Leslie and Brenner, S. and Watts-Tobin, R. J.},
+  title   = {General Nature of the Genetic Code for Proteins},
+  journal = {Nature},
+  volume  = {192},
+  number  = {4809},
+  pages   = {1227--1232},
+  year    = {1961},
+  doi     = {10.1038/1921227a0},
+  note    = {Lecture du brin par triplets à partir d'un point fixe, sans virgule : le cadre de lecture},
+  urldate = {2026-10-16}
+}
+
+@article{genome-crick1968,
+  author  = {Crick, F. H. C.},
+  title   = {The Origin of the Genetic Code},
+  journal = {Journal of Molecular Biology},
+  volume  = {38},
+  number  = {3},
+  pages   = {367--379},
+  year    = {1968},
+  doi     = {10.1016/0022-2836(68)90392-6},
+  note    = {Le code génétique, table dégénérée (64 codons pour 20 acides aminés et l'arrêt)},
+  urldate = {2026-10-16}
+}

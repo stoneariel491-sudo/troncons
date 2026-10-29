@@ -1,0 +1,22 @@
+# synthétique T=1000 L=6 E=32 (aucune donnée du projet lue)
+  budget 19 % (N=36) : défauts beta=0 5688, +0,3 4409, -0,3 7370, masque inversé +0,3 7370
+  budget 31 % (N=60) : défauts beta=0 3436, +0,3 2669, -0,3 4425, masque inversé +0,3 4425
+TIENT  W2/19 : beta=0 : ensembles = top-4 non biaisé (True), défauts 5688 = rejeu indépendant 5688
+TIENT  W2-cassure/19 : 0.2640
+TIENT  W3/19 : défauts(-0,3)=7370 > défauts(0)=5688
+TIENT  W3-cassure/19 : masque inversé, beta=+0,3 : 7370 > 5688
+TIENT  W3-hasard/19 : masque au hasard, beta=+0,3 : 5769 > masque des résidents 4409 (le gain vient de la résidence)
+TIENT  gain-bruit/19 : beta=+0,3 : 4409 < 5688 (sens attendu du levier)
+TIENT  W5/19 : cache2.lru1=4409 contre simuler=4409
+TIENT  W5-cassure/19 : ensembles abîmés : 9114 != 4409
+TIENT  W2/31 : beta=0 : ensembles = top-4 non biaisé (True), défauts 3436 = rejeu indépendant 3436
+TIENT  W2-cassure/31 : 0.2137
+TIENT  W3/31 : défauts(-0,3)=4425 > défauts(0)=3436
+TIENT  W3-cassure/31 : masque inversé, beta=+0,3 : 4425 > 3436
+TIENT  W3-hasard/31 : masque au hasard, beta=+0,3 : 3508 > masque des résidents 2669 (le gain vient de la résidence)
+TIENT  gain-bruit/31 : beta=+0,3 : 2669 < 3436 (sens attendu du levier)
+TIENT  W5/31 : cache2.lru1=2669 contre simuler=2669
+TIENT  W5-cassure/31 : ensembles abîmés : 6095 != 2669
+TIENT  W6 : ensembles des premières positions égaux sur la trace entière et tronquée
+TIENT  W6-cassure-avenir : un biais qui lit le futur doit être détecté par la troncature
+# tous les témoins de la machine tiennent (1 s)

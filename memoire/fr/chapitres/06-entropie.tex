@@ -1,0 +1,581 @@
+\chapter{Compression sans perte, à la vitesse du calcul}\label{ch:entropie}
+
+\begin{origine}
+\textbf{Au départ}, la littérature promettait deux choses contradictoires : des codeurs sans perte qui rendent 30\,\% sur des poids BF16 (DFloat11, ZipNN), et l'affirmation que les fichiers GGUF quantifiés « ne se compressent pas du tout ». Un article de l'ISCA 2026 annonçait en plus « 0,6 à 1,0 bit d'entropie réelle » pour des poids de 4 bits, ce qui aurait voulu dire un facteur 4 caché dans chaque modèle quantifié. Aucun décodeur entropique de poids n'avait de débit publié sous Vulkan, ni sur une carte de portable.
+\textbf{Ce chapitre établit} ce que contient vraiment un code quantifié de la machine (3,86 bits sur 4, l'ordre 0 dit tout) ; pourquoi, par un calcul exact qui retrouve les mesures au centième ; que le format cible, MXFP4, cache son gain dans ses échelles, et qu'un codage par champs le prend exactement (taux 1,1026 sur gpt-oss-120b, décodé au bit) ; un codeur rANS entrelacé dont l'exactitude est démontrée, décodé sur la carte à 70\,Go/s par Vulkan et à 82\,Go/s par CUDA ; et la réponse mesurée à la question clé : décoder \emph{dans} le produit est 3,7 fois plus lent, décoder \emph{à l'arrivée} ne coûte que 3,6\,\% du temps de la carte et rend tout le taux au disque.
+\textbf{Il reste} la quantification taillée pour le codeur (0,41 à 0,46 bit par poids à prendre, mesuré sur des substituts), l'écriture du décodeur directement à la place finale, et la reproduction de DietGPU et Recoil sur la machine.
+Source : \fichier{fondations/03-entropie.md}, \fichier{fondations/03-entropie-derivations.md} (version du commit \texttt{f75d2cc}), \fichier{fondations/journaux/03-entropie/}.
+\end{origine}
+
+\section{Le juge : quand le sans-perte paie}\label{sec:ent-juge}
+
+Compresser sans perte d'un taux $r$ divise par $r$ les octets qui traversent le disque, la RAM et le lien. Cela ne gagne que si le décodeur suit : son débit de sortie doit dépasser $r$ fois celui de l'étage qu'il soulage, et son temps de calcul ne doit pas manger le gain. Dans ce chapitre, $W_{\mathrm{dec}}$ est le débit de sortie du décodeur sur la carte (octets décodés par seconde) et $W_g$ le débit auquel le produit matrice-vecteur consomme des poids décodés, comme au \cref{ch:formulation}.
+
+\begin{proposition}[Temps d'un jeton, chaîne recouverte et décodage sur la carte]\label{prop:ent-temps}
+Soit un jeton qui lit $B$ octets de poids (non compressés) par le disque et le lien, stockés au taux $r$. Si les étages sont recouverts et si le décodeur et le produit partagent la carte, alors
+\begin{equation}\label{eq:ent-temps}
+t(r) = \max\Bigl( \frac{B}{r\,W_{\mathrm{disque}}},\ \frac{B}{r\,W_{\mathrm{PCIe}}},\ B\Bigl(\frac{1}{W_{\mathrm{dec}}} + \frac{1}{W_g}\Bigr) \Bigr).
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+C'est le \cref{thm:toit} appliqué à trois étages : le disque et le lien voient $B/r$ octets ; la carte exécute en série le décodage ($B/W_{\mathrm{dec}}$ secondes) puis le produit ($B/W_g$), ce qui en fait un seul étage de débit $(1/W_{\mathrm{dec}} + 1/W_g)^{-1}$. Le recouvrement rend la borne atteignable à la pénalité de remplissage du \cref{lem:flowshop} près.
+\end{proof}
+
+\begin{corollaire}[Le gain vaut exactement $r$, puis plafonne]\label{cor:ent-gain}
+Si $W_{\mathrm{disque}} \le W_{\mathrm{PCIe}}$, le gain $t(1)/t(r)$ vaut exactement $r$ tant que $r\,W_{\mathrm{disque}} \le (1/W_{\mathrm{dec}} + 1/W_g)^{-1}$, et plafonne au-delà à $W_{\mathrm{disque}}\,(1/W_{\mathrm{dec}} + 1/W_g)$.
+\end{corollaire}
+
+\begin{proof}
+Sous la condition, le premier terme de \eqref{eq:ent-temps} domine pour tout taux entre 1 et $r$, donc $t(1)/t(r) = (B/W_{\mathrm{disque}})/(B/(rW_{\mathrm{disque}})) = r$. Au-delà, le troisième terme domine $t(r)$ et ne dépend plus de $r$.
+\end{proof}
+
+\paragraph{Le calcul, avec les débits de la machine.} $W_{\mathrm{disque}} = 2{,}82$\,Go/s (\cref{ch:machine}), $W_{\mathrm{dec}} = 70$\,Go/s (décodeur v4 sous Vulkan, sur secteur, \cref{sec:ent-debits}) et $W_g = 209$\,Go/s (produit MXFP4 brut, \cref{sec:ent-question}) donnent $(1/70 + 1/209)^{-1} = 52{,}4$\,Go/s \calc, contre $r\,W_{\mathrm{disque}} = 1{,}10 \times 2{,}82 = 3{,}1$\,Go/s. La condition tient avec un facteur 17 : \textbf{chaque pour cent de compression devient un pour cent de jetons par seconde}, et la carte n'est occupée qu'à 6\,\% par le décodage et le produit réunis. Sur batterie, où la carte est plafonnée à 43\,W ($W_{\mathrm{dec}} = 26{,}8$, $W_g = 66{,}4$), le terme de la carte vaut encore $19{,}1$\,Go/s, six fois $r\,W_{\mathrm{disque}}$ \calc.
+
+\paragraph{Le taux agit deux fois sur un mélange d'experts.} Une mémoire qui garde une part $h$ des experts en clair en garde $h\,r$ s'ils y sont codés ; les octets lus au disque par jeton passent de $(1-h)B_e$ à $(1-hr)B_e/r$. L'étude chiffrait ainsi $+14{,}4\,\%$ de jetons par seconde pour gpt-oss-120b à $r = 1{,}1026$ et $h = 26\,\%$ (routage uniforme). \barre{+14,4\,\% de jetons par seconde} Le \cref{ch:formulation} a corrigé ce chiffre : la carte doit garder ses experts \emph{décodés} (\cref{sec:ent-question}), et seule la RAM grandit ; l'effet est de $+13{,}1\,\%$ \calc.
+
+\section{Ce que contient un code quantifié}\label{sec:ent-contenu}
+
+\subsection{L'estimateur, et son biais}
+
+L'entropie d'un champ (les codes de 4 bits, les échelles d'un bloc) s'estime par les fréquences observées : $\hat H = -\sum_s \hat p_s \log_2 \hat p_s$, $\hat p_s = n_s/N$, sur tous les blocs d'un modèle. Un estimateur par fréquences sous-estime l'entropie ; il faut savoir de combien avant de lire un écart de quelques millièmes de bit.
+
+\begin{lemme}[Biais au premier ordre]\label{lem:biais-entropie}
+Pour $N$ tirages indépendants d'une loi à $K$ symboles de probabilités non nulles,
+\begin{equation}\label{eq:biais}
+\E[\hat H] = H - \frac{K - 1}{2N\ln 2} + O(N^{-2}).
+\end{equation}
+\end{lemme}
+
+\begin{proof}
+Posons $\phi(p) = -p \ln p$, donc $\phi''(p) = -1/p$. Un développement de Taylor à l'ordre 2 autour de $p_s$ donne $\E[\phi(\hat p_s)] = \phi(p_s) + \tfrac12 \phi''(p_s)\,\mathrm{Var}(\hat p_s) + O(N^{-2})$, le terme d'ordre 1 s'annulant puisque $\E[\hat p_s] = p_s$. Avec $\mathrm{Var}(\hat p_s) = p_s(1-p_s)/N$, chaque symbole contribue $-(1-p_s)/(2N)$, et la somme sur les $K$ symboles vaut $-(K - \sum_s p_s)/(2N) = -(K-1)/(2N)$ nats. On divise par $\ln 2$ pour des bits.
+\end{proof}
+
+Pour les codes Q4\_K de Qwen3.5-9B, $K = 16$ et $N \approx 7{,}4\cdot10^{9}$ : le biais vaut $15/(2 \times 7{,}4\cdot10^{9} \times 0{,}693) = 1{,}5\cdot10^{-9}$ bit \calc, négligeable. Pour le champ $d$ en fp16 d'un petit tenseur ($K \approx 5\,000$ valeurs vues, $N = 40\,000$ blocs), il atteint $0{,}09$ bit \calc : les gains sur les métadonnées en fp16 sont donc optimistes, et on leur préfère le taux d'un codage réel.
+
+\subsection{Les codes : presque uniformes, et l'ordre 0 dit tout}
+
+L'étude a écrit son propre lecteur de GGUF et découpé chaque bloc en ses champs (\cref{fig:q4k,fig:mxfp4}) ; la déquantification refaite depuis ces champs égale celle de la bibliothèque \texttt{gguf} de llama.cpp à écart nul, et le témoin (deux demi-octets inversés dans notre seul chemin) fait tomber l'égalité \mes~(\fichier{temoin-champs.log}). Le \cref{tab:ent-k} donne ce qui reste dans chaque type de bloc de Qwen3.5-9B.
+
+\begin{table}[ht]
+\centering\small
+\caption[Entropie des blocs K-quant de Qwen3.5-9B]{Entropie des blocs K-quant de Qwen3.5-9B Q4\_K\_M, par type \mes. « Idéal » : codage d'ordre 0 de chaque champ (codes et métadonnées) ; taux $=$ bits stockés / idéal. zstd au niveau 3 et lz4 sur les tenseurs entiers. Le 4B donne $5{,}187 \to 4{,}930$ bits par poids (taux 1,0521).}
+\label{tab:ent-k}
+\begin{tabular}{@{}lrrrrrrrr@{}}
+\toprule
+type & part & stockés & $H_0$ codes & $H \mid$ préc. & idéal & taux & zstd 3 & lz4 \\
+\midrule
+Q4\_K & 58,5\,\% & 4,500 & 3,864 / 4 & 3,858 & 4,256 & 1,0574 & 1,0215 & 1,000 \\
+Q5\_K & 14,7\,\% & 5,500 & 4,861 / 5 & 4,853 & 5,253 & 1,0470 & 1,0000 & 1,000 \\
+Q6\_K & 26,7\,\% & 6,562 & 5,789 / 6 & 5,785 & 6,274 & 1,0460 & 1,0000 & 1,000 \\
+Q8\_0 & 0,1\,\% & 8,500 & 7,556 / 8 & 7,185 & 7,807 & 1,0888 & 1,0546 & 1,000 \\
+\midrule
+\textbf{modèle} & 100\,\% & \textbf{5,062} & & & \textbf{4,808} & \textbf{1,0529} & \textbf{1,0125} & \textbf{1,000} \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{fondations/journaux/03-entropie/entropie-9B-resume.txt}, \fichier{entropie-4B-resume.txt}.}
+\end{table}
+
+Trois faits s'en dégagent. \textbf{Les codes sont presque uniformes} : 3,864 bits sur 4 pour Q4\_K, 4,86 sur 5, 5,79 sur 6. \textbf{Le contexte n'apporte rien} : le code précédent retire 0,005 bit, l'échelle du sous-bloc pas davantage ; tout est dans l'ordre 0. \textbf{Une seule table suffit} : une table de fréquences par tenseur contre une table pour tout le modèle, $3{,}86519$ contre $3{,}86521$ bits par code \mes~(\fichier{rans-4B-*.json}) ; les rôles (\texttt{ffn\_gate}, \texttt{attn\_*}, \ldots) diffèrent de moins de 0,01 bit. La \cref{fig:ent-histo} montre la forme de la loi : une cloche décalée vers les codes 7 et 8, avec des queues relevées aux deux bouts, signature d'un ajustement échelle-minimum qui écrête pour remplir les 16 niveaux.
+
+\begin{figure}[ht]
+\centering
+\GrapheHistogrammeCodes
+\caption[La loi des codes de 4 bits, Q4\_K et MXFP4]{Fréquence de chacun des 16 codes, tous les tenseurs Q4\_K de Qwen3.5-9B et tous les experts MXFP4 de gpt-oss-20b \mes. Les deux lois sont proches de l'uniforme (3,865 et 3,862 bits sur 4) ; celle de MXFP4 est celle d'un code signe-grandeur E2M1 (les codes 0 à 7 sont positifs, 8 à 15 négatifs).}
+\label{fig:ent-histo}
+\sourcefig{\fichier{fondations/journaux/03-entropie/csv/fig-histogramme-codes.csv} (depuis \fichier{entropie-9B.json} et \fichier{entropie-gptoss20b.json}).}
+\end{figure}
+
+\subsection{Les métadonnées, et ce que voit un codeur d'octets}
+
+Les métadonnées d'un bloc Q4\_K pèsent $0{,}5$ bit par poids : $d$ et $d_{\min}$ en fp16 portent 9,46 à 9,53 et 10,11 à 10,35 bits sur 16, les échelles et minimums de 6 bits portent 4,89 et 5,19 bits \mes. Leur idéal d'ordre 0, par poids, est
+\begin{align*}
+\frac{H(d) + H(d_{\min})}{256} + \frac{8\,\bigl(H(\text{éch}_6) + H(\text{min}_6)\bigr)}{256}
+&= \frac{9{,}46 + 10{,}35}{256} + \frac{8\,(4{,}89 + 5{,}19)}{256} \\
+&= 0{,}0774 + 0{,}315 = 0{,}392 \text{ bit} \quad\calc,
+\end{align*}
+soit un gain de $0{,}108$ bit par poids, contre $4 - 3{,}864 = 0{,}135$ pour les codes. \textbf{Coder les codes seuls laisse près de la moitié du gain sur la table.}
+
+\begin{table}[ht]
+\centering\small
+\caption[Ce que voit un codeur d'octets sur un bloc K]{Taux d'un codage d'ordre 0, selon ce que le codeur voit \mes. La première ligne borne DEFLATE, GDeflate et les littéraux de zstd ; la deuxième est le « byte grouping » de ZipNN transposé aux champs des blocs K ; la troisième code des symboles entiers (5 et 6 bits pour Q5\_K et Q6\_K).}
+\label{tab:ent-octets}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+codage d'ordre 0 & Q4\_K & Q5\_K & Q6\_K & modèle 9B \\
+\midrule
+octets, bloc entier, une table & 1,0267 & 1,0031 & 1,0085 & 1,0183 \\
+octets, un flux par champ & 1,0519 & 1,0179 & 1,0325 & 1,0416 \calc \\
+symboles entiers par champ & 1,0574 & 1,0470 & 1,0460 & 1,0529 \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{fondations/journaux/03-entropie/flux-octets-9B.json}, \fichier{csv/flux-octets.csv}.}
+\end{table}
+
+Le \cref{tab:ent-octets} réconcilie les faits publiés. ZipNN écrit que les GGUF « ne se compressent pas »~\cite{hershcovitch2024zipnn} : c'est vrai pour un LZ et pour un codeur d'octets sur le bloc entier (1,8\,\% au mieux). Ce ne l'est plus pour un codeur qui connaît les champs : pour Q4\_K, un codeur d'octets par champ prend presque tout (1,052 sur 1,057). Pour Q5\_K et Q6\_K, le 5\textsuperscript{e} et le 6\textsuperscript{e} bit sont rangés à part (champ \texttt{qh}), et un codeur d'octets les voit comme du bruit (7,999 bits par octet sur le \texttt{qh} de Q5\_K \mes) : il faut des alphabets de 32 et 64 symboles.
+
+\section{Pourquoi si peu : l'entropie d'un min-max}\label{sec:ent-minmax}
+
+Les codes d'un K-quant sont presque uniformes parce que la quantification est faite pour cela : un min-max par groupe (ou sa version optimisée, qui écrête) étale les poids d'un groupe sur toute la grille. Combien d'entropie reste-t-il alors ? La question a une réponse exacte, que ce mémoire calcule par un chemin indépendant de la mesure (\fichier{memoire/outils/calculs\_entropie.py}).
+
+\begin{definition}[Deux grilles de 4 bits]\label{def:grilles}
+Soit une source $X$ de variance $\sigma^2$, quantifiée sur une plage d'étendue $R$. La \emph{grille min-max} (à point zéro) a 16 niveaux $-R/2 + k\,R/15$, $k = 0, \ldots, 15$, et code chaque poids par le niveau le plus proche, les deux niveaux extrêmes prenant les queues. La \emph{grille symétrique} a 15 niveaux $k\,R/14$, $k = -7, \ldots, 7$ (le maximum de $|X|$ vaut $R/2$, le niveau 0 au centre).
+\end{definition}
+
+\begin{proposition}[Entropie des codes à haute résolution]\label{prop:ent-haute-resolution}
+Si la densité $p$ de $X$ est assez régulière pour être presque constante sur chaque cellule de pas $\Delta$, et si la plage couvre presque toute la masse, alors
+\begin{equation}\label{eq:ent-haute-resolution}
+H(\text{codes}) = h(X) - \log_2 \Delta + o(1), \qquad h(X) = -\int p \log_2 p,
+\end{equation}
+avec $h = \tfrac12 \log_2(2\pi e\,\sigma^2)$ pour une gaussienne et $h = \log_2(\sqrt2\, e\, \sigma)$ pour une laplacienne.
+\end{proposition}
+
+\begin{proof}
+La cellule $k$ a une probabilité $p_k = \int_{\text{cellule}} p \approx p(x_k)\,\Delta$. Alors
+\[
+-\sum_k p_k \log_2 p_k \;\approx\; -\sum_k p(x_k)\,\Delta \log_2 p(x_k) \;-\; \log_2\Delta \sum_k p(x_k)\,\Delta ;
+\]
+la première somme est une somme de Riemann de $-\int p \log_2 p$, la seconde tend vers 1. Pour la gaussienne et pour la laplacienne de paramètre $b = \sigma/\sqrt2$,
+\[
+-\E[\log_2 p(X)] = \tfrac12\log_2(2\pi\sigma^2) + \frac{\E[X^2]}{2\sigma^2 \ln 2} = \tfrac12\log_2(2\pi e\sigma^2),
+\qquad
+-\E[\log_2 p(X)] = \log_2(2b) + \frac{\E|X|}{b\ln 2} = \log_2(2 e b).
+\]
+\end{proof}
+
+\paragraph{Le calcul pour un min-max par groupes de 32.} Pour $\sigma = 1$, $h = \tfrac12\log_2(2\pi e) = 2{,}047$ bits. L'étendue moyenne de 32 tirages gaussiens vaut environ $4{,}1$, donc $\Delta \approx 4{,}1/15 = 0{,}273$ et $H \approx 2{,}047 + 1{,}87 = 3{,}92$ bits \calc. Le calcul exact (Monte-Carlo à graine fixe, $2^{18}$ poids par point, \cref{fig:ent-groupes}) donne $3{,}865$ ; l'approximation surestime de 0,05 bit parce que les deux poids extrêmes de chaque groupe tombent toujours sur les codes 0 et 15. \textbf{Les mesures de l'étude sur des poids réels} (min-max sur trois tenseurs, kurtosis 3,8 à 6,6) donnent $3{,}855$ à $3{,}864$ bits à $g = 32$ et $3{,}728$ à $3{,}748$ à $g = 64$, \textbf{contre $3{,}865$ et $3{,}753$ calculés pour une gaussienne} : l'accord est au centième. L'entropie de 3,86 bits n'est pas une propriété mystérieuse des réseaux : c'est ce que donne n'importe quelle source en cloche sous un min-max par petits groupes.
+
+\begin{figure}[ht]
+\centering
+\GrapheEntropieGroupes
+\caption[Entropie des codes d'un min-max selon la taille du groupe]{Entropie des codes de 4 bits d'un min-max par groupes de $g$ poids \calc, pour une source gaussienne et une source laplacienne (kurtosis 6), et les min-max mesurés par l'étude sur des poids réels \mes. L'entropie ne descend que lentement avec la taille du groupe : encore 3,16 bits (gaussienne) et 2,71 (laplacienne) à $g = 4\,096$.}
+\label{fig:ent-groupes}
+\sourcefig{\fichier{memoire/figures/donnees/entropie-groupes.csv} et \fichier{entropie-groupes-mesures.csv} (\fichier{calculs\_entropie.py}, depuis \fichier{rd-proxy-4B.json} pour les mesures).}
+\end{figure}
+
+\subsection{Une contradiction publiée, et une phrase corrigée}\label{sec:ent-contradiction}
+
+Un article de l'ISCA 2026 écrit que des poids int4 « ne gardent que 0,6 à 1,0 bit d'entropie réelle »~\cite{shannonbound2026} \litt ; une discussion autour de MLX avance environ 2,17 bits~\cite{mlx3043} \litt, EntroLLM 1,39 bit pour un uint4 par tenseur~\cite{entrollm2025} \litt. L'étude mesure 3,864 à 3,865 bits sur tous les codes Q4\_K de deux modèles et 3,862 sur MXFP4.
+
+Pour quelle plage tombe-t-on à 1 bit ? La \cref{fig:ent-plage} répond exactement. \textbf{Sur la grille min-max, jamais} : zéro y tombe sur la frontière des codes 7 et 8, la moitié d'une source symétrique part de chaque côté, et l'entropie décroît vers 1 bit sans l'atteindre (encore 1,01 bit à $R = 50\sigma$ pour une gaussienne \calc). \textbf{Sur la grille symétrique}, il faut $R = 33{,}9\sigma$ (gaussienne) ou $31{,}1\sigma$ (laplacienne) pour 1 bit, et $45\sigma$ pour 0,6 bit \calc : un maximum de $|X|$ à 17 à 22 écarts-types, ce que seule donne une échelle par tenseur ou par canal dominée par des valeurs aberrantes, le cas d'EntroLLM, payé en perplexité (10,11 contre 9,03 en fp16 sur phi3 \litt).
+
+L'étude écrivait : \enquote{\barre{Pour tomber à 1 bit, il faudrait que la plage d'un groupe dépasse environ dix fois l'écart-type de ses poids.}} Le calcul exact la contredit : à $R = 10\sigma$, l'entropie vaut encore 2,47 à 2,66 bits selon la grille et la loi ; 1 bit demande $31$ à $34\sigma$ sur une grille symétrique et n'est jamais atteint sur une grille min-max \calc~(\fichier{entropie-seuils.csv}). La conclusion de l'étude en sort renforcée, pas affaiblie : aucune de ces entropies publiées ne s'applique aux K-quants ni à MXFP4, et un gain annoncé de « 1,8 à 6 fois en plus de la quantification » est faux pour eux d'un facteur 30 à 100 sur le gain (0,24 bit au lieu de 2 à 3). Le chiffre publié n'est pas barré : il n'a pas été reproduit sur leurs poids.
+
+\begin{figure}[ht]
+\centering
+\GrapheEntropiePlage
+\caption[Entropie des codes selon la plage de quantification]{Entropie exacte des codes d'une source gaussienne ou laplacienne de variance unité, selon l'étendue $R$ de la grille de 4 bits \calc. Trait plein : grille min-max à 16 niveaux, bornée en dessous par 1 bit. Tirets : grille symétrique à 15 niveaux, qui passe sous 1 bit à $R \approx 31$ à $34\sigma$. La bande rouge est l'intervalle publié pour int4~\cite{shannonbound2026}.}
+\label{fig:ent-plage}
+\sourcefig{\fichier{memoire/figures/donnees/entropie-plage.csv}, \fichier{entropie-seuils.csv} (\fichier{calculs\_entropie.py}).}
+\end{figure}
+
+\section{MXFP4 : le gain est dans les échelles}\label{sec:ent-mxfp4}
+
+Les experts de gpt-oss sont en MXFP4 natif : blocs de 32 poids, codes E2M1 de 4 bits, une échelle E8M0 d'un octet par bloc, 4,25 bits par poids (\cref{fig:mxfp4}). Ses codes portent 3,862 bits, comme ceux des K-quants. Mais \textbf{ses échelles portent l'essentiel du gain}, et c'est là que ce chapitre trouve ce que personne ne code (\cref{tab:ent-echelles}).
+
+\begin{table}[ht]
+\centering\small
+\caption[Entropie des échelles E8M0 selon le contexte]{Entropie des échelles E8M0 des 72 tenseurs d'experts de gpt-oss-20b, moyennes pondérées par le nombre de blocs \mes. Le contexte « médiane de ligne » est le meilleur et n'introduit aucune dépendance d'un bloc à l'autre. Sur gpt-oss-120b (36 premiers tenseurs) : 1,232 à l'ordre 0, 1,004 sachant le bloc de gauche, 0,910 sachant la médiane (plus 0,010 pour la médiane).}
+\label{tab:ent-echelles}
+\begin{tabular}{@{}lrl@{}}
+\toprule
+quantité & bits & lecture \\
+\midrule
+$H(e)$, ordre 0 & 1,554 / 8 & de 0,89 (\texttt{ffn\_up}) à 2,28 (\texttt{ffn\_down} de la couche 0) \\
+$H(e \mid \text{bloc de gauche})$ & 1,152 & \\
+$H(e \mid \text{bloc du dessus})$ & 1,538 & les lignes voisines ne se ressemblent presque pas \\
+$H(e \mid \text{gauche et dessus})$ & 1,146 & le dessus n'ajoute rien à la gauche \\
+$H(e \mid \text{médiane de sa ligne})$ & \textbf{1,011} & plus 0,015 pour la médiane ; sans dépendance entre blocs \\
+$H(\text{code})$ & 3,862 / 4 & presque uniforme \\
+$H(\text{code} \mid e)$ & 3,823 & 0,039 bit d'information mutuelle code-échelle \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{fondations/journaux/03-entropie/mxfp4-contexte-gptoss20b.json}, \fichier{mxfp4-contexte-gptoss120b.json}.}
+\end{table}
+
+Le témoin de l'estimateur : les échelles du premier tenseur, permutées au hasard, gardent $H(e) = 2{,}283$ et perdent tout le gain de contexte ($H(e \mid \text{gauche}) = 2{,}283$) \mes. L'estimateur n'invente pas de structure.
+
+\paragraph{Pourquoi la médiane de ligne.} Une ligne de matrice (un canal de sortie) a sa propre norme ; l'échelle d'un bloc la suit à $\pm1$ près, parce qu'une échelle E8M0 n'est qu'un exposant, $\lceil \log_2 \max_{\text{bloc}} |w| \rceil$ à un décalage près. Connaître la médiane $\tilde e$ de la ligne dit presque tout, et la reconstruction ne lit aucun autre bloc (\cref{fig:ent-echelles-ligne}).
+
+\begin{figure}[ht]
+\centering
+\resizebox{\linewidth}{!}{\SchemaEchellesLigne}
+\caption[Le codage des échelles par la médiane de ligne]{Le codage des échelles E8M0 d'une ligne (valeurs d'exemple). La médiane de la ligne est stockée en clair, l'écart $\delta = e - \tilde e$ est codé par rANS. La classe du bloc (sous, à, au-dessus de la médiane) choisit la table du flux de codes qui le porte ; les proportions sont celles mesurées sur gpt-oss-20b \mes.}
+\label{fig:ent-echelles-ligne}
+\sourcefig{\fichier{fondations/journaux/03-entropie/proportions-classes-gptoss20b.txt}, \fichier{dispersion-classes-secteur.json}.}
+\end{figure}
+
+\begin{proposition}[Reconstruction locale des échelles]\label{prop:ent-locale}
+Avec le codage $e = \tilde e + \delta$, où $\tilde e$ est la médiane de la ligne stockée en clair et $\delta$ un symbole du flux rANS, chaque échelle se reconstruit à partir de son seul symbole et d'un octet par ligne. Le codage par différence avec le voisin de gauche, $e_j = e_{j-1} + \delta'_j$, impose une somme préfixe le long de la ligne et coûte $0{,}126$ bit de plus par échelle sur gpt-oss-20b.
+\end{proposition}
+
+\begin{proof}
+La première affirmation est immédiate : $e$ ne dépend que de $\tilde e$ et de $\delta$. Pour la seconde, $e_j = e_0 + \sum_{i \le j} \delta'_i$ : chaque échelle dépend de tous les symboles qui la précèdent sur la ligne, ce qui est la définition d'une somme préfixe. Le coût vient du \cref{tab:ent-echelles} : $H(e \mid \text{gauche}) - (H(e \mid \tilde e) + 0{,}015) = 1{,}152 - 1{,}026 = 0{,}126$ bit \calc.
+\end{proof}
+
+\paragraph{Le bilan en bits par poids, pas à pas.} Sur les 72 tenseurs de gpt-oss-20b (10,15\,Go), avec un rANS à alphabet d'octet et une table par tenseur \mes~(\fichier{taux-mxfp4-gptoss20b.json}) :
+\begin{itemize}
+\item codes : $3{,}866$ bits par poids (pour une entropie de $3{,}862$) ;
+\item écarts $\delta$ : $H(\delta) = 1{,}071$ bit par bloc, soit $1{,}071/32 = 0{,}0335$ bit par poids ;
+\item médianes : 8 bits par ligne de $2\,880$ poids, soit $8/2\,880 = 0{,}0028$ bit par poids ;
+\item deux tables de 384 octets par tenseur, comptées ;
+\item échelles, total réel : $0{,}037$ bit par poids, au lieu de $0{,}25$ ;
+\item \textbf{total : $3{,}903$ bits par poids pour $4{,}25$ stockés, taux $4{,}25/3{,}903 = 1{,}0888$}.
+\end{itemize}
+Les échelles rendent $0{,}25 - 0{,}037 = 0{,}213$ bit par poids, les codes $4 - 3{,}866 = 0{,}134$ \calc : \textbf{les échelles valent une fois et demie les codes}. Chacun des 72 tenseurs est décodé et comparé octet à octet, codes et échelles reconstruites : tous exacts ; le témoin (une médiane faussée) rend la reconstruction inexacte \mes. Sur gpt-oss-120b (108 tenseurs, 60,9\,Go), le taux vaut $1{,}0887$, à $0{,}0001$ du 20b : il ne dépend pas de la taille du modèle.
+
+\paragraph{Trois classes d'échelle.} L'information mutuelle code-échelle (0,039 bit) s'encaisse sans changer le décodeur : on répartit les blocs en trois flux selon la place de leur échelle par rapport à la médiane (sous, à, au-dessus), chaque flux ayant sa table ; chaque groupe de travail de la carte ne charge que la table de son flux, et le réassemblage, guidé par $\delta$ que le décodeur a déjà, est vérifié octet à octet (\cref{tab:ent-taux}).
+
+\begin{table}[ht]
+\centering\small
+\caption[Taux sans perte réel de MXFP4, décodage exact]{Taux sans perte réel des experts MXFP4, codes et échelles, décodage exact de chaque tenseur \mes. Trois classes prennent 0,053 bit, plus que l'information mutuelle mesurée (0,039) ; cinq classes n'ajoutent que 0,0008 bit.}
+\label{tab:ent-taux}
+\begin{tabular}{@{}llrrrc@{}}
+\toprule
+modèle & variante & codes (b/p) & total (b/p) & taux & exact \\
+\midrule
+gpt-oss-20b, 72 tenseurs & une table par tenseur & 3,8662 & 3,9032 & 1,0888 & oui \\
+ & \textbf{trois classes d'échelle} & \textbf{3,8135} & \textbf{3,8505} & \textbf{1,1037} & oui \\
+ & cinq classes ($|\delta| \le 2$) & 3,8127 & 3,8498 & 1,1040 & oui \\
+gpt-oss-120b, 108 tenseurs & une table par tenseur & 3,8695 & 3,9039 & 1,0887 & oui \\
+ & \textbf{trois classes d'échelle} & \textbf{3,8201} & \textbf{3,8545} & \textbf{1,1026} & oui \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{fondations/journaux/03-entropie/taux-mxfp4-classes-gptoss{20b,120b}.json}, \fichier{taux-mxfp4-classes5-gptoss20b.json}.}
+\end{table}
+
+La raison physique du gain des classes : une échelle au-dessus de la médiane de sa ligne signale un bloc dont un poids est grand ; ses autres codes sont alors petits, et leur loi se resserre vers zéro. La classe relative à la ligne en dit plus que la valeur absolue de l'échelle, et l'alphabet d'octet ajoute la dépendance entre les deux codes d'un même octet, qui partagent leur bloc. La \cref{fig:ent-taux} montre que le gain est uniforme d'un tenseur à l'autre : de 1,0846 à 1,1041 avec une table, de 1,0987 à 1,1177 avec trois classes, sur les 72 tenseurs du 20b (valeurs extrêmes recalculées ici depuis le journal, égales à celles de l'étude \calc).
+
+\begin{figure}[ht]
+\centering
+\GrapheTauxTenseurs
+\caption[Taux sans perte réel de chaque tenseur d'experts]{Taux sans perte réel de chaque tenseur d'experts, une table par tenseur (cercles) et trois classes d'échelle (disques), par couche et par rôle \mes. Les tenseurs \texttt{down}, dont les échelles sont les plus désordonnées à l'ordre 0, gagnent le plus (1,1051 en moyenne à trois classes sur le 20b, contre 1,1022 pour \texttt{gate}) : la médiane de ligne absorbe ce désordre (\cref{fig:ent-echelles}).}
+\label{fig:ent-taux}
+\sourcefig{\fichier{memoire/figures/donnees/entropie-taux-{20b,120b}-{down,gate,up}.csv} (\fichier{donnees\_figures.py}, depuis \fichier{taux-mxfp4-classes-gptoss{20b,120b}.json}).}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\GrapheEchelles
+\caption[Entropie des échelles E8M0, tenseur par tenseur]{Entropie des échelles E8M0 de chaque tenseur d'experts selon le contexte \mes. Sachant la médiane de la ligne, toutes les échelles tombent près de 1 bit, quel que soit leur désordre à l'ordre 0 ; les \texttt{ffn\_down} (indices 0, 3, 6, \ldots) sont les plus désordonnés à l'ordre 0 et les plus aidés par le contexte.}
+\label{fig:ent-echelles}
+\sourcefig{\fichier{memoire/figures/donnees/entropie-echelles-{20b,120b}.csv} (depuis \fichier{mxfp4-contexte-gptoss{20b,120b}.json}).}
+\end{figure}
+
+\paragraph{Tout gpt-oss-20b, champ par champ.} Sur les 11,5\,Go de tenseurs quantifiés \mes~(\fichier{entropie-gptoss20b-resume.txt}) : les experts MXFP4 (9\,682\,Mio) ont un idéal d'ordre 0 de 1,0869 (zstd 3 : 1,0405 ; lz4 : 1,000) ; l'attention en Q8\_0 (645\,Mio), 1,069 à 1,095 ; la tête de sortie, 1,0758 ; les plongements (\texttt{token\_embd}, 587\,Mio), \textbf{1,4371}. Les plongements se compressent de 44\,\%, mais un jeton n'en lit qu'une ligne : ce gain sert au disque et à la RAM, pas au débit. L'attention, toujours lue et résidente en VRAM dans le plan du \cref{ch:modeles}, ne gagne rien en vitesse par le sans-perte (\cref{sec:ent-question}). \textbf{Ce qui compte pour le débit, ce sont les experts lus par le disque} : $1{,}1026$ réel sur le 120b.
+
+\section{Le codeur rANS entrelacé}\label{sec:ent-rans}
+
+Le codage par systèmes numériques asymétriques (ANS) de Duda~\cite{duda2013ans} code un symbole de probabilité $q$ en $\log_2(1/q)$ bits comme un codeur arithmétique, mais avec un état entier unique et des opérations entières ; sa variante par intervalles (rANS) se décode par une table. Giesen~\cite{giesen2014interleaved} a montré qu'on peut entrelacer plusieurs codeurs indépendants dans un seul flux. L'étude a écrit son propre format et ses propres décodeurs, sans reprendre une ligne des dépôts lus (\fichier{outils/03-entropie/rans/}).
+
+\subsection{Le format}
+
+Les probabilités sont quantifiées sur $M = 2^{12}$ ; l'état $x$ tient sur 32 bits ; sa borne basse est $L = 2^{16}$ (dans ce chapitre, $L$ désigne cette borne) ; la renormalisation se fait par mots de 16 bits. Un symbole $s$ a une fréquence $f_s \ge 1$ et un cumul $c_s = \sum_{t<s} f_t$, avec $\sum_s f_s = M$.
+
+\begin{definition}[Pas de codage et de décodage]\label{def:rans}
+\[
+C(s, x) = \Bigl\lfloor \frac{x}{f_s} \Bigr\rfloor M + (x \bmod f_s) + c_s,
+\qquad
+D(x) = \bigl(s,\ f_s \lfloor x/M \rfloor + (x \bmod M) - c_s\bigr),
+\]
+où, dans $D$, $s$ est l'unique symbole tel que $c_s \le x \bmod M < c_s + f_s$ (la \emph{fente} $x \bmod M$ désigne le symbole).
+\end{definition}
+
+Les \cref{fig:ent-tuile,fig:ent-entree} donnent la disposition au bit près : une tuile est un sous-groupe de 32 voies qui décode $N$ macro-pas ; la voie $\ell$ du macro-pas $m$ écrit le mot de 32 bits $32m + \ell$, de sorte que \textbf{les 32 voies écrivent 128 octets contigus à chaque macro-pas}. La table de décodage a 4\,096 fentes de 32 bits ; la v4 (alphabet de 256 symboles, l'octet entier de deux demi-octets) range dans chaque entrée le symbole (8 bits), $f - 1$ (12 bits) et le biais $=$ fente $-$ cumul (12 bits). Le biais est $< f \le 4\,096$ et tient donc sur 12 bits ; $f - 1$ aussi.
+
+\begin{figure}[ht]
+\centering
+\resizebox{\linewidth}{!}{\SchemaTuileRans}
+\caption[La tuile du codeur rANS entrelacé]{La tuile du codeur : 32 voies $\times$ $N$ macro-pas. Chaque macro-pas écrit 128 octets contigus (une écriture coalescée parfaite) ; la tuile porte un décalage de flux, 32 états initiaux et son flux partagé.}
+\label{fig:ent-tuile}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\resizebox{\linewidth}{!}{\SchemaEntreeTable}
+\caption[L'entrée de la table de décodage, au bit près]{L'entrée de 32 bits de la table de décodage (4\,096 fentes, 16\,Kio en mémoire partagée), pour l'alphabet de 16 symboles (v1 à v3) et pour l'alphabet d'octet (v4) ; en dessous, le mot de 32 bits qui porte les huit grandeurs E2M1 doublées et remplace toute table de déquantification MXFP4.}
+\label{fig:ent-entree}
+\end{figure}
+
+\subsection{Exactitude}
+
+\begin{lemme}[Inversion]\label{lem:rans-inversion}
+Pour tout symbole $s$ et tout $x \ge 0$, $D(C(s,x)) = (s, x)$.
+\end{lemme}
+
+\begin{proof}
+Posons $q = \lfloor x/f_s \rfloor$ et $\rho = x \bmod f_s$, donc $0 \le \rho < f_s$ et $x = q f_s + \rho$. Alors $y = C(s,x) = qM + \rho + c_s$ avec $0 \le \rho + c_s < c_s + f_s \le M$. Donc $\lfloor y/M \rfloor = q$ et $y \bmod M = \rho + c_s \in [c_s, c_s + f_s)$ : la fente désigne bien $s$. Enfin $f_s \lfloor y/M\rfloor + (y \bmod M) - c_s = f_s q + \rho = x$.
+\end{proof}
+
+\begin{lemme}[Intervalle, et une seule lecture par pas]\label{lem:rans-lecture}
+Si le décodeur maintient $x \in [L, 2^{32})$ et applique $x \leftarrow D(x)_2$, puis, si $x < L$, $x \leftarrow 2^{16} x + w$ avec $w$ le mot suivant du flux, alors un seul mot suffit toujours, et l'état revient dans $[L, 2^{32})$.
+\end{lemme}
+
+\begin{proof}
+Après $D$, $x' = f_s\lfloor x/M\rfloor + (x \bmod M) - c_s \ge f_s \lfloor L/M \rfloor = 16 f_s \ge 16$. Si $x' < L$, alors $2^{16}x' + w \ge 2^{20} > L$ et $2^{16} x' + w \le 2^{16}(L - 1) + 2^{16} - 1 < 2^{32}$. Si $x' \ge L$, on a aussi $x' \le x < 2^{32}$, car $x' \le M\lfloor x/M\rfloor + (x \bmod M) = x$ dès que $f_s \le M$.
+\end{proof}
+
+La boucle de la carte n'a donc qu'une branche de lecture, remplacée par un \texttt{select} : aucune divergence de voies.
+
+\begin{lemme}[Le codeur, symétrique]\label{lem:rans-codeur}
+Le codeur maintient $x \in [L, 2^{32})$, part de $x = L$ et, pour coder $s$ : si $x \ge f_s 2^{20}$, il émet $x \bmod 2^{16}$ et pose $x \leftarrow \lfloor x/2^{16} \rfloor$ ; puis $x \leftarrow C(s, x)$. Une émission suffit toujours, et $C(s,x) \in [L, 2^{32})$.
+\end{lemme}
+
+\begin{proof}
+Montrons qu'avant $C$, $x \in [16 f_s, 2^{20} f_s)$. Sans émission, $x < 2^{20} f_s$ par la condition, et $x \ge L = 16M \ge 16 f_s$. Avec émission, $x \ge 2^{20} f_s$ donne $\lfloor x/2^{16}\rfloor \ge 16 f_s$, et $x < 2^{32}$ donne $\lfloor x/2^{16}\rfloor < 2^{16} \le 2^{20} f_s$. Ensuite, avec $q = \lfloor x/f_s\rfloor \in [16, 2^{20} - 1]$ : $C(s,x) = qM + \rho + c_s \ge 16 M = L$ et $C(s,x) \le (2^{20} - 1) M + (M - 1) = 2^{32} - 1$.
+\end{proof}
+
+La condition d'émission avant $C$ et la condition de lecture après $D$ sont les deux faces d'une même transition : par le \cref{lem:rans-inversion}, l'état que lit le décodeur juste après $D$ est l'état du codeur juste avant $C$, dans $[16 f_s, 2^{20} f_s)$ ; il est sous $L$ exactement quand le codeur avait émis.
+
+\begin{lemme}[Flux partagé entre 32 voies]\label{lem:flux-partage}
+Au sous-pas $k$, soit $b_\ell \in \{0,1\}$ l'indicateur « la voie $\ell$ renormalise ». Si le décodeur donne à la voie $\ell$ la position $p + \sum_{j<\ell} b_j$ puis avance $p$ de $\sum_j b_j$, et si le codeur parcourt les symboles dans l'ordre exactement inverse (macro-pas, sous-pas et voies décroissants), en émettant avant de coder, puis renverse sa pile, alors chaque voie lit exactement le mot que son codeur a émis.
+\end{lemme}
+
+\begin{proof}
+Le codage d'une voie est une pile : dernier émis, premier lu. Les voies étant entrelacées, la pile globale reçoit, pour le sous-pas $k$ parcouru à rebours, les mots des voies $31, 30, \ldots, 0$ qui émettent. Renversée, elle présente pour le sous-pas $k$, dans l'ordre direct, les mots des voies $0, 1, \ldots, 31$ ; et chaque voie qui émettait au codage est exactement une voie qui lit au décodage (\cref{lem:rans-inversion} voie par voie, et \cref{lem:rans-codeur}). La position de la voie $\ell$ est donc le nombre de mots lus avant elle dans ce sous-pas, $\sum_{j<\ell} b_j$.
+\end{proof}
+
+Sur la carte, $\sum_{j<\ell} b_j = \mathrm{popcount}(\mathrm{ballot}(b) \,\&\, (2^\ell - 1))$ : un vote du sous-groupe et un comptage de bits, au lieu d'une somme préfixe (\cref{fig:flux-partage}). Ce principe d'un flux unique lu dans l'ordre des voies est celui que Microsoft a posé en 2022 pour GDeflate~\cite{directstorage14} ; DietGPU le fait aussi par \texttt{\_\_ballot\_sync} et \texttt{\_\_popc}~\cite{dietgpu}. La v2 du décodeur de l'étude l'a retrouvé indépendamment.
+
+\begin{figure}[ht]
+\centering
+\resizebox{0.96\linewidth}{!}{\SchemaFluxPartage}
+\caption[Le flux partagé : vote et comptage de bits]{Un sous-pas du flux partagé, 8 voies montrées sur 32. Les voies dont l'état est passé sous $L$ lisent des mots consécutifs, dans l'ordre croissant des voies.}
+\label{fig:flux-partage}
+\end{figure}
+
+\begin{lemme}[Ce que le contrôle d'état garde, et ce qu'il ne garde pas]\label{lem:etat-table}
+Chaque voie part de $L$ au codage, donc le décodeur exact finit sur $L$ : c'est un contrôle gratuit. Mais la mise à jour de l'état ne dépend que de $f$ et du biais lus à la fente, et des mots du flux ; elle ne dépend pas du champ symbole de l'entrée. Une corruption confinée au champ symbole change la sortie sans changer aucun état : le contrôle $x_{\mathrm{fin}} = L$ ne la voit pas.
+\end{lemme}
+
+\begin{proof}
+Dans $D$, la mise à jour s'écrit $x' = f\,\lfloor x/M\rfloor + \text{biais}$, avec biais $= (x \bmod M) - c_s$ : deux champs de l'entrée, aucun n'est le symbole.
+\end{proof}
+
+C'est exactement ce qu'a montré le témoin cassé : un bit retourné dans la table en mémoire partagée fait tomber les v1 à v3 deux fois (sortie fausse, et 129\,278 à 129\,280 voies sur 129\,280 hors de $L$), mais la v4 seulement sur la sortie, \textbf{toutes ses voies finissant sur $L$} \mes : la corruption touchait le champ symbole. En production, il faut une empreinte de la table ou de la sortie, en plus du contrôle d'état ; le plan de l'architecture A compare chaque tronçon décodé à son empreinte (\cref{ch:avenir}).
+
+\begin{proposition}[Longueur réelle du code]\label{prop:rans-longueur}
+Pour une source sans mémoire de loi $p$ codée avec la table quantifiée $q_s = f_s/M$, la longueur moyenne par symbole tend vers $H(p) + D(p \,\|\, q)$, plus les en-têtes de tuile et les fins de flux.
+\end{proposition}
+
+\begin{proof}
+Le pas $C$ multiplie l'état par $M/f_s$ à un arrondi près ; sur $n$ symboles, l'état a crû d'un facteur $\prod_i M/f_{s_i}$, et chaque mot de 16 bits émis divise l'état par $2^{16}$, l'état restant dans $[L, 2^{32})$. Le nombre de bits émis vaut donc $\sum_i \log_2(M/f_{s_i}) + O(1)$ par voie, dont l'espérance par symbole est $\sum_s p_s \log_2(1/q_s) = H(p) + D(p\,\|\,q)$. Les en-têtes et les états finaux s'ajoutent.
+\end{proof}
+
+\paragraph{Les chiffres se tiennent.} Les en-têtes coûtent $4 + 32 \times 4 = 132$ octets par tuile de $32 \times 4 \times 256 = 32\,768$ octets de source, soit $0{,}403\,\%$ \calc. Sur tous les demi-octets Q4\_K du 4B (1\,209\,794\,560 octets) \mes~: $H(p) = 3{,}8652$ bits par code, la table de 12 bits rend $3{,}8652$ (donc $D(p\,\|\,q) < 10^{-4}$), le codage réel $3{,}8774$, soit un taux de $1{,}0316$ sur les demi-octets et de $1{,}0280$ sur le Q4\_K entier, métadonnées brutes. L'écart à l'entropie, $0{,}0122$ bit par code, vaut $0{,}0122 \times 65\,536/8 = 100$ octets par tuile, moins que les 132 octets d'en-tête et d'états ($132 \times 8 / 65\,536 = 0{,}0161$ bit par code, une tuile portant $65\,536$ codes) \calc. La différence n'est pas une erreur : les 32 états stockés portent eux-mêmes une part de la charge. L'état final du codeur, qui sert d'état initial au décodeur, est un entier de $[2^{16}, 2^{32})$, porteur de jusqu'à 16 bits d'information au-dessus de $L$ par voie ; le compte dit qu'ils en portent 32 octets par tuile, 8 bits par voie en moyenne \calc. (L'étude attribuait l'écart à « l'arrondi des fins de tuiles », ce qui en est la même cause, dite autrement.)
+
+\subsection{Le cœur de la v4}
+
+Le \cref{lst:rans-v4} montre la boucle intérieure du décodeur v4, telle qu'elle est commitée, sans autre changement que des commentaires. Un pas coûte une lecture en mémoire partagée, une multiplication, un vote, deux comptages de bits, deux échanges et quelques masques : environ 25 opérations entières pour un octet produit.
+
+\lstinputlisting[language=WGSL, caption={[Boucle intérieure du décodeur rANS v4 (WGSL)]Boucle intérieure du décodeur rANS v4, extraite telle quelle de \fichier{outils/03-entropie/rans/src/decodeur.wgsl} (fonction \texttt{decoder\_v4}) ; seuls les commentaires de fin de ligne sont ajoutés.}, label=lst:rans-v4]{\Racine/listings/rans-v4.wgsl}
+
+\section{Quatre décodeurs, et ce que chacun a appris}\label{sec:ent-debits}
+
+\begin{description}
+\item[v1] Somme préfixe du sous-groupe, puis lecture du mot en mémoire globale au milieu de la chaîne de dépendance. Limitée par la latence : à chaque sous-pas, au moins une voie sur 32 renormalise (la probabilité qu'aucune ne le fasse vaut environ $0{,}76^{32} \approx 1{,}5\cdot10^{-4}$), donc chaque sous-pas attend une lecture globale de plusieurs centaines de cycles.
+\item[v2] Un vote et un comptage de bits remplacent la somme préfixe ; le flux se lit par fenêtres de 32 mots de 32 bits chargées d'avance, une par voie, distribuées par échange. Un sous-pas consomme au plus 32 mots de 16 bits, donc la fenêtre suivante a toujours été demandée au moins un sous-pas avant d'être lue : la latence est cachée. Environ deux fois la v1.
+\item[v3] La v2 avec une table compacte de 4\,Kio, pour loger plus de groupes de travail par multiprocesseur. \textbf{Aucun gain} (42,1 contre 42,1\,Go/s sur secteur) : l'occupation n'était pas le plafond. Idée morte, tuée par le nombre.
+\item[v4] L'alphabet d'octet : deux fois moins de pas par octet produit, pour la même chaîne par pas. 1,67 fois la v2 sur secteur (70,2 contre 42,1\,Go/s), au même taux (1,0316).
+\end{description}
+
+Deux références bornent ces débits : la \emph{recopie} de même géométrie de lecture et d'écriture, sans décodage (c'est le chemin non compressé), et une recopie par \texttt{vec4} à pas de grille, mesure de la mémoire. Toutes les passes sont vérifiées : chaque décodeur rend exactement les octets d'origine, comparés mot à mot sur tout le lot, et aucune voie ne finit hors de $L$ \mes.
+
+\begin{figure}[ht]
+\centering
+\GrapheDebitsDecodeur
+\caption[Débit des décodeurs rANS sur la RTX 4060 Laptop]{Débit écrit des quatre décodeurs et des deux recopies de référence, médiane et étendue de chaque série \mes. Sur secteur, la v4 produit 70 à 72\,Go/s par Vulkan, le même débit sur les codes MXFP4 que sur les demi-octets Q4\_K (le débit ne dépend presque pas de la loi des symboles), et 82\,Go/s par CUDA. Sur batterie (carte plafonnée à 43\,W), elle perd un facteur 2,6. La ligne du bas est ce que le disque peut livrer.}
+\label{fig:ent-debits}
+\sourcefig{\fichier{memoire/figures/donnees/entropie-debits-{batterie,secteur,mxfp4,cuda}.csv} (\fichier{donnees\_figures.py}, depuis \fichier{csv/debits-carte-series.csv} et \fichier{csv/debits-cuda-series.csv}).}
+\end{figure}
+
+\paragraph{Le second chemin : le même décodeur en CUDA.} Pour que le débit ne repose pas sur un seul outil, l'algorithme a été réécrit en CUDA (\texttt{\_\_ballot\_sync}, \texttt{\_\_popc}, \texttt{\_\_shfl\_sync}), compilé par nvcc 13.1 pour sm\_89 et nourri du \emph{même flux} écrit sur disque (256\,Mio de demi-octets Q4\_K, 8\,192 tuiles). La sortie CUDA égale la source octet pour octet ; le témoin cassé la fait tomber \mes. Deux décodeurs écrits dans deux langages et compilés par deux chaînes rendent les mêmes octets depuis le même flux : le format est confirmé indépendamment du code qui l'a écrit.
+
+\begin{table}[ht]
+\centering\small
+\caption[Le décodeur v4 sous CUDA et sous Vulkan, en ABBA]{Le décodeur v4 sous CUDA (A) et sous Vulkan (B), passes dans l'ordre A B B A, toutes sur secteur, médianes \mes.}
+\label{tab:ent-abba}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+passe & décodeur v4 (Go/s écrits) & recopie de même géométrie \\
+\midrule
+A1, CUDA & 80,8 & 112,8 \\
+B1, Vulkan & 70,2 & 107,5 \\
+B2, Vulkan & 71,6 & 110,4 \\
+A2, CUDA & 82,1 & 115,7 \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{fondations/journaux/03-entropie/cuda-4B-A{1,2}-secteur.json}, \fichier{rans-4B-B{1,2}-secteur.json}.}
+\end{table}
+
+Le compilateur de NVIDIA tire $(80{,}8 + 82{,}1)/(70{,}2 + 71{,}6) = 1{,}149$ fois plus du même décodeur \calc ; la recopie ne diffère que de 4\,\%. L'écart est dans le code généré pour la boucle (naga puis le compilateur du pilote Vulkan, contre nvcc), pas dans la mémoire. C'est l'une des raisons chiffrées du choix de CUDA pour le jalon J1 (\cref{ch:avenir}).
+
+\paragraph{Ce que le décodeur coûte en calcul.} La v4 lit environ 63\,Go/s de flux et écrit 65\,Go/s à l'essai : ses 128\,Go/s de trafic restent sous les 189\,Go/s (lus et écrits) de la recopie, \textbf{elle n'est pas limitée par la mémoire}. La signature batterie dit qu'elle l'est par l'horloge des multiprocesseurs : sous le plafond de puissance, le décodeur perd 59\,\% et la recopie 27\,\% \mes. Reste à savoir si c'est le débit arithmétique ou la chaîne de dépendance de chaque voie. L'étude écrivait : \enquote{\barre{À 130 milliards de pas par seconde, cela fait environ 3,3 billions d'opérations par voie et par seconde [\ldots] Le décodeur est donc à environ la moitié du plafond arithmétique.}} Or la v4 fait un pas par \emph{octet} : 65\,Go/s écrits sont 65 milliards de pas par seconde (130 milliards de \emph{codes}), soit, à environ 25 opérations par pas, $1{,}6\cdot10^{12}$ opérations par seconde \calc, pour une carte qui en offre de l'ordre de $24 \times 128 \times (2{,}0 \text{ à } 2{,}5)\,\text{GHz} = 6$ à $7{,}7\cdot10^{12}$ (ordre de grandeur, non mesuré). Le décodeur est donc au quart environ du plafond arithmétique, non à la moitié : ce qui le borne est plus probablement la latence de la chaîne d'un pas (lecture de table, multiplication, vote, échange, dans cet ordre) que le débit des unités. La conséquence pour la suite est favorable : il peut rester plus qu'un facteur 2 à gagner, par plus d'états indépendants par voie (deux flux entrelacés dans la même voie recouvrent leurs chaînes). La \cref{prop:ent-fondre} n'en dépend pas : elle compte des opérations par octet, que le pas soit borné par le débit ou par la latence.
+
+\paragraph{Le processeur ne suit pas.} Le décodeur rANS scalaire coûte environ 16 cycles par code (la chaîne du pointeur partagé est sérielle) ; il fait 0,075\,Go/s par fil sur un micro-banc \mes. Même en AVX-512, à environ 0,7\,Go/s par cœur comme l'annonce Recoil~\cite{lin2023recoil} \litt, six cœurs performants feraient 4\,Go/s, à peine plus que le disque, quand la carte en offre vingt-cinq fois plus. \textbf{Le décodage appartient à la carte} ; le processeur lit le disque et remplit les tampons de transfert.
+
+\section{La question clé : décoder dans le produit, ou juste avant ?}\label{sec:ent-question}
+
+\begin{proposition}[Régime résident : quand fondre paierait]\label{prop:ent-fondre}
+Les poids résident en VRAM, de débit $W_{\mathrm{VRAM}}$. Un produit fondu au décodeur doit, par octet de poids, lire $1/r$ octet de flux et exécuter $a_{\mathrm{dec}} + a_{\mathrm{mv}}$ opérations ; le chemin brut lit 1 octet et exécute $a_{\mathrm{mv}}$ opérations. Avec $A$ le débit arithmétique de la carte,
+\begin{equation}\label{eq:ent-fondre}
+\frac{t_{\mathrm{fondu}}}{t_{\mathrm{brut}}} = \frac{\max\bigl(1/(r\,W_{\mathrm{VRAM}}),\ (a_{\mathrm{dec}} + a_{\mathrm{mv}})/A\bigr)}{\max\bigl(1/W_{\mathrm{VRAM}},\ a_{\mathrm{mv}}/A\bigr)},
+\end{equation}
+et le fondu ne gagne que si $(a_{\mathrm{dec}} + a_{\mathrm{mv}})/A < 1/W_{\mathrm{VRAM}}$, c'est-à-dire si la carte offre au moins $a_{\mathrm{dec}} + a_{\mathrm{mv}}$ opérations par octet de VRAM.
+\end{proposition}
+
+\begin{proof}
+Chaque chemin est borné par le plus lent de ses deux ressources (\cref{thm:toit} appliqué à la mémoire et au calcul) ; le rapport s'en déduit. Si $(a_{\mathrm{dec}} + a_{\mathrm{mv}})/A \ge 1/W_{\mathrm{VRAM}}$, le numérateur vaut au moins $1/W_{\mathrm{VRAM}}$ et le dénominateur, si le brut est limité par la mémoire, vaut exactement $1/W_{\mathrm{VRAM}}$ : le rapport est $\ge 1$.
+\end{proof}
+
+\paragraph{Le calcul.} Un pas v4 coûte environ 25 opérations et produit un octet : $a_{\mathrm{dec}} \approx 25$. La carte offre $A/W_{\mathrm{VRAM}} \approx 6\text{ à }7{,}7\cdot10^{12} / 251\cdot10^{9} \approx 24$ à $31$ opérations par octet \calc. Le décodage seul mange déjà presque tout le budget avant la moindre multiplication : le fondu sera limité par le calcul, à un débit proche de celui du décodeur seul, quand le brut l'est par la mémoire. La prédiction : un rapport d'environ $446/130 = 3{,}4$ (poids Q4\_K livrables par la VRAM contre codes produits par le décodeur, en milliards par seconde \calc).
+
+\paragraph{La mesure.} Un banc écrit pour cela (\fichier{outils/03-entropie/rans/src/bin/banc\_gemv.rs}) fait un produit matrice-vecteur de lot 1 sur des \textbf{poids MXFP4 réels de gpt-oss-20b} (trois tenseurs d'experts, 256\,Mio de codes, 131\,072 lignes de 4\,096 poids), par quatre chemins qui partagent exactement la même déquantification (le mot \texttt{0xC8643210} de la \cref{fig:ent-entree}) : \emph{brut} (codes bruts et échelles) ; \emph{fondu} (décodeur v4, chaque mot décodé consommé dans les registres) ; \emph{décodage seul} ; \emph{deux passes} (décodage puis brut dans la même soumission).
+
+\begin{lemme}[Une vérification exacte d'un produit flottant]\label{lem:ent-exact}
+Si chaque terme $w_i x_i$ d'une somme de $n$ termes est un entier de valeur absolue au plus $a$, et si $n\,a < 2^{24}$, alors la somme calculée en f32 est exacte, dans n'importe quel ordre.
+\end{lemme}
+
+\begin{proof}
+Toute somme partielle est un entier de valeur absolue au plus $n a < 2^{24}$. Tout entier de valeur absolue inférieure à $2^{24}$ est représentable exactement en f32 (24 bits de significande) ; l'addition de deux tels nombres dont la somme reste sous $2^{24}$ est donc exacte, et aucun arrondi ne se produit à aucune étape, quel que soit l'ordre.
+\end{proof}
+
+Avec des échelles toutes à $2^0$ et des $x$ entiers dans $[-2, 2]$, chaque terme vaut au plus $12 \times 2 = 24$ (grandeur doublée maximale de E2M1 fois $|x|$), et $4\,096 \times 24 = 98\,304 < 2^{17}$ : la carte doit égaler la référence du processeur \emph{au bit}. Résultat \mes~: \textbf{0 ligne fausse sur 131\,072} pour le brut, le fondu et les deux passes. Les témoins : une seule fente de la table corrompue rend 38\,329 lignes fausses, toutes les fentes 130\,564. Une tolérance flottante aurait laissé passer la fente unique. Sur les vraies entrées, l'écart relatif au maximum de $|y|$ vaut $9{,}5\cdot10^{-8}$ (brut) et $1{,}3\cdot10^{-7}$ (fondu) contre une référence en f64.
+
+\begin{figure}[ht]
+\centering
+\GrapheGemvEntropie
+\caption[Le produit MXFP4 brut, fondu au décodeur, ou en deux passes]{Produit matrice-vecteur de lot 1 sur des poids MXFP4 réels de gpt-oss-20b, quatre chemins, en Go/s de poids MXFP4 équivalents \mes. Le brut atteint 83\,\% de la lecture de la VRAM ; fondu au décodeur, il est 3,7 fois plus lent, et pas plus rapide que deux passes.}
+\label{fig:ent-gemv}
+\sourcefig{\fichier{memoire/figures/donnees/entropie-gemv-{secteur,batterie}.csv} (depuis \fichier{gemv-gptoss20b-{secteur,calme}.json}).}
+\end{figure}
+
+\begin{table}[ht]
+\centering\small
+\caption[La question clé, mesurée]{La question clé mesurée, cinq séries palindromiques, carte seule, sur secteur \mes ; en dernière colonne, la même mesure sur batterie.}
+\label{tab:ent-gemv}
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+chemin & temps médian & G poids/s & Go/s équiv. & rapport au brut & batterie (Go/s) \\
+\midrule
+brut & 1,36\,ms & 394,1 & \textbf{209,4} & 1 & 66,4 \\
+fondu & 4,99\,ms & 107,5 & \textbf{57,1} & \textbf{0,27} & 19,5 \\
+décodage seul & 3,72\,ms & 144,5 & 76,7 & --- & 29,4 \\
+deux passes & 5,13\,ms & 104,6 & \textbf{55,6} & \textbf{0,27} & 21,7 \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{fondations/journaux/03-entropie/gemv-gptoss20b-secteur.json}, \fichier{gemv-gptoss20b-calme.json}.}
+\end{table}
+
+\paragraph{Lecture.} (1)~Le brut fait 394 milliards de poids par seconde pour un plafond de 472 : 83\,\% de la VRAM, limité par la mémoire, et c'est le produit 4 bits le plus rapide mesuré sur la machine (l'étude 01 avait 122\,Go/s en Q4\_0) ; sa recette tient en une ligne : un sous-groupe traite 4 lignes, chaque voie charge les 32 $x$ d'un bloc une fois pour les 4, et le mot \texttt{0xC8643210} remplace toute table. (2)~\textbf{Le fondu est 3,7 fois plus lent que le brut} ; le calcul prédisait 3,4. (3)~\textbf{Fondre ne gagne rien sur deux passes} : 57,1 contre 55,6\,Go/s, dans la dispersion. Les temps s'additionnent : $3{,}72 + 1{,}36 = 5{,}08$\,ms pour $4{,}99$ (fondu) et $5{,}13$ (deux passes) mesurés ; la fusion n'économise que l'aller-retour des codes en VRAM (environ 2\,ms de trafic), que le décodeur, limité par le calcul, recouvre déjà. (4)~Sur batterie, les rapports restent à 0,27--0,33.
+
+\begin{figure}[ht]
+\centering
+\resizebox{\linewidth}{!}{\SchemaOuDecoder}
+\caption[Où décoder : à l'arrivée du tronçon]{La réponse à la question clé. Le flux codé traverse le disque, la RAM et le lien ; il est décodé une fois, à l'arrivée en VRAM, avant d'entrer dans le cache de la carte, où il sert ensuite au débit du produit brut. Le chemin barré, décoder dans le produit, est 3,7 fois plus lent \mes.}
+\label{fig:ent-ou}
+\end{figure}
+
+\textbf{Réponse à la question clé.} Décoder \emph{dans} le noyau n'apporte rien sur cette carte, et décoder \emph{juste avant} coûte autant : dans les deux cas, 3,7 fois le temps du produit brut quand les poids résident en VRAM. Le décodage entropique ne paie que là où il soulage un étage plus lent que lui, \textbf{le disque et le lien} (\cref{fig:ent-ou}). Dans ce schéma, décoder un jeton qui lit tout par le disque coûte $2{,}49/70 \approx 3{,}6\,\%$ du temps de la carte sur secteur (9\,\% sur batterie) \calc, où 2,49\,Go/s est le volume de codes que le disque livre à 2,8\,Go/s de blocs Q4\_K ($2{,}8 \times 256/144/2$) ; et il rend au disque tout le taux $r$ (\cref{cor:ent-gain}). Le réassemblage des trois flux de classe, mesuré à part, écrit à 102,4\,Go/s contre 113,5 pour une recopie contiguë, sortie exacte et témoin qui tombe \mes ; décodage puis réassemblage font ensemble 41,6\,Go/s, encore 17 fois les 2,49\,Go/s de codes que livre le disque \calc.
+
+La seule conclusion qui dépende de la qualité du noyau fondu tient d'elle-même : aucune écriture du fondu ne peut descendre sous le temps du décodeur seul, qui vaut déjà $3{,}72/1{,}36 = 2{,}7$ fois celui du brut ; avec le décodeur CUDA, 15\,\% plus rapide, le rapport resterait au-dessus de 2,3 \calc. Il faudrait un décodeur deux à trois fois plus rapide pour renverser la conclusion, ce que ni la mesure ni la littérature ne donnent sur une carte de cette classe. vram-compression~\cite{nuri2026vramcompression}, qui fond un rANS dans un produit de lot 1 sur une RTX 3050 Laptop, rapporte d'ailleurs un noyau « 2 à 3 fois plus lent que bf16 cuBLAS » \litt : la même conclusion, par un autre chemin.
+
+\section{Au-delà du sans-perte : une quantification taillée pour le codeur}\label{sec:ent-ecsq}
+
+Pourquoi les K-quants laissent-ils si peu ? Parce que leur recherche d'échelle et de minimum écrête pour remplir les 16 niveaux : des codes presque uniformes sont l'optimum d'un code \emph{à débit fixe}. La théorie classique dit ce que coûte le débit fixe.
+
+\begin{theoreme}[Gish et Pierce~\cite{gish1968}, haute résolution]\label{thm:gish-pierce}
+Une quantification scalaire uniforme de pas $\Delta$ suivie d'un codage entropique idéal (ECSQ) atteint, quand $\Delta \to 0$,
+\begin{equation}\label{eq:gish-pierce}
+D = \frac{\Delta^2}{12}, \qquad R = H(Q) = h(X) - \log_2 \Delta + o(1), \qquad\text{donc}\qquad R_{\mathrm{ECSQ}}(D) = h(X) - \tfrac12 \log_2 (12 D).
+\end{equation}
+\end{theoreme}
+
+\begin{proof}[Démonstration (haute résolution)]
+Le débit vient de la \cref{prop:ent-haute-resolution}. Pour la distorsion : sur une cellule où la densité est presque constante, l'erreur $X - Q(X)$ est presque uniforme sur $[-\Delta/2, \Delta/2]$, de variance $\int_{-\Delta/2}^{\Delta/2} u^2\,\dd u/\Delta = \Delta^2/12$ ; la moyenne sur les cellules garde cette valeur. On élimine $\Delta$ : $\log_2 \Delta = \tfrac12\log_2(12 D)$.
+\end{proof}
+
+\begin{corollaire}[L'écart de l'ECSQ à la borne de Shannon]\label{cor:ecsq-ecart}
+La borne inférieure de Shannon pour l'erreur quadratique est $R(D) \ge h(X) - \tfrac12\log_2(2\pi e D)$~\cite{cover2006}. L'ECSQ en est à
+\[
+R_{\mathrm{ECSQ}}(D) - R_{\mathrm{SLB}}(D) = \tfrac12 \log_2 \frac{2\pi e}{12} = \tfrac12 \log_2 \frac{\pi e}{6} = \tfrac12 \log_2 1{,}4233 = 0{,}2546 \text{ bit}, \text{ soit } 1{,}53\text{\,dB}.
+\]
+\end{corollaire}
+
+\paragraph{Ce que coûte le débit fixe, pour une gaussienne.} La meilleure quantification scalaire à $2^R$ niveaux atteint à haute résolution $D \approx \tfrac1{12}\bigl(\int p^{1/3}\bigr)^3 2^{-2R}$ (Panter et Dite~\cite{panter1951}). Pour $\Normale(0, \sigma^2)$ :
+\begin{gather*}
+\int p^{1/3} = (2\pi\sigma^2)^{-1/6} \int e^{-x^2/(6\sigma^2)}\,\dd x = (2\pi\sigma^2)^{-1/6}\sqrt{6\pi}\,\sigma, \\
+\Bigl(\int p^{1/3}\Bigr)^3 = (2\pi)^{-1/2}\sigma^{-1}(6\pi)^{3/2}\sigma^3 = 6\sqrt3\,\pi\,\sigma^2,
+\end{gather*}
+d'où $D_{\mathrm{PD}} = \tfrac{\sqrt3\,\pi}{2}\,\sigma^2 2^{-2R}$. Comparée à la borne exacte $D(R) = \sigma^2 2^{-2R}$ (\cref{thm:shannon}), la perte en débit vaut $\tfrac12\log_2(\sqrt3\pi/2) = \tfrac12\log_2 2{,}7207 = 0{,}722$ bit ; l'ECSQ ne perd que $0{,}2546$ (\cref{cor:ecsq-ecart}, la gaussienne atteignant la borne de Shannon). \textbf{Différence : $0{,}722 - 0{,}255 = 0{,}467$ bit par poids} \calc, ce que gagne en théorie, à haut débit, un codage entropique sur le meilleur débit fixe.
+
+\paragraph{La mesure, sur des substituts.} Aucun poids BF16 n'étant sur la machine, l'étude a pris des substituts déquantifiés (deux tenseurs Q8\_0 et un Q6\_K de Qwen3.5-4B) et comparé, à erreur quadratique égale, une quantification façon Q4\_K réécrite de zéro (KQ4, 4,5 bits par poids, dont les codes portent 3,874 à 3,883 bits contre 3,865 pour le vrai Q4\_K : même forme) à une ECSQ (pas $\Delta = c\,\sigma$ par bloc de 256, $\sigma$ en fp16, codes entiers non bornés, une table par tenseur) \mes~(\fichier{rd-proxy-4B.json}). \textbf{À erreur égale, l'ECSQ demande 0,41 à 0,46 bit de moins par poids} (\cref{fig:ent-ecsq}), en accord avec les 0,467 de la théorie malgré un régime à 4 bits qui n'est pas asymptotique et des sources non gaussiennes. C'est deux fois le plafond sans perte de Q4\_K (0,24 bit), et le décodeur est la v4, avec un alphabet de 38 à 96 symboles.
+
+\begin{figure}[ht]
+\centering
+\GrapheRdProxy
+\caption[À erreur égale, ce que demande une ECSQ]{Bits par poids d'une ECSQ suivie d'un codage entropique, à l'erreur quadratique de KQ4 (4,5 bits par poids), sur trois substituts \mes, et la borne gaussienne par bloc \calc. Le gain va de 0,411 à 0,455 bit par poids ; il reste 0,3 à 0,5 bit jusqu'à la borne.}
+\label{fig:ent-ecsq}
+\sourcefig{\fichier{fondations/journaux/03-entropie/csv/rd-proxy.csv} (depuis \fichier{rd-proxy-4B.json}).}
+\end{figure}
+
+Ce chiffre n'est pas une qualité : l'erreur quadratique n'est pas la perplexité, et l'erreur pondérée par l'importance des poids peut déplacer le gain. vram-compression publie, sur Qwen2.5-1.5B, une perplexité d'ECSQ à pas par colonne à 3,25 bits (9,81) presque égale à celle de GPTQ à 4,25 bits (9,78) \litt : environ un bit gagné à qualité presque égale, deux fois notre mesure à erreur quadratique égale ; leur pas par colonne pondéré par la hessienne, que notre mesure n'a pas, peut expliquer l'écart. EntQuant~\cite{putzky2026entquant} (ICML 2026) fait la même famille de choses en Float8 codé par ANS, décodé par bloc avant le produit, et WaterSIC~\cite{lifar2026watersic} se place à 0,255 bit de la limite de la théorie de l'information par une allocation de débit par colonne. Ce qui manque encore à ces travaux, au regard de la mission : tourner sans CUDA, viser le régime du flux depuis le disque, et s'appliquer aux formats que la machine fait tourner.
+
+\section{L'état de l'art, technique par technique}\label{sec:ent-etat}
+
+\begin{table}[ht]
+\centering\scriptsize
+\caption[Les codeurs sans perte de poids, au regard de la mission]{Les codeurs sans perte de poids et leurs voisins, au regard de la mission. Gains et débits des éditeurs \litt, sauf ceux de troncons \mes. « Sans CUDA » : tourne nativement sous Windows sur la carte de la machine sans boîte à outils CUDA.}
+\label{tab:ent-etat}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright}p{2.3cm}>{\raggedright}X>{\raggedright}p{2.2cm}cl@{}}
+\toprule
+technique & mécanisme & sur nos formats & sans CUDA & licence \\
+\midrule
+DFloat11~\cite{zhang2025dfloat11} & Huffman des exposants BF16, tables de 256 entrées en cascade & sans objet (BF16) & non & Apache-2.0 \\
+ZipNN~\cite{hershcovitch2024zipnn} & flux d'octets de même rang, Huffman ou zstd & 1,042 au mieux par champ \calc & oui (processeur) & MIT \\
+Huff-LLM~\cite{yubeaton2025huffllm} & décodeur Huffman matériel devant un réseau systolique & sans objet & sans objet & aucun code \\
+Ecco~\cite{ecco2025} & motifs k-means et tables de Huffman par groupe, matériel & sans objet & sans objet & aucun code \\
+ZipServ~\cite{zipserv2026} & code de longueur fixe de 3 bits sur les exposants, plans de bits, fondu & sans objet (BF16) & non & Apache-2.0 \\
+ISCA 2026~\cite{shannonbound2026} & rANS de DietGPU, tuiles du produit, fondu & int4 annoncé, contredit ici & non & aucun code \\
+EntroPack~\cite{entropack2026} & réseau E8, modèle conditionnel, tuiles indépendantes & sans objet (diffusion) & inconnu & non vérifiée \\
+nvCOMP~\cite{nvcomp2026} & ANS par morceaux, GDeflate, Bitcomp & $\le 1{,}018$ (octets) & non & propriétaire \\
+DirectStorage~\cite{directstorage14} & GDeflate et zstd sur la carte (DX12) & $\le 1{,}018$ & \textbf{oui} & MIT, Apache-2.0 \\
+DietGPU~\cite{dietgpu} & rANS, renormalisation coopérative du warp & idem, plus par champ & non & MIT \\
+Recoil~\cite{lin2023recoil} & un flux rANS, points de coupe & idem & non & GPL-3.0 \\
+zstd, lz4~\cite{zstd} & LZ et entropie, processeur & 1,012 et 1,000 \mes & oui & BSD \\
+EntQuant~\cite{putzky2026entquant} & Float8 sous lagrangien $\ell_1$, ANS par nvCOMP & sans objet (Float8) & non & Apache-2.0 \\
+vram-compression~\cite{nuri2026vramcompression} & ECSQ et GPTQ, rANS fondu au produit & ECSQ, pas un GGUF & non & aucune \\
+ECF8~\cite{yang2025ecf8} & FP8 codé par entropie des exposants & sans objet (FP8) & inconnu & aucun code \\
+\textbf{troncons rANS v4} & rANS entrelacé par sous-groupe, flux partagé, échelles par médiane de ligne & \textbf{1,0316} (Q4\_K) ; \textbf{1,1026} (MXFP4, 120b) \mes & \textbf{oui} (Vulkan, 70\,Go/s) & à nous \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Le \cref{tab:ent-etat} résume les seize lignes de l'étude. Deux leçons de structure en sortent. \textbf{Dans le régime résident, seul un code à décodage en temps constant passe dans la multiplication} : ZipServ ne gagne contre cuBLAS qu'avec un code de longueur fixe de 3 bits sur des exposants BF16 très creux ; nos codes de 4 bits sont presque uniformes et n'ont pas cette forme. \textbf{Dans le régime du flux, un code de longueur variable paie tout son taux}, pourvu que son décodeur soit sur la carte et suive le disque d'un facteur large : c'est le cas ici, d'un facteur 28.
+
+\section{Ce qui manque dans le monde}\label{sec:ent-manque}
+
+\begin{enumerate}
+\item \textbf{Personne ne code les échelles des formats MX.} Aucun des travaux lus ne mesure ni ne code les échelles partagées E8M0, alors qu'elles portent le gain : 0,213 bit par poids contre 0,134 pour les codes sur gpt-oss-20b \calc. Le trou est chiffré par un taux réel, décodé exactement : 1,1026 sur gpt-oss-120b, quand zstd prend 1,0405 sur les mêmes tenseurs et lz4 rien. NVFP4 (échelle FP8 par bloc de 16) a la même structure ; aucun fichier de ce format n'était sur la machine pour la mesurer.
+\item \textbf{Aucun outil ne code par entropie les champs des K-quants} : le plafond est de 5,3\,\%, zstd en prend 1,2\,\%, tout codeur d'octets sur le bloc entier au plus 1,8\,\% ; sur le 9B, 180\,Mo par jeton relu ne traverseraient pas le disque.
+\item \textbf{Aucun décodeur entropique de poids sans CUDA n'avait de débit publié} sur une carte de portable ; celui-ci fait 70 à 72\,Go/s par Vulkan, 28 fois le disque.
+\item \textbf{La quantification taillée pour le codeur existe en CUDA} (EntQuant, vram-compression), \barre{mais n'existe nulle part pour les LLM grand public} (phrase de la première version de l'étude, barrée à sa reprise) ; aucune ne tourne sans CUDA, ne vise le flux depuis le disque, ni ne s'applique aux formats GGUF.
+\item \textbf{Le régime résident n'a pas de code à longueur variable sur cette classe de carte} : il manque un facteur 3,4 au décodeur, retrouvé par la mesure (3,7). Un code à décodage en temps constant qui garde une part du gain de l'ECSQ reste à inventer.
+\item \textbf{Les entropies publiées des int4 divergent d'un facteur 4} de la mesure, et le calcul exact de la \cref{sec:ent-contradiction} montre pourquoi : il faudrait, pour les atteindre, une grille symétrique de plus de 30 écarts-types d'étendue. Il manque une mesure publique, outillée, par schéma de quantification.
+\item \textbf{Aucune mesure publiée ne compare deux chemins de compilation du même décodeur} sur la même carte : 15\,\% ici entre nvcc et Vulkan. Une décision « CUDA ou Vulkan » prise sur un débit publié dans un autre langage se trompe d'environ ce facteur.
+\end{enumerate}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{La contention.} D'autres agents faisaient tourner llama.cpp et des scripts Python pendant les mesures ; les débits du processeur n'en sont que des ordres de grandeur. Les débits de la carte cités viennent de passes jugées au calme sur la puissance tirée (repos 5,5\,W, seuil déclaré 12\,W), avec un échantillonneur toutes les 500\,ms qui dit après coup si la passe est restée seule.
+\item \textbf{La batterie.} La première moitié de la reprise s'est faite sur batterie (carte plafonnée à 43\,W, horloge mémoire à 6\,001\,MHz au lieu de 8\,001). Seuls les chiffres du secteur sont cités comme débits ; ceux de la batterie restent, étiquetés.
+\item \textbf{Les gains sur les métadonnées fp16 sont optimistes} (\cref{lem:biais-entropie}) : le chiffre réaliste est celui du codage par octet du champ (1,052 pour Q4\_K), pas l'idéal 1,057.
+\item \textbf{Les débits viennent de lots de 126 à 256\,Mio} ; un lancement par matrice d'expert (4,4\,Mo dans gpt-oss-120b) perdra en démarrage et en fin de vague. Ce n'est pas mesuré ici.
+\item \textbf{La section ECSQ repose sur des substituts} déquantifiés, posés sur une grille, ce qui peut abaisser l'entropie de l'ECSQ et gonfler le gain ; KQ4 n'a ni l'imatrix ni la recherche exacte de llama.cpp ; l'erreur quadratique n'est pas la qualité.
+\item \textbf{Le budget arithmétique de la carte} (6 à $7{,}7\cdot10^{12}$ opérations par seconde) est un ordre de grandeur ; la \cref{prop:ent-fondre} et le facteur 3,4 prédit en dépendent, la mesure (3,7) non.
+\item \textbf{Le modèle du sous-groupe} exige des sous-groupes de 32 invocations consécutives : vrai ici (vérifié par l'exactitude), faux sur AMD (64). Le décodeur s'arrête proprement par un compteur si la taille diffère.
+\item \textbf{Le second chemin CUDA est indépendant par le code et le compilateur, pas par l'algorithme} : il suit le même format. Ce qui le rend probant : l'exactitude est jugée contre la source, non contre l'autre décodeur.
+\item \textbf{Le calcul de la \cref{sec:ent-minmax}} suppose des poids indépendants de loi gaussienne ou laplacienne ; il retrouve les mesures au centième, mais une loi réelle plus lourde aux queues abaisserait l'entropie d'un min-max à grand groupe.
+\item \textbf{Les débits de la littérature} (DietGPU, Recoil, ZipNN) sont ceux des éditeurs, sur d'autres machines ; aucun n'est reproduit, bien que CUDA soit désormais sur la machine.
+\end{itemize}
+\end{faux}

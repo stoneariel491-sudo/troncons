@@ -1,0 +1,21 @@
+% Même mise en page avant et après le correctif A ? Les chapitres du Tome I (FR) les plus riches en énoncés
+% (04-formulation : 8, 06-entropie : 17), compilés sous MiKTeX 26.5 avec le préambule d'avant (six erreurs,
+% en nonstopmode) puis avec le préambule commité ; on compare ensuite les mots et leurs boîtes (pdftotext -bbox).
+%   avant : lualatex -jobname=th-avant "\def\AVANT{1}\input{theoremes-avant-apres.tex}"   (deux fois)
+%   après : lualatex -jobname=th-apres "\input{theoremes-avant-apres.tex}"                (deux fois)
+\documentclass[11pt, a4paper, twoside, openright, parskip=false, headings=big,
+               chapterprefix=true, numbers=noenddot, bibliography=totoc, listof=totoc]{scrbook}
+\newif\ifanglais
+\anglaisfalse
+\newcommand{\Racine}{~/dev/active/troncons/memoire}
+\newcommand{\Depot}{~/dev/active/troncons}
+\ifdefined\AVANT
+  \input{~/dev/active/troncons/memoire/essai/construction-tomes/preambule-avant}
+\else
+  \input{~/dev/active/troncons/memoire/commun/preambule}
+\fi
+\begin{document}
+\mainmatter
+\input{\Racine/fr/chapitres/04-formulation}
+\input{\Racine/fr/chapitres/06-entropie}
+\end{document}

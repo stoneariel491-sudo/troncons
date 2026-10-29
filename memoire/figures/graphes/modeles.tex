@@ -1,0 +1,18 @@
+% Graphes du chapitre « Les modèles visés ».
+
+% Paramètres totaux contre actifs par jeton, mélanges d'experts inventoriés dans leurs en-têtes.
+\newcommand{\GrapheMoE}{%
+\begin{tikzpicture}
+\begin{loglogaxis}[memoire, width=\linewidth, height=0.72\linewidth,
+  xlabel={\EF{total text parameters (billions, log scale)}{paramètres totaux, texte (milliards, échelle log.)}},
+  ylabel={\EF{active parameters per token (billions)}{paramètres actifs par jeton (milliards)}},
+  xmin=12, xmax=4000, ymin=2, ymax=150, log ticks with fixed point,
+  xtick={20,50,100,200,500,1000,2000}, ytick={2,5,10,20,50,100},
+  legend pos=north west, nodes near coords, point meta=explicit symbolic,
+  nodes near coords style={font=\tiny, anchor=west, black!70}]
+\addplot[only marks, mark=*, mark size=1.7pt, SerieA, fill opacity=0.8] table[x=total_g, y=actifs_g, meta=etiquette] {\Donnees/modeles-moe.csv};
+\addlegendentry{\EF{MoE among the 49 repositories inventoried}{MoE parmi les 49 dépôts inventoriés}}
+\addplot[black!40, dashed, no markers, domain=12:4000] {x/10}; \addlegendentry{\EF{10\,\% active}{10\,\% actifs}}
+\addplot[black!40, dotted, no markers, domain=12:4000] {x/30}; \addlegendentry{\EF{3.3\,\% active}{3,3\,\% actifs}}
+\end{loglogaxis}
+\end{tikzpicture}}

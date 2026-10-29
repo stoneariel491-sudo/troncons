@@ -1,0 +1,513 @@
+% Tome~II, chapitre « Le cache, l'ordonnanceur et le moteur » (rédacteur reference-cache).
+% Sources : moteur/O-pour-le-memoire.md (parties I à III), moteur/REPRISE-O.md, mesures/gpt-oss.md
+% (§ 5 à 9), mesures/gpt-oss-pour-le-memoire.md, mesures/epreuve-J1.md, leurs journaux et CSV ;
+% chiffres refaits par memoire/outils/tome2_reference_cache.py.
+\ifdefined\GrapheCchFalaise\else\input{\Racine/figures/tome2/cache}\fi
+
+\chapter{Le cache, l'ordonnanceur et le moteur}\label{ch:t2-cache}
+
+\begin{origine}
+\textbf{Au départ}, l'architecture avait fixé l'interface du cache d'experts (couture A) et un témoin : le simulateur du moteur doit égaler, à l'unité, ceux des études de chargement et de mesure. Le plafond de vitesse de troncons se lisait dans une seule grandeur, le taux de succès $h$ du cache, que les études antérieures calculaient sous un routage uniforme faute de trace réelle.
+\textbf{Ce chapitre établit} la théorie et la mesure du cache et de ce qui l'entoure : l'optimalité de l'algorithme de Belady, démontrée ; LRU, sa propriété de pile, sa borne compétitive et son pire cas ; le cache de troncons, ses règles et deux lemmes qui le rendent égal aux simulateurs ; \textbf{la falaise du LRU partagé} : aucun succès sous $(L-1)k$ emplacements, exactement la réutilisation adjacente à $Lk$, démontrée et vérifiée au succès près sur 17 traces réelles ; la localité mesurée de gpt-oss-20b et 120b ; l'ordonnanceur à la demande et les lemmes qui le rendent sûr, exact et égal à son simulateur ; le préremplissage par flux, gardé ; le préchargement, essayé puis abandonné sur son bilan chiffré ; et le moteur contre la base la mieux réglée qu'on ait mesurée : \textbf{2,22 fois llama.cpp}, garde d'intégrité comprise.
+\textbf{Il reste} une politique consciente du cycle des couches, un prédicteur plus juste que le routeur de la couche suivante, la longueur des lectures (12\,Mio), et une base llama.cpp balayée au-delà de 16 fils.
+Sources : \fichier{moteur/O-pour-le-memoire.md}, \fichier{moteur/REPRISE-O.md}, \fichier{mesures/gpt-oss.md}, \fichier{mesures/epreuve-J1.md}, et les journaux sous \fichier{mesures/moteur/O/} et \fichier{mesures/localite-gpt-oss/}.
+\end{origine}
+
+\begin{enbref}
+\begin{itemize}
+\item Belady (évincer ce qui servira le plus tard) est optimal parmi toutes les politiques (\cref{thm:t2o-belady}) ; LRU fait au plus $N$ fois ses défauts, plus $N$ (\cref{thm:t2o-competitif}), et son pire cas est un cycle sur $N + 1$ clés.
+\item Le flux des experts d'un MoE \emph{est} ce cycle : un LRU partagé entre les $L$ couches n'a aucun succès sous $(L-1)k$ emplacements, quel que soit le routage, et vaut exactement la réutilisation adjacente à $Lk$ (\cref{prop:t2o-falaise}). Sur gpt-oss-20b : 0 succès sur 1\,024\,224 accès à 92 emplacements, quand Belady en sert 66,4\,\%.
+\item gpt-oss est très local : un jeton reprend 50\,\% (20b) et 31\,\% (120b) des experts du précédent, contre 12,5 et 3,1\,\% au hasard.
+\item L'ordonnanceur est sûr (\cref{lem:t2o-ordre}), calcule au bit ce que les noyaux ont validé (\cref{prop:t2o-ordre-calcul}) et compte ses défauts comme son simulateur, à l'unité (454\,210 succès, 37\,310 défauts des deux côtés).
+\item Le préchargement par le routeur de la couche suivante coûte 11\,\% : 69\,\% de ses lectures servent, les autres ajoutent 34\,\% d'octets à un disque qui limite déjà.
+\item troncons : 1,965 jeton/s sur le 120b, garde comprise, contre 0,884 pour la meilleure configuration mesurée de llama.cpp (\texttt{fit -t 16}) ; \barre{$\times 3{,}85$}, \barre{$\times 2{,}8$}, $\times 2{,}22$.
+\end{itemize}
+\end{enbref}
+
+% =====================================================================================
+\section{Le problème du cache d'experts}\label{sec:t2o-probleme}
+
+Un mélange d'experts de $L$ couches, $E$ experts par couche, $k$ experts actifs par jeton (gpt-oss-120b : $L = 36$, $E = 128$, $k = 4$ ; gpt-oss-20b : $L = 24$, $E = 32$, $k = 4$) demande, à chaque jeton et à chaque couche, un \textbf{groupe} de $k$ identifiants distincts (couche, expert). Le flux des demandes est la suite des groupes dans l'ordre du calcul : $(t, 0), (t, 1), \ldots, (t, L-1), (t+1, 0), \ldots$ La carte tient $N$ \textbf{emplacements} d'experts décodés (13\,254\,144 octets chacun pour gpt-oss) ; un expert présent est un \textbf{succès} ; un expert absent est un \textbf{défaut}, qui coûte une lecture d'environ 12\,Mo sur le disque, une copie vers la carte et un décodage. La part $h$ des accès servis par le cache décide de tout : à chaque jeton, le disque doit livrer $(1 - h)$ fois les octets routés, $R = k\,L\,e = 1{,}909$\,Go pour le 120b à la taille d'origine (\fichier{mesures/gpt-oss.md} § 1).
+
+Une \textbf{politique} choisit, à chaque défaut d'un cache plein, la victime à évincer. Elle est \emph{en ligne} si elle ne voit que le passé, \emph{hors ligne} si elle connaît toute la suite. Deux règles de troncons s'ajoutent (\fichier{moteur/crates/trc-cache/src/lib.rs}) : un expert demandé par la couche en cours est \textbf{épinglé} jusqu'à la fin de ses produits (on ne l'évince pas pendant qu'il sert), et un emplacement \textbf{en vol} (que le décodeur écrit) n'est jamais évincé. La \cref{fig:t2o-automate} donne l'automate d'un emplacement.
+
+\begin{figure}[ht]
+\centering
+\SchemaCchAutomate
+\caption[L'automate d'un emplacement d'expert]{L'automate d'un emplacement VRAM du cache de troncons (schéma M5), et l'étage RAM du mode A. En J2, les états porteront le niveau (base ou exact) de l'expert présent.}
+\sourcefig{\fichier{moteur/crates/trc-cache/src/lib.rs} (en-tête).}
+\label{fig:t2o-automate}
+\end{figure}
+
+% =====================================================================================
+\section{L'optimum hors ligne : Belady}\label{sec:t2o-belady}
+
+Commençons par la borne que nulle politique ne peut dépasser. On se place d'abord dans le modèle classique : une suite de demandes isolées $\sigma_1, \sigma_2, \ldots$ sur un cache de $N$ places, une politique « à la demande » (qui ne charge qu'au défaut, en évinçant une seule clé).
+
+\begin{definition}[MIN, ou Belady]\label{def:t2o-min}
+À chaque défaut d'un cache plein, MIN évince la clé présente dont la \emph{prochaine demande est la plus lointaine} (jamais : l'infini ; égalité : la plus petite clé)~\cite{belady1966}.
+\end{definition}
+
+\begin{theoreme}[Optimalité de MIN]\label{thm:t2o-belady}
+Pour toute suite $\sigma$ et toute politique à la demande $A$ partant du même contenu, MIN ne fait pas plus de défauts que $A$.
+\end{theoreme}
+
+\begin{proof}
+On construit une suite de politiques $A = A_0, A_1, \ldots, A_n = \mathrm{MIN}$ telle que $A_i$ prend les mêmes décisions que MIN sur les $i$ premières demandes et ne fait pas plus de défauts que $A_{i-1}$. Supposons $A_{i-1}$ construite ; elle suit MIN jusqu'à la demande $i-1$, donc les deux ont le même contenu avant la demande $i$. Si $A_{i-1}$ prend à la demande $i$ la décision de MIN, on pose $A_i = A_{i-1}$. Sinon, à un défaut, $A_{i-1}$ évince $y$ quand MIN évince $x$, avec $n_x \ge n_y$, où $n_z$ est l'instant de la prochaine demande de $z$. On définit $A_i$ : à la demande $i$, elle évince $x$ ; ensuite elle imite $A_{i-1}$, en suivant trois phases.
+
+\emph{Phase 1} : $A_i$ tient $D \cup \{y\}$ et $A_{i-1}$ tient $D \cup \{x\}$, avec autant de défauts. Sur toute demande d'une clé de $D$ ou d'une clé absente des deux, $A_i$ fait comme $A_{i-1}$ (même succès, ou même défaut et même victime), sauf si $A_{i-1}$ évince $x$ : alors $A_i$ évince $y$, et les deux contenus deviennent égaux. Avant $n_x$ arrive $n_y \le n_x$ : à la demande de $y$, $A_i$ fait un succès et $A_{i-1}$ un défaut, qui évince une clé $w$. Si $w = x$, les contenus sont égaux et $A_i$ a un défaut de moins. Sinon on passe en phase 2 avec la paire $(w, x)$.
+
+\emph{Phase 2} : $A_i$ tient $D' \cup \{a\}$, $A_{i-1}$ tient $D' \cup \{x\}$, et $A_i$ a \emph{au moins un défaut de moins}. Une demande de $a$ : succès pour $A_i$, défaut pour $A_{i-1}$, qui évince $w'$ ; si $w' = x$ les contenus deviennent égaux, sinon la paire devient $(w', x)$ et l'avance de $A_i$ grandit. Une demande de $x$ : défaut pour $A_i$, qui évince $a$ et charge $x$ ; les contenus deviennent égaux et $A_i$ a perdu au plus l'avance qu'il avait, donc il n'a toujours pas plus de défauts. Si $A_{i-1}$ évince $x$ sur un autre défaut, $A_i$ évince $a$ : contenus égaux. Toute autre demande est traitée de la même façon par les deux.
+
+\emph{Phase 0} : contenus égaux ; $A_i$ imite exactement $A_{i-1}$.
+
+Dans tous les cas, $A_i$ ne fait pas plus de défauts que $A_{i-1}$ jusqu'à la fin, et suit MIN jusqu'à la demande $i$. Elle n'évince qu'au défaut : c'est une politique à la demande. Par récurrence, $\mathrm{MIN} = A_n$ ne fait pas plus de défauts que $A$.
+\end{proof}
+
+\paragraph{Ce que le théorème couvre, et ce qu'il ne couvre pas.} Le moteur sert des \emph{groupes} de $k$ experts épinglés, pas des demandes isolées. Le simulateur de troncons applique MIN parmi les clés non épinglées (\fichier{moteur/crates/trc-cache/src/politiques.rs}) ; son optimalité dans ce modèle à épinglage n'est pas démontrée ici. Elle est vérifiée : sur chaque trace réelle et chaque budget, Belady sert au moins autant que LRU, LFU et l'épinglage statique (témoin G3 de la mesure gpt-oss, aucune violation ; l'outil s'arrête sinon). Belady lit l'avenir de la trace : ses chiffres sont des \textbf{bornes}, pas une politique du moteur.
+
+\paragraph{Un défaut que le témoin a trouvé.} La première version de la politique Belady cherchait le prochain usage d'un expert à partir d'un « maintenant » mis à jour par chaque accès. Or le cache choisit sa victime \emph{avant} d'insérer le défaut : quand le premier expert d'un groupe manque, « maintenant » vaut encore l'instant du groupe précédent, et un expert servi à ce groupe-là semblait redemandé tout de suite, donc n'était jamais évincé. Le témoin O1 l'a vu : de 10 à 6\,646 succès de moins que les simulateurs de référence, quand LRU était exact partout \mes~(\fichier{mesures/moteur/O/journaux/temoin-o1-passe1-belady-faux.json}, gardé). Le prochain usage se calcule désormais au moment de l'accès (\cref{lst:t2o-belady}) : un présent non épinglé n'a pas été servi depuis son dernier accès, donc ce chiffre reste juste.
+
+\begin{lstlisting}[language=C, float=htbp, caption={[Le prochain usage dans Belady]Le prochain usage dans la politique Belady de \texttt{trc-cache} (\texttt{politiques.rs}) : calculé au moment de l'accès, par recherche dichotomique dans les instants où l'expert est demandé ($t = \text{jeton}\cdot L + \text{couche}$).}, label=lst:t2o-belady]
+/// Le premier usage de `id` strictement après `t` ; u64::MAX s'il n'y en a plus.
+fn prochain_apres(&self, id: Id, t: u64) -> u64 {
+    match self.usages.get(&id) {
+        None => u64::MAX,
+        Some(v) => {
+            let i = v.partition_point(|&x| x <= t);
+            v.get(i).copied().unwrap_or(u64::MAX)
+        }
+    }
+}
+fn acceder(&mut self, id: Id, t: u64) {        // à chaque succès
+    let p = self.prochain_apres(id, t);
+    self.prochain.insert(id, p);
+}
+// victime : le présent non épinglé de plus grand prochain usage ; égalité : le plus petit id.
+\end{lstlisting}
+
+% =====================================================================================
+\section{LRU : pile, borne compétitive, pire cas}\label{sec:t2o-lru}
+
+LRU évince la clé dont le dernier usage est le plus ancien. C'est la politique en ligne la plus répandue, celle du cache d'experts de llama.cpp, et celle de troncons en J1. Trois propriétés la décrivent.
+
+\begin{proposition}[Propriété de pile]\label{prop:t2o-pile}
+À tout instant, le contenu d'un cache LRU de $N$ places est l'ensemble des $N$ clés distinctes les plus récemment demandées. En particulier, le contenu à la capacité $N$ est inclus dans le contenu à toute capacité $N' > N$, sur la même suite~\cite{mattson1970}.
+\end{proposition}
+
+\begin{proof}
+Récurrence sur les demandes. Une demande de $z$ fait de $z$ la plus récente ; si $z$ était parmi les $N$ plus récentes, l'ensemble ne change pas ; sinon c'est un défaut, et LRU évince la plus ancienne des présentes, qui est la $N$-ième plus récente avant la demande et devient la $(N{+}1)$-ième après : le contenu reste l'ensemble des $N$ plus récentes. L'inclusion suit : les $N$ plus récentes sont parmi les $N'$ plus récentes.
+\end{proof}
+
+\begin{theoreme}[LRU est $N$-compétitif]\label{thm:t2o-competitif}
+Pour toute suite $\sigma$, $\mathrm{LRU}_N(\sigma) \le N\,\big(\mathrm{OPT}_N(\sigma) + 1\big)$, où $\mathrm{OPT}_N$ est le nombre de défauts de MIN~\cite{sleator1985}.
+\end{theoreme}
+
+\begin{proof}
+Découpons $\sigma$ en \emph{phases} : chaque phase est la plus longue suite de demandes, à partir de la fin de la précédente, qui ne contient que $N$ clés distinctes. (i) LRU fait au plus $N$ défauts par phase : une clé chargée pendant une phase n'est pas évincée avant la fin de la phase, car il faudrait pour cela $N$ autres clés distinctes demandées après son dernier usage, et la phase n'en contient que $N - 1$ autres. (ii) MIN fait au moins un défaut par phase, sauf peut-être la première : soit $p$ la première demande de la phase $j$ ; la suite qui va de la deuxième demande de la phase $j$ à la première de la phase $j+1$ contient les $N - 1$ autres clés de la phase $j$ et la clé nouvelle qui ouvre la phase $j+1$, soit $N$ clés distinctes, toutes différentes de $p$. Juste après avoir servi $p$, MIN tient $p$ et $N - 1$ autres clés ; servir $N$ clés distinctes de $p$ lui coûte au moins un défaut. Ces suites sont disjointes d'une phase à l'autre. Avec $P$ phases, $\mathrm{LRU} \le N P$ et $\mathrm{OPT} \ge P - 1$.
+\end{proof}
+
+\paragraph{Le pire cas.} La borne est atteinte : sur la suite cyclique $1, 2, \ldots, N+1, 1, 2, \ldots$, LRU évince toujours la clé qui sera demandée juste après, et fait un défaut à chaque demande ; MIN n'en fait qu'un toutes les $N$ demandes. La section suivante montre que \textbf{le flux des experts d'un MoE, servi par un cache unique pour toutes les couches, est exactement de cette forme}.
+
+% =====================================================================================
+\section{Le cache de troncons, et pourquoi il égale ses simulateurs}\label{sec:t2o-trc-cache}
+
+\subsection{L'interface}
+
+Le crate \texttt{trc-cache} (Rust, sans dépendance) porte le cache à deux étages et sa politique (\cref{tab:t2o-interface}) : la VRAM tient des experts décodés, l'étage RAM tiède (mode A) des tronçons codés en mémoire épinglée. Le simulateur \texttt{rejouer} est \emph{le code même} du moteur, appelé sur une trace de routage, ce qui rend possible le témoin « compte du moteur égal au compte du simulateur, à l'unité ».
+
+\begin{table}[ht]
+\centering\small
+\caption[L'interface du cache]{L'interface du cache de troncons (couture A), et ce que l'ordonnanceur fait de chaque décision.}
+\label{tab:t2o-interface}
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+\toprule
+Élément & Rôle \\
+\midrule
+\texttt{demander(couche, experts, t)} & épingle le groupe, puis rend une décision par expert, dans l'ordre du routeur \\
+\texttt{Succes \{emplacement\}} & l'expert est (ou sera, s'il est en vol) dans cet emplacement : la GEMV le lit \\
+\texttt{DefautRam \{emplacement, tiede\}} & le tronçon codé est déjà en mémoire épinglée : copie, décodage \\
+\texttt{DefautDisque \{emplacement, tiede\}} & lecture du disque (dans l'entrée tiède ou un tampon d'arrivée), copie, décodage \\
+\texttt{pret(emplacement)} & le décodage est fini : En vol $\to$ Présent \\
+\texttt{liberer(couche)} & fin des GEMV de la couche : ses experts sont désépinglés \\
+\texttt{Compteurs} & \texttt{succes\_vram + succes\_ram + defauts\_disque} = accès ; octets, évictions \\
+\texttt{rejouer(trace, N, tièdes, ...)} & le simulateur : même code, appelé sur une trace \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Deux règles d'éviction, un seul résultat}
+
+Les simulateurs de référence n'évincent pas au même moment que le moteur. Celui de la mesure gpt-oss (règle « B », comme le cache de llama.cpp) sert tout le groupe, puis évince jusqu'à revenir à $N$ ; celui de troncons et de l'étude de chargement (règle « P ») épingle le groupe et évince à chaque défaut. Il faut montrer qu'ils comptent la même chose. Notations : un groupe $G = (x_1, \ldots, x_k)$ de clés distinctes servies dans cet ordre ; $S$ le contenu, ordonné du plus ancien au plus récent ; $N \ge k$.
+
+\begin{lemme}[Deux règles, un seul résultat]\label{lem:t2o-regles}
+Partant du même contenu $S_0$, les règles B et P donnent les mêmes succès, dans le même ordre, et le même contenu final, dans le même ordre.
+\end{lemme}
+
+\begin{proof}
+\emph{Succès.} En B, rien ne sort pendant le service : $x_i$ est un succès si et seulement si $x_i \in S_0$. En P, aucun élément de $G$ ne sort (épinglé) et rien n'entre sauf des éléments de $G$ ; les $x_i$ étant distincts, $x_i$ n'a pas été ajouté avant le pas $i$ ; donc $x_i \in S$ au pas $i$ si et seulement si $x_i \in S_0$.
+\emph{Ordre des autres.} Seuls les éléments de $G$ bougent ; ceux de $S_0 \setminus G$ gardent leur ordre dans les deux règles.
+\emph{Évictions de P.} Une fois $S$ plein, il le reste ; chaque défaut à $S$ plein retire le plus ancien de $S \setminus G$ : P retire donc les $m$ plus anciens de $S_0 \setminus G$, avec $m = \max(0, |S_0| + d - N)$ et $d$ le nombre de défauts. Il existe toujours un candidat : si $S$ était plein et inclus dans $G$ au moment d'un défaut, on aurait $N = |S| \le k - 1$ (le défaut courant n'est pas encore dans $S$), contraire à $N \ge k$.
+\emph{Évictions de B.} Après le service, tous les éléments de $G$ sont en fin ; $|S| = |S_0| + d$ ; les plus anciens sont ceux de $S_0 \setminus G$ dans leur ordre ; B en retire $m = |S_0| + d - N \le |S_0| + d - k = |S_0 \setminus G|$ (car $d = k - |G \cap S_0|$) : exactement les $m$ plus anciens de $S_0 \setminus G$.
+\emph{Ordre de $G$.} Dans les deux règles, les éléments de $G$ finissent en queue, dans l'ordre de service.
+\end{proof}
+
+La même démonstration vaut pour Belady en remplaçant « le plus ancien » par « le plus grand prochain usage » : la clé d'un élément de $S_0 \setminus G$ ne change pas pendant le groupe (il n'est pas servi). \textbf{Corollaire} : à chaque frontière de groupe, un LRU à règle P contient les $N$ identifiants distincts les plus récemment servis.
+
+\subsection{L'étage RAM inclusif}
+
+\begin{lemme}[L'étage RAM égale un cache unique de sa taille]\label{lem:t2o-etages}
+Soit un étage VRAM de $V$ emplacements qui décide seul, et un étage RAM de $R \ge V$ entrées qui reçoit \texttt{acceder} pour tout accès à une clé qu'il contient (succès VRAM compris) et \texttt{inserer} pour toute lecture du disque, et qui épingle le groupe. Avec LRU : les succès VRAM sont ceux d'un LRU seul de $V$ emplacements, et les succès VRAM plus RAM ceux d'un LRU seul de $R$ emplacements.
+\end{lemme}
+
+\begin{proof}
+La VRAM évolue comme un cache seul (ses décisions ne lisent pas la RAM). Pour la RAM, il suffit de montrer qu'elle reçoit les mêmes appels qu'un LRU seul de $R$ emplacements, ce qui ne peut manquer que sur un succès VRAM dont la clé serait absente de la RAM. Récurrence sur les groupes : si la RAM a évolué comme un LRU seul jusqu'à la frontière, le corollaire du \cref{lem:t2o-regles} donne VRAM$_0$ = les $V$ plus récents $\subseteq$ les $R$ plus récents = RAM$_0$. Pendant le groupe, un succès VRAM $x_i$ est dans VRAM$_0 \subseteq$ RAM$_0$, et la RAM n'évince pas les éléments du groupe (épinglés) : $x_i$ y est encore, et la RAM fait \texttt{acceder} comme le ferait le LRU seul. Un défaut VRAM est, pour la RAM, un succès ou un défaut, comme pour le LRU seul.
+\end{proof}
+
+C'est exactement le modèle « deux étages » des plafonds (\cref{fig:t2o-etages}) : $h_v = h(V)$, $h_r = h(R) - h(V)$, défauts $1 - h(R)$ ; le moteur se comporte comme l'équation qui a fixé ses seuils. Pour Belady, la même conclusion suit de la propriété de pile de MIN~\cite{mattson1970} ; avec la règle de groupe et l'épinglage, elle n'est pas démontrée ici, seulement vérifiée sur 20 configurations (graines 100 à 103, $(V, R) \in \{(8, 8), (8, 20), (16, 40), (30, 90), (12, 160)\}$).
+
+\begin{figure}[ht]
+\centering
+\SchemaCchEtages
+\caption[Les deux étages du cache]{Les deux étages du cache sur le même flux : à chaque frontière de groupe, la VRAM tient les $V$ clés les plus récentes, la RAM les $R$ plus récentes, et la première est incluse dans la seconde (\cref{lem:t2o-etages}).}
+\label{fig:t2o-etages}
+\end{figure}
+
+\subsection{Le témoin O1}
+
+Quatre chemins, chacun comparé \emph{à l'unité} (succès entiers ; un taux publié par un outil Python est reconverti en entier, et l'outil vérifie que $n/\text{accès}$ redonne le flottant publié au bit près) : \cref{tab:t2o-o1}.
+
+\begin{table}[ht]
+\centering\small
+\caption[Le témoin O1]{Le témoin O1 : le simulateur de troncons contre les simulateurs de référence \mes. Traces synthétiques : $T = 4\,000$ jetons, $L = 4$, $E = 128$, $k = 8$, graine 20261015.}
+\label{tab:t2o-o1}
+\begin{tabularx}{\linewidth}{@{}lXrrr@{}}
+\toprule
+Chemin & Contre & comparaisons & écarts & sous cassure \\
+\midrule
+P1 & \texttt{cache\_lru}, \texttt{cache\_belady} de l'étude de chargement, couche par couche ; uniforme, figée, collante ; $C \in \{8, 16, 32, 64\}$ & 96 & 0 & 48 \\
+P2 & \texttt{g\_lru}, \texttt{g\_belady} (cache global) ; $N \in \{8, 31, 32, 51, 128, 205\}$ & 36 & 0 & 22 \\
+P3 & \texttt{g\_lru} à $V$ et à $R$ (deux étages) ; $(V, R) \in \{(8, 32), (16, 64), (32, 32), (51, 205)\}$ & 24 & 0 & 12 \\
+P4 & taux publiés sur 12 traces réelles de gpt-oss-20b, budgets 5 à 40\,\% & 352 & 0 & 308 \\
+\midrule
+ & \textbf{total} & \textbf{508} & \textbf{0} & \textbf{390} \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{moteur/O-pour-le-memoire.md}, partie I ; \fichier{mesures/moteur/O/journaux/temoin-o1.json}, \fichier{temoin-o1-casse.json}.}
+\end{table}
+
+Le témoin compare des \emph{règles}, pas des vitesses : il prouve que \texttt{rejouer} et les simulateurs Python appliquent la même règle. Il ne dit pas que cette règle est celle de llama.cpp, qui en diffère par l'ordre des défauts d'un même groupe (4 et 5 succès d'écart, mesurés par la réplique \texttt{g\_lru\_llama}, \cref{sec:t2o-localite}). Neuf cassures des témoins unitaires tombent toutes, et la copie restaurée tient (\fichier{mesures/moteur/O/journaux/tests-casses.txt}).
+
+% =====================================================================================
+\section{La falaise du LRU partagé}\label{sec:t2o-falaise}
+
+Le cache de llama.cpp, comme la plupart des propositions publiées, partage un seul LRU entre toutes les couches. Ce choix a une conséquence qu'on démontre, et qui ne dépend pas du texte.
+
+\begin{proposition}[Le seuil et le plateau du LRU partagé]\label{prop:t2o-falaise}
+Un cache LRU de $N$ emplacements sert le flux des groupes d'un MoE à $L$ couches et $k$ experts distincts par couche, les accès d'un groupe étant jugés contre le contenu avant toute éviction. Pour tout routage :
+\begin{enumerate}
+\item si $N \le (L-1)\,k$, le LRU partagé n'a \textbf{aucun succès} ;
+\item si $N \ge L\,k$, toute réutilisation adjacente (un expert demandé au jeton $t$ et au jeton $t+1$, même couche) est un succès, donc le taux de succès sur les jetons $t \ge 1$ est au moins la réutilisation adjacente moyenne $\bar r$ ;
+\item si $N = L\,k$ exactement, un succès est une réutilisation adjacente et seulement elle : le taux vaut $\bar r$ exactement sur les jetons $t \ge 1$, soit $\bar r\,(T-1)/T$ sur tous les accès de $T$ jetons.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+Soit la clé $(\ell, e)$ demandée au jeton $t+1$. Le rang de récence d'une clé est sa place dans l'ordre des derniers usages (1 = la plus récente) ; par la \cref{prop:t2o-pile} et le corollaire du \cref{lem:t2o-regles}, au moment de juger un groupe, le cache tient exactement les clés de rang $\le N$.
+(i) Le dernier usage de $(\ell, e)$ date au plus tard du jeton $t$, à la couche $\ell$. Entre ce dernier usage et le jugement du groupe $(t+1, \ell)$, le flux a servi au moins les groupes $(t, \ell+1), \ldots, (t, L-1), (t+1, 0), \ldots, (t+1, \ell-1)$ : $L - 1$ groupes de $k$ clés distinctes, toutes d'autres couches que $\ell$, donc distinctes entre elles et de $(\ell, e)$. Son rang est au moins $(L-1)k + 1 > N$ : elle n'est plus dans le cache, et c'est un défaut.
+(ii) Si $(\ell, e)$ a servi au jeton $t$, les clés plus récentes qu'elle au moment du jugement sont au plus les $(L-1)k$ clés ci-dessus et au plus $k - 1$ clés de son propre groupe $(t, \ell)$ : rang $\le Lk \le N$, elle est dans le cache.
+(iii) Si $(\ell, e)$ n'a pas servi au jeton $t$, son dernier usage date au plus tard du jeton $t - 1$ ; entre lui et le jugement de $(t+1, \ell)$, le flux a servi tout le jeton $t$ : $L$ groupes, $Lk$ clés distinctes, toutes différentes de $(\ell, e)$ (celles de la couche $\ell$ au jeton $t$ ne la contiennent pas, celles des autres couches ont une autre couche). Son rang est au moins $Lk + 1 > N$ : défaut. Avec (ii), à $N = Lk$, succès équivaut à réutilisation adjacente. Rapporté à tous les accès (le jeton 0 n'a que des défauts), la valeur exacte est $\bar r\,(T-1)/T$.
+\end{proof}
+
+\begin{corollaire}[Le seuil en fraction des experts]\label{cor:t2o-fraction}
+Avec $f = N/(LE)$, le LRU partagé est nul pour $f \le \frac{L-1}{L}\cdot\frac{k}{E}$ et vaut au moins $\bar r$ pour $f \ge k/E$. gpt-oss-20b : nul jusqu'à 11,98\,\%, au moins $\bar r$ dès 12,5\,\% ; gpt-oss-120b : nul jusqu'à 3,04\,\%, au moins $\bar r$ dès 3,125\,\%.
+\end{corollaire}
+
+La \cref{fig:t2o-anneau} dessine la démonstration : un jeton est un tour d'un anneau de $L$ secteurs de $k$ accès ; entre deux demandes possibles d'un même expert passent $(L-1)k$ accès distincts. C'est la suite cyclique, pire cas de LRU (\cref{sec:t2o-lru}), que le calcul d'un MoE produit de lui-même. Le point (i) a été démontré deux fois le même jour, indépendamment : par l'ingénieur du lot O (son lemme 3, « la falaise », avec son témoin unitaire) et par l'agent de mesure gpt-oss (sa proposition 1, qui ajoute (ii) et (iii)).
+
+\begin{figure}[ht]
+\centering
+\SchemaCchAnneau
+\caption[La falaise du LRU partagé]{Le flux des accès comme un anneau : un tour est un jeton, chaque secteur une couche de $k$ accès. L'expert $x$ servi en $(t, \ell)$ ne peut revenir qu'en $(t+1, \ell)$, après $(L-1)k$ accès distincts ; un LRU de $N \le (L-1)k$ emplacements, qui ne garde que les $N$ plus récents, l'a déjà évincé.}
+\label{fig:t2o-anneau}
+\end{figure}
+
+\paragraph{Mesuré.} Sur les quatre lectures de gpt-oss-20b ($L = 24$, $k = 4$ : $(L-1)k = 92$, $Lk = 96$), LRU rend \textbf{0 succès sur 1\,024\,224 accès jusqu'à $N = 92$ inclus}, 9,3\,\% à 93, 34,8\,\% à 95, \textbf{50,26\,\% à 96} ; Belady, à 92, en sert 66,4\,\% \mes~(\cref{fig:t2o-falaise}). Le plateau qui suit est la valeur exacte de (iii) : $\bar r\,(T-1)/T = 0{,}5026$. Le témoin aux capacités exactes du seuil (déclaré avant le calcul ; l'outil s'arrête s'il tombe) vérifie, sur les \textbf{17 traces réelles des deux modèles}, le zéro à $(L-1)k$ et l'égalité (iii) au succès près (écart inférieur à $10^{-10}$ accès, l'arrondi de deux ordres de sommation ; égalité au bit sur 11 traces) \mes~(\cref{fig:t2o-prop}). Sa cassure (le zéro attendu à $(L-1)k + 1$) le fait tomber : LRU(93) = 0,0972.
+
+\begin{figure}[ht]
+\centering
+\GrapheCchFalaise
+\caption[La falaise mesurée]{Taux de succès d'un cache partagé selon le nombre d'emplacements, LRU et Belady, sur les quatre lectures de gpt-oss-20b (10\,669 jetons). LRU est nul jusqu'à 92, saute à la réutilisation adjacente à 96, puis reste sur un plateau.}
+\sourcefig{\fichier{mesures/moteur/O/csv/falaise-20b-dense.csv} (trace \texttt{t20b.tous.lecture}).}
+\label{fig:t2o-falaise}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\GrapheCchProp
+\caption[La proposition vérifiée sur 17 traces]{La \cref{prop:t2o-falaise} sur les 17 traces réelles (10 du 20b, 7 du 120b ; lecture et génération) : à $N = Lk$, le succès mesuré tombe sur la diagonale $\bar r\,(T-1)/T$ ; à $N = (L-1)k$, il est nul partout.}
+\sourcefig{\fichier{memoire/figures/tome2/donnees/t2o-prop1.csv}, tiré de \fichier{mesures/localite-gpt-oss/20b/localite-gpt-oss-20b.json} et \fichier{120b/localite-gpt-oss-120b.json} (champs \texttt{seuil\_lru\_partage}, \texttt{seuil\_borne\_ii}).}
+\label{fig:t2o-prop}
+\end{figure}
+
+\paragraph{Au-delà de la falaise, un plateau.} De $N = 96$ à 120, LRU ne gagne que 0,12 point (50,26 $\to$ 50,37\,\%), Belady 6,8 points. La raison est celle de (iii) : un expert de la couche $\ell$ absent du jeton $t$ a encore devant lui, à son jugement, tout le jeton $t$ et les clés des autres couches servies depuis son dernier usage ; les emplacements en plus de $Lk$ gardent les experts non réutilisés des couches servies depuis le plus longtemps, qui sortent avant que leur couche ne revienne.
+
+\paragraph{Ce que cela dit au moteur.} Pour gpt-oss-120b, $(L-1)k = 140$ emplacements de 13\,254\,144\,o, soit \textbf{1\,855\,580\,160\,o (1,73\,Gio)} de VRAM au-dessous desquels LRU ne sert rien \calc. La VRAM de J1 (326 emplacements, environ 4,3\,Go) est bien au-dessus ; mais toute « fenêtre minimale » qui ferait descendre le cache sous 1,86\,Go avec LRU paierait $h = 0$, là où l'optimum hors ligne en garde encore les deux tiers. Et être au-dessus du seuil ne suffit pas : sur la génération réelle du 120b, au budget du cache de llama.cpp (323 emplacements), un ensemble fixe d'experts bat son LRU (0,500 contre 0,392) et Belady atteint 0,685 (\fichier{mesures/localite-gpt-oss/cache-base-contre-optimum.json}) : 29 points de succès à prendre par une meilleure politique avant tout gain de format.
+
+% =====================================================================================
+\section{La localité de gpt-oss}\label{sec:t2o-localite}
+
+Les traces sont celles de la mesure gpt-oss : 10\,669 jetons de lecture par modèle, en quatre genres (prose anglaise et française, dialogue, code), relevés par le même moteur que la base llama.cpp (\fichier{mesures/gpt-oss.md} § 4). Deux témoins les garantissent : un second chemin du top-$k$ (notre tri sur les scores du routeur) ne trouve aucun désaccord sur 345\,336 choix (20b) et 444\,276 (120b) ; et la réplique de la règle du cache de llama.cpp (\texttt{g\_lru\_llama} : succès touchés dans l'ordre du score, défauts triés par numéro, emplacement le moins récemment utilisé) retrouve \textbf{exactement} le bilan que llama.cpp publie dans la même exécution : 20\,373 succès sur 24\,576 et 88\,443 sur 98\,304 (20b), 14\,446 sur 36\,864 (120b) ; avec 322 emplacements au lieu de 323, le témoin tombe (témoin G5) \mes.
+
+\subsection{Réutilisation : popularité et récence}
+
+\begin{table}[ht]
+\centering\small
+\caption[La réutilisation d'un jeton au suivant]{Part des $k$ experts d'un jeton déjà choisis par le jeton précédent, même couche, moyenne des couches, quatre genres en lecture \mes. Le « hasard à popularité réelle » tire chaque jeton indépendamment, avec la fréquence mesurée de chaque expert.}
+\label{tab:t2o-reutilisation}
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+Modèle & jetons & $\bar r$ mesurée & hasard uniforme $k/E$ & hasard à popularité réelle & écart en $\sigma$ \\
+\midrule
+gpt-oss-20b & 10\,669 & \textbf{0,503} & 0,125 & 0,310 & +422 \\
+gpt-oss-120b & 10\,669 & \textbf{0,312} & 0,031 & 0,131 & +664 \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/gpt-oss.md} § 6.1, § 6.2 ; \fichier{mesures/localite-gpt-oss/figures/reutilisation-gpt-oss-*.csv}.}
+\end{table}
+
+La réutilisation se décompose en deux termes (\cref{tab:t2o-reutilisation}). La \textbf{popularité} (certains experts servent plus que d'autres) la porte de 0,125 à 0,31 sur le 20b ; la \textbf{récence} (le jeton suivant reprend les experts du précédent), de 0,31 à 0,50. Le témoin G4 le prouve : mélanger l'ordre des jetons ramène la réutilisation au hasard à popularité réelle (0,309 contre 0,310), donc le second terme tient à l'ordre du texte. Sur le 120b, dix fois le hasard uniforme. Par couche, la réutilisation croît avec la profondeur : de 0,14 (couche 0) à 0,53 (couche 35) sur le 120b, de 0,23 à 0,66 sur le 20b.
+
+\subsection{Les politiques}
+
+\begin{figure}[ht]
+\centering
+\GrapheCchSucces
+\caption[Succès selon le budget, cinq politiques]{Taux de succès d'un cache partagé selon son budget (part des experts), quatre genres en lecture. Sur le 20b, LRU est nul à 5 et 10\,\% (sous la falaise, 11,98\,\%) ; sur le 120b, la falaise est à 3,04\,\%, sous le premier budget tracé.}
+\sourcefig{\fichier{mesures/localite-gpt-oss/figures/succes-gpt-oss-20b-lecture.csv} et \fichier{succes-gpt-oss-120b-lecture.csv}.}
+\label{fig:t2o-succes}
+\end{figure}
+
+Cinq faits ressortent (\cref{fig:t2o-succes} ; \fichier{mesures/gpt-oss.md} § 6) :
+\begin{enumerate}
+\item \textbf{La localité est forte} : à 20\,\% des experts, Belady sert 81\,\% (20b) et 90\,\% (120b) des accès, LRU 60 et 78\,\%, quand un routage sans localité en servirait 20\,\%. L'hypothèse uniforme des études antérieures sous-estimait le cache d'un facteur 3 à 4 sur la part servie.
+\item \textbf{L'écart à Belady est grand} (0,60 contre 0,81 à 20\,\% sur le 20b) : c'est la marge d'un prédicteur parfait.
+\item \textbf{Partager le budget ne profite qu'à une bonne politique} : sur le 120b, Belady partagé bat Belady par couche à tout budget (0,632 contre 0,508 à 5\,\%), mais LRU partagé reste sous LRU par couche jusqu'à 15\,\% (0,333 contre 0,384 à 5\,\%) : le flux cyclique lui coûte même au-dessus du seuil.
+\item \textbf{Un ensemble choisi hors ligne ne voyage pas} : l'épinglage calibré sur le début d'une trace s'effondre quand le genre change (0,147 à 10\,\% sur le 120b, contre 0,37 à 0,64 dans chaque genre pris seul).
+\item \textbf{Le routage dépend du chemin de calcul} : sur le 120b, carte contre processeur, 81,1\,\% de choix identiques seulement, et le premier écart arrive au 3\textsuperscript{e} jeton. Une trace vaut pour son chemin, et la justesse d'un prédicteur d'experts a un plafond fixé par ce bruit.
+\end{enumerate}
+
+\paragraph{Ce que la localité vaut en jetons par seconde.} Avec les débits mesurés de la machine (VRAM 251,3\,Go/s, PCIe 12,2\,Go/s, disque 2,82\,Go/s en blocs de 16\,Mio), un expert valant les octets d'origine, et le modèle à deux étages du \cref{lem:t2o-etages} (VRAM à 7\,\% des experts, $h_v = 0{,}449$ ; budget total 20\,\%, LRU, $h = 0{,}777$), le temps d'un jeton recouvert se pose ainsi \calc :
+\begin{gather*}
+\text{VRAM : } \frac{1{,}686 + 0{,}449 \times 1{,}909}{251{,}3} = 10{,}1~\text{ms}, \qquad
+\text{PCIe : } \frac{0{,}551 \times 1{,}909}{12{,}2} = 86{,}2~\text{ms}, \\
+\text{disque : } \frac{0{,}223 \times 1{,}909}{2{,}82} = 151~\text{ms}.
+\end{gather*}
+Le maximum, 151\,ms, donne 6,6 jetons/s ; le disque borne. Tout facteur de compression $c$ des experts \emph{en transit} divise les termes du disque et de la PCIe par $c$ : à $c = 2$, $\max(10{,}1 ; 43{,}1 ; 75{,}5) = 75{,}5$\,ms, soit 13,2 jetons/s, tant que le décodage sur la carte suit (\fichier{mesures/gpt-oss.md} § 8.3). C'est le levier de troncons, chiffré.
+
+% =====================================================================================
+\section{L'ordonnanceur à la demande}\label{sec:t2o-ordo}
+
+\subsection{Le chemin d'un jeton}
+
+Le moteur de J1 (\texttt{trc-ordo}) sert chaque couche à la demande, sans préchargement (\cref{fig:t2o-flux}). Trois flux CUDA : \textbf{calcul} (priorité haute), \textbf{copie}, \textbf{décodage}. Pour chaque couche $\ell$, le flux de calcul fait l'attention puis le routeur, qui écrit les $k$ indices et leurs poids dans une \textbf{boîte aux lettres} en mémoire projetée (mot 0 : un numéro de séquence écrit en dernier, après une barrière ; mots 1 à $k$ : les indices ; $k+1$ à $2k$ : les poids). L'hôte attend l'événement « routeur $\ell$ », vérifie la séquence, lit les indices et appelle \texttt{demander}. Chaque défaut devient une lecture sans tampon par IOCP dans un tampon d'arrivée épinglé ; dès qu'elle est finie, la copie part sur le flux de copie, puis le décodage sur le flux de décodage, qui écrit l'emplacement ; le flux de calcul attend l'événement « prêt » de chaque défaut, puis lance les quatre GEMV et la combinaison, dans l'ordre du routeur.
+
+\begin{figure}[ht]
+\centering
+\SchemaCchFlux
+\caption[Les trois flux, l'hôte et le disque]{Le chemin d'une couche dont deux experts manquent (schéma M1, tel que construit) : les flux ne se rencontrent que par des événements ; la boîte aux lettres porte les indices du routeur vers l'hôte.}
+\sourcefig{\fichier{moteur/crates/trc-ordo/src/lib.rs} (en-tête et \texttt{Moteur::pas}).}
+\label{fig:t2o-flux}
+\end{figure}
+
+\begin{lstlisting}[language=C, float=htbp, caption={[La décision d'une couche]La décision d'une couche dans \texttt{Moteur::pas} (\texttt{trc-ordo/src/lib.rs}, extrait) : attendre le routeur, vérifier la boîte, demander au cache.}, label=lst:t2o-pas]
+self.ev_routeur.enregistrer(&self.calcul)?;
+// Variante « evenement » de l'essai E0 c (18,5 us par synchronisation sous charge) :
+// on attend l'événement, puis on lit la boîte.
+self.ev_routeur.attendre()?;
+let lu = self.boite.lire_volatil_u32(0);
+if lu != seq {
+    bail!("couche {l} : boîte aux lettres à la séquence {lu}, {seq} attendue");
+}
+for i in 0..k {
+    let x = self.boite.lire_volatil_u32(4 * (1 + i));
+    if x as usize >= h.experts { bail!("couche {l} : expert {x} hors de [0, {})", h.experts); }
+    experts[i] = x as u16;
+}
+self.trace.extend_from_slice(&experts[..k]);          // la trace que rejouer relira
+let decisions = self.cache.demander(l as u16, &experts[..k], pas * l_n as u64 + l as u64);
+\end{lstlisting}
+
+\subsection{L'ordre est sûr}
+
+\begin{lemme}[L'ordre des trois flux est sûr]\label{lem:t2o-ordre}
+Dans \texttt{Moteur::pas}, aucun emplacement d'expert n'est lu par une GEMV pendant qu'un décodage l'écrit, et aucun tampon d'arrivée (épinglé ou en VRAM) n'est récrit avant que la copie ou le décodage qui le lisait soit fini.
+\end{lemme}
+
+\emph{Hypothèses.} (H1) Un flux CUDA exécute ses opérations dans l'ordre de leur mise en file, chacune après la fin de la précédente. (H2) \texttt{cuStreamWaitEvent(f, e)} fait attendre à toute opération mise ensuite sur $f$ la fin de tout ce que $e$ a capturé~\cite{nvidia2026driverstream}. (H3) L'hôte ne décide la couche $\ell$ (demander, soumettre, mettre en file) qu'après avoir vu fini l'événement « routeur $\ell$ », enregistré sur le flux de calcul juste après le routeur. (H4) Un expert demandé par la couche $\ell$ est épinglé jusqu'à \texttt{liberer($\ell$)}, appelé après la mise en file de la fin de la couche $\ell$ ; la victime d'une éviction n'est jamais épinglée ni en vol.
+
+\begin{proof}
+(a) \emph{Emplacements.} Soit $s$ un emplacement décodé pour la couche $\ell'$ et évincé par une demande de la couche $\ell$, plus tard dans le flux. Par (H4), l'éviction suit \texttt{liberer($\ell'$)}, donc la mise en file de la fin de $\ell'$ sur le flux de calcul ; le nouveau décodage dans $s$ est mis en file après la décision de $\ell$, donc, par (H3), après que l'hôte a vu fini le routeur de $\ell$. Comme ce routeur est mis en file après la fin de $\ell'$ sur le même flux, (H1) donne : toutes les GEMV qui lisaient $s$ sont finies quand le décodage commence. Réciproquement, les GEMV de $\ell$ qui lisent $s$ sont mises en file après l'attente de l'événement de son décodage (H2) : elles ne commencent qu'après sa fin.
+(b) \emph{Tampons d'arrivée.} Le tampon $i$ sert au plus une fois par couche ; sa réutilisation à la couche $\ell$ suit la décision de $\ell$, donc (H3, H1) la fin des couches précédentes, qui ont attendu (H2) les décodages de leurs défauts, qui ont attendu leurs copies. Les attentes explicites (copie après le décodage précédent du même tampon, lecture après la copie du même tampon épinglé) rendent ce point vrai sans (H3), ce qui le garde si un préchargement avance les défauts.
+\end{proof}
+
+\textbf{Coût} : une synchronisation de l'hôte par couche, 36 par jeton sur le 120b, 18,5\,µs chacune sous charge (essai E0 c du lot E), soit 0,67\,ms par jeton, 0,15\,\% des 457\,ms d'un jeton \calc.
+
+\subsection{Le moteur calcule ce que les noyaux ont validé, au bit}
+
+\begin{proposition}[Jeton par jeton égale couche par couche]\label{prop:t2o-ordre-calcul}
+Pour une suite de jetons et des poids donnés, les logits que rend le moteur (un jeton à la fois, toutes les couches) sont égaux au bit à ceux de la chaîne de validation des noyaux (une couche à la fois, toutes les positions), si les deux lancent les mêmes noyaux avec les mêmes arguments numériques.
+\end{proposition}
+
+\begin{proof}
+Par la règle de déterminisme de l'architecture (aucune addition atomique flottante, réductions à arbre fixe ne dépendant que des tailles), chaque noyau est une fonction déterministe des octets qu'il lit et de ses paramètres. On ordonne les calculs par (couche $\ell$, position $p$). Hypothèse de récurrence : pour tout $(\ell', p') < (\ell, p)$ dans l'ordre produit, le résidu en entrée de $(\ell', p')$ et la case $p'$ du cache KV de $\ell'$ sont égaux au bit dans les deux ordres. En $(\ell, p)$, les entrées sont : le résidu, sortie de $(\ell - 1, p)$, égal par récurrence ; les cases $q \le p$ du cache KV de $\ell$, écrites par $(\ell, q)$, égales par récurrence, et la case $p$ elle-même ; pour une couche à fenêtre, l'anneau de 128 contient au moment de la lecture exactement les positions $\max(0, p - 127) \ldots p$ dans les deux ordres ; les experts choisis sont ceux du routeur de $(\ell, p)$, calculé sur des entrées égales, et leurs emplacements portent les mêmes octets (format et transport exacts). Les mêmes noyaux rendent les mêmes bits.
+\end{proof}
+
+\textbf{Témoin O2} : 160 lignes sur 160 égales à la chaîne du lot K (KL, premier choix, écart relatif), KL moyenne $7{,}2794050122285915\cdot10^{-3}$ au chiffre près ; le chemin qui pose les experts du GGUF sans décodeur, 16 sur 16. Les cassures (position décalée de 1 ; experts 0 et 1 échangés à la couche 5) font différer toutes les lignes \mes~(\fichier{mesures/moteur/O/journaux/o2/}). Le témoin ne juge pas la justesse du modèle (c'est C4, au chapitre de la référence) : il juge que le moteur calcule \emph{exactement} ce que le lot K a validé.
+
+\begin{proposition}[C3 par construction : le cache n'entre pas dans le calcul]\label{prop:t2o-c3}
+Si deux fichiers (codé et brut) donnent, pour chaque expert, des emplacements égaux octet pour octet, le moteur rend les mêmes logits au bit sur toute suite de jetons, quels que soient le nombre d'emplacements, la politique du cache et l'ordre d'arrivée des lectures.
+\end{proposition}
+
+\begin{proof}
+Les GEMV d'un expert lisent son emplacement et le vecteur d'entrée ; l'emplacement porte, au moment de la lecture, les octets décodés de cet expert (\cref{lem:t2o-ordre}), égaux par hypothèse dans les deux fichiers. Le cache ne choisit que \emph{où} est un expert, jamais \emph{quels octets} il porte ; l'ordre de la combinaison est celui du routeur, pas celui des emplacements. Les autres entrées ne dépendent pas du fichier d'experts. La \cref{prop:t2o-ordre-calcul} conclut.
+\end{proof}
+
+\textbf{Mesuré} : sur le 20b, 5\,120 pas, 0 empreinte de logits différente, fichiers \texttt{.kld} égaux octet pour octet, perplexité égale (461,978277060145) ; les deux passes n'avaient pas le même nombre d'emplacements (362 et 361) ni donc la même suite de défauts : la partie « quel que soit le cache » est observée, pas seulement déduite. Sur le 120b, 5\,120 pas, 0 différence, perplexité 422,20558522791305 des deux côtés, avec 325 et 326 emplacements \mes.
+
+\begin{proposition}[Le compte du moteur égale le simulateur]\label{prop:t2o-compte}
+Le moteur appelle \texttt{trc-cache} dans l'ordre du simulateur : pour chaque jeton $t$ et chaque couche $\ell$, \texttt{demander($\ell$, $G(t,\ell)$, $tL + \ell$)}, \texttt{pret} sur chaque défaut dans l'ordre des décisions, puis \texttt{liberer($\ell$)}, et rien d'autre ne touche le cache en J1. \texttt{rejouer} fait la même suite sur la trace écrite par le moteur. Mêmes appels sur le même état initial : mêmes compteurs.
+\end{proposition}
+
+\textbf{Mesuré} : sur le 20b (5\,120 pas, 362 emplacements), \textbf{454\,210 succès, 37\,310 défauts, 36\,948 évictions des deux côtés} ($h = 0{,}924$) ; cassure (LRU faussé) : 427\,984 / 63\,536 / 63\,174. Sur le 120b (326 emplacements) : 334\,608 succès, 402\,672 défauts, 402\,346 évictions des deux côtés ($h = 0{,}454$) ; cassure : 289\,788 / 447\,492 \mes~(\fichier{moteur/REPRISE-O.md}, O3).
+
+\subsection{Le plancher en série, et ce que le moteur en fait}
+
+L'équation du jeton pose le temps d'un jeton servi en série comme la somme des étages. Avec les quantités mesurées dans la séance O4 (génération, 120b, mode A0, 326 emplacements, $h = 0{,}591$), le critère C5 se calcule pas à pas (\cref{tab:t2o-c5}).
+
+\begin{table}[ht]
+\centering\small
+\caption[Le plancher en série du 120b]{Le plancher en série du 120b, étage par étage, dans la séance O4 \calc~sur \mes.}
+\label{tab:t2o-c5}
+\begin{tabular}{@{}llr@{}}
+\toprule
+Étage & Formule & Valeur \\
+\midrule
+disque & octets de tronçons lus par jeton / débit du disque seul & $0{,}7072 / 1{,}848$ Go/s $=$ \textbf{382,7 ms} \\
+PCIe & temps de carte des copies par jeton (59 défauts, 1,28 ms chacun) & \textbf{75,8 ms} \\
+décodage & temps de carte des décodages par jeton (0,92 ms par expert) & \textbf{54,2 ms} \\
+GEMV & $(A + R)/235$ Go/s, $A = 1{,}686$ Go, $R = 144 \times 13{,}25$ Mo & \textbf{15,3 ms} \\
+$T_0$ & coût fixe & 3,5 ms \\
+\midrule
+somme & & \textbf{531,5 ms $\to$ 1,881 jeton/s} \\
+seuil C5 & $0{,}8 \times$ plancher & 1,505 jeton/s \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{moteur/O-pour-le-memoire.md} § 6.5 ; \fichier{mesures/moteur/O/journaux/o4/verdicts-2026-10-15-s1.json}.}
+\end{table}
+
+\textbf{Mesuré : 457\,ms par jeton, 2,186 et 2,182 jetons/s}, au-dessus du plancher \emph{en série} : les copies et décodages d'une couche se recouvrent avec les lectures des défauts suivants de la même couche. Le chronogramme d'une couche dont les quatre experts manquent (\cref{fig:t2o-chrono}) montre ce qui limite : le routeur finit à 0,61\,ms ; les quatre lectures, soumises à 1,28, 1,96, 2,68 et 3,18\,ms, finissent à 6,86, 9,81, 16,14 et 21,17\,ms. \textbf{Le disque les sert l'une après l'autre} (environ 5\,ms pour 12\,Mo, 2,4\,Go/s chacune) ; la profondeur 4 ne les fait pas avancer ensemble. Chaque copie (environ 1,0\,ms) et chaque décodage (0,85\,ms) suivent la lecture de leur tronçon sans attendre les autres, et la fin de la couche (23,73\,ms) suit le dernier décodage de 0,6\,ms. Avec 59 défauts sur 36 couches, 1,6 par couche en moyenne, le moteur tire 0,707\,Go en 457\,ms, 1,55\,Go/s utiles, contre 1,85\,Go/s pour le disque seul à profondeur 4 : \textbf{ce qui limite J1 est la profondeur de file par couche} ($\le k$), que seul un préchargement pourrait remplir.
+
+\begin{figure}[ht]
+\centering
+\GrapheCchChrono
+\caption[Le chronogramme mesuré d'une couche]{Le chronogramme mesuré d'une couche du 120b dont les quatre experts manquent (pas 8, couche 0) : de la soumission à la fin de chaque lecture, puis sa copie et son décodage ; en bas, le routeur et la fin de la couche.}
+\sourcefig{\fichier{memoire/figures/tome2/donnees/t2o-chrono-couche.csv}, tiré de \fichier{mesures/moteur/O/csv/chronogramme-120b.csv} (8 jetons, 1\,048 défauts datés).}
+\label{fig:t2o-chrono}
+\end{figure}
+
+% =====================================================================================
+\section{Le préremplissage par flux}\label{sec:t2o-flux}
+
+Dans la boucle de pas, une invite de $P$ positions lit $B_{\text{boucle}} = \sum_p\sum_\ell (1 - h_{p,\ell})\,k\,t$ octets, avec $t \approx 12{,}03$\,Mo le tronçon. Par flux, chaque couche passe toutes les positions par l'attention et le routeur, puis lit une fois chaque expert demandé par au moins une position : $B_{\text{flux}} = \sum_\ell |U_\ell \setminus V_\ell|\,t$, avec $U_\ell$ l'ensemble des experts choisis et $V_\ell$ ceux déjà en VRAM. Sous un routage uniforme, $\E|U_\ell| = E\,(1 - (1 - k/E)^P)$ ; pour $E = 128$, $k = 4$, $P = 708$, $(1 - 1/32)^{708} = e^{708\ln 0{,}96875} = e^{-22{,}5}$ : $U_\ell$ est tout l'ensemble, et $B_{\text{flux}} \le 36 \times 128 \times 12{,}03~\text{Mo} = 55{,}4$\,Go, contre $B_{\text{boucle}} \approx 708 \times 144 \times 0{,}55 \times 12{,}03~\text{Mo} \approx 675$\,Go \calc : un rapport d'environ 12. \textbf{Mesuré} : 26\,s au lieu de 7\,min\,36\,s, $\times 17{,}5$, aux débits moyens des passes \texttt{s2-11} à \texttt{s2-14} (27,15 contre 1,554\,jetons/s, \fichier{mesures/moteur/O/csv/o-jetons-s.csv} ; la note du lot O écrivait \barre{7\,min\,50\,s}, qui ne vient pas de ces passes) ; en plus des octets, la boucle paie une synchronisation par couche et par position, que le flux fait une fois par couche. L'exactitude suit de la \cref{prop:t2o-ordre-calcul} (l'ordre couche par couche est celui de la chaîne des noyaux) ; témoin F : 5\,120 empreintes égales à la boucle sur le 20b, et, refait par l'épreuve indépendante sur le 120b, des fichiers \texttt{.kld} égaux octet pour octet d'une construction à l'autre \mes.
+
+\paragraph{Un défaut démontré, puis corrigé.} Le préremplissage par flux confie au système jusqu'à huit lectures à la fois, dans un tourniquet de 12 tampons d'arrivée. Sa première règle prenait le tampon $s \bmod 12$ pour la $s$-ième lecture. Contre-exemple : que la lecture $s - 12$ reste dans le système (les achèvements arrivent dans le désordre) pendant que $s - 11, \ldots, s - 1$ passent et sont récoltées ; la liste des lectures en vol ne contient plus que $s - 12$, et $s$ est soumise dans le tampon $s \bmod 12 = (s - 12) \bmod 12$, que le disque écrit encore. Il suffit d'un retard d'environ $11 \times 6{,}6~\text{ms}/3 \approx 24$\,ms d'une lecture sur les autres \calc, et l'épreuve a relevé un 90\textsuperscript{e} centile de 172\,ms pour une lecture à froid.
+
+\begin{lemme}[Les tampons d'arrivée du préremplissage par flux]\label{lem:t2o-tampons}
+Avec la règle corrigée (le tampon du tourniquet s'il ne porte aucune lecture en vol, sinon le suivant qui n'en porte pas), aucune lecture n'écrit dans un tampon d'arrivée tant qu'une autre lecture y écrit, que la copie qui le lisait n'est pas finie, ou qu'un hachage de la garde le lit encore.
+\end{lemme}
+
+\begin{proof}
+Existence : au moment du choix, au plus $\min(dk, 2\cdot\text{profondeur}) - 1 = 7 < 12$ lectures sont en vol, donc un tampon libre existe. La copie : on attend l'événement de la copie précédente de ce tampon avant de soumettre (elle a été mise en file à sa récolte, donc avant). La garde : on attend la fin de son hachage avant toute soumission. Le tampon VRAM n'est récrit qu'après l'attente du décodage qui le lisait.
+\end{proof}
+
+Sous la charge de l'épreuve (sa passe numpy f64 du 120b en même temps), les dix fenêtres du 120b brut finissent en 361\,s avec 0 conflit évité : le cas ne s'est pas produit dans cette passe. La règle est démontrée ; que ce défaut soit la cause du blocage observé par l'épreuve (constat G1) reste une hypothèse, l'ancien binaire ayant lui aussi fini sous la même charge (\fichier{moteur/O-pour-le-memoire.md} § 14.1).
+
+% =====================================================================================
+\section{Le préchargement, essayé et abandonné}\label{sec:t2o-prechargement}
+
+\paragraph{Le mécanisme.} Après l'attention de la couche $\ell$, le moteur applique au résidu courant la norme et le routeur de $\ell + 1$ ; les experts prédits absents de la VRAM sont lus d'avance dans $2k$ tampons épinglés, hors du cache (dont le compte reste celui de \texttt{rejouer} ; les quatre textes de la série sont égaux). L'étude de chargement citait 96\,\% de prédictions justes une couche d'avance, \emph{littérature, non reproduite}.
+
+\paragraph{Le bilan, posé avant la mesure.} Une prédiction juste retire une lecture du chemin critique ; une fausse ajoute une lecture sur un disque qui limite déjà. Soit $p$ la part des prédictions servies et $f$ la part du temps d'un jeton que le recouvrement peut cacher (le calcul hors disque) ; le gain relatif vaut au premier ordre
+\begin{equation}\label{eq:t2o-bilan}
+\text{gain} \approx f - \frac{1 - p}{p}\cdot(\text{part du disque}).
+\end{equation}
+La prédiction déclarée (\fichier{moteur/REPRISE-O.md}) était d'au plus +19\,\% (les $457 - 383 = 74$\,ms de calcul hors disque, rapportées aux 383\,ms du disque) plus ce que la file plus profonde rendrait au disque ; cette prédiction ne comptait pas les lectures fausses.
+
+\paragraph{Mesuré} (séance \texttt{2026-10-16-s3}, A B B A, 120b, secteur) : 69,2\,\% des lectures anticipées servent (11\,529 sur 16\,670) ; les autres ajoutent 34\,\% d'octets lus (953 contre 710\,Mo par jeton) ; le calcul qu'elles peuvent recouvrir vaut environ 80\,ms par jeton, $f \approx 80/460 = 0{,}17$. Avec $p = 0{,}692$ et un disque qui porte environ 80\,\% du temps, le terme négatif de \eqref{eq:t2o-bilan} vaut $(0{,}308/0{,}692) \times 0{,}8 \approx 0{,}36$ et l'emporte sur $f$ : le premier ordre prédit une perte, de l'ordre de $0{,}17 - 0{,}36 \approx -0{,}19$ \calc. \textbf{Génération : A 2,158 et 2,178, B 1,935 et 1,924 jetons/s, soit $-11{,}0\,\%$}, pour un bruit de 0,9\,\% \mes~(refait ici depuis \fichier{mesures/moteur/O/csv/o-jetons-s.csv}). L'écart passe la règle de décision ($2 \times 0{,}9\,\% + 3\,\%$) : il est réel, et dans le mauvais sens, moindre que le premier ordre (la file plus profonde rend au disque une partie de ce que les lectures fausses lui prennent, ce que \eqref{eq:t2o-bilan} ne compte pas).
+
+\begin{enbref}[title={Ce qui est tué, et ce qui ne l'est pas}]
+Le préchargement par le routeur de la couche suivante est \textbf{abandonné pour ce prédicteur et ce disque} (chiffré par BitLocker, 1,8\,Go/s), pas en général. Par \eqref{eq:t2o-bilan}, il ne reviendrait qu'avec $p$ au-dessus d'environ 0,9, ou un disque qui ne limite pas. Un défaut a été trouvé en chemin et corrigé (l'achèvement de la couche en cours récolté pendant le vidage des préchargements).
+\end{enbref}
+
+\paragraph{Les lectures de 12\,Mio, non établies.} Lire chaque tronçon en une requête de 12\,Mio (au lieu de sa longueur exacte, de l'ordre de 12,0\,Mo) donne +30\,\% en médiane (A 2,179 et 2,182, B 2,613 et 3,073 jetons/s), chaque passe B au-dessus de chaque passe A ; mais le bruit de B, $\beta = 16{,}2\,\%$ (\barre{21\,\%} dans la note du lot O, écart rapporté à la moyenne de A), porte le seuil de la règle à $2 \times 16{,}2 + 3 = 35{,}4\,\%$, au-dessus du gain : la règle ne conclut pas en quatre passes. Le mécanisme supposé est la carte des deux régimes du disque relevée par le lot E ; la décision revient à l'arbitre.
+
+% =====================================================================================
+\section{La garde d'intégrité, et ce qu'elle coûte}\label{sec:t2o-garde}
+
+L'épreuve indépendante a montré qu'en production le moteur ne vérifiait pas les octets bruts d'un tronçon (médianes et biais, 0,36\,\% des octets, non codés par rANS) : une médiane corrompue donnait un expert faux sans erreur, et le texte produit était même identique (constat M1). La ronde de corrections a ajouté une \textbf{garde} : chaque lecture achevée est hachée par quatre fils (empreinte64, le préfixe de 64 bits de SHA-256~\cite{fips180-4}) et comparée au répertoire avant que le jeton ne sorte ; chaque ligne d'enchâssement lue est comparée à une table bâtie à l'ouverture.
+
+\begin{proposition}[Aucune sortie ne dépend d'un octet non vérifié]\label{prop:t2o-garde}
+Garde active, le jeton et les logits que rend un pas ne dépendent que d'octets lus dont l'empreinte égale celle du répertoire, à une collision du préfixe de 64 bits près (probabilité $2^{-64}$ par vérification, si SHA-256 se comporte comme une fonction aléatoire).
+\end{proposition}
+
+\begin{proof}
+Le décodeur et la copie ne lisent d'une partie que ses octets utiles ; chaque lecture achevée est confiée à la garde avant toute autre opération sur son tampon ; aucune lecture n'écrit ce tampon avant la fin du hachage (\cref{lem:t2o-tampons}), donc l'empreinte porte sur les octets que la copie a lus ; le pas attend tous les hachages avant de lire le jeton ou les logits, et une empreinte différente est une erreur fatale nommée. Une entrée tiède a été hachée à sa lecture ; une corruption de la RAM après coup n'est pas couverte.
+\end{proof}
+
+\textbf{Le coût, posé puis mesuré.} Un pas du 120b lit environ 0,71\,Go de tronçons ; l'empreinte va à 1,07 à 1,10\,Go/s par fil, mesuré (\fichier{mesures/moteur/O/corrections/journaux/debit-empreinte.jsonl} ; \barre{2\,Go/s par cœur}, estimé par l'épreuve). Il faut donc environ 0,65\,s de cœur par pas, étalées sur quatre fils (0,17\,s de mur, sous les 0,5\,s d'un pas) ; au chemin critique ne reste que le hachage de la dernière lecture, au plus $12{,}25~\text{Mo}/1{,}07~\text{Go/s} \approx 11{,}4$\,ms, moins le travail de carte qui la suit \calc. \textbf{Mesuré} : 5,2 à 5,4\,ms d'attente par jeton sur les quatre passes gardées ; à débit de disque égal (passes 04 et 05, à 1,715 et 1,708\,Go/s), $1{,}900152 / 1{,}931729 - 1 = $ \textbf{$-1{,}6\,\%$} \mes~(\fichier{mesures/moteur/O/corrections/csv/vitesse-2026-10-16-passes.csv}). La note du lot O écrivait \barre{5,2 à 5,3\,ms} (la passe 07, à 5,42\,ms, n'y était pas) et \barre{$-1{,}7\,\%$}, calculé sur les valeurs arrondies 1,900 et 1,932 (\cref{t2res-sec:garde}). La série déclarée dit $-12{,}3\,\%$ sous un seuil de 26,8\,\% (bruit 11,9\,\%), non réel : le disque a varié de 1,51 à 1,95\,Go/s pendant la séance. L'ouverture coûte 0,95\,s de plus (la table des lignes : 0,615\,Go lus et hachés), l'ensemble de travail 1,9\,Mo, le même pour les deux modèles.
+
+% =====================================================================================
+\section{Le moteur contre la base : le critère C6}\label{sec:t2o-c6}
+
+C6 demande que troncons batte la meilleure configuration mesurée de llama.cpp sur le 120b, même invite, 256 jetons gloutons, de plus de deux fois le plus grand bruit et de 3\,\% (règle de l'étude des modèles). Toute la difficulté est dans « la meilleure ». Son histoire se lit en barres (\cref{fig:t2o-vitesse}).
+
+\begin{figure}[ht]
+\centering
+\GrapheCchVitesse
+\caption[troncons contre llama.cpp balayé]{Génération sur gpt-oss-120b (256 jetons gloutons, invite wikitext de 708 jetons) : la base llama.cpp balayée par la ronde de corrections et troncons dans la séance de vitesse de la même ronde, le même jour, sur secteur. Moyenne des passes, barres de la plus petite à la plus grande ; trait pointillé : la meilleure base, \texttt{fit -t 16}.}
+\sourcefig{\fichier{memoire/figures/tome2/donnees/t2o-c6.csv}, tiré de \fichier{mesures/moteur/O/corrections/csv/base-2026-10-16-passes.csv} et \fichier{vitesse-2026-10-16-passes.csv}.}
+\label{fig:t2o-vitesse}
+\end{figure}
+
+\begin{itemize}
+\item \barre{$\times 3{,}85$} : J1 (2,184 jetons/s) contre \texttt{fit} à 6 fils (0,568), la base publiée par la mesure gpt-oss. Barré : la base était sous-réglée.
+\item \barre{$\times 2{,}79$ à $2{,}89$} : l'épreuve indépendante, contre \texttt{fit} à 10 fils (0,702 dans sa séance). Barré à son tour : l'épreuve n'avait pas essayé au-delà de 10 fils.
+\item \textbf{$\times 2{,}22$} : la ronde de corrections a balayé la base (séance du 2026-10-16 de 8\,h\,13 à 10\,h\,06, palindrome, une passe d'échauffement jetée, secteur à chaque passe, aucun processus étranger) : \texttt{fit -t 6} 0,574 ; \texttt{-t 10} 0,665 ; \texttt{-t 12} 0,836 (bruit 18,3\,\%) ; \textbf{\texttt{-t 16} 0,884} (0,900 et 0,867) ; \texttt{-ngl 99 -{}-n-cpu-moe 34 -{}-fit off -t 10} 0,640. La meilleure, \texttt{fit -t 16}, bat \texttt{-t 6} de 54\,\% : la base publiée sous-estimait llama.cpp de 54\,\%. Le mécanisme est celui que l'épreuve avait déclaré : sous mmap, chaque fil en faute de page est une lecture en vol ; 16 fils, c'est une file plus profonde sur le disque. troncons, \textbf{garde d'intégrité comprise}, fait 1,965 jeton/s (quatre passes de la séance de vitesse, bruit 10,97\,\%) : $1{,}965/0{,}884 = \mathbf{2{,}22}$, au-delà du seuil $2 \times 10{,}97\,\% + 3\,\% = 24{,}9\,\%$ \mes~(refait ici : 1,9649 et 0,8838). \textbf{C6 tient.}
+\end{itemize}
+
+Sans garde, troncons fait 2,054 jetons/s dans la même séance (deux passes) ; avec la garde et un cache KV en f32, 1,496, mais avec un autre texte (chapitre de la référence), donc sans comparaison possible. Le préremplissage par flux fait 26,6 jetons/s, contre 3,1 à 4,0 pour llama.cpp (par lots) : un facteur 7. Et la mémoire de pointe du moteur est de 384\,Mo, contre 10,9\,Go pour llama.cpp sur le même modèle (\fichier{moteur/O-pour-le-memoire.md} § 8). \textbf{La base peut encore être meilleure} : ni plus de 16 fils, ni \texttt{-{}-mlock}, ni d'autres \texttt{-{}-n-cpu-moe} n'ont été balayés.
+
+% =====================================================================================
+\section{Ce qui reste}\label{sec:t2o-reste}
+
+\begin{itemize}
+\item \textbf{Une politique consciente du cycle des couches.} La falaise et le plateau viennent de ce que LRU ignore que le flux revient à chaque couche une fois par jeton ; un LRU par couche, un SLRU, ou un LFU (0,47 à 10\,\% sur le 20b, là où LRU fait 0) font mieux sous le seuil, et il reste 29 points entre le LRU de llama.cpp et Belady sur la génération du 120b.
+\item \textbf{Un prédicteur plus juste} : le préchargement ne revient qu'au-dessus de $p \approx 0{,}9$ ; le routage dépendant du chemin de calcul (81,1\,\% d'accord carte contre processeur) borne ce qu'on peut espérer d'un prédicteur appris ailleurs.
+\item \textbf{La longueur des lectures} (12\,Mio, +30\,\% en médiane, non établi) et la profondeur de file par couche, ce qui limite vraiment J1.
+\item \textbf{La base} au-delà de 16 fils et avec \texttt{-{}-mlock}.
+\end{itemize}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{L'optimalité de Belady avec épinglage de groupe} n'est pas démontrée, seulement vérifiée (G3) ; de même le \cref{lem:t2o-etages} pour Belady. Belady est un oracle : ses chiffres sont des bornes.
+\item \textbf{Le témoin O1 compare des règles}, pas des chiffres de vitesse ; la règle du moteur diffère de celle de llama.cpp par l'ordre des défauts d'un groupe (4 et 5 succès d'écart).
+\item \textbf{La falaise dépend de l'épinglage du groupe et de $N \ge k$} ; un cache qui servirait les experts d'un jeton dans un autre ordre (préchargement) déplace le seuil.
+\item \textbf{La localité vient de 10\,669 jetons de quatre textes}, sans gabarit de conversation ; les générations relevées sont souvent dégénérées et gonflent la récence. Les traces sont celles du chemin de calcul de llama.cpp ; le moteur produit les siennes.
+\item \textbf{Le plancher de C5 compte la GEMV au débit d'une autre séance} (235\,Go/s) ; si la GEMV réelle est plus lente, le plancher est optimiste et le seuil trop haut : le verdict reste valable dans ce sens.
+\item \textbf{Le bilan du préchargement} \eqref{eq:t2o-bilan} est un premier ordre ; la mesure (A B B A, une séance) est ce qui tranche, et elle ne vaut que pour ce disque.
+\item \textbf{C6 compare deux séances du même jour} (base et vitesse) ; la séance de vitesse a vu le disque varier de 1,51 à 1,95\,Go/s, et le bruit de troncons (11\,\%) est grand. La base peut être meilleure que 0,884.
+\item \textbf{La cause du blocage G1} n'est pas établie ; le défaut des tampons d'arrivée est démontré possible, pas observé (0 conflit sous la charge rejouée).
+\item \textbf{La garde suppose SHA-256 sans collision utile} sur 64 bits ; elle ne couvre ni la RAM tiède après sa lecture, ni la VRAM. Son coût ($-1{,}6\,\%$) repose sur une paire de passes à disque égal.
+\end{itemize}
+\end{faux}

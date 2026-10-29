@@ -1,0 +1,513 @@
+% Tome~II, chapter \enquote{The cache, the scheduler and the engine} (writer reference-cache).
+% Sources: moteur/O-pour-le-memoire.md (parts I to III), moteur/REPRISE-O.md, mesures/gpt-oss.md
+% (§ 5 to 9), mesures/gpt-oss-pour-le-memoire.md, mesures/epreuve-J1.md, their logs and CSV files;
+% figures recomputed by memoire/outils/tome2_reference_cache.py.
+\ifdefined\GrapheCchFalaise\else\input{\Racine/figures/tome2/cache}\fi
+
+\chapter{The cache, the scheduler and the engine}\label{ch:t2-cache}
+
+\begin{origine}
+\textbf{At the start}, the architecture had fixed the interface of the expert cache (seam A) and a witness: the engine's simulator must equal, to the unit, those of the loading and measurement studies. troncons' speed ceiling was read off a single quantity, the hit rate $h$ of the cache, which earlier studies computed under uniform routing for lack of a real trace.
+\textbf{This chapter establishes} the theory and the measurement of the cache and of what surrounds it: the optimality of Belady's algorithm, proved; LRU, its stack property, its competitive bound and its worst case; troncons' cache, its rules and two lemmas that make it equal to the simulators; \textbf{the cliff of the shared LRU}: no hit below $(L-1)k$ slots, exactly the adjacent reuse at $Lk$, proved and checked to the hit on 17 real traces; the measured locality of gpt-oss-20b and 120b; the on-demand scheduler and the lemmas that make it safe, exact and equal to its simulator; streamed prefill, kept; prefetching, tried then abandoned on its worked-out balance; and the engine against the best-tuned baseline measured so far: \textbf{2.22 times llama.cpp}, integrity guard included.
+\textbf{What remains} is a policy aware of the layer cycle, a predictor more accurate than the next layer's router, the read length (12\,MiB), and a llama.cpp baseline swept beyond 16 threads.
+Sources: \fichier{moteur/O-pour-le-memoire.md}, \fichier{moteur/REPRISE-O.md}, \fichier{mesures/gpt-oss.md}, \fichier{mesures/epreuve-J1.md}, and the logs under \fichier{mesures/moteur/O/} and \fichier{mesures/localite-gpt-oss/}.
+\end{origine}
+
+\begin{enbref}
+\begin{itemize}
+\item Belady (evict what will be used latest) is optimal among all policies (\cref{thm:t2o-belady}); LRU makes at most $N$ times its misses, plus $N$ (\cref{thm:t2o-competitif}), and its worst case is a cycle over $N + 1$ keys.
+\item The expert stream of an MoE \emph{is} that cycle: an LRU shared between the $L$ layers has no hit below $(L-1)k$ slots, whatever the routing, and equals exactly the adjacent reuse at $Lk$ (\cref{prop:t2o-falaise}). On gpt-oss-20b: 0 hits out of 1\,024\,224 accesses at 92 slots, while Belady serves 66.4\,\%.
+\item gpt-oss is very local: a token reuses 50\,\% (20b) and 31\,\% (120b) of the previous token's experts, against 12.5 and 3.1\,\% at random.
+\item The scheduler is safe (\cref{lem:t2o-ordre}), computes to the bit what the kernels validated (\cref{prop:t2o-ordre-calcul}) and counts its misses like its simulator, to the unit (454\,210 hits, 37\,310 misses on both sides).
+\item Prefetching by the next layer's router costs 11\,\%: 69\,\% of its reads are used, the others add 34\,\% bytes to a disk that already limits.
+\item troncons: 1.965 tokens/s on the 120b, guard included, against 0.884 for the best measured llama.cpp configuration (\texttt{fit -t 16}); \barre{$\times 3.85$}, \barre{$\times 2.8$}, $\times 2.22$.
+\end{itemize}
+\end{enbref}
+
+% =====================================================================================
+\section{The expert-cache problem}\label{sec:t2o-probleme}
+
+A mixture of experts with $L$ layers, $E$ experts per layer and $k$ active experts per token (gpt-oss-120b: $L = 36$, $E = 128$, $k = 4$; gpt-oss-20b: $L = 24$, $E = 32$, $k = 4$) requests, at every token and every layer, a \textbf{group} of $k$ distinct identifiers (layer, expert). The request stream is the sequence of groups in compute order: $(t, 0), (t, 1), \ldots, (t, L-1), (t+1, 0), \ldots$ The GPU holds $N$ \textbf{slots} of decoded experts (13\,254\,144 bytes each for gpt-oss); a present expert is a \textbf{hit}; an absent expert is a \textbf{miss}, which costs a read of about 12\,MB from disk, a copy to the GPU and a decoding. The share $h$ of accesses served by the cache decides everything: at every token, the disk must deliver $(1 - h)$ times the routed bytes, $R = k\,L\,e = 1.909$\,GB for the 120b at original size (\fichier{mesures/gpt-oss.md} § 1).
+
+A \textbf{policy} chooses, at each miss of a full cache, the victim to evict. It is \emph{online} if it sees only the past, \emph{offline} if it knows the whole sequence. Two rules of troncons are added (\fichier{moteur/crates/trc-cache/src/lib.rs}): an expert requested by the current layer is \textbf{pinned} until its products are done (it is not evicted while it serves), and an \textbf{in-flight} slot (being written by the decoder) is never evicted. \Cref{fig:t2o-automate} gives the automaton of a slot.
+
+\begin{figure}[ht]
+\centering
+\SchemaCchAutomate
+\caption[The automaton of an expert slot]{The automaton of a VRAM slot of troncons' cache (diagram M5), and the RAM tier of mode A. In J2, the states will carry the level (base or exact) of the present expert.}
+\sourcefig{\fichier{moteur/crates/trc-cache/src/lib.rs} (header).}
+\label{fig:t2o-automate}
+\end{figure}
+
+% =====================================================================================
+\section{The offline optimum: Belady}\label{sec:t2o-belady}
+
+Let us begin with the bound that no policy can exceed. We first work in the classical model: a sequence of single requests $\sigma_1, \sigma_2, \ldots$ on a cache of $N$ places, and a \enquote{demand} policy (which loads only on a miss, evicting a single key).
+
+\begin{definition}[MIN, or Belady]\label{def:t2o-min}
+At each miss of a full cache, MIN evicts the present key whose \emph{next request is farthest away} (never: infinity; tie: the smallest key)~\cite{belady1966}.
+\end{definition}
+
+\begin{theoreme}[Optimality of MIN]\label{thm:t2o-belady}
+For every sequence $\sigma$ and every demand policy $A$ starting from the same content, MIN makes no more misses than $A$.
+\end{theoreme}
+
+\begin{proof}
+We build a sequence of policies $A = A_0, A_1, \ldots, A_n = \mathrm{MIN}$ such that $A_i$ takes the same decisions as MIN on the first $i$ requests and makes no more misses than $A_{i-1}$. Suppose $A_{i-1}$ built; it follows MIN up to request $i-1$, so both hold the same content before request $i$. If $A_{i-1}$ takes MIN's decision at request $i$, set $A_i = A_{i-1}$. Otherwise, at a miss, $A_{i-1}$ evicts $y$ while MIN evicts $x$, with $n_x \ge n_y$, where $n_z$ is the time of the next request of $z$. Define $A_i$: at request $i$ it evicts $x$; afterwards it imitates $A_{i-1}$, through three phases.
+
+\emph{Phase 1}: $A_i$ holds $D \cup \{y\}$ and $A_{i-1}$ holds $D \cup \{x\}$, with as many misses. On any request for a key of $D$ or a key absent from both, $A_i$ does as $A_{i-1}$ (same hit, or same miss and same victim), except if $A_{i-1}$ evicts $x$: then $A_i$ evicts $y$, and the two contents become equal. Before $n_x$ comes $n_y \le n_x$: at the request for $y$, $A_i$ hits and $A_{i-1}$ misses, evicting a key $w$. If $w = x$, the contents are equal and $A_i$ has one miss fewer. Otherwise we go to phase 2 with the pair $(w, x)$.
+
+\emph{Phase 2}: $A_i$ holds $D' \cup \{a\}$, $A_{i-1}$ holds $D' \cup \{x\}$, and $A_i$ has \emph{at least one miss fewer}. A request for $a$: hit for $A_i$, miss for $A_{i-1}$, which evicts $w'$; if $w' = x$ the contents become equal, otherwise the pair becomes $(w', x)$ and $A_i$'s lead grows. A request for $x$: miss for $A_i$, which evicts $a$ and loads $x$; the contents become equal and $A_i$ has lost at most the lead it had, so it still has no more misses. If $A_{i-1}$ evicts $x$ on another miss, $A_i$ evicts $a$: contents equal. Any other request is handled in the same way by both.
+
+\emph{Phase 0}: equal contents; $A_i$ imitates $A_{i-1}$ exactly.
+
+In all cases, $A_i$ makes no more misses than $A_{i-1}$ until the end, and follows MIN up to request $i$. It evicts only on a miss: it is a demand policy. By induction, $\mathrm{MIN} = A_n$ makes no more misses than $A$.
+\end{proof}
+
+\paragraph{What the theorem covers, and what it does not.} The engine serves \emph{groups} of $k$ pinned experts, not single requests. troncons' simulator applies MIN among the non-pinned keys (\fichier{moteur/crates/trc-cache/src/politiques.rs}); its optimality in that pinning model is not proved here. It is checked: on every real trace and every budget, Belady serves at least as much as LRU, LFU and static pinning (witness G3 of the gpt-oss measurement, no violation; the tool stops otherwise). Belady reads the future of the trace: its figures are \textbf{bounds}, not an engine policy.
+
+\paragraph{A defect the witness found.} The first version of the Belady policy looked up an expert's next use from a \enquote{now} updated by each access. But the cache chooses its victim \emph{before} inserting the miss: when the first expert of a group misses, \enquote{now} still holds the time of the previous group, and an expert served at that group seemed requested again immediately, so was never evicted. Witness O1 saw it: from 10 to 6\,646 fewer hits than the reference simulators, while LRU was exact everywhere \mes~(\fichier{mesures/moteur/O/journaux/temoin-o1-passe1-belady-faux.json}, kept). The next use is now computed at access time (\cref{lst:t2o-belady}): a present non-pinned key has not been served since its last access, so that figure stays right.
+
+\begin{lstlisting}[language=C, float=htbp, caption={[The next use in Belady]The next use in the Belady policy of \texttt{trc-cache} (\texttt{politiques.rs}): computed at access time, by binary search in the times at which the expert is requested ($t = \text{token}\cdot L + \text{layer}$). French comments: \enquote{the first use of id strictly after t}; \enquote{at each hit}; \enquote{victim: the non-pinned present key with the largest next use; tie: the smallest id}.}, label=lst:t2o-belady]
+/// Le premier usage de `id` strictement après `t` ; u64::MAX s'il n'y en a plus.
+fn prochain_apres(&self, id: Id, t: u64) -> u64 {
+    match self.usages.get(&id) {
+        None => u64::MAX,
+        Some(v) => {
+            let i = v.partition_point(|&x| x <= t);
+            v.get(i).copied().unwrap_or(u64::MAX)
+        }
+    }
+}
+fn acceder(&mut self, id: Id, t: u64) {        // à chaque succès
+    let p = self.prochain_apres(id, t);
+    self.prochain.insert(id, p);
+}
+// victime : le présent non épinglé de plus grand prochain usage ; égalité : le plus petit id.
+\end{lstlisting}
+
+% =====================================================================================
+\section{LRU: stack, competitive bound, worst case}\label{sec:t2o-lru}
+
+LRU evicts the key whose last use is oldest. It is the most common online policy, that of llama.cpp's expert cache, and troncons' in J1. Three properties describe it.
+
+\begin{proposition}[Stack property]\label{prop:t2o-pile}
+At any time, the content of an LRU cache of $N$ places is the set of the $N$ most recently requested distinct keys. In particular, the content at capacity $N$ is included in the content at any capacity $N' > N$, on the same sequence~\cite{mattson1970}.
+\end{proposition}
+
+\begin{proof}
+Induction on requests. A request for $z$ makes $z$ the most recent; if $z$ was among the $N$ most recent, the set does not change; otherwise it is a miss, and LRU evicts the oldest present key, which is the $N$-th most recent before the request and becomes the $(N{+}1)$-th after it: the content stays the set of the $N$ most recent. The inclusion follows: the $N$ most recent are among the $N'$ most recent.
+\end{proof}
+
+\begin{theoreme}[LRU is $N$-competitive]\label{thm:t2o-competitif}
+For every sequence $\sigma$, $\mathrm{LRU}_N(\sigma) \le N\,\big(\mathrm{OPT}_N(\sigma) + 1\big)$, where $\mathrm{OPT}_N$ is the number of misses of MIN~\cite{sleator1985}.
+\end{theoreme}
+
+\begin{proof}
+Cut $\sigma$ into \emph{phases}: each phase is the longest run of requests, from the end of the previous one, that contains only $N$ distinct keys. (i) LRU makes at most $N$ misses per phase: a key loaded during a phase is not evicted before the end of the phase, since that would require $N$ other distinct keys requested after its last use, and the phase contains only $N - 1$ others. (ii) MIN makes at least one miss per phase, except perhaps the first: let $p$ be the first request of phase $j$; the run from the second request of phase $j$ to the first of phase $j+1$ contains the $N - 1$ other keys of phase $j$ and the new key that opens phase $j+1$, i.e.\ $N$ distinct keys, all different from $p$. Right after serving $p$, MIN holds $p$ and $N - 1$ other keys; serving $N$ keys distinct from $p$ costs it at least one miss. These runs are disjoint from one phase to the next. With $P$ phases, $\mathrm{LRU} \le N P$ and $\mathrm{OPT} \ge P - 1$.
+\end{proof}
+
+\paragraph{The worst case.} The bound is reached: on the cyclic sequence $1, 2, \ldots, N+1, 1, 2, \ldots$, LRU always evicts the key that will be requested next, and misses on every request; MIN misses only once every $N$ requests. The next section shows that \textbf{the expert stream of an MoE, served by a single cache for all layers, has exactly that shape}.
+
+% =====================================================================================
+\section{troncons' cache, and why it equals its simulators}\label{sec:t2o-trc-cache}
+
+\subsection{The interface}
+
+The \texttt{trc-cache} crate (Rust, no dependency) holds the two-tier cache and its policy (\cref{tab:t2o-interface}): the VRAM holds decoded experts, the warm RAM tier (mode A) holds coded sections in pinned memory. The simulator \texttt{rejouer} is \emph{the very code} of the engine, called on a routing trace, which makes the witness \enquote{engine count equal to simulator count, to the unit} possible.
+
+\begin{table}[ht]
+\centering\small
+\caption[The interface of the cache]{The interface of troncons' cache (seam A), and what the scheduler does with each decision.}
+\label{tab:t2o-interface}
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+\toprule
+Element & Role \\
+\midrule
+\texttt{demander(couche, experts, t)} & pins the group, then returns one decision per expert, in router order \\
+\texttt{Succes \{emplacement\}} & the expert is (or will be, if in flight) in this slot: the GEMV reads it \\
+\texttt{DefautRam \{emplacement, tiede\}} & the coded section is already in pinned memory: copy, decoding \\
+\texttt{DefautDisque \{emplacement, tiede\}} & disk read (into the warm entry or an arrival buffer), copy, decoding \\
+\texttt{pret(emplacement)} & decoding finished: in flight $\to$ present \\
+\texttt{liberer(couche)} & end of the layer's GEMVs: its experts are unpinned \\
+\texttt{Compteurs} & \texttt{succes\_vram + succes\_ram + defauts\_disque} = accesses; bytes, evictions \\
+\texttt{rejouer(trace, N, tièdes, ...)} & the simulator: the same code, called on a trace \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Two eviction rules, one result}
+
+The reference simulators do not evict at the same moment as the engine. That of the gpt-oss measurement (rule \enquote{B}, like llama.cpp's cache) serves the whole group, then evicts until it is back to $N$; that of troncons and of the loading study (rule \enquote{P}) pins the group and evicts at each miss. One must show they count the same thing. Notation: a group $G = (x_1, \ldots, x_k)$ of distinct keys served in that order; $S$ the content, ordered from oldest to most recent; $N \ge k$.
+
+\begin{lemme}[Two rules, one result]\label{lem:t2o-regles}
+Starting from the same content $S_0$, rules B and P give the same hits, in the same order, and the same final content, in the same order.
+\end{lemme}
+
+\begin{proof}
+\emph{Hits.} In B, nothing leaves during service: $x_i$ is a hit if and only if $x_i \in S_0$. In P, no element of $G$ leaves (pinned) and nothing enters except elements of $G$; the $x_i$ being distinct, $x_i$ was not added before step $i$; hence $x_i \in S$ at step $i$ if and only if $x_i \in S_0$.
+\emph{Order of the others.} Only the elements of $G$ move; those of $S_0 \setminus G$ keep their order under both rules.
+\emph{Evictions of P.} Once $S$ is full it stays full; each miss with $S$ full removes the oldest of $S \setminus G$: P therefore removes the $m$ oldest of $S_0 \setminus G$, with $m = \max(0, |S_0| + d - N)$ and $d$ the number of misses. A candidate always exists: if $S$ were full and included in $G$ at a miss, we would have $N = |S| \le k - 1$ (the current miss is not yet in $S$), contrary to $N \ge k$.
+\emph{Evictions of B.} After service, all elements of $G$ are at the end; $|S| = |S_0| + d$; the oldest are those of $S_0 \setminus G$ in their order; B removes $m = |S_0| + d - N \le |S_0| + d - k = |S_0 \setminus G|$ of them (since $d = k - |G \cap S_0|$): exactly the $m$ oldest of $S_0 \setminus G$.
+\emph{Order of $G$.} Under both rules, the elements of $G$ end at the tail, in service order.
+\end{proof}
+
+The same proof holds for Belady, replacing \enquote{the oldest} by \enquote{the largest next use}: the key of an element of $S_0 \setminus G$ does not change during the group (it is not served). \textbf{Corollary}: at every group boundary, an LRU with rule P holds the $N$ most recently served distinct identifiers.
+
+\subsection{The inclusive RAM tier}
+
+\begin{lemme}[The RAM tier equals a single cache of its size]\label{lem:t2o-etages}
+Let a VRAM tier of $V$ slots decide alone, and a RAM tier of $R \ge V$ entries receive \texttt{acceder} for every access to a key it holds (VRAM hits included) and \texttt{inserer} for every disk read, and pin the group. With LRU: the VRAM hits are those of a single LRU of $V$ slots, and the VRAM plus RAM hits those of a single LRU of $R$ slots.
+\end{lemme}
+
+\begin{proof}
+The VRAM evolves like a single cache (its decisions do not read the RAM). For the RAM, it suffices to show that it receives the same calls as a single LRU of $R$ slots, which could fail only on a VRAM hit whose key would be absent from the RAM. Induction on groups: if the RAM has evolved like a single LRU up to the boundary, the corollary of \cref{lem:t2o-regles} gives VRAM$_0$ = the $V$ most recent $\subseteq$ the $R$ most recent = RAM$_0$. During the group, a VRAM hit $x_i$ is in VRAM$_0 \subseteq$ RAM$_0$, and the RAM does not evict elements of the group (pinned): $x_i$ is still there, and the RAM calls \texttt{acceder} as the single LRU would. A VRAM miss is, for the RAM, a hit or a miss, as for the single LRU.
+\end{proof}
+
+This is exactly the \enquote{two tiers} model of the ceilings (\cref{fig:t2o-etages}): $h_v = h(V)$, $h_r = h(R) - h(V)$, misses $1 - h(R)$; the engine behaves like the equation that set its thresholds. For Belady, the same conclusion follows from MIN's stack property~\cite{mattson1970}; with the group rule and pinning, it is not proved here, only checked on 20 configurations (seeds 100 to 103, $(V, R) \in \{(8, 8), (8, 20), (16, 40), (30, 90), (12, 160)\}$).
+
+\begin{figure}[ht]
+\centering
+\SchemaCchEtages
+\caption[The two tiers of the cache]{The two tiers of the cache on the same stream: at every group boundary, the VRAM holds the $V$ most recent keys, the RAM the $R$ most recent, and the former is included in the latter (\cref{lem:t2o-etages}).}
+\label{fig:t2o-etages}
+\end{figure}
+
+\subsection{Witness O1}
+
+Four paths, each compared \emph{to the unit} (integer hits; a rate published by a Python tool is converted back to an integer, and the tool checks that $n/\text{accesses}$ gives back the published float to the bit): \cref{tab:t2o-o1}.
+
+\begin{table}[ht]
+\centering\small
+\caption[Witness O1]{Witness O1: troncons' simulator against the reference simulators \mes. Synthetic traces: $T = 4\,000$ tokens, $L = 4$, $E = 128$, $k = 8$, seed 20261015.}
+\label{tab:t2o-o1}
+\begin{tabularx}{\linewidth}{@{}lXrrr@{}}
+\toprule
+Path & Against & comparisons & gaps & under break \\
+\midrule
+P1 & \texttt{cache\_lru}, \texttt{cache\_belady} of the loading study, layer by layer; uniform, frozen, sticky; $C \in \{8, 16, 32, 64\}$ & 96 & 0 & 48 \\
+P2 & \texttt{g\_lru}, \texttt{g\_belady} (global cache); $N \in \{8, 31, 32, 51, 128, 205\}$ & 36 & 0 & 22 \\
+P3 & \texttt{g\_lru} at $V$ and at $R$ (two tiers); $(V, R) \in \{(8, 32), (16, 64), (32, 32), (51, 205)\}$ & 24 & 0 & 12 \\
+P4 & rates published on 12 real traces of gpt-oss-20b, budgets 5 to 40\,\% & 352 & 0 & 308 \\
+\midrule
+ & \textbf{total} & \textbf{508} & \textbf{0} & \textbf{390} \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{moteur/O-pour-le-memoire.md}, part I; \fichier{mesures/moteur/O/journaux/temoin-o1.json}, \fichier{temoin-o1-casse.json}.}
+\end{table}
+
+The witness compares \emph{rules}, not speeds: it proves that \texttt{rejouer} and the Python simulators apply the same rule. It does not say that this rule is llama.cpp's, which differs by the order of misses within a group (gaps of 4 and 5 hits, measured by the replica \texttt{g\_lru\_llama}, \cref{sec:t2o-localite}). Nine breaks of the unit witnesses all fall, and the restored copy holds (\fichier{mesures/moteur/O/journaux/tests-casses.txt}).
+
+% =====================================================================================
+\section{The cliff of the shared LRU}\label{sec:t2o-falaise}
+
+llama.cpp's cache, like most published proposals, shares a single LRU between all layers. This choice has a consequence that can be proved, and that does not depend on the text.
+
+\begin{proposition}[The threshold and the plateau of the shared LRU]\label{prop:t2o-falaise}
+An LRU cache of $N$ slots serves the group stream of an MoE with $L$ layers and $k$ distinct experts per layer, the accesses of a group being judged against the content before any eviction. For any routing:
+\begin{enumerate}
+\item if $N \le (L-1)\,k$, the shared LRU has \textbf{no hit at all};
+\item if $N \ge L\,k$, every adjacent reuse (an expert requested at token $t$ and at token $t+1$, same layer) is a hit, so the hit rate over tokens $t \ge 1$ is at least the mean adjacent reuse $\bar r$;
+\item if $N = L\,k$ exactly, a hit is an adjacent reuse and only that: the rate is exactly $\bar r$ over tokens $t \ge 1$, i.e.\ $\bar r\,(T-1)/T$ over all accesses of $T$ tokens.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+Let key $(\ell, e)$ be requested at token $t+1$. The recency rank of a key is its place in the order of last uses (1 = most recent); by \cref{prop:t2o-pile} and the corollary of \cref{lem:t2o-regles}, when a group is judged the cache holds exactly the keys of rank $\le N$.
+(i) The last use of $(\ell, e)$ is at latest at token $t$, layer $\ell$. Between that last use and the judgement of group $(t+1, \ell)$, the stream has served at least groups $(t, \ell+1), \ldots, (t, L-1), (t+1, 0), \ldots, (t+1, \ell-1)$: $L - 1$ groups of $k$ distinct keys, all of layers other than $\ell$, hence distinct from each other and from $(\ell, e)$. Its rank is at least $(L-1)k + 1 > N$: it is no longer in the cache, and it is a miss.
+(ii) If $(\ell, e)$ was served at token $t$, the keys more recent than it at judgement time are at most the $(L-1)k$ keys above and at most $k - 1$ keys of its own group $(t, \ell)$: rank $\le Lk \le N$, it is in the cache.
+(iii) If $(\ell, e)$ was not served at token $t$, its last use is at latest at token $t - 1$; between it and the judgement of $(t+1, \ell)$, the stream has served the whole of token $t$: $L$ groups, $Lk$ distinct keys, all different from $(\ell, e)$ (those of layer $\ell$ at token $t$ do not contain it, those of other layers have another layer). Its rank is at least $Lk + 1 > N$: miss. With (ii), at $N = Lk$, hit is equivalent to adjacent reuse. Over all accesses (token 0 has only misses), the exact value is $\bar r\,(T-1)/T$.
+\end{proof}
+
+\begin{corollaire}[The threshold as a fraction of the experts]\label{cor:t2o-fraction}
+With $f = N/(LE)$, the shared LRU is zero for $f \le \frac{L-1}{L}\cdot\frac{k}{E}$ and at least $\bar r$ for $f \ge k/E$. gpt-oss-20b: zero up to 11.98\,\%, at least $\bar r$ from 12.5\,\%; gpt-oss-120b: zero up to 3.04\,\%, at least $\bar r$ from 3.125\,\%.
+\end{corollaire}
+
+\Cref{fig:t2o-anneau} draws the proof: a token is one turn of a ring of $L$ sectors of $k$ accesses; between two possible requests of the same expert, $(L-1)k$ distinct accesses pass. It is the cyclic sequence, LRU's worst case (\cref{sec:t2o-lru}), that the computation of an MoE produces by itself. Point (i) was proved twice on the same day, independently: by the engineer of work package O (his lemma 3, \enquote{the cliff}, with its unit witness) and by the gpt-oss measurement agent (its proposition 1, which adds (ii) and (iii)).
+
+\begin{figure}[ht]
+\centering
+\SchemaCchAnneau
+\caption[The cliff of the shared LRU]{The access stream as a ring: one turn is one token, each sector one layer of $k$ accesses. Expert $x$ served at $(t, \ell)$ can come back only at $(t+1, \ell)$, after $(L-1)k$ distinct accesses; an LRU of $N \le (L-1)k$ slots, which keeps only the $N$ most recent, has already evicted it.}
+\label{fig:t2o-anneau}
+\end{figure}
+
+\paragraph{Measured.} On the four reading traces of gpt-oss-20b ($L = 24$, $k = 4$: $(L-1)k = 92$, $Lk = 96$), LRU returns \textbf{0 hits out of 1\,024\,224 accesses up to $N = 92$ included}, 9.3\,\% at 93, 34.8\,\% at 95, \textbf{50.26\,\% at 96}; Belady, at 92, serves 66.4\,\% \mes~(\cref{fig:t2o-falaise}). The following plateau is the exact value of (iii): $\bar r\,(T-1)/T = 0.5026$. The witness at the exact threshold capacities (declared before the computation; the tool stops if it falls) checks, on the \textbf{17 real traces of both models}, the zero at $(L-1)k$ and equality (iii) to the hit (gap below $10^{-10}$ accesses, the rounding of two summation orders; equality to the bit on 11 traces) \mes~(\cref{fig:t2o-prop}). Its break (the zero expected at $(L-1)k + 1$) makes it fall: LRU(93) = 0.0972.
+
+\begin{figure}[ht]
+\centering
+\GrapheCchFalaise
+\caption[The measured cliff]{Hit rate of a shared cache versus the number of slots, LRU and Belady, on the four reading traces of gpt-oss-20b (10\,669 tokens). LRU is zero up to 92, jumps to the adjacent reuse at 96, then stays on a plateau.}
+\sourcefig{\fichier{mesures/moteur/O/csv/falaise-20b-dense.csv} (trace \texttt{t20b.tous.lecture}).}
+\label{fig:t2o-falaise}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\GrapheCchProp
+\caption[The proposition checked on 17 traces]{\Cref{prop:t2o-falaise} on the 17 real traces (10 of the 20b, 7 of the 120b; reading and generation): at $N = Lk$, the measured hit rate falls on the diagonal $\bar r\,(T-1)/T$; at $N = (L-1)k$, it is zero everywhere.}
+\sourcefig{\fichier{memoire/figures/tome2/donnees/t2o-prop1.csv}, drawn from \fichier{mesures/localite-gpt-oss/20b/localite-gpt-oss-20b.json} and \fichier{120b/localite-gpt-oss-120b.json} (fields \texttt{seuil\_lru\_partage}, \texttt{seuil\_borne\_ii}).}
+\label{fig:t2o-prop}
+\end{figure}
+
+\paragraph{Beyond the cliff, a plateau.} From $N = 96$ to 120, LRU gains only 0.12 point (50.26 $\to$ 50.37\,\%), Belady 6.8 points. The reason is that of (iii): an expert of layer $\ell$ absent from token $t$ still has before it, at its judgement, the whole of token $t$ and the keys of the other layers served since its last use; the slots beyond $Lk$ keep the non-reused experts of the layers served longest ago, which leave before their layer comes back.
+
+\paragraph{What it tells the engine.} For gpt-oss-120b, $(L-1)k = 140$ slots of 13\,254\,144\,B, i.e.\ \textbf{1\,855\,580\,160\,B (1.73\,GiB)} of VRAM below which LRU serves nothing \calc. J1's VRAM (326 slots, about 4.3\,GB) is well above; but any \enquote{minimal window} that brought the cache below 1.86\,GB with LRU would pay $h = 0$, where the offline optimum still keeps two thirds. And being above the threshold is not enough: on the real generation of the 120b, at the budget of llama.cpp's cache (323 slots), a fixed set of experts beats its LRU (0.500 against 0.392) and Belady reaches 0.685 (\fichier{mesures/localite-gpt-oss/cache-base-contre-optimum.json}): 29 points of hit rate to be taken by a better policy before any format gain.
+
+% =====================================================================================
+\section{The locality of gpt-oss}\label{sec:t2o-localite}
+
+The traces are those of the gpt-oss measurement: 10\,669 reading tokens per model, in four genres (English and French prose, dialogue, code), recorded by the same engine as the llama.cpp baseline (\fichier{mesures/gpt-oss.md} § 4). Two witnesses vouch for them: a second path of the top-$k$ (our sort of the router scores) finds no disagreement on 345\,336 choices (20b) and 444\,276 (120b); and the replica of llama.cpp's cache rule (\texttt{g\_lru\_llama}: hits touched in score order, misses sorted by number, least recently used slot) finds \textbf{exactly} the tally that llama.cpp publishes in the same run: 20\,373 hits out of 24\,576 and 88\,443 out of 98\,304 (20b), 14\,446 out of 36\,864 (120b); with 322 slots instead of 323, the witness falls (witness G5) \mes.
+
+\subsection{Reuse: popularity and recency}
+
+\begin{table}[ht]
+\centering\small
+\caption[Reuse from one token to the next]{Share of the $k$ experts of a token already chosen by the previous token, same layer, mean over layers, four genres in reading \mes. \enquote{Random with real popularity} draws each token independently, with the measured frequency of each expert.}
+\label{tab:t2o-reutilisation}
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+Model & tokens & measured $\bar r$ & uniform random $k/E$ & random, real popularity & gap in $\sigma$ \\
+\midrule
+gpt-oss-20b & 10\,669 & \textbf{0.503} & 0.125 & 0.310 & +422 \\
+gpt-oss-120b & 10\,669 & \textbf{0.312} & 0.031 & 0.131 & +664 \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/gpt-oss.md} § 6.1, § 6.2; \fichier{mesures/localite-gpt-oss/figures/reutilisation-gpt-oss-*.csv}.}
+\end{table}
+
+Reuse breaks down into two terms (\cref{tab:t2o-reutilisation}). \textbf{Popularity} (some experts serve more than others) takes it from 0.125 to 0.31 on the 20b; \textbf{recency} (the next token takes up the experts of the previous one), from 0.31 to 0.50. Witness G4 proves it: shuffling the order of tokens brings reuse back to random with real popularity (0.309 against 0.310), so the second term belongs to the order of the text. On the 120b, ten times uniform random. Per layer, reuse grows with depth: from 0.14 (layer 0) to 0.53 (layer 35) on the 120b, from 0.23 to 0.66 on the 20b.
+
+\subsection{The policies}
+
+\begin{figure}[ht]
+\centering
+\GrapheCchSucces
+\caption[Hit rate versus budget, five policies]{Hit rate of a shared cache versus its budget (share of the experts), four genres in reading. On the 20b, LRU is zero at 5 and 10\,\% (below the cliff, 11.98\,\%); on the 120b, the cliff is at 3.04\,\%, below the first plotted budget.}
+\sourcefig{\fichier{mesures/localite-gpt-oss/figures/succes-gpt-oss-20b-lecture.csv} and \fichier{succes-gpt-oss-120b-lecture.csv}.}
+\label{fig:t2o-succes}
+\end{figure}
+
+Five facts stand out (\cref{fig:t2o-succes}; \fichier{mesures/gpt-oss.md} § 6):
+\begin{enumerate}
+\item \textbf{Locality is strong}: at 20\,\% of the experts, Belady serves 81\,\% (20b) and 90\,\% (120b) of accesses, LRU 60 and 78\,\%, where a routing without locality would serve 20\,\%. The uniform assumption of earlier studies underestimated the cache by a factor of 3 to 4 on the served share.
+\item \textbf{The gap to Belady is large} (0.60 against 0.81 at 20\,\% on the 20b): it is the margin of a perfect predictor.
+\item \textbf{Sharing the budget only helps a good policy}: on the 120b, shared Belady beats per-layer Belady at every budget (0.632 against 0.508 at 5\,\%), but shared LRU stays below per-layer LRU up to 15\,\% (0.333 against 0.384 at 5\,\%): the cyclic stream costs it even above the threshold.
+\item \textbf{A set chosen offline does not travel}: pinning calibrated on the start of a trace collapses when the genre changes (0.147 at 10\,\% on the 120b, against 0.37 to 0.64 within each genre taken alone).
+\item \textbf{Routing depends on the computation path}: on the 120b, GPU against CPU, only 81.1\,\% identical choices, and the first divergence comes at the 3rd token. A trace holds for its path, and the accuracy of an expert predictor has a ceiling set by this noise.
+\end{enumerate}
+
+\paragraph{What locality is worth in tokens per second.} With the machine's measured throughputs (VRAM 251.3\,GB/s, PCIe 12.2\,GB/s, disk 2.82\,GB/s in 16\,MiB blocks), an expert worth its original bytes, and the two-tier model of \cref{lem:t2o-etages} (VRAM at 7\,\% of the experts, $h_v = 0.449$; total budget 20\,\%, LRU, $h = 0.777$), the time of an overlapped token works out as \calc:
+\begin{gather*}
+\text{VRAM: } \frac{1.686 + 0.449 \times 1.909}{251.3} = 10.1~\text{ms}, \qquad
+\text{PCIe: } \frac{0.551 \times 1.909}{12.2} = 86.2~\text{ms}, \\
+\text{disk: } \frac{0.223 \times 1.909}{2.82} = 151~\text{ms}.
+\end{gather*}
+The maximum, 151\,ms, gives 6.6 tokens/s; the disk bounds. Any compression factor $c$ of the experts \emph{in transit} divides the disk and PCIe terms by $c$: at $c = 2$, $\max(10.1; 43.1; 75.5) = 75.5$\,ms, i.e.\ 13.2 tokens/s, as long as decoding on the GPU keeps up (\fichier{mesures/gpt-oss.md} § 8.3). This is troncons' lever, quantified.
+
+% =====================================================================================
+\section{The on-demand scheduler}\label{sec:t2o-ordo}
+
+\subsection{The path of a token}
+
+The J1 engine (\texttt{trc-ordo}) serves each layer on demand, without prefetching (\cref{fig:t2o-flux}). Three CUDA streams: \textbf{compute} (high priority), \textbf{copy}, \textbf{decode}. For each layer $\ell$, the compute stream runs attention then the router, which writes the $k$ indices and their weights into a \textbf{mailbox} in mapped memory (word 0: a sequence number written last, after a barrier; words 1 to $k$: the indices; $k+1$ to $2k$: the weights). The host waits for the \enquote{router $\ell$} event, checks the sequence, reads the indices and calls \texttt{demander}. Each miss becomes an unbuffered IOCP read into a pinned arrival buffer; as soon as it completes, the copy goes on the copy stream, then the decoding on the decode stream, which writes the slot; the compute stream waits for the \enquote{ready} event of each miss, then launches the four GEMVs and the combination, in router order.
+
+\begin{figure}[ht]
+\centering
+\SchemaCchFlux
+\caption[The three streams, the host and the disk]{The path of a layer with two missing experts (diagram M1, as built): the streams meet only through events; the mailbox carries the router's indices to the host.}
+\sourcefig{\fichier{moteur/crates/trc-ordo/src/lib.rs} (header and \texttt{Moteur::pas}).}
+\label{fig:t2o-flux}
+\end{figure}
+
+\begin{lstlisting}[language=C, float=htbp, caption={[The decision of a layer]The decision of a layer in \texttt{Moteur::pas} (\texttt{trc-ordo/src/lib.rs}, excerpt): wait for the router, check the mailbox, ask the cache. French comments: \enquote{the event variant of trial E0 c (18.5 µs per synchronisation under load): wait for the event, then read the mailbox}; \enquote{the trace that rejouer will read back}.}, label=lst:t2o-pas]
+self.ev_routeur.enregistrer(&self.calcul)?;
+// Variante « evenement » de l'essai E0 c (18,5 us par synchronisation sous charge) :
+// on attend l'événement, puis on lit la boîte.
+self.ev_routeur.attendre()?;
+let lu = self.boite.lire_volatil_u32(0);
+if lu != seq {
+    bail!("couche {l} : boîte aux lettres à la séquence {lu}, {seq} attendue");
+}
+for i in 0..k {
+    let x = self.boite.lire_volatil_u32(4 * (1 + i));
+    if x as usize >= h.experts { bail!("couche {l} : expert {x} hors de [0, {})", h.experts); }
+    experts[i] = x as u16;
+}
+self.trace.extend_from_slice(&experts[..k]);          // la trace que rejouer relira
+let decisions = self.cache.demander(l as u16, &experts[..k], pas * l_n as u64 + l as u64);
+\end{lstlisting}
+
+\subsection{The order is safe}
+
+\begin{lemme}[The order of the three streams is safe]\label{lem:t2o-ordre}
+In \texttt{Moteur::pas}, no expert slot is read by a GEMV while a decoding writes it, and no arrival buffer (pinned or in VRAM) is rewritten before the copy or the decoding that read it has finished.
+\end{lemme}
+
+\emph{Assumptions.} (H1) A CUDA stream executes its operations in queue order, each after the end of the previous one. (H2) \texttt{cuStreamWaitEvent(f, e)} makes every operation queued afterwards on $f$ wait for the end of all the work that $e$ captured~\cite{nvidia2026driverstream}. (H3) The host decides layer $\ell$ (request, submit, enqueue) only after seeing the \enquote{router $\ell$} event finished, recorded on the compute stream right after the router. (H4) An expert requested by layer $\ell$ is pinned until \texttt{liberer($\ell$)}, called after enqueueing the end of layer $\ell$; an eviction victim is never pinned nor in flight.
+
+\begin{proof}
+(a) \emph{Slots.} Let $s$ be a slot decoded for layer $\ell'$ and evicted by a request of layer $\ell$, later in the stream. By (H4), the eviction follows \texttt{liberer($\ell'$)}, hence the enqueueing of the end of $\ell'$ on the compute stream; the new decoding into $s$ is enqueued after the decision of $\ell$, hence, by (H3), after the host has seen the router of $\ell$ finished. Since that router is enqueued after the end of $\ell'$ on the same stream, (H1) gives: all GEMVs that read $s$ are finished when the decoding starts. Conversely, the GEMVs of $\ell$ that read $s$ are enqueued after waiting for the event of its decoding (H2): they start only after it ends.
+(b) \emph{Arrival buffers.} Buffer $i$ serves at most once per layer; its reuse at layer $\ell$ follows the decision of $\ell$, hence (H3, H1) the end of the previous layers, which waited (H2) for the decodings of their misses, which waited for their copies. The explicit waits (copy after the previous decoding of the same buffer, read after the copy of the same pinned buffer) make this point true without (H3), which keeps it should a prefetch ever advance the misses.
+\end{proof}
+
+\textbf{Cost}: one host synchronisation per layer, 36 per token on the 120b, 18.5\,µs each under load (trial E0 c of work package E), i.e.\ 0.67\,ms per token, 0.15\,\% of the 457\,ms of a token \calc.
+
+\subsection{The engine computes what the kernels validated, to the bit}
+
+\begin{proposition}[Token by token equals layer by layer]\label{prop:t2o-ordre-calcul}
+For a given token sequence and given weights, the logits returned by the engine (one token at a time, all layers) are equal to the bit to those of the kernel-validation chain (one layer at a time, all positions), if both launch the same kernels with the same numerical arguments.
+\end{proposition}
+
+\begin{proof}
+By the architecture's determinism rule (no floating-point atomic addition, fixed-tree reductions that depend only on sizes), each kernel is a deterministic function of the bytes it reads and of its parameters. Order the computations by (layer $\ell$, position $p$). Induction hypothesis: for every $(\ell', p') < (\ell, p)$ in product order, the residual entering $(\ell', p')$ and cell $p'$ of the KV cache of $\ell'$ are equal to the bit in both orders. At $(\ell, p)$, the inputs are: the residual, output of $(\ell - 1, p)$, equal by induction; the cells $q \le p$ of the KV cache of $\ell$, written by $(\ell, q)$, equal by induction, and cell $p$ itself; for a sliding-window layer, the 128-entry ring holds at read time exactly positions $\max(0, p - 127) \ldots p$ in both orders; the chosen experts are those of the router of $(\ell, p)$, computed on equal inputs, and their slots carry the same bytes (exact format and transport). The same kernels return the same bits.
+\end{proof}
+
+\textbf{Witness O2}: 160 rows out of 160 equal to work package K's chain (KL, top-1, relative gap), mean KL $7.2794050122285915\cdot10^{-3}$ to the digit; the path that places the GGUF's experts without the decoder, 16 out of 16. The breaks (position shifted by 1; experts 0 and 1 swapped at layer 5) make every row differ \mes~(\fichier{mesures/moteur/O/journaux/o2/}). The witness does not judge the model's correctness (that is C4, in the chapter on the reference): it judges that the engine computes \emph{exactly} what work package K validated.
+
+\begin{proposition}[C3 by construction: the cache does not enter the computation]\label{prop:t2o-c3}
+If two files (coded and raw) give, for every expert, slots equal byte for byte, the engine returns the same logits to the bit on any token sequence, whatever the number of slots, the cache policy and the arrival order of the reads.
+\end{proposition}
+
+\begin{proof}
+An expert's GEMVs read its slot and the input vector; at read time, the slot carries the decoded bytes of that expert (\cref{lem:t2o-ordre}), equal by assumption in both files. The cache chooses only \emph{where} an expert is, never \emph{which bytes} it carries; the order of the combination is the router's, not the slots'. The other inputs do not depend on the expert file. \Cref{prop:t2o-ordre-calcul} concludes.
+\end{proof}
+
+\textbf{Measured}: on the 20b, 5\,120 steps, 0 different logit fingerprint, \texttt{.kld} files equal byte for byte, equal perplexity (461.978277060145); the two passes did not have the same number of slots (362 and 361) nor therefore the same sequence of misses: the \enquote{whatever the cache} part is observed, not merely deduced. On the 120b, 5\,120 steps, 0 difference, perplexity 422.20558522791305 on both sides, with 325 and 326 slots \mes.
+
+\begin{proposition}[The engine's count equals the simulator]\label{prop:t2o-compte}
+The engine calls \texttt{trc-cache} in the simulator's order: for each token $t$ and each layer $\ell$, \texttt{demander($\ell$, $G(t,\ell)$, $tL + \ell$)}, \texttt{pret} on each miss in decision order, then \texttt{liberer($\ell$)}, and nothing else touches the cache in J1. \texttt{rejouer} performs the same sequence on the trace written by the engine. Same calls on the same initial state: same counters.
+\end{proposition}
+
+\textbf{Measured}: on the 20b (5\,120 steps, 362 slots), \textbf{454\,210 hits, 37\,310 misses, 36\,948 evictions on both sides} ($h = 0.924$); break (falsified LRU): 427\,984 / 63\,536 / 63\,174. On the 120b (326 slots): 334\,608 hits, 402\,672 misses, 402\,346 evictions on both sides ($h = 0.454$); break: 289\,788 / 447\,492 \mes~(\fichier{moteur/REPRISE-O.md}, O3).
+
+\subsection{The serial floor, and what the engine does with it}
+
+The token equation sets the time of a token served serially as the sum of the stages. With the quantities measured in session O4 (generation, 120b, mode A0, 326 slots, $h = 0.591$), criterion C5 is computed step by step (\cref{tab:t2o-c5}).
+
+\begin{table}[ht]
+\centering\small
+\caption[The serial floor of the 120b]{The serial floor of the 120b, stage by stage, in session O4 \calc~on \mes.}
+\label{tab:t2o-c5}
+\begin{tabular}{@{}llr@{}}
+\toprule
+Stage & Formula & Value \\
+\midrule
+disk & section bytes read per token / throughput of the disk alone & $0.7072 / 1.848$ GB/s $=$ \textbf{382.7 ms} \\
+PCIe & GPU time of the copies per token (59 misses, 1.28 ms each) & \textbf{75.8 ms} \\
+decoding & GPU time of the decodings per token (0.92 ms per expert) & \textbf{54.2 ms} \\
+GEMV & $(A + R)/235$ GB/s, $A = 1.686$ GB, $R = 144 \times 13.25$ MB & \textbf{15.3 ms} \\
+$T_0$ & fixed cost & 3.5 ms \\
+\midrule
+sum & & \textbf{531.5 ms $\to$ 1.881 tokens/s} \\
+C5 threshold & $0.8 \times$ floor & 1.505 tokens/s \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{moteur/O-pour-le-memoire.md} § 6.5; \fichier{mesures/moteur/O/journaux/o4/verdicts-2026-10-15-s1.json}.}
+\end{table}
+
+\textbf{Measured: 457\,ms per token, 2.186 and 2.182 tokens/s}, above the \emph{serial} floor: the copies and decodings of a layer overlap with the reads of the next misses of the same layer. The timeline of a layer whose four experts are all missing (\cref{fig:t2o-chrono}) shows what limits: the router ends at 0.61\,ms; the four reads, submitted at 1.28, 1.96, 2.68 and 3.18\,ms, end at 6.86, 9.81, 16.14 and 21.17\,ms. \textbf{The disk serves them one after the other} (about 5\,ms for 12\,MB, 2.4\,GB/s each); depth 4 does not make them progress together. Each copy (about 1.0\,ms) and each decoding (0.85\,ms) follow the read of their section without waiting for the others, and the end of the layer (23.73\,ms) follows the last decoding by 0.6\,ms. With 59 misses over 36 layers, 1.6 per layer on average, the engine draws 0.707\,GB in 457\,ms, 1.55\,GB/s of useful throughput, against 1.85\,GB/s for the disk alone at depth 4: \textbf{what limits J1 is the queue depth per layer} ($\le k$), which only a prefetch could fill.
+
+\begin{figure}[ht]
+\centering
+\GrapheCchChrono
+\caption[The measured timeline of a layer]{The measured timeline of a layer of the 120b whose four experts are missing (step 8, layer 0): from submission to the end of each read, then its copy and its decoding; at the bottom, the router and the end of the layer.}
+\sourcefig{\fichier{memoire/figures/tome2/donnees/t2o-chrono-couche.csv}, drawn from \fichier{mesures/moteur/O/csv/chronogramme-120b.csv} (8 tokens, 1\,048 timed misses).}
+\label{fig:t2o-chrono}
+\end{figure}
+
+% =====================================================================================
+\section{Streamed prefill}\label{sec:t2o-flux}
+
+In the step loop, a prompt of $P$ positions reads $B_{\text{loop}} = \sum_p\sum_\ell (1 - h_{p,\ell})\,k\,t$ bytes, with $t \approx 12.03$\,MB per section. Streamed, each layer passes all positions through attention and the router, then reads once each expert requested by at least one position: $B_{\text{stream}} = \sum_\ell |U_\ell \setminus V_\ell|\,t$, with $U_\ell$ the set of chosen experts and $V_\ell$ those already in VRAM. Under uniform routing, $\E|U_\ell| = E\,(1 - (1 - k/E)^P)$; for $E = 128$, $k = 4$, $P = 708$, $(1 - 1/32)^{708} = e^{708\ln 0.96875} = e^{-22.5}$: $U_\ell$ is the whole set, and $B_{\text{stream}} \le 36 \times 128 \times 12.03~\text{MB} = 55.4$\,GB, against $B_{\text{loop}} \approx 708 \times 144 \times 0.55 \times 12.03~\text{MB} \approx 675$\,GB \calc: a ratio of about 12. \textbf{Measured}: 26\,s instead of 7\,min\,36\,s, $\times 17.5$, at the mean throughputs of passes \texttt{s2-11} to \texttt{s2-14} (27.15 against 1.554\,tokens/s, \fichier{mesures/moteur/O/csv/o-jetons-s.csv}; lot O's note wrote \barre{7\,min\,50\,s}, which does not come from these passes); on top of the bytes, the loop pays one synchronisation per layer and per position, which the stream does once per layer. Exactness follows from \cref{prop:t2o-ordre-calcul} (layer-by-layer order is that of the kernel chain); witness F: 5\,120 fingerprints equal to the loop on the 20b, and, redone by the independent trial on the 120b, \texttt{.kld} files equal byte for byte from one build to another \mes.
+
+\paragraph{A defect proved, then corrected.} Streamed prefill hands up to eight reads at a time to the system, in a round robin of 12 arrival buffers. Its first rule took buffer $s \bmod 12$ for the $s$-th read. Counter-example: let read $s - 12$ stay in the system (completions arrive out of order) while $s - 11, \ldots, s - 1$ pass and are reaped; the list of in-flight reads then holds only $s - 12$, and $s$ is submitted into buffer $s \bmod 12 = (s - 12) \bmod 12$, which the disk is still writing. A delay of about $11 \times 6.6~\text{ms}/3 \approx 24$\,ms of one read over the others suffices \calc, and the trial recorded a 90th centile of 172\,ms for a cold read.
+
+\begin{lemme}[The arrival buffers of streamed prefill]\label{lem:t2o-tampons}
+With the corrected rule (the round-robin buffer if it carries no in-flight read, otherwise the next one that carries none), no read writes into an arrival buffer while another read writes there, while the copy that read it has not finished, or while a guard hash still reads it.
+\end{lemme}
+
+\begin{proof}
+Existence: at choice time, at most $\min(dk, 2\cdot\text{depth}) - 1 = 7 < 12$ reads are in flight, so a free buffer exists. The copy: we wait for the event of the previous copy of that buffer before submitting (it was enqueued at its reaping, hence before). The guard: we wait for the end of its hash before any submission. The VRAM buffer is rewritten only after waiting for the decoding that read it.
+\end{proof}
+
+Under the trial's load (its numpy f64 pass of the 120b running at the same time), the ten windows of the raw 120b finish in 361\,s with 0 conflict avoided: the case did not occur in that pass. The rule is proved; whether this defect caused the hang observed by the trial (finding G1) remains a hypothesis, the old binary having also finished under the same load (\fichier{moteur/O-pour-le-memoire.md} § 14.1).
+
+% =====================================================================================
+\section{Prefetching, tried and abandoned}\label{sec:t2o-prechargement}
+
+\paragraph{The mechanism.} After the attention of layer $\ell$, the engine applies to the current residual the norm and the router of $\ell + 1$; the predicted experts absent from the VRAM are read ahead into $2k$ pinned buffers, outside the cache (whose count stays that of \texttt{rejouer}; the four texts of the series are equal). The loading study cited 96\,\% correct predictions one layer ahead, \emph{literature, not reproduced}.
+
+\paragraph{The balance, set out before the measurement.} A correct prediction removes a read from the critical path; a wrong one adds a read to a disk that already limits. Let $p$ be the share of predictions used and $f$ the share of a token's time that overlap can hide (the off-disk computation); the relative gain is, at first order,
+\begin{equation}\label{eq:t2o-bilan}
+\text{gain} \approx f - \frac{1 - p}{p}\cdot(\text{disk share}).
+\end{equation}
+The declared prediction (\fichier{moteur/REPRISE-O.md}) was at most +19\,\% (the $457 - 383 = 74$\,ms of off-disk computation, relative to the 383\,ms of the disk) plus what the deeper queue would give back to the disk; that prediction did not count wrong reads.
+
+\paragraph{Measured} (session \texttt{2026-10-16-s3}, A B B A, 120b, mains power): 69.2\,\% of the prefetched reads are used (11\,529 out of 16\,670); the others add 34\,\% bytes read (953 against 710\,MB per token); the computation they can overlap is worth about 80\,ms per token, $f \approx 80/460 = 0.17$. With $p = 0.692$ and a disk that carries about 80\,\% of the time, the negative term of \eqref{eq:t2o-bilan} is $(0.308/0.692) \times 0.8 \approx 0.36$ and outweighs $f$: the first order predicts a loss, of the order of $0.17 - 0.36 \approx -0.19$ \calc. \textbf{Generation: A 2.158 and 2.178, B 1.935 and 1.924 tokens/s, i.e.\ $-11.0\,\%$}, for a noise of 0.9\,\% \mes~(recomputed here from \fichier{mesures/moteur/O/csv/o-jetons-s.csv}). The gap passes the decision rule ($2 \times 0.9\,\% + 3\,\%$): it is real, in the wrong direction, and smaller than the first order (the deeper queue gives back to the disk part of what the wrong reads take from it, which \eqref{eq:t2o-bilan} does not count).
+
+\begin{enbref}[title={What is killed, and what is not}]
+Prefetching by the next layer's router is \textbf{abandoned for this predictor and this disk} (BitLocker-encrypted, 1.8\,GB/s), not in general. By \eqref{eq:t2o-bilan}, it would come back only with $p$ above about 0.9, or a disk that does not limit. A defect was found on the way and corrected (the completion of the current layer reaped while draining the prefetches).
+\end{enbref}
+
+\paragraph{12\,MiB reads, not established.} Reading each section in one 12\,MiB request (instead of its exact length, about 12.0\,MB) gives +30\,\% in median (A 2.179 and 2.182, B 2.613 and 3.073 tokens/s), every B pass above every A pass; but the noise of B, $\beta = 16.2\,\%$ (\barre{21\,\%} in lot O's note, the gap divided by the mean of A), raises the rule's threshold to $2 \times 16.2 + 3 = 35.4\,\%$, above the gain: the rule does not conclude in four passes. The supposed mechanism is the map of the disk's two regimes drawn by work package E; the decision belongs to the arbiter.
+
+% =====================================================================================
+\section{The integrity guard, and what it costs}\label{sec:t2o-garde}
+
+The independent trial showed that in production the engine did not check the raw bytes of a section (medians and biases, 0.36\,\% of the bytes, not rANS-coded): a corrupted median gave a wrong expert without error, and the produced text was even identical (finding M1). The round of corrections added a \textbf{guard}: each completed read is hashed by four threads (empreinte64, the 64-bit prefix of SHA-256~\cite{fips180-4}) and compared with the directory before the token leaves; each embedding row read is compared with a table built at open time.
+
+\begin{proposition}[No output depends on an unchecked byte]\label{prop:t2o-garde}
+With the guard active, the token and logits returned by a step depend only on bytes read whose fingerprint equals the directory's, up to a collision of the 64-bit prefix (probability $2^{-64}$ per check, if SHA-256 behaves like a random function).
+\end{proposition}
+
+\begin{proof}
+The decoder and the copy read only the useful bytes of a part; each completed read is handed to the guard before any other operation on its buffer; no read writes that buffer before the hash ends (\cref{lem:t2o-tampons}), so the fingerprint covers the bytes the copy read; the step waits for all hashes before reading the token or the logits, and a different fingerprint is a named fatal error. A warm entry was hashed at its read; a later corruption of the RAM is not covered.
+\end{proof}
+
+\textbf{The cost, set out then measured.} A step of the 120b reads about 0.71\,GB of sections; the fingerprint runs at 1.07 to 1.10\,GB/s per thread, measured (\fichier{mesures/moteur/O/corrections/journaux/debit-empreinte.jsonl}; \barre{2\,GB/s per core}, estimated by the trial). It therefore takes about 0.65\,s of core time per step, spread over four threads (0.17\,s of wall time, under the 0.5\,s of a step); only the hash of the last read remains on the critical path, at most $12.25~\text{MB}/1.07~\text{GB/s} \approx 11.4$\,ms, minus the GPU work that follows it \calc. \textbf{Measured}: 5.2 to 5.4\,ms of waiting per token over the four guarded passes; at equal disk throughput (passes 04 and 05, at 1.715 and 1.708\,GB/s), $1.900152 / 1.931729 - 1 = $ \textbf{$-1.6\,\%$} \mes~(\fichier{mesures/moteur/O/corrections/csv/vitesse-2026-10-16-passes.csv}). Lot O's note wrote \barre{5.2 to 5.3\,ms} (pass 07, at 5.42\,ms, was not in it) and \barre{$-1.7\,\%$}, computed on the rounded values 1.900 and 1.932 (\cref{t2res-sec:garde}). The declared series says $-12.3\,\%$ under a threshold of 26.8\,\% (noise 11.9\,\%), not real: the disk varied from 1.51 to 1.95\,GB/s during the session. Opening costs 0.95\,s more (the row table: 0.615\,GB read and hashed), the working set 1.9\,MB, the same for both models.
+
+% =====================================================================================
+\section{The engine against the baseline: criterion C6}\label{sec:t2o-c6}
+
+C6 asks that troncons beat the best measured llama.cpp configuration on the 120b, same prompt, 256 greedy tokens, by more than twice the largest noise and 3\,\% (decision rule of the study of the models). All the difficulty lies in \enquote{the best}. Its history reads in bars (\cref{fig:t2o-vitesse}).
+
+\begin{figure}[ht]
+\centering
+\GrapheCchVitesse
+\caption[troncons against swept llama.cpp]{Generation on gpt-oss-120b (256 greedy tokens, 708-token wikitext prompt): the llama.cpp baseline swept by the round of corrections and troncons in the speed session of the same round, on the same day, on mains power. Mean of the passes, bars from the smallest to the largest; dashed line: the best baseline, \texttt{fit -t 16}.}
+\sourcefig{\fichier{memoire/figures/tome2/donnees/t2o-c6.csv}, drawn from \fichier{mesures/moteur/O/corrections/csv/base-2026-10-16-passes.csv} and \fichier{vitesse-2026-10-16-passes.csv}.}
+\label{fig:t2o-vitesse}
+\end{figure}
+
+\begin{itemize}
+\item \barre{$\times 3.85$}: J1 (2.184 tokens/s) against \texttt{fit} at 6 threads (0.568), the baseline published by the gpt-oss measurement. Struck: the baseline was under-tuned.
+\item \barre{$\times 2.79$ to $2.89$}: the independent trial, against \texttt{fit} at 10 threads (0.702 in its session). Struck in turn: the trial had not tried beyond 10 threads.
+\item \textbf{$\times 2.22$}: the round of corrections swept the baseline (session of 2026-10-16 from 08:13 to 10:06, palindrome, one warm-up pass discarded, mains power at every pass, no foreign process): \texttt{fit -t 6} 0.574; \texttt{-t 10} 0.665; \texttt{-t 12} 0.836 (noise 18.3\,\%); \textbf{\texttt{-t 16} 0.884} (0.900 and 0.867); \texttt{-ngl 99 -{}-n-cpu-moe 34 -{}-fit off -t 10} 0.640. The best, \texttt{fit -t 16}, beats \texttt{-t 6} by 54\,\%: the published baseline underestimated llama.cpp by 54\,\%. The mechanism is the one the trial had declared: under mmap, each thread in a page fault is a read in flight; 16 threads make a deeper queue on the disk. troncons, \textbf{integrity guard included}, makes 1.965 tokens/s (four passes of the speed session, noise 10.97\,\%): $1.965/0.884 = \mathbf{2.22}$, beyond the threshold $2 \times 10.97\,\% + 3\,\% = 24.9\,\%$ \mes~(recomputed here: 1.9649 and 0.8838). \textbf{C6 holds.}
+\end{itemize}
+
+Without the guard, troncons makes 2.054 tokens/s in the same session (two passes); with the guard and an f32 KV cache, 1.496, but with a different text (chapter on the reference), hence no comparison is possible. Streamed prefill runs at 26.6 tokens/s, against 3.1 to 4.0 for llama.cpp (batched): a factor of 7. And the engine's peak memory is 384\,MB, against 10.9\,GB for llama.cpp on the same model (\fichier{moteur/O-pour-le-memoire.md} § 8). \textbf{The baseline may still be better}: neither more than 16 threads, nor \texttt{-{}-mlock}, nor other \texttt{-{}-n-cpu-moe} values were swept.
+
+% =====================================================================================
+\section{What remains}\label{sec:t2o-reste}
+
+\begin{itemize}
+\item \textbf{A policy aware of the layer cycle.} The cliff and the plateau come from LRU ignoring that the stream returns to each layer once per token; a per-layer LRU, an SLRU, or an LFU (0.47 at 10\,\% on the 20b, where LRU makes 0) do better below the threshold, and 29 points remain between llama.cpp's LRU and Belady on the 120b's generation.
+\item \textbf{A more accurate predictor}: prefetching comes back only above $p \approx 0.9$; routing that depends on the computation path (81.1\,\% agreement GPU against CPU) bounds what can be expected from a predictor learnt elsewhere.
+\item \textbf{The read length} (12\,MiB, +30\,\% in median, not established) and the queue depth per layer, which is what really limits J1.
+\item \textbf{The baseline} beyond 16 threads and with \texttt{-{}-mlock}.
+\end{itemize}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{The optimality of Belady with group pinning} is not proved, only checked (G3); likewise \cref{lem:t2o-etages} for Belady. Belady is an oracle: its figures are bounds.
+\item \textbf{Witness O1 compares rules}, not speed figures; the engine's rule differs from llama.cpp's by the order of misses within a group (gaps of 4 and 5 hits).
+\item \textbf{The cliff depends on group pinning and on $N \ge k$}; a cache that served a token's experts in another order (prefetching) moves the threshold.
+\item \textbf{Locality comes from 10\,669 tokens of four texts}, without a conversation template; the recorded generations are often degenerate and inflate recency. The traces are those of llama.cpp's computation path; the engine produces its own.
+\item \textbf{The C5 floor counts the GEMV at the throughput of another session} (235\,GB/s); if the real GEMV is slower, the floor is optimistic and the threshold too high: the verdict stays valid in that direction.
+\item \textbf{The prefetch balance} \eqref{eq:t2o-bilan} is first order; the measurement (A B B A, one session) is what decides, and it holds only for this disk.
+\item \textbf{C6 compares two sessions of the same day} (baseline and speed); the speed session saw the disk vary from 1.51 to 1.95\,GB/s, and troncons' noise (11\,\%) is large. The baseline may be better than 0.884.
+\item \textbf{The cause of the G1 hang} is not established; the arrival-buffer defect is proved possible, not observed (0 conflicts under the replayed load).
+\item \textbf{The guard assumes SHA-256 without a useful collision} on 64 bits; it covers neither the warm RAM after its read, nor the VRAM. Its cost ($-1.6\,\%$) rests on one pair of passes at equal disk throughput.
+\end{itemize}
+\end{faux}

@@ -1,0 +1,138 @@
+% Schémas TikZ du chapitre « Quantification extrême » : disposition au bit près des formats,
+% lue dans llama.cpp (ggml/src/ggml-common.h, ggml-quants.c, commit 843e7dc) et dans les
+% normes (IEEE 754, OCP MX). Chaque bit est une case ; la couleur dit le champ.
+
+\tikzset{
+  bitcase/.style={draw=black!55, line width=0.3pt, minimum width=#1, minimum height=0.5cm,
+    inner sep=0pt, outer sep=0pt, anchor=west},
+  bitcase/.default=0.42cm,
+  champ/.style={font=\sffamily\scriptsize, align=center},
+  octet/.style={draw=black!60, line width=0.35pt, minimum height=0.62cm, inner sep=0pt,
+    outer sep=0pt, anchor=west, font=\sffamily\scriptsize, align=center},
+}
+
+% \RangeeBits{y}{nom}{liste « longueur/couleur/étiquette »} : une rangée de bits, un champ par élément.
+\newcommand{\RangeeBits}[3]{%
+  \node[anchor=east, font=\sffamily\small\bfseries] at (-0.25,#1) {#2};
+  \def\curseur{0}%
+  \foreach \lon/\coul/\lab in {#3}{%
+    \foreach \b in {1,...,\lon}{%
+      \pgfmathsetmacro{\xb}{\curseur + \b - 1}%
+      \node[bitcase, fill=\coul!28] at (\xb*0.42, #1) {};
+    }%
+    \pgfmathsetmacro{\xm}{(\curseur + \lon/2)*0.42}%
+    \node[champ, below] at (\xm, #1-0.27) {\lab};
+    \pgfmathsetmacro{\nouveau}{\curseur + \lon}%
+    \xdef\curseur{\nouveau}%
+  }%
+}
+
+% Formats flottants : BF16, FP16, FP8 (E4M3, E5M2), FP4 (E2M1) et l'échelle E8M0.
+\newcommand{\SchemaFlottants}{%
+\begin{tikzpicture}
+  \RangeeBits{0}{FP16}{1/Signe/S, 5/Expo/{\EF{exponent (bias 15)}{exposant (biais 15)}}, 10/Mant/{\EF{mantissa}{mantisse}}}
+  \RangeeBits{-1.25}{BF16}{1/Signe/S, 8/Expo/{\EF{exponent (bias 127)}{exposant (biais 127)}}, 7/Mant/{\EF{mantissa}{mantisse}}}
+  \RangeeBits{-2.5}{FP8 E4M3}{1/Signe/S, 4/Expo/{exp.\ (7)}, 3/Mant/{mant.}}
+  \RangeeBits{-3.75}{FP8 E5M2}{1/Signe/S, 5/Expo/{exp.\ (15)}, 2/Mant/{mant.}}
+  \RangeeBits{-5.0}{FP4 E2M1}{1/Signe/S, 2/Expo/{exp.}, 1/Mant/m}
+  \RangeeBits{-6.25}{E8M0}{8/Echelle/{\EF{exponent only: $2^{e-127}$}{exposant seul : $2^{e-127}$}}}
+  \node[anchor=west, font=\sffamily\scriptsize, text width=6.2cm, align=left] at (7.3,-4.6)
+    {\EF{E2M1 values: $\pm\{0, \tfrac12, 1, \tfrac32, 2, 3, 4, 6\}$. llama.cpp stores them doubled ($\{0,1,2,3,4,6,8,12\}$) and halves the E8M0 scale.}%
+        {Valeurs E2M1 : $\pm\{0, \tfrac12, 1, \tfrac32, 2, 3, 4, 6\}$. llama.cpp les range doublées ($\{0,1,2,3,4,6,8,12\}$) et divise l'échelle E8M0 par deux.}};
+\end{tikzpicture}}
+
+% Bloc MXFP4 : 32 poids = 1 octet d'échelle E8M0 + 16 octets de codes E2M1.
+\newcommand{\SchemaMXFP}{%
+\begin{tikzpicture}
+  \node[octet, minimum width=0.85cm, fill=Echelle!35] (e) at (0,0) {E8M0};
+  \foreach \j in {0,...,15}{
+    \node[octet, minimum width=0.72cm, fill=Code!22] (q\j) at (0.85+0.72*\j,0) {};
+    \node[font=\sffamily\tiny] at ($(q\j.center)+(0,0.12)$) {\j{+}16};
+    \node[font=\sffamily\tiny] at ($(q\j.center)+(0,-0.14)$) {\j};
+  }
+  \draw[decorate, decoration={brace, amplitude=4pt}] (0.85,0.42) -- (12.37,0.42)
+    node[midway, above=5pt, font=\sffamily\scriptsize] {\EF{\texttt{qs[16]}: byte $j$ holds element $j$ (low nibble) and element $j{+}16$ (high nibble)}{\texttt{qs[16]} : l'octet $j$ porte l'élément $j$ (demi-octet bas) et l'élément $j{+}16$ (demi-octet haut)}};
+  \node[anchor=north west, font=\sffamily\scriptsize, text width=12.4cm, align=left] at (0,-0.5)
+    {$w_j = 2^{e-127}\cdot \mathrm{E2M1}(c_j)$ ; \EF{$8 + 32\times 4 = 136$ bits for 32 weights}{$8 + 32\times 4 = 136$ bits pour 32 poids} $= \mathbf{4{,}25}$ \EF{bits/weight}{bits/poids}.};
+\end{tikzpicture}}
+
+% Super-bloc Q4_K : 256 poids en 144 octets.
+\newcommand{\SchemaQquatreK}{%
+\begin{tikzpicture}[x=0.1cm]
+  \node[octet, minimum width=0.1cm*2*3, fill=Echelle!45] (d) at (0,0) {$d$};
+  \node[octet, minimum width=0.1cm*2*3, fill=Echelle!45] (dm) at (6,0) {$d_{\min}$};
+  \node[octet, minimum width=0.1cm*12*3, fill=Echelle!22] (sc) at (12,0) {\texttt{scales[12]}};
+  \node[octet, minimum width=0.1cm*128*1, fill=Code!22] (qs) at (48,0) {\texttt{qs[128]} : 256 \EF{4-bit codes}{codes de 4 bits}};
+  \node[font=\sffamily\tiny, below=1pt of d] {fp16};
+  \node[font=\sffamily\tiny, below=1pt of dm] {fp16};
+  \node[font=\sffamily\tiny, below=1pt of sc] {\EF{8 scales + 8 mins, 6 bits}{8 échelles + 8 minimums, 6 bits}};
+  \node[font=\sffamily\tiny, below=1pt of qs] {\EF{by 64 weights: 32 bytes, low nibbles = weights 0--31, high nibbles = 32--63}{par 64 poids : 32 octets, demi-octets bas = poids 0--31, hauts = 32--63}};
+  % Détail de l'empaquetage des 12 octets d'échelles.
+  \begin{scope}[shift={(12,-1.9)}, x=1cm]
+    \foreach \o in {0,...,11}{
+      \ifnum\o<4 \def\coul{Expo}\else\ifnum\o<8 \def\coul{Mant}\else\def\coul{Index}\fi\fi
+      \node[octet, minimum width=0.95cm, fill=\coul!20] (s\o) at (\o*0.95,0) {\tiny \o};
+    }
+    \node[font=\sffamily\tiny, align=center, anchor=north] at (1.9,-0.35) {\EF{bits 0--5: $s_0..s_3$\\ bits 6--7: high bits of $s_4..s_7$}{bits 0--5 : $s_0..s_3$\\ bits 6--7 : hauts de $s_4..s_7$}};
+    \node[font=\sffamily\tiny, align=center, anchor=north] at (5.7,-0.35) {\EF{bits 0--5: $m_0..m_3$\\ bits 6--7: high bits of $m_4..m_7$}{bits 0--5 : $m_0..m_3$\\ bits 6--7 : hauts de $m_4..m_7$}};
+    \node[font=\sffamily\tiny, align=center, anchor=north] at (9.5,-0.35) {\EF{low nibble: $s_4..s_7$ (4 low bits)\\ high nibble: $m_4..m_7$}{bas : $s_4..s_7$ (4 bits bas)\\ haut : $m_4..m_7$}};
+  \end{scope}
+  \draw[black!40, densely dotted] (sc.south west) -- (s0.north west);
+  \draw[black!40, densely dotted] (sc.south east) -- (s11.north east);
+  \node[anchor=north west, font=\sffamily\scriptsize, text width=14cm, align=left] at (0,-3.25)
+    {$w = d\, s_j\, c - d_{\min}\, m_j$ \EF{for a weight of sub-block $j$ (32 weights) with code $c\in\{0..15\}$;}{pour un poids du sous-bloc $j$ (32 poids) de code $c\in\{0..15\}$ ;} $(16+16+96+1024)/256 = \mathbf{4{,}5}$ \EF{bits/weight}{bits/poids}.};
+\end{tikzpicture}}
+
+% Super-bloc IQ2_XXS : 256 poids en 66 octets ; un groupe de 32 poids en 64 bits.
+\newcommand{\SchemaIQdeux}{%
+\begin{tikzpicture}
+  \node[octet, minimum width=1.1cm, fill=Echelle!45] (d) at (0,0) {$d$ fp16};
+  \foreach \g in {0,...,7}{
+    \ifnum\g=2 \def\coul{Index!30}\else\def\coul{Code!18}\fi
+    \node[octet, minimum width=1.5cm, fill=\coul] (g\g) at (1.1+1.5*\g,0) {\EF{group}{groupe} \g};
+  }
+  \node[font=\sffamily\tiny, below=1pt of g3.south east] {\EF{8 groups of 32 weights, 8 bytes each (\texttt{qs[32]} as \texttt{uint16})}{8 groupes de 32 poids, 8 octets chacun (\texttt{qs[32]} en \texttt{uint16})}};
+  % Détail d'un groupe : 64 bits.
+  \begin{scope}[shift={(0.4,-1.7)}, x=0.205cm]
+    \foreach \i/\lab in {0/{$i_0$}, 8/{$i_1$}, 16/{$i_2$}, 24/{$i_3$}}{
+      \node[octet, minimum width=0.205cm*8, fill=Index!30] at (\i,0) {\lab};
+    }
+    \foreach \i/\lab in {32/{$\sigma_0$}, 39/{$\sigma_1$}, 46/{$\sigma_2$}, 53/{$\sigma_3$}}{
+      \node[octet, minimum width=0.205cm*7, fill=Signe!25] at (\i,0) {\lab};
+    }
+    \node[octet, minimum width=0.205cm*4, fill=Echelle!40] at (60,0) {$s$};
+    \draw[decorate, decoration={brace, amplitude=3pt, mirror}] (0,-0.38) -- (32,-0.38) node[midway, below=4pt, font=\sffamily\tiny, align=center] {\EF{4 grid indices, 8 bits: \texttt{iq2xxs\_grid}[256]}{4 index de grille, 8 bits : \texttt{iq2xxs\_grid}[256]}\\ \EF{each a vector of 8 magnitudes (E8 lattice points)}{chacun un vecteur de 8 magnitudes (points du réseau E8)}};
+    \draw[decorate, decoration={brace, amplitude=3pt, mirror}] (32,-0.38) -- (60,-0.38) node[midway, below=4pt, font=\sffamily\tiny, align=center] {\EF{4 sign indices, 7 bits}{4 index de signes, 7 bits}\\ \EF{8th sign = even parity}{8\textsuperscript{e} signe = parité paire}};
+    \draw[decorate, decoration={brace, amplitude=3pt, mirror}] (60,-0.38) -- (64,-0.38) node[midway, below=4pt, font=\sffamily\tiny, align=center] {\EF{scale}{échelle}\\ 4 bits};
+  \end{scope}
+  \draw[black!40, densely dotted] (g2.south west) -- (0.4,-1.39);
+  \draw[black!40, densely dotted] (g2.south east) -- (0.4+64*0.205,-1.39);
+  \node[anchor=north west, font=\sffamily\scriptsize, text width=14cm, align=left] at (0,-3.15)
+    {$w = d\,(\tfrac12 + s)\,\tfrac14\; g_{i_l}[k]\;(-1)^{\sigma_l[k]}$ ; $(16 + 8 \times 64)/256 = \mathbf{2{,}0625}$ \EF{bits/weight}{bits/poids}.};
+\end{tikzpicture}}
+
+% Le treillis à décalage : une fenêtre de L = 16 bits glisse de k = 2 bits par poids.
+\newcommand{\SchemaTreillis}{%
+\begin{tikzpicture}[x=0.36cm, y=1cm]
+  % Le flux de bits d'une tuile, par paires.
+  \foreach \p in {0,...,19}{
+    \ifodd\p \def\coul{Code!12}\else\def\coul{Code!30}\fi
+    \node[draw=black!50, fill=\coul, minimum width=0.72cm, minimum height=0.48cm, inner sep=0pt,
+          anchor=west, font=\sffamily\tiny] at (2*\p,0) {$u_{\p}$};
+  }
+  \node[anchor=east, font=\sffamily\scriptsize] at (-0.4,0) {\EF{stream}{flux}};
+  % Fenêtres des instants t et t+1.
+  \draw[Accent, line width=1.1pt, rounded corners=1pt] (8,0.36) rectangle (24,-0.36);
+  \node[Accent, font=\sffamily\scriptsize, above] at (16,0.36) {$s_t$ : 16 bits};
+  \draw[Signe, line width=1.1pt, rounded corners=1pt, dashed] (10,0.46) rectangle (26,-0.46);
+  \node[Signe, font=\sffamily\scriptsize, below] at (18,-0.46) {$s_{t+1} = ((s_t \ll 2) \mid u_{t+1}) \bmod 2^{16}$};
+  % Le décodeur calculé.
+  \node[draw=Accent, fill=Accent!8, rounded corners=2pt, font=\sffamily\scriptsize, align=center,
+        minimum height=0.9cm] (f) at (16,-2.0) {\texttt{mul1} : $v = s \cdot \mathtt{0x83DCD12D} \bmod 2^{32}$\\ $\hat w = \gamma\,(\text{\EF{sum of the 4 bytes of }{somme des 4 octets de }} v - 510)$};
+  \draw[-{Latex}, Accent] (16,-0.36) -- (f.north);
+  \node[draw=Mant, fill=Mant!10, rounded corners=2pt, font=\sffamily\scriptsize] (w) at (30,-2.0) {$\hat w_t$};
+  \draw[-{Latex}, Mant] (f) -- (w);
+  \node[anchor=north, font=\sffamily\scriptsize, text width=14.5cm, align=left] at (19,-2.8)
+    {\EF{Each weight shifts $k=2$ new bits into the window; the reconstruction depends only on the 16-bit window, so the codebook of $2^{16}$ values is computed, not read. The encoder chooses the stream by Viterbi (minimum total squared error); the decoder needs one multiplication and one \texttt{dot4} per weight. Tail-biting: the tile of 256 weights is read circularly, so the cost is exactly $k$ bits per weight.}%
+        {Chaque poids fait entrer $k=2$ bits neufs dans la fenêtre ; la reconstruction ne dépend que de la fenêtre de 16 bits, d'où un livre de $2^{16}$ valeurs calculé, pas lu. Le codeur choisit le flux par Viterbi (erreur quadratique totale minimale) ; le décodeur coûte une multiplication et un \texttt{dot4} par poids. Tail-biting : la tuile de 256 poids est lue circulairement, et le coût vaut exactement $k$ bits par poids.}};
+\end{tikzpicture}}

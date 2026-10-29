@@ -1,0 +1,44 @@
+% Engendré par memoire/outils/tome3_annexes.py : ne pas modifier à la main.
+\begingroup\small
+\begin{longtable}{@{}p{0.28\linewidth}p{0.68\linewidth}@{}}
+\caption[\EF{Each figure and the files it reads}{Chaque figure et les fichiers qu'elle lit}]{\EF{Each figure in the style of Volume~III (its \texttt{\textbackslash Source}) and the data files its ``Data'' line cites}{Chaque figure au style du Tome~III (son \texttt{\textbackslash Source}) et les fichiers de données que cite sa ligne « Données »} (\fichier{memoire/outils/tome3_annexes.py} ; un nom sans dossier se lit dans le dossier du précédent).}\label{t3ann:tab:figures}\\
+\toprule
+\EF{Figure (file, name)}{Figure (fichier, nom)} & \EF{Data}{Données} \\
+\midrule
+\endfirsthead
+\toprule
+\EF{Figure (file, name)}{Figure (fichier, nom)} & \EF{Data}{Données} \\
+\midrule
+\endhead
+\texttt{codon}, \texttt{CodonTheoreme} & \fichier{mesures/genome/construction/codon/tailles-par-tenseur.csv}, \fichier{memoire/outils/tome3_codon.py} \\
+\texttt{codon}, \texttt{CodonOctets} & \fichier{mesures/genome/construction/codon/tables-octets.csv}, \fichier{memoire/outils/tome3_codon.py} \\
+\texttt{codon}, \texttt{CodonRoue} & \fichier{mesures/genome/predictif-elagage/histo-toutes-gptoss20b.npz}, \fichier{mesures/genome/etat-de-l-art/journaux/zero-compte-20b.json}, \fichier{mesures/genome/construction/codon/tailles.json}, \fichier{memoire/outils/tome3_codon.py} \\
+\texttt{codon}, \texttt{CodonAccumulateur} & \fichier{mesures/genome/construction/codon/essais-espace-2026-10-17-a.log}, \fichier{genome/06-codon-v1-2.md}, \fichier{decisions/ARCHITECTURE.md} \\
+\texttt{codon}, \texttt{CodonColonne} & \fichier{mesures/genome/construction/synthese/colonne-par-tenseur.csv}, \fichier{mesures/genome/construction/codon/tailles.json}, \fichier{mesures/genome/construction/synthese/k10/frontiere.csv}, \fichier{memoire/outils/tome3_codon.py} \\
+\texttt{codon}, \texttt{CodonJalon} & \fichier{mesures/genome/construction/codon/j1-s2-passes.csv}, \fichier{j1-s2-verdicts.json}, \fichier{memoire/outils/tome3_codon.py} \\
+\texttt{codon}, \texttt{CodonJalonBis} & \fichier{mesures/disque/placement/juge/seance/Jb3-*}, \fichier{J5-*}, \fichier{J6-*}, \fichier{J1-cartes.json}, \fichier{genome/JUGEMENT-placement.md}, \fichier{mesures/genome/construction/codon/disque-s2.json}, \fichier{mesures/genome/construction/juge/figures/vitesse-passes.csv}, \fichier{disque-passes.csv}, \fichier{genome/JUGEMENT-construction.md}, \fichier{memoire/outils/tome3_codon.py} \\
+\texttt{codon}, \texttt{CodonFormat} & \fichier{decisions/ARCHITECTURE.md}, \fichier{genome/06-codon-v1-2.md} \\
+\texttt{duplication}, \texttt{DupParente} & \fichier{mesures/genome/duplication/csv/scores-parente.csv}, \fichier{paires-temoin-planter-0.5.json}, \fichier{arbre-c23.json}, \fichier{memoire/outils/tome3_duplication.py} \\
+\texttt{duplication}, \texttt{DupArbre} & \fichier{mesures/genome/duplication/csv/phylogenie-c23-noeuds.csv}, \fichier{phylogenie-c23-aretes.csv}, \fichier{phylogenie-c23.json}, \fichier{outils/genome/duplication/figure_phylogenie.py}, \fichier{arbre-c23.json}, \fichier{memoire/outils/tome3_duplication.py} \\
+\texttt{eclaireur}, \texttt{EclBloc} & \textemdash \\
+\texttt{eclaireur}, \texttt{EclBorne} & \fichier{mesures/genome/etat-de-l-art/journaux/borne-rd.json}, \fichier{zero-temoin-sans-drapeau.json}, \fichier{zero-canonique.json}, \fichier{mesures/genome/etat-de-l-art/passes/frontiere-lam0-damp0.01-e0_8_16_24.json}, \fichier{memoire/outils/tome3_eclaireur.py} \\
+\texttt{eclaireur}, \texttt{EclZeros} & \fichier{mesures/genome/etat-de-l-art/journaux/zero-compte-20b.json}, \fichier{zero-compte-120b.json}, \fichier{memoire/outils/tome3_eclaireur.py} \\
+\texttt{genome}, \texttt{GenGauss} & \fichier{mesures/genome/genome/gauss-balayage.jsonl}, \fichier{gauss-T1.json}, \fichier{memoire/outils/tome3_genome.py} \\
+\texttt{genome}, \texttt{GenCourbes} & \fichier{mesures/genome/genome/csv/courbes-tourne-l12.csv}, \fichier{courbes-brut-l12.csv}, \fichier{verdict-par-tenseur.csv}, \fichier{mesures/genome/genome/codons-tourne-l12.json}, \fichier{memoire/outils/tome3_genome.py} \\
+\texttt{juge}, \texttt{JconsCodon} & \fichier{mesures/genome/construction/juge/J-T1-echantillon.csv}, \fichier{J-T0-fichiers.json}, \fichier{mesures/genome/construction/codon/tailles.json}, \fichier{memoire/outils/tome3_juge.py} \\
+\texttt{juge}, \texttt{JconsExperts} & \fichier{mesures/genome/construction/juge/figures/routage-grille.csv}, \fichier{J-T0-fichiers.json}, \fichier{mesures/genome/construction/synonyme/kl/kl-frontiere-768-positions.csv}, \fichier{mesures/genome/construction/codon/tailles.json}, \fichier{memoire/outils/tome3_juge.py} \\
+\texttt{juge}, \texttt{JconsFenetres} & \fichier{mesures/genome/construction/juge/figures/kl-par-fenetre.csv}, \fichier{mesures/moteur/O/journaux/o3/c4-20b-comparer.csv}, \fichier{mesures/genome/construction/synonyme/moteur/kl-moteur-frontiere-positions.csv}, \fichier{memoire/outils/tome3_juge.py} \\
+\texttt{latents}, \texttt{LatentsEtats} & \fichier{mesures/genome/tome3/latents/etats-c23.csv}, \fichier{etats-c23.json}, \fichier{outils/genome/tome3/latents_etats.py}, \fichier{h-L23.f32}, \fichier{routage-L23.bin}, \fichier{outils/genome/tome3/juge-latents/juge-etats-marges.json}, \fichier{memoire/outils/tome3_latents.py}, \fichier{latents-temoins.json} \\
+\texttt{latents}, \texttt{LatentsRangee} & \fichier{mesures/genome/tome3/latents/rangee-L08-E00-gate.csv}, \fichier{rangee-L08-E00-gate.json}, \fichier{outils/genome/tome3/latents_rangee.py}, \fichier{mesures/genome/construction/synonyme/figures/spectre-L08-E00-gate.csv}, \fichier{memoire/outils/tome3_latents.py} \\
+\texttt{latents}, \texttt{LatentsNuage} & \fichier{mesures/genome/tome3/latents/nuage-L08-E00-gate-points.csv}, \fichier{nuage-L08-E00-gate-ellipses.csv}, \fichier{nuage-L08-E00-gate.json}, \fichier{outils/genome/tome3/latents_nuage.py}, \fichier{outils/genome/tome3/juge2-latents/journaux/juge2-nuage-rangee.json}, \fichier{memoire/outils/tome3_latents.py}, \fichier{latents-temoins.json} \\
+\texttt{synonyme}, \texttt{SynoBasePropre} & \fichier{mesures/genome/construction/synonyme/figures/spectre-L08-E00-gate.csv}, \fichier{memoire/outils/tome3_synonyme.py} \\
+\texttt{synonyme}, \texttt{SynoQueue} & \fichier{mesures/genome/construction/synonyme/kl/kl-*-768-positions.csv}, \fichier{repere/kl-q2_0-positions.csv}, \fichier{kl/kl-*-768-juge.json}, \fichier{mesures/genome/construction/juge/kl/kl-neuf-*-positions.csv}, \fichier{memoire/outils/tome3_synonyme.py} \\
+\texttt{synonyme}, \texttt{SynoForet} & \fichier{mesures/genome/construction/synonyme/kl/apparie-*-par-fenetre.csv}, \fichier{mesures/genome/construction/juge/figures/apparie-par-fenetre.csv}, \fichier{mesures/genome/construction/synonyme/moteur/kl-moteur-*-positions.csv}, \fichier{memoire/outils/tome3_synonyme.py} \\
+\texttt{synonyme}, \texttt{SynoVariantes} & \fichier{mesures/genome/construction/synonyme/figures/variantes-768.csv}, \fichier{kl/kl-*-768-positions.csv}, \fichier{repere/kl-q2_0-positions.csv}, \fichier{mesures/moteur/O/journaux/o3/c4-20b-comparer.json}, \fichier{mesures/genome/construction/juge/J-T0-fichiers.json}, \fichier{memoire/outils/tome3_synonyme.py} \\
+\texttt{synthese}, \texttt{SynthFrontiere} & \fichier{mesures/genome/construction/synthese/k10/frontiere.csv}, \fichier{outils/genome/synthese/frontiere.py}, \fichier{mesures/genome/etat-de-l-art/passes/synonyme-lam1-damp1-e0_8_16_24.json}, \fichier{memoire/outils/tome3_synthese.py} \\
+\texttt{synthese}, \texttt{SynthErreurKL} & \fichier{mesures/genome/construction/synthese/k10/erreur-contre-kl.csv}, \fichier{frontiere.py}, \fichier{mesures/genome/genome/kl/comparer10-base-contre-recette.json}, \fichier{memoire/outils/tome3_synthese.py} \\
+\texttt{synthese}, \texttt{SynthDeuxParts} & \fichier{mesures/genome/etat-de-l-art/journaux/kl-frontiere-positions.csv}, \fichier{kl-synonyme-d1-positions.csv}, \fichier{kl-frontiere-juge.json}, \fichier{kl-synonyme-d1-juge.json}, \fichier{memoire/outils/tome3_synthese.py} \\
+\texttt{synthese}, \texttt{SynthColonnes} & \fichier{mesures/genome/genome/csv/colonnes-energie-erreur.csv}, \fichier{outils/genome/recette/figures_transformations.py}, \fichier{memoire/outils/tome3_synthese.py} \\
+\bottomrule
+\end{longtable}
+\endgroup

@@ -1,0 +1,863 @@
+% Tome~III, chapitre 6 : le mimétisme, six pistes du monde vers le pipeline (version française).
+% Rédacteur B, 2026-10-29. Plan et réserves : memoire/tome3/PLAN-redaction.md § 06.
+% Chaque nombre vient d'un fichier commité lu au moment d'écrire : genome/mimetisme/tri.md ; pour chaque
+% piste Pk, genome/mimetisme/Pk/{resultat.md, pour-le-memoire.md, JUGEMENT*.md} et les seuils de
+% mesures/mimetisme/Pk/. Le verdict de chaque piste est celui de son juge. P3 : seulement ce qui est jugé
+% (étage A, étage B à N = 146 et à N = 238, routeur en ligne) ; le second tirage, en travail dans une autre
+% session, n'est cité par aucun chiffre. Les figures du mimétisme sont incluses telles que leurs pistes les
+% ont tracées (\FigureHorsStyle, \HorsStyle), aucune n'est redessinée ici.
+% Sources neuves : memoire/sources/tome3-mimetisme.bib (notices relues le 2026-10-29).
+
+\chapter{Le mimétisme : six pistes du monde vers le pipeline}\label{t3mim:ch}
+
+\begin{origine}
+\textbf{Au départ}, la ronde du génome avait tenu trois gains (le codon du zéro, le contexte de colonne, la mutation synonyme) et fermé la garde tropicale globale, la graine, le duplicata, l'hebbien et les spectres (\fichier{genome/05-synthese.md} §\,2 et §\,3). Le moteur n'avait qu'un cache LRU partagé (\texttt{trc-cache} n'exporte que \texttt{Lru} et \texttt{Belady}). Six éclaireurs, chacun chargé d'un domaine du monde (le vivant, la physique, les mathématiques, l'ingénierie, les systèmes humains, la Terre et le cosmos), avaient rendu 45 candidats, dont une bonne part déjà jugée par une mesure.
+\textbf{Ce chapitre établit} le tri de ces candidats en six pistes et ce que chacune a donné devant son juge. P1, la mémoire du cache à deux échelles : le « tombe » mécanique est décidé par 147 jetons produits après la fin du message ; sur la réponse réelle le LFU(32) gagne $+0{,}0185$, sur trois blocs : \emph{ouvert}. P2, le cache exclusif : un théorème (l'exclusif à deux étages vaut un LRU de capacité $V+R$) et une réduction de la part disque de 28 et 51\,\% ; le vrai marché est « 3,2\,Go de RAM ou une descente recouverte » : \emph{ouvert}. P3, le routage conditionné par le cache : $-10\,\%$ de défauts pour une KL de 0,0314 dans le moteur, mais aucune condition ne tient à sa borne défavorable : \emph{à la limite}. P4, le préchargement calibré : la précision garantie tient (0,92 pour environ 1\,\% d'octets de plus), le gain non (3,3 à 3,5\,\%) : \emph{ouvert, plutôt du côté de tombe}. P5, le verre de spin : l'optimiseur baisse l'erreur de calibration de 52\,\% et l'erreur tenue à l'écart de 5\,\% seulement : \emph{ouvert}, et le mécanisme annoncé ne tient pas au seuil. P6, la fidélité décidée par appel : \emph{ouvert} au décodage, « tient » au préremplissage, mais un « tient » qui ne pouvait presque pas tomber. Chaque piste apporte ses dérivations, posées en entier ici.
+\textbf{Il reste} des générations saines du 120b (P1, P4), les passes ABBA du moteur (P2, P4), le second tirage de P3 (en travail dans une autre session, aucun de ses chiffres ici), les poids réels de P5 (étape~2), la KL de bout en bout de P6 (étape~1).
+Sources : \fichier{genome/mimetisme/tri.md} ; pour chaque piste $k$, \fichier{genome/mimetisme/Pk/resultat.md}, \fichier{pour-le-memoire.md}, \fichier{JUGEMENT.md} (P3 : aussi \fichier{JUGEMENT-etage-B.md}, \fichier{JUGEMENT-N238.md}, \fichier{JUGEMENT-routeur-ligne.md}) ; seuils et journaux sous \fichier{mesures/mimetisme/}.
+\end{origine}
+
+\begin{enbref}
+Le mimétisme demande à d'autres disciplines comment elles ont résolu un problème qui ressemble au nôtre : garder en mémoire ce qui va resservir, laisser partir le reste, décider vite sous incertitude. L'image est celle d'un emprunt : un climatologue sait qu'un réservoir lent intègre le forçage d'un réservoir rapide ; un physicien sait qu'un verre de spin a des vallées où une descente gloutonne s'arrête ; un statisticien sait garantir une précision sans connaître la loi des données. Aucune de ces ressemblances n'est une preuve : chacune propose une mesure, et c'est la mesure qui décide. Sur six pistes, aucune ne « tient » franchement devant son juge ; quatre restent ouvertes pour une raison précise et chiffrée (des traces trop courtes ou dégénérées, un recouvrement non mesuré, un simulateur non validé, des poids synthétiques), et deux disent quelque chose de net : un étage de RAM inclusif plus petit que la VRAM ne sert à rien, et un routeur qui favorise les experts présents retire 10\,\% des défauts pour une KL de l'ordre de 0,03, au bord de ce qui est admis.
+\end{enbref}
+
+% =====================================================================================================
+\section{Le tri : quarante-cinq candidats, six pistes}\label{t3mim:sec:tri}
+
+\paragraph{D'où viennent les candidats.} Chaque éclaireur a lu son domaine et proposé des mécanismes transposables au chemin des poids, avec, quand c'était possible sans la carte, une première mesure sur les traces du moteur. Le tri (\fichier{genome/mimetisme/tri.md}, 2026-10-27) les a dédoublonnés, classés, et a écrit pour chacune des six pistes retenues un protocole complet : données, grandeur, seuil, témoins, second chemin, coût. Les seuils du tri sont commités avant le document (\fichier{mesures/mimetisme/tri/00-seuils-declares.md}, commit \texttt{ec124f5}) ; un tri ne mesure rien. Critère de classement : gain attendu $\times$ nouveauté $\times$ faisabilité sur des données existantes, sans carte graphique, avec priorité au goulot réel (octets lus par mot, bascules du routage, préchargement). Contraintes communes : pas de carte, deux fils, priorité normale, RAM visée sous 1,5\,Go ; tant que le verrou de la carte existe, aucune lecture lourde de fichier modèle.
+
+\paragraph{Les mêmes mécanismes sous des noms différents.} Le dédoublonnage est le premier résultat du tri : six domaines arrivent au même levier sous six noms (\cref{t3mim:tab:doublons}).
+
+\begin{table}[tbp]
+\centering\small
+\caption[Le dédoublonnage des candidats]{Le dédoublonnage : les mêmes mécanismes sous des noms de domaines différents (\fichier{genome/mimetisme/tri.md} §\,1). Le numéro suit le nom de l'éclaireur.}
+\label{t3mim:tab:doublons}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.26\linewidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.2\linewidth}@{}}
+\toprule
+Mécanisme commun & Éclaireurs et noms d'origine & Signal \\
+\midrule
+LFU à demi-vie longue & vivant \#1 (ACT-R), Terre \#1 (Hasselmann, deux réservoirs), humain \#1 et \#8 (Anderson et Schooler), ingénierie \#2, physique \#4 (Omori-Utsu, Kohlrausch), Terre \#7 et \#4 & six domaines, un levier : une demi-vie plus longue que 8 jetons \\
+Routage qui favorise les résidents & mathématiques \#1 (cache-conditionnel), Terre \#6 (faille collante), humain \#5 (substitution d'article, deux choix) & trois domaines \\
+Prédire les experts à venir & mathématiques \#2 (prédiction conforme), humain \#2 (jurisprudence), vivant \#2 (circuit olfactif de la mouche), vivant \#4, Terre \#5, ingénierie \#2 & six domaines \\
+Préchargement subordonné à la demande & ingénierie \#4 (TCP Nice, LEDBAT), humain \#3 (BOLA), mathématiques \#2 & trois \\
+Choisir la fidélité à la lecture & physique \#3 (occupation de Fermi), vivant \#5 et \#7a (fovéation), humain \#6 (triage), ingénierie \#6, humain \#3, vivant \#3 & six \\
+Cache exclusif & ingénierie \#1 et \#5 & un, mais mesuré \\
+Plafond de la vérification groupée & mathématiques \#5, vivant \#6 & deux, fermé \\
+Courbe sans falaise & mathématiques \#8, ingénierie \#7 & deux, fermé \\
+Allocation des emplacements entre couches & vivant \#7b (Charnov), Terre \#8, humain \#7 & trois, fermé \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Le signal le plus fort est le LFU à mémoire longue : il sort de quatre éclaireurs en positif (vivant, Terre et cosmos, humain, ingénierie) et de deux en négatif (physique : la forme du noyau ne compte pas ; mathématiques : un prédicteur appris n'ajoute que $+0{,}012$). Mais toutes ses mesures étaient faites sur des traces de \emph{lecture} : le LFU à décroissance n'avait jamais été mesuré sur une génération, qui est la charge réelle. Et le « LFU $-0{,}075$ en génération » d'ingénierie n'était pas le contre-exemple qu'il paraissait : son « lfu » n'a pas de décroissance (le compteur monte, seule la politique « adm » le divise par deux, lu dans \fichier{outils/mimetisme/ingenierie/cache2.py}). La question restait ouverte, d'où P1.
+
+\paragraph{Deux familles.} Trois des six pistes touchent le goulot sans toucher la qualité (P1, P2, P4 : des octets lus en moins pour la même sortie au bit) ; trois échangent de la qualité contre des octets (P3, P5, P6) et se jugent à la KL. Les secondes partagent une barre : la pente du mode rapide, 0,13 de KL pour $-34\,\%$ d'octets, linéarisée en 0,038 pour 10 points ; P6 devait fournir la courbe KL$(f)$ qui manquait à cette pente.
+
+\paragraph{Ce qui est écarté, et pourquoi.} Le tri écarte une trentaine de candidats, chacun par un nombre ou une raison écrite (\fichier{tri.md} §\,4). Les plus parlants : les noyaux de mémoire physiques (Omori-Utsu, Kohlrausch), fermés par la mesure E1 ($+0{,}0051$, $+0{,}0028$, $+0{,}0044$ contre un seuil de $+0{,}015$ : la forme ne compte pas, la demi-vie compte, et elle passe dans P1) ; la coupure de Fermi (retirer l'expert de petit poids), fermée par E2 (0,09\,\% des défauts sous 0,05 ; la porte vers le rapide devient P6) ; la vérification groupée, tuée par son plafond ($G(4) = 1{,}44$, $G(8) = 1{,}84$ pour un brouillon gratuit) ; le prédicteur d'éviction appris ($+0{,}0124$ contre le meilleur LFU réglé, sous $+0{,}05$) ; les segments à listes fantômes (le SLRU à probatoire de 20\,\% s'effondre, 0,257 contre 0,738) ; le cache en forme codée, dominé par P2 ($-8\,\%$ d'octets pour 120\,ms de carte par jeton) ; et, de justesse, le remplissage inverse par l'usage (0,094 bit réalisé contre un seuil de 0,126), la meilleure piste de compression non retenue.
+
+\paragraph{Les instruments partagés.} Trois règles valent pour toutes les pistes. (i) L'\emph{arrêt séquentiel de groupe} d'O'Brien et Fleming \cite{obrien1979}, calibré par Monte-Carlo par l'éclaireur humain (constante $c = 2{,}840$) : 6,8 fenêtres sur 10 en moyenne sur cinq séries décisives, avec un plancher de 6 fenêtres, parce qu'une série franchissait la frontière à 4 fenêtres ($t = -5{,}1$) et n'était plus décisive à 10 ($t = -2{,}1$). (ii) La \emph{règle d'appariement} du lot R : un mode est meilleur si $\bar d + 2\sigma(\bar d) < 0$, $\sigma$ par blocs de fenêtres. (iii) \emph{Séparer préremplissage et génération dans tout jugement de cache} : les politiques d'admission gagnent en lecture ($+0{,}081$) et perdent en génération ($-0{,}094$) (ingénierie, H3) ; c'est le piège commun, et P1 et P4 y sont tombés autrement qu'on ne l'attendait (\cref{t3mim:sec:p1-traces}).
+
+\paragraph{La forme commune des six protocoles.} Chaque piste a commité son seuil avant toute lecture de données, et chaque juge a vérifié l'ordre des commits par \texttt{git log} ; chaque piste a un témoin dont la réponse est connue d'avance et une cassure qui doit le faire tomber ; chaque chiffre principal a un second chemin ; et chaque piste a été refaite par un juge indépendant, écrit sans le code de la piste. Le verdict de ce chapitre est toujours celui du juge.
+
+% =====================================================================================================
+\section{P1 : la mémoire du cache à deux échelles}\label{t3mim:sec:p1}
+
+\paragraph{L'idée.} Un cache d'experts décide qui garder. Le LRU garde les plus récents ; le LFU, les plus fréquents. La mémoire humaine oublie en loi de puissance \cite{anderson1991reflections}, et le climat a deux réservoirs, l'un rapide qui suit le forçage, l'autre lent qui l'intègre \cite{hasselmann1976stochastic} ; la version « cache » de cette idée est le LRFU \cite{lee2001lrfu}, un score qui décroît avec une demi-vie. Si un tel score gagne en génération, c'est le changement le moins cher du projet : un compteur par expert, 4\,608 flottants pour le 120b. Les quatre notices sont relues par Crossref le 2026-10-29 ; les articles ne le sont pas, et rien du verdict n'en dépend.
+
+\subsection{Le score à décroissance exponentielle, estimateur de taux}\label{t3mim:sec:p1-score}
+
+\begin{definition}[Score à demi-vie]\label{t3mim:def:score}
+Soit un expert accédé aux jetons $s_1 < s_2 < \dots$ Pour une demi-vie $h$ (en jetons), son score au jeton $t$ est
+\begin{equation}\label{t3mim:eq:score}
+c_h(t) = \sum_{s_i \le t} 2^{-(t - s_i)/h}, \qquad \text{mis à jour par } c \leftarrow c \cdot 2^{-\Delta t / h} + 1 .
+\end{equation}
+Le cache évince le résident de plus petit score. On pose $\tau = h / \ln 2$, la constante de temps.
+\end{definition}
+
+\begin{lemme}[Espérance et variance]\label{t3mim:lem:esperance}
+Si les accès forment un processus de Poisson de taux $\lambda$ par jeton, $\E[c_h] = \lambda h / \ln 2$ et $\operatorname{Var}[c_h] = \lambda h / (2\ln 2)$. Donc $\hat r_h = c_h \ln 2 / h$ est un estimateur sans biais de $\lambda$, de variance $\lambda \ln 2 / (2h) = \lambda/(2\tau)$.
+\end{lemme}
+\begin{proof}
+Le score est un processus de Poisson filtré par le noyau $k(u) = 2^{-u/h} = e^{-u/\tau}$. Par la formule de Campbell, $\E[c_h] = \lambda \int_0^\infty e^{-u/\tau}\,\dd u = \lambda\tau$ et $\operatorname{Var}[c_h] = \lambda \int_0^\infty e^{-2u/\tau}\,\dd u = \lambda\tau/2$. En multipliant par $\ln 2/h = 1/\tau$ : $\E[\hat r_h] = \lambda$ et $\operatorname{Var}[\hat r_h] = \lambda/(2\tau)$.
+\end{proof}
+L'écart relatif, $\sqrt{\ln 2 / (2h\lambda)}$, est le prix d'une mémoire courte : à $\lambda = 0{,}1$ accès par jeton et $h = 8$, il vaut $\sqrt{0{,}6931/1{,}6} = 0{,}66$ \calc.
+
+\begin{lemme}[Biais de retard]\label{t3mim:lem:retard}
+Si le taux dérive linéairement, $\lambda(t) = \lambda_0 + \lambda' t$, alors $\E[\hat r_h(t)] = \lambda(t) - \lambda'\tau$, et l'erreur quadratique moyenne vaut $\mathrm{EQM}(\tau) = \lambda/(2\tau) + \lambda'^2\tau^2$.
+\end{lemme}
+\begin{proof}
+$\E[\hat r_h(t)] = \int_0^\infty \lambda(t-u)\,e^{-u/\tau}\,\dd u/\tau = \lambda(t) - \lambda' \int_0^\infty u\,e^{-u/\tau}\,\dd u/\tau = \lambda(t) - \lambda'\tau$. L'EQM est la variance du \cref{t3mim:lem:esperance} plus le carré du biais.
+\end{proof}
+
+\begin{proposition}[Horizon optimal]\label{t3mim:prop:horizon}
+Pour $0 < \lambda' < \infty$, l'EQM est minimale en $\tau^\ast = \bigl(\lambda/(4\lambda'^2)\bigr)^{1/3}$, qui n'est ni $0$ (le LRU) ni $\infty$ (le LFU).
+\end{proposition}
+\begin{proof}
+$\dd\,\mathrm{EQM}/\dd\tau = -\lambda/(2\tau^2) + 2\lambda'^2\tau$ s'annule en $\tau^3 = \lambda/(4\lambda'^2)$ ; la dérivée seconde $\lambda/\tau^3 + 2\lambda'^2$ est positive.
+\end{proof}
+L'horizon croît quand la dérive faiblit et quand le taux est faible. La mesure place le meilleur $h$, choisi sur les lectures des autres genres, à $h^\ast = 32$ ($\tau = 46$ jetons) à 326 emplacements, et à 32 ou 64 à 922 \mes~(\fichier{mesures/mimetisme/P1/juge-120b-*.json}, champ \texttt{cv}).
+
+\begin{proposition}[Le continuum LRU--LFU]\label{t3mim:prop:continuum}
+Quand $h \to 0$, l'ordre des scores tend vers l'ordre des derniers accès (LRU) ; quand $h \to \infty$, vers l'ordre des comptes (LFU).
+\end{proposition}
+\begin{proof}
+$c_h(t) = 2^{-(t - s_{\text{dernier}})/h}\bigl(1 + \sum_{i \ne \text{dernier}} 2^{-(s_{\text{dernier}} - s_i)/h}\bigr)$. Quand $h \to 0$, le second facteur tend vers 1 et le premier ordonne par $s_{\text{dernier}}$ ; quand $h \to \infty$, chaque terme de la somme \eqref{t3mim:eq:score} tend vers 1 et le score vers le compte.
+\end{proof}
+C'est la famille LRFU \cite{lee2001lrfu}. Les témoins le vérifient au bit : à $h = 0{,}001$ le succès égale celui du LRU à 0 près sur huit traces ; à $h = \infty$ il égale le « lfu » de \texttt{cache2} à 0 près \mes~(\fichier{mesures/mimetisme/P1/temoins.json}).
+
+\paragraph{Deux réservoirs.} Le mélange $M(w) = (1-w)\,\hat r_8 + w\,\hat r_{128}$ est la sortie d'un filtre linéaire de réponse impulsionnelle $k(u) = (1-w)\tfrac{\ln 2}{8}2^{-u/8} + w\tfrac{\ln 2}{128}2^{-u/128}$, somme de deux relaxations, de fonction de transfert
+\begin{equation}\label{t3mim:eq:transfert}
+K(s) = \frac{1-w}{1 + 8s/\ln 2} + \frac{w}{1 + 128 s/\ln 2},
+\end{equation}
+deux pôles réels : c'est la structure à deux réservoirs de Hasselmann, dite ici comme analogie de forme. $M(0) = \mathrm{LFU}(8)$ et $M(1) = \mathrm{LFU}(128)$ à 0 près (témoin W3). Le mélange n'est pas meilleur que le LFU(32) seul : $-0{,}0031$, $+0{,}1042$, $-0{,}0657$, $+0{,}0892$ contre $-0{,}0176$, $+0{,}1136$, $-0{,}0449$, $+0{,}0981$ sur les quatre cas du verdict \mes.
+
+\paragraph{Du succès à la vitesse.} Si le disque borne tout, le temps d'un jeton est proportionnel aux défauts, $v \propto 1/(1-s)$, et un cache de succès $s_1$ contre $s_0$ accélère d'un facteur
+\begin{equation}\label{t3mim:eq:vitesse}
+\rho = \frac{1 - s_0}{1 - s_1}.
+\end{equation}
+Le seuil déclaré ($+0{,}02$ de succès sur 0,2621 de défauts) vaut $\rho = 0{,}2621/0{,}2421 = 1{,}083$ ; la génération wiki ($0{,}3944 \to 0{,}5080$) vaudrait $0{,}6056/0{,}4920 = 1{,}23$, mais sur une boucle ; une fenêtre froide du 120b (LRU 0,45, $\bar d = +0{,}094$) vaudrait $0{,}55/0{,}456 = 1{,}21$ \calc. (La note de la piste écrit $\rho \approx 1{,}19$ pour ce dernier cas ; le calcul posé donne 1,21.)
+
+\subsection{Le protocole et le verdict mécanique}\label{t3mim:sec:p1-verdict}
+
+\paragraph{Protocole déclaré} (\fichier{genome/mimetisme/P1/protocole.md}, commit \texttt{c861e8f}, après les seuils \texttt{ec124f5}). Données : sept traces du 120b (cinq lectures : code, dialogue, prose-en, prose-fr, wiki ; deux générations de 256 jetons : prose-en et wiki), et celles du 20b. Grandeur : le taux de succès global, à la règle de groupe de \texttt{trc-cache} (les 4 experts d'une couche sont épinglés pendant leur groupe), 326 et 922 emplacements. $h^\ast$ choisi par validation croisée sur les lectures des \emph{autres} genres. Seuil : $\mathrm{LFU}(h^\ast) - \mathrm{LRU} \ge +0{,}02$ et $z > 2$ sur les deux générations et la chaîne (cache chauffé par la lecture du même genre, puis génération) ; mort sous $+0{,}005$ sur l'une.
+
+\paragraph{Témoins} \mes~(\fichier{mesures/mimetisme/P1/temoins.json}). W0 : le LRU de la piste égale celui de \texttt{cache2} (écart 0 sur 8 traces), et les repères du seuil retombent (0,7379 et 0,45279). W1 : LFU($h = 0{,}001$) $=$ LRU à 0 près. W2 : LFU($\infty$) $=$ « lfu » de \texttt{cache2} (0,66268 et 0,42632). W3 : les extrêmes du mélange, à 0 près. W4, la cassure : la décroissance inversée ($h = 8$) tombe sous le LRU de plus de 0,02 sur chaque trace testée, de justesse sur la génération wiki (0,0269). W5 : la fonction de verdict rend « tient », « tombe », « ouvert », « ouvert » sur quatre écarts fabriqués. W6 : Belady \cite{belady1966} majore toute politique (marges 0,094 et 0,165). Second chemin : un noyau Rust contre le Python, écart de succès au plus $9{,}8 \times 10^{-6}$ sur 108 séries.
+
+\begin{table}[tbp]
+\centering\small
+\caption[P1 : le verdict au seuil déclaré]{P1 : le verdict au seuil déclaré, 120b, 326 emplacements, $h^\ast = 32$ par validation croisée \mes. $\sigma$ par blocs de 32 jetons. Le juge refait chaque nombre à moins de $10^{-5}$ par son propre chemin.}
+\label{t3mim:tab:p1}
+\begin{tabular}{@{}lrrrrrl@{}}
+\toprule
+Cas & LRU & LFU(32) & $d$ & $\sigma$ & $z$ & $h$ oracle (non retenu) \\
+\midrule
+génération prose-en & 0,7379 & 0,7204 & \textbf{$-$0,0176} & 0,0213 & $-0{,}8$ & $h = 8$ : $+0{,}0055$ \\
+génération wiki & 0,3944 & 0,5080 & $+0{,}1136$ & 0,0416 & 2,7 & $h = 32$ \\
+chaîne prose-en & 0,7402 & 0,6953 & $-0{,}0449$ & 0,0224 & $-2{,}0$ & $h = 8$ : $+0{,}0021$ \\
+chaîne wiki & 0,3957 & 0,4938 & $+0{,}0981$ & 0,0493 & 2,0 & $h = 32$ \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{genome/mimetisme/P1/resultat.md} §\,2 ; \fichier{mesures/mimetisme/P1/juge-120b-326.json} ; juge : \fichier{genome/mimetisme/P1/JUGEMENT.md} §\,2.}
+\end{table}
+
+Au seuil déclaré, P1 \textbf{tombe} : la génération prose-en est sous $+0{,}005$ (\cref{t3mim:tab:p1}). Même le $h$ oracle de cette trace ne rend que $+0{,}0055$. À 922 emplacements, rien non plus ($+0{,}0058$, $+0{,}0099$, $-0{,}0442$, $-0{,}0126$). Ce que la chaîne montre : chauffer le cache par la lecture du même genre n'aide pas la génération (LRU $0{,}7379 \to 0{,}7402$), et nuit au LFU sans décroissance (prose-en : 0,6627 en génération seule, 0,1411 en chaîne) ; la décroissance sauve le LFU à la frontière lecture--génération (LFU(8) en chaîne : $+0{,}0021$ et $+0{,}0856$). Les comptes de la lecture deviennent de la pollution quand la génération part dans une autre région d'experts.
+
+\subsection{Ce que les traces de génération étaient vraiment}\label{t3mim:sec:p1-traces}
+
+La piste a vu, avant son juge, que les deux générations finissent mal : prose-en tombe à 2 jetons distincts par bloc de 32 dès le jeton 128, wiki à 4 ou 5 sur ses 100 derniers jetons (\cref{fig:t3-mim-p1-blocs}, panneaux du bas). Elle l'a écrit « boucle du décodage glouton ». Le juge a lu les jetons eux-mêmes et corrigé la lecture \mes~(\fichier{genome/mimetisme/P1/JUGEMENT.md} §\,4.1) : dans \fichier{t120b.prose-en.generation.jetons}, la séquence harmony est complète (\texttt{<|end|>}, \texttt{<|start|>}, \texttt{<|channel|>}, \texttt{<|message|>} aux jetons 47 à 52 et 64 à 69), puis \textbf{\texttt{<|return|>} au jeton 109}. Le modèle a fini sa réponse proprement ; c'est le traceur qui a forcé 147 jetons de plus, que nul moteur de conversation ne produit. La phrase de la piste se lit donc ainsi : \barre{« boucle du décodage glouton »} : jetons produits après \texttt{<|return|>}.
+
+\begin{figure}[tbp]
+\centering
+\FigureHorsStyle{\Mimetisme/P1/figures/p1-blocs-generations.png}
+\caption[P1 : succès par bloc des deux générations du 120b]{\textbf{Tout l'écart LFU $-$ LRU des générations du 120b se décide dans leur seconde moitié, où les jetons distincts s'effondrent.} \mes~Haut : succès par bloc de 32 jetons, 326 emplacements, cache vide (LRU, LFU de demi-vie 32, LFU sans décroissance, horloge de couches). Bas : jetons distincts par bloc. Le titre d'origine dit « finissent en boucle » ; le juge a montré que la seconde moitié de prose-en est faite de jetons produits après la fin du message (\texttt{<|return|>} au jeton 109), et que wiki est une complétion brute sans gabarit de conversation. \HorsStyle\sourcefig{\fichier{mesures/mimetisme/P1/figure-blocs.csv} ; script \fichier{outils/mimetisme/P1/figures\_p1.py}.}}
+\label{fig:t3-mim-p1-blocs}
+\end{figure}
+
+\begin{table}[tbp]
+\centering\small
+\caption[P1 : la réponse réelle contre les jetons d'après la fin]{P1, génération prose-en du 120b, 326 emplacements, découpée à la fin du message (sonde S1 du juge, déclarée avant calcul) \mes.}
+\label{t3mim:tab:p1-tete}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+& tête 0--108 (réponse réelle) & queue 109--255 (après la fin) \\
+\midrule
+LRU & 0,415 & 0,977 \\
+LFU(8) $-$ LRU & $+0{,}0215$ & $-0{,}0063$ \\
+\textbf{LFU(32) $-$ LRU} & $\mathbf{+0{,}0185}$ & $-0{,}0443$ \\
+LFU($\infty$) $-$ LRU & $+0{,}0134$ & $-0{,}1409$ \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{genome/mimetisme/P1/JUGEMENT.md} §\,4.1 ; \fichier{mesures/mimetisme/P1/juge/sondes.json}.}
+\end{table}
+
+Sur la réponse réelle, tout $h$ donne un gain positif, de $+0{,}012$ à $+0{,}022$ (\cref{t3mim:tab:p1-tete}) ; le négatif vient entier de la queue, où deux jetons tiennent dans le LRU. La tête ne fait que trois blocs entiers de 32 : pas de $z$ utilisable, et ce n'est pas un résultat, seulement la preuve que le « tombe » mesure le traceur. La trace wiki n'est pas une conversation non plus : son invite est du texte WikiText brut coupé au milieu d'un mot, le modèle y fait de la complétion et répète « Here is a summary » ; sur sa tête (jetons 0 à 159), LFU(32) $-$ LRU $= +0{,}041$, sur sa queue $+0{,}234$ \mes : le gain wiki du verdict est lui aussi surtout un effet de boucle.
+
+\paragraph{Un trou de spécification.} Le compte d'un expert survit-il à son éviction ? Le protocole ne le disait pas. Le juge, en perdant le compte à l'éviction, obtenait LFU($\infty$) $= 0{,}2705$ au lieu de 0,66268 ; le repère W2 n'est retrouvé, à $10^{-6}$, que si le compte de chacun des 4\,608 experts est \emph{gardé à vie} \mes~(\fichier{mesures/mimetisme/P1/juge/juge-oubli.json}). C'est la convention mesurée par P1 ; dans le moteur, elle coûte une table de 4\,608 compteurs. Le verdict y est robuste : en LFU « dans le cache », la génération prose-en donne $-0{,}0111$ et tombe aussi.
+
+\subsection{Les fenêtres froides : la fréquence, pas la demi-vie}\label{t3mim:sec:p1-fenetres}
+
+Pour savoir si le gain existe sur un texte qui avance, la piste a déclaré avant calcul une analyse post hoc (\fichier{genome/mimetisme/P1/posthoc-declare.md}) : les cinq lectures découpées en 42 fenêtres disjointes de 256 jetons, cache vide au début de chacune, même choix de $h^\ast$, même seuil, et l'exigence de plus d'un genre ($\ge +0{,}02$ pour 3 genres sur 5).
+
+\begin{table}[tbp]
+\centering\small
+\caption[P1 : les fenêtres froides de 256 jetons]{P1 : les 42 fenêtres froides de 256 jetons des lectures \mes. Les lignes du 120b à 326 sont refaites par le juge (à $10^{-4}$) ; les autres ne le sont pas.}
+\label{t3mim:tab:p1-fenetres}
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+Modèle, capacité & LRU par genre & $\bar d$ & $\sigma$ & $z$ & LFU gagne & genres $\ge +0{,}02$ \\
+\midrule
+120b, 326 & 0,35 à 0,51 & $+0{,}0939$ & 0,0029 & 32,8 & 42/42 & 5/5 \\
+120b, 922 & 0,69 à 0,81 & $+0{,}0314$ & 0,0030 & 10,4 & 38/42 & 4/5 \\
+20b, 217 & 0,67 à 0,78 & $+0{,}0528$ & 0,0020 & 27,0 & 42/42 & 5/5 \\
+20b, 307 & 0,82 à 0,90 & $+0{,}0248$ & 0,0014 & 18,2 & 41/42 & 5/5 \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/mimetisme/P1/fenetres-120b.json}, \fichier{fenetres-20b.json} ; \fichier{genome/mimetisme/P1/resultat.md} §\,4.}
+\end{table}
+
+À la règle déclarée, l'analyse dirait « tient » (\cref{t3mim:tab:p1-fenetres}). Mais \emph{sa cassure échoue} : la décroissance inversée ne tombe pas sous le LRU en fenêtre de 256 jetons (elle le dépasse de $+0{,}0174$ au 120b). Ce que la fenêtre voit n'est pas la demi-vie : le LFU \emph{sans} décroissance rend déjà $+0{,}0849$, la décroissance n'ajoute que $+0{,}009$ ($\sigma = 0{,}0018$). Sur 256 jetons, les comptes n'ont pas le temps de vieillir ; ce qui paie est la fréquence, quelques experts chauds (\cref{fig:t3-mim-p1-froides}). Et ce gain ne se transfère pas aux générations saines du 20b : à 217 emplacements, code $-0{,}0015$, dialogue $+0{,}0015$, prose-fr $+0{,}0524$, wiki $-0{,}0297$ \mes. Le texte imposé d'une lecture et le texte glouton du modèle n'ont pas la même structure d'usage des experts.
+
+\begin{figure}[tbp]
+\centering
+\FigureHorsStyle{\Mimetisme/P1/figures/p1-fenetres-froides.png}
+\caption[P1 : fenêtres froides, succès du LRU contre la politique]{\textbf{Sur une fenêtre froide de 256 jetons, le LFU bat le LRU 42 fois sur 42, avec ou sans décroissance : c'est la fréquence qui paie.} \mes~Chaque point est une fenêtre ; la diagonale est le LRU. Gauche : 120b, 326 emplacements ; droite : 20b, 217. Le titre du panneau gauche déborde sur le droit dans l'original. \HorsStyle\sourcefig{\fichier{mesures/mimetisme/P1/fenetres-120b.csv}, \fichier{fenetres-20b.csv} ; script \fichier{outils/mimetisme/P1/figures\_p1.py}.}}
+\label{fig:t3-mim-p1-froides}
+\end{figure}
+
+\paragraph{L'espace des usages.} Pourquoi la lecture prépare-t-elle si mal la génération ? La \cref{fig:t3-mim-p1-topologie} représente chaque bloc de 32 jetons par le vecteur de ses usages d'experts (4\,608 dimensions, norme 1). La génération forme un bloc à part dans la matrice des similarités cosinus (0,4 à 0,5 avec la lecture, 0,3 pour la queue répétée) ; dans le plan principal (41 et 15\,\% de la variance pour wiki, 30 et 13\,\% pour prose-en), la lecture occupe un nuage compact et la génération part sur une trajectoire distincte. Un cache chauffé par la lecture contient la mauvaise région, et les comptes anciens polluent.
+
+\begin{figure}[tbp]
+\centering
+\FigureHorsStyle[width=0.86\linewidth]{\Mimetisme/P1/figures/p1-topologie-usages.png}
+\caption[P1 : l'espace latent des blocs d'usages d'experts]{\textbf{La génération occupe une autre région de l'espace des usages d'experts que la lecture qui la précède.} \mes~Haut : similarité cosinus entre blocs de 32 jetons (lecture puis génération, séparées par le trait blanc). Bas : projection sur les deux premiers axes principaux des vecteurs centrés ; carrés : génération. La queue de génération est faite de jetons d'après la fin du message (juge, \cref{t3mim:sec:p1-traces}). \HorsStyle\sourcefig{\fichier{mesures/mimetisme/P1/figure-topologie.csv} ; script \fichier{outils/mimetisme/P1/figures\_p1.py}.}}
+\label{fig:t3-mim-p1-topologie}
+\end{figure}
+
+\paragraph{Verdict du juge : ouvert.} Le chiffre est reproduit au bit par un chemin indépendant, et le « tombe » mécanique est exact au seuil déclaré. Mais il ne juge pas le LFU en génération : il est décidé par 147 jetons d'après la fin. Sur la réponse réelle, le LFU(32) gagne $+0{,}0185$, sous le seuil de $+0{,}02$ et sur trois blocs : ni tenu, ni tombé. Pour fermer P1 : au moins quatre générations du 120b arrêtées à \texttt{<|return|>}, jugées sur les seuls jetons d'avant la fin, et la convention du compte écrite (gardé à vie).
+
+% =====================================================================================================
+\section{P2 : le cache exclusif de la VRAM vers la RAM}\label{t3mim:sec:p2}
+
+\paragraph{L'idée.} Dans une hiérarchie de stockage, quand le niveau haut évince un bloc, il peut le \emph{descendre} dans le niveau bas au lieu de le dupliquer : c'est la hiérarchie exclusive de Wong et Wilkes \cite{wong2002exclusive}. Le cache du moteur fait l'inverse : dans \texttt{Cache::demander}, la RAM est remplie à chaque défaut disque et rafraîchie à chaque succès de la VRAM (lu par le tri et par le juge dans \fichier{moteur/crates/trc-cache/src/lib.rs}, lignes 153 à 241). Elle contient donc les experts les plus récents, déjà en VRAM. La simulation de l'éclaireur le disait sans appel : l'inclusif avec $R \le V$ ajoute 0,0000 de succès.
+
+\subsection{La pile LRU et le théorème}\label{t3mim:sec:p2-theoreme}
+
+\begin{definition}[Distance de pile]\label{t3mim:def:pile}
+La pile LRU est la liste des experts déjà vus, du plus récent (rang 1) au plus ancien. La distance de pile d'un accès à $x$ est le rang de $x$ dans la pile juste avant l'accès (infinie au premier accès). On note $F(C)$ la part des accès de distance de pile au plus $C$.
+\end{definition}
+
+\begin{lemme}[Inclusion, Mattson et al.]\label{t3mim:lem:mattson}
+Un cache LRU de capacité $C$ contient, à tout instant, les $C$ premiers éléments de la pile LRU. Un accès y est un succès si et seulement si sa distance de pile est au plus $C$ ; le succès d'un LRU de capacité $C$ vaut donc $F(C)$.
+\end{lemme}
+\begin{proof}
+Par récurrence sur les accès. Un accès de distance $d \le C$ porte $x$ en tête ; les rangs $1, \dots, d-1$ glissent d'un cran, l'ensemble des $C$ premiers rangs est inchangé : succès. Un accès de distance $d > C$ porte $x$ en tête et pousse le rang $C$ au rang $C+1$, qui est exactement le moins récent du cache, celui que le LRU évince : défaut.
+\end{proof}
+C'est la propriété des algorithmes à pile de Mattson, Gecsei, Slutz et Traiger \cite{mattson1970} (notice relue par Crossref par le lot O le 2026-10-15 ; l'article n'est pas relu ici, et la démonstration ci-dessus ne s'appuie pas sur lui).
+
+\begin{theoreme}[L'exclusif à deux étages vaut un LRU de capacité $V + R$]\label{t3mim:thm:exclusif}
+Soit un étage VRAM de capacité $V$ et un étage RAM de capacité $R$, tous deux en LRU. Sur un défaut de la VRAM, la victime de la VRAM descend en tête de la RAM ; si l'expert demandé est en RAM, il monte et quitte la RAM ; si la RAM déborde, son plus ancien disparaît. Alors, à tout instant, la VRAM contient les rangs $1, \dots, V$ de la pile, la RAM les rangs $V+1, \dots, V+R$, et le succès total vaut $F(V+R)$.
+\end{theoreme}
+\begin{proof}
+Par récurrence sur les accès ; vrai pour la pile vide. Soit un accès à $x$ de rang $d$.
+\emph{Si $d \le V$}, $x$ va en tête, les rangs $1, \dots, d-1$ glissent d'un cran ; l'ensemble des rangs $1, \dots, V$ est inchangé, la RAM aussi : succès VRAM.
+\emph{Si $V < d \le V + R$}, $x$ est en RAM ; il monte et la quitte. L'ancien rang $V$ devient le rang $V+1$ : c'est la victime de la VRAM (son plus ancien), qui entre en tête de la RAM, à sa place de rang $V+1$. Les anciens rangs $V+1, \dots, d-1$ glissent aux rangs $V+2, \dots, d$, les rangs au-delà de $d$ ne bougent pas : la RAM est exactement les rangs $V+1, \dots, V+R$ de la nouvelle pile. Succès RAM.
+\emph{Si $d > V + R$} (ou au premier accès), $x$ va en tête, la victime de la VRAM (rang $V$) devient le rang $V+1$ et entre en tête de la RAM ; la RAM déborde d'un élément, son plus ancien, qui est le rang $V+R+1$ de la nouvelle pile, et il sort. Défaut disque.
+\end{proof}
+
+\begin{corollaire}[La bande de pile]\label{t3mim:cor:bande}
+La part servie par la RAM vaut $F(V+R) - F(V)$, la part disque $1 - F(V+R)$. Le gain de l'exclusif est la masse des distances de pile comprises dans la bande $(V, V+R]$.
+\end{corollaire}
+
+Avec l'épinglage des groupes, la victime est la plus ancienne \emph{hors groupe}, et l'égalité n'est plus exacte. Mesuré (témoin T2, 7 traces, $R = 80$ et 336) : l'écart au LRU de capacité $V+R$ ne dépasse pas $6{,}6 \times 10^{-4}$ ; sur le 20b sans épinglage, il est exactement 0 \mes~(\fichier{mesures/mimetisme/P2/holdout20b-t2-sans-epinglage.json}). La \cref{fig:t3-mim-p2-pile} montre le théorème sur les deux générations : le gain est l'aire sous $F$ entre $V$ et $V+R$, 0,08 sur prose-en où la courbe est presque plate après $V$, 0,32 sur wiki dont l'ensemble de travail est à cheval sur la frontière.
+
+\begin{figure}[tbp]
+\centering
+\FigureHorsStyle{\Mimetisme/P2/figures/fig1-distances-de-pile.pdf}
+\caption[P2 : les distances de pile et la bande $(V, V+R\rbrack$]{\textbf{Le gain d'un étage exclusif est la masse des distances de pile dans la bande $(V, V+R]$.} \mes\,\calc~$F(C)$, succès d'un LRU de capacité $C$, sur les deux générations du 120b ; bande hachurée pour $V = 326$, $R = 336$. \HorsStyle\sourcefig{\fichier{mesures/mimetisme/P2/explore-distances.csv} ; script \fichier{outils/mimetisme/P2/figures.py}.}}
+\label{fig:t3-mim-p2-pile}
+\end{figure}
+
+\paragraph{L'inclusif, vu par la même pile.} Le juge a mesuré qu'un inclusif dont la RAM compte $R' = V + R = 662$ entrées a \emph{exactement} la part disque de l'exclusif à $R = 336$ (0,184489 et 0,288493 sur les deux générations, épinglage compris), sans aucune descente \mes~(\fichier{mesures/mimetisme/P2/juge/budget-egal.json}). Le même argument de pile l'explique ; la proposition suivante est posée par la rédaction, sous une hypothèse sur la règle du moteur que le juge a lue dans le code mais qui n'est pas mesurée en elle-même.
+
+\begin{proposition}[L'inclusif de RAM $R' \ge V$]\label{t3mim:prop:inclusif}
+Supposons, sans épinglage, que la RAM inclusive reçoive chaque expert lu du disque, que la date de chacune de ses entrées soit rafraîchie à chaque accès (servi par la VRAM ou par elle), et qu'elle évince son entrée la plus ancienne. Si $R' \ge V$, la RAM contient à tout instant les rangs $1, \dots, R'$ de la pile, et le succès total vaut $F(R')$.
+\end{proposition}
+\begin{proof}
+Par récurrence ; vrai au départ, tant que la RAM n'est pas pleine (chaque expert vu y est entré à son premier accès). Supposons la RAM égale aux $R'$ premiers rangs ; comme $V \le R'$, la VRAM (les $V$ premiers rangs, \cref{t3mim:lem:mattson}) y est incluse. Un accès de rang $d \le R'$ est servi (par la VRAM si $d \le V$, par la RAM sinon) et rafraîchit l'entrée de $x$ dans la RAM : la RAM reste les $R'$ premiers rangs de la nouvelle pile. Un accès de rang $d > R'$ est un défaut disque ; $x$ entre en RAM et son entrée la plus ancienne, l'ancien rang $R'$, devenu le rang $R'+1$, sort.
+\end{proof}
+D'où, à capacités égales en entrées, $1 - F(662)$ pour l'inclusif à 662 comme pour l'exclusif $(326, 336)$. Pour $R < V$ l'argument ne passe pas : une entrée de la RAM peut vieillir pendant que la VRAM sert des experts absents de la RAM. La piste n'en donne qu'une esquisse, et la mesure en tient lieu : 0 de succès RAM à $R = 80$ et 160 sur les 7 traces (\fichier{mesures/mimetisme/P2/grille.csv}, mode inclusif), au plus $7{,}65 \times 10^{-4}$ à $R = V = 326$ \mes~(\fichier{mesures/mimetisme/P2/t1bord.csv}).
+
+\subsection{Le coût de la descente}\label{t3mim:sec:p2-cout}
+
+Un défaut disque coûte $a = 4{,}1$\,ms (11,6\,Mo à 2,82\,Go/s) ; un défaut servi par la RAM décodée $b = 1{,}09$\,ms (13,25\,Mo à 12,2\,Go/s) ; une descente de la VRAM vers la RAM coûte $b$ aussi \calc. Soit $\varphi$ le nombre de défauts VRAM par jeton et $\rho$ la part d'entre eux servie par la RAM ; chaque défaut VRAM provoque une descente. Par jeton :
+\begin{align}
+T_{\text{LRU}} &= \varphi\,a, \nonumber\\
+T_{\text{série}} &= \varphi\,\bigl[(1-\rho)\,a + \rho\,b + b\bigr], \nonumber\\
+T_{\text{recouvert}} &= \varphi\,\bigl[(1-\rho)\,a + \rho\,b\bigr]. \label{t3mim:eq:p2-cout}
+\end{align}
+Le gain en série vaut $\varphi\,[\rho(a-b) - b]$, positif si et seulement si
+\begin{equation}\label{t3mim:eq:p2-seuil}
+\rho > \frac{b}{a-b} = \frac{1{,}09}{3{,}01} = 0{,}362 .
+\end{equation}
+Avec une fraction $\omega$ de la descente recouverte par le calcul, la rentabilité demande $\rho(a-b) \ge (1-\omega)\,b$, soit $\omega \ge 1 - \rho(a-b)/b$. Les temps mesurés le disent directement : sur prose-en, le LRU seul coûte 154,7\,ms par jeton, l'exclusif recouvert 121,1\,ms et la descente 39,75\,ms, donc il faut $\omega \ge 1 - 33{,}6/39{,}75 = 0{,}154$ \calc ; $\rho \approx 0{,}30$ y est sous le seuil \eqref{t3mim:eq:p2-seuil}, et $\rho \approx 0{,}52$ sur wiki au-dessus.
+
+\subsection{La mesure, le verdict et ce que le juge corrige}\label{t3mim:sec:p2-verdict}
+
+\paragraph{Seuil déclaré} (\fichier{genome/mimetisme/P2/seuil-declare.md}, commité avant toute lecture de trace) : réduction relative de la part disque, exclusif contre inclusif, $V = 326$, $R = 336$, d'au moins 15\,\% sur les deux générations, \emph{et} trafic de descente au plus 25\,\% d'un jeton de 345\,ms ; mort sous 5\,\% sur l'une.
+
+\begin{table}[tbp]
+\centering\small
+\caption[P2 : le verdict]{P2, $V = 326$, $R = 336$ : la piste et le juge \mes. Écart sous $10^{-5}$ sur les parts disque, sous 0,1\,\% sur les descentes.}
+\label{t3mim:tab:p2}
+\begin{tabular}{@{}llrrrrr@{}}
+\toprule
+Génération & & disque inclusif & disque exclusif & réduction & descentes/jeton & descente/345\,ms \\
+\midrule
+prose-en & piste & 0,2573 & 0,1845 & 28,3\,\% & 36,5 & 11,5\,\% \\
+ & juge & 0,257270 & 0,184489 & 28,29\,\% & 36,469 & 11,52\,\% \\
+wiki & piste & 0,5926 & 0,2885 & 51,3\,\% & 85,9 & \textbf{27,2\,\%} \\
+ & juge & 0,592556 & 0,288493 & 51,31\,\% & 85,938 & 27,15\,\% \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{genome/mimetisme/P2/resultat.md} §\,1 ; \fichier{genome/mimetisme/P2/JUGEMENT.md} §\,1 ; \fichier{mesures/mimetisme/P2/verdict.json}, \fichier{juge/verdict-juge.json}.}
+\end{table}
+
+La première condition tient sur les deux générations (28,3 et 51,3\,\% contre 15\,\%), la seconde tombe sur wiki (27,2\,\% contre 25\,\%) : \textbf{ouvert} (\cref{t3mim:tab:p2}). Rapportée au temps de disque propre à wiki (357,6\,ms en LRU seul), la descente vaut encore 26,2\,\% : le verdict ne bouge pas. Témoins, tous tenus et capables de tomber : $R = 0$ redonne le LRU seul aux entiers près (T0) ; l'inclusif à $R \le V$ ajoute 0 (T1, tolérance relâchée à $10^{-3}$ au bord $R = V$, dit avant) ; l'exclusif égale le LRU de $V+R$ à $6{,}63 \times 10^{-4}$ (T2) ; la démotion supprimée redonne le LRU seul, le remplissage au défaut redonne l'inclusif (T3) ; le simulateur de l'éclaireur est retrouvé à $4{,}8 \times 10^{-4}$ (T4). Second chemin : un Rust à horodatages, égal au Python sur 154 cellules. La \cref{fig:t3-mim-p2-disque} montre l'inclusif collé au LRU seul tant que $R \le V$, puis décrochant ; l'exclusif part dès $R = 80$.
+
+\begin{figure}[tbp]
+\centering
+\FigureHorsStyle{\Mimetisme/P2/figures/fig2-part-disque-contre-R.pdf}
+\caption[P2 : part disque contre la taille de la RAM]{\textbf{L'étage RAM inclusif ne sert à rien tant que $R \le V$ ; l'exclusif sert dès la première entrée.} \mes~Part des accès servis par le disque contre $R$, deux générations du 120b, $V = 326$ et 922 ; en pointillés, le LRU seul. Le juge rappelle que $V = 922$ entrées décodées font 12,2\,Go de VRAM, plus que la carte (8\,188\,Mio) : ce n'est pas une option sur cette machine. \HorsStyle\sourcefig{\fichier{mesures/mimetisme/P2/grille.csv} ; script \fichier{outils/mimetisme/P2/figures.py}.}}
+\label{fig:t3-mim-p2-disque}
+\end{figure}
+
+\begin{table}[tbp]
+\centering\small
+\caption[P2 : temps de service des défauts par jeton]{P2 : temps de service des défauts par jeton, $V = 326$, $R = 336$ \calc~sur \mes. Entre parenthèses, le gain sur le LRU seul.}
+\label{t3mim:tab:p2-temps}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Trace & LRU seul & exclusif en série & exclusif recouvert \\
+\midrule
+prose-en, génération & 154,7\,ms & 160,9 ($-6{,}1$) & 121,1 ($+33{,}6$) \\
+wiki, génération & 357,6\,ms & 313,8 ($+43{,}8$) & 220,1 ($+137{,}5$) \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{mesures/mimetisme/P2/net-selectif-120b.csv} (lignes $s = 0$) ; refait par le juge à 1\,ms près (J4c).}
+\end{table}
+
+\paragraph{Ce que le juge corrige} (\fichier{genome/mimetisme/P2/JUGEMENT.md} §\,3). (1) La référence du seuil, « commité en 6f3d737 », désigne un commit qui n'est sur aucune branche (version amendée d'un commit qui portait un trailer) ; le commit sur \texttt{main} est \texttt{6d325d8}, même seconde, contenu identique. (2) La référence « inclusif à $R = 336$ » est dégénérée par construction : « 28 et 51\,\% contre l'inclusif » se lit « contre rien ». La vraie alternative est l'inclusif de $R' = 662$, qui a la même part disque (\cref{t3mim:prop:inclusif}) sans aucune descente ; le vrai marché de l'exclusif est donc d'économiser $V$ entrées de RAM (environ 3,2\,Go : 7,68\,Go encodés contre 4,45\,Go décodés) contre le trafic de descente. En série, cet inclusif bat l'exclusif ($+25{,}7$ contre $-6{,}1$\,ms sur prose-en, $+105{,}0$ contre $+43{,}8$ sur wiki) ; recouvert, l'exclusif gagne. (3) $V = 922$ n'est pas une option sur la carte de la machine. (4) La démotion sélective (ne descendre que les victimes réutilisées au moins $s$ fois en VRAM), choisie après coup et dite telle, n'est qu'un réglage sur la même courbe : son avantage n'existe qu'en série, et recouverte elle perd sur wiki (253,2\,ms contre 220,1). (5) Le théorème n'est pas neuf : c'est l'inclusion de Mattson et l'argument de Wong et Wilkes ; il est juste, et le juge le refait exactement par un troisième chemin (distances de pile par arbre de Fenwick : 6\,801 $=$ 6\,801 et 10\,635 $=$ 10\,635 défauts).
+
+\paragraph{Verdict du juge : ouvert, reproduit.} Ce que P2 apporte vraiment : un étage RAM inclusif de taille $R \le V$ ne sert à rien (le \texttt{--ram-tiede} actuel, en simulation) ; l'exclusif atteint la part disque d'un inclusif de $V+R$ entrées avec $V$ entrées de RAM en moins, au prix de 36 à 86 descentes par jeton. La décision de Stone n'est pas « exclusif ou inclusif à $R$ égal », c'est « 3,2\,Go de RAM de plus, ou une descente recouverte ». Le nœud reste le recouvrement de la descente, à mesurer dans le moteur en ABBA, contre l'inclusif à $V+R$ qui ne demande aucun code.
+
+% =====================================================================================================
+\section{P3 : le routage conditionné par le cache, borné par la marge}\label{t3mim:sec:p3}
+
+\paragraph{L'idée.} Skliar et al. ajoutent un biais aux logits des experts déjà en cache avant le top-$k$ du routeur \cite{skliar2025cacheconditional}. Trois éclaireurs y sont arrivés par d'autres chemins : la faille sismique qui colle (friction à vitesse et état), la substitution d'un article en rupture de stock, la puissance de deux choix des files d'attente ; ce sont des analogies, et la mesure seule décide. P3 change le \emph{flux de demandes}, pas la politique : Belady est optimal pour un flux fixé, et la politique ne bouge plus (le meilleur prédicteur dépasse le LFU réglé de $+0{,}011$ à $+0{,}013$, mathématiques M1). C'est aussi la plus risquée des six : une bascule voulue coûte comme une bascule subie, et les bascules portent 96,5\,\% de la KL sur les positions qui basculent (\fichier{genome/05-synthese.md} §\,2.2).
+
+\paragraph{Ce chapitre ne cite que ce qui est jugé.} L'étage A (boucle ouverte), l'étage B à $N = 146$, l'étage B à $N = 238$ et le routeur biaisé en ligne dans le moteur ont chacun leur jugement commité. Un second tirage est en travail dans une autre session (\fichier{genome/mimetisme/P3/REPRISE-second-tirage.md}) : aucun de ses chiffres n'est cité. Un témoin à $\beta = 0{,}3$ hors moteur (\fichier{resultat-temoin-b0.3.md}) n'a pas de jugement propre : il n'est pas cité non plus.
+
+\subsection{La géométrie : une paroi décalée, une bande}\label{t3mim:sec:p3-geometrie}
+
+Un routeur de gpt-oss-20b rend, par cellule (position $t$, couche $\ell$), 32 logits $z \in \mathbb{R}^{32}$ ; l'ensemble choisi $S(z)$ est celui des quatre plus grands. Dans $\mathbb{R}^{32}$, les régions $\{z : S(z) = S_0\}$ sont des cônes polyédriques ; leurs parois sont des hyperplans $\{z_i = z_j\}$ de l'arrangement des tresses, et la paroi qui compte pour $S$ est le lieu tropical $\{z : z_{(4)} = z_{(5)}\}$, où s'annule la \emph{marge} $m(z) = z_{(4)} - z_{(5)}$. La marge est, à $\sqrt 2$ près, la distance de $z$ à la paroi la plus proche qui change $S$ (le \cref{t3tro:ch} en fait le sujet).
+
+Le biais de Skliar et al. est une \emph{translation} $z' = z + \beta\,\mathbf{1}_R$, où $\mathbf{1}_R$ indique les experts résidents. Il ne change pas la géométrie des régions ; il déplace le point. Pour une paire ($a$ absent, $b$ résident), cela revient à décaler la paroi $z_a = z_b$ en $z_a = z_b + \beta$ (\cref{fig:t3-mim-p3-paroi}). Toute cellule dont le point tombe dans la bande entre les deux parois change de choix : $a$ était pris, $b$ l'est maintenant. \emph{La part de cellules changées est la masse de probabilité de la bande.}
+
+\begin{figure}[tbp]
+\centering
+\FigureHorsStyle[width=0.55\linewidth]{\Mimetisme/P3/figures/fig-paroi.pdf}
+\caption[P3 : la paroi du routeur décalée de $\beta$]{\textbf{Le biais vers les résidents ne déforme pas les régions du routeur : il décale une paroi, et la bande balayée est la part des cellules qui changent.} \schema~Plan $(z_b, z_a)$ d'un absent $a$ et d'un résident $b$ : paroi du routeur $z_a = z_b$ (marge nulle) et paroi biaisée $z_a = z_b + \beta$. Un schéma, pas une mesure. \HorsStyle\sourcefig{\fichier{genome/mimetisme/P3/figures/fig-paroi.tex}.}}
+\label{fig:t3-mim-p3-paroi}
+\end{figure}
+
+\paragraph{La masse de la bande, mesurée.} La fonction de répartition de la marge sur les 122\,640 cellules (24 couches $\times$ 5\,110 positions) est connue à $3 \times 10^{-6}$ près, recalculée indépendamment des journaux \mes~(\fichier{mesures/mimetisme/P3/etage-A.json}) :
+
+\begin{center}\small
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+$\beta$ (logit) & 0,01 & 0,03 & 0,1 & 0,3 \\
+\midrule
+$P(m < \beta)$ & 0,0818 & 0,2240 & 0,5632 & 0,9035 \\
+densité moyenne $P(m<\beta)/\beta$ & 8,2 & 7,5 & 5,6 & 3,0 \\
+\bottomrule
+\end{tabular}
+\end{center}
+La masse croît presque linéairement jusqu'à $\beta \approx 0{,}03$ (densité en zéro $g(0) \approx 8$ par unité de logit, cohérente avec la loi presque exponentielle de la marge du \cref{t3tro:ch}), puis sature. L'étendue moyenne des logits vaut 4,136 : $\beta = 0{,}1$ correspond à $\lambda = 0{,}024$ dans la normalisation de l'article.
+
+\paragraph{Le facteur de résidence.} La variante V2 (n'échanger que le 4\textsuperscript{e} absent contre le 5\textsuperscript{e} résident) change une cellule exactement quand $m < \beta$, que le 4\textsuperscript{e} est absent et le 5\textsuperscript{e} résident. Si la marge était indépendante de la résidence,
+\begin{equation}\label{t3mim:eq:p3-part}
+\text{part changée}(\beta) = P(m < \beta)\cdot P(a \text{ absent}) \cdot P(b \text{ résident} \mid a \text{ absent}).
+\end{equation}
+Le rapport mesuré « part changée / $P(m<\beta)$ » vaut 0,237, 0,232, 0,225, 0,210 aux quatre $\beta$ à $N = 146$, et 0,222 à 0,188 à $N = 238$ \mes : presque constant, c'est bien un facteur de résidence. Avec $P(a \text{ absent})$ lu dans les défauts de rang 4 à $\beta = 0$ (0,544 et 0,301), on en tire, au plus petit $\beta$, $P(b \text{ résident} \mid a \text{ absent}) = 0{,}437$ et 0,738 \calc.
+
+\paragraph{Un échange évite plus d'un défaut.} Aux petits $\beta$, chaque expert échangé évite 1,44 à 1,57 défaut à $N = 146$ et 1,18 à 1,25 à $N = 238$ \mes : le défaut du jour, plus l'absent qui n'entre pas dans le cache et n'en évince pas un utile, plus la récence rendue au résident. Le taux de change au point $-10\,\%$ vaut $0{,}1 \times 216\,397 / (0{,}1198 \times 122\,640) = 1{,}47$ défaut par cellule à $N = 146$, et 1,21 à $N = 238$ \calc.
+
+\subsection{Le critère de décision en une grandeur}\label{t3mim:sec:p3-critere}
+
+\begin{proposition}[Le seuil de la pente $\kappa$]\label{t3mim:prop:kappa}
+Soit $f^\ast(N)$ la part de cellules à changer pour retirer 10\,\% des défauts au budget $N$, et supposons la KL excédentaire linéaire en la part changée, $\mathrm{KL} = \kappa f$ (régime des petits $\beta$). Le seuil de succès (KL $\le \varepsilon = 0{,}038$ à $-10\,\%$) équivaut à
+\begin{equation}\label{t3mim:eq:kappa}
+\kappa \le \kappa_{\max}(N) = \frac{\varepsilon}{f^\ast(N)},
+\end{equation}
+et le seuil de mort (KL $> 0{,}07$) à $\kappa > 0{,}07/f^\ast(N)$.
+\end{proposition}
+\begin{proof}
+Au point $f = f^\ast$, $\mathrm{KL} = \kappa f^\ast \le \varepsilon \iff \kappa \le \varepsilon/f^\ast$ ; de même pour 0,07.
+\end{proof}
+Avec $f^\ast(146) = 11{,}98\,\%$ et $f^\ast(238) = 7{,}31\,\%$ (franchissements interpolés) : $\kappa_{\max} = 0{,}038/0{,}1198 = 0{,}317$ et $0{,}038/0{,}0731 = 0{,}520$ ; la mort est à $\kappa = 0{,}584$ et 0,958 \calc. Le seul $\kappa$ connu avant l'étage B était celui des bascules spontanées entre deux moteurs presque exacts :
+\begin{equation}\label{t3mim:eq:kappa0}
+\kappa_0 = \frac{0{,}0145 - 0{,}00168}{5\,087/122\,640} = \frac{0{,}01282}{0{,}04148} = 0{,}309 ,
+\end{equation}
+2,5\,\% sous $\kappa_{\max}$ à $N = 146$ : une marge infime. La forme \eqref{t3mim:eq:kappa} est celle qu'il faut retenir : un seuil sur une pente, $\varepsilon$ étant la pente linéarisée du mode rapide fois dix points.
+
+\subsection{L'étage A : la boucle ouverte}\label{t3mim:sec:p3-etageA}
+
+Seuils (\fichier{mesures/mimetisme/P3/00-seuils-declares.md}, commit \texttt{1606f9f}, seul fichier du commit, avant tout contact avec les données). Modèle : gpt-oss-20b, 5\,110 positions (10 fenêtres de 511), 122\,640 cellules ; cache LRU global à règle de groupe, $N = 146$ (19\,\%) et 238 (31\,\%) ; bascules causales (résidents $=$ contenu du cache juste avant le groupe), poids de mélange non biaisés. Les ensembles sont calculés sur la trajectoire du modèle exact : c'est la \emph{boucle ouverte}.
+
+\begin{table}[tbp]
+\centering\small
+\caption[P3, étage A : défauts évités et cellules changées]{P3, étage A : défauts évités et part de cellules changées, par $\beta$ \mes. Chaque nombre est refait par le juge, défaut pour défaut, avec un autre lecteur GGUF, un autre produit matriciel et un autre cache.}
+\label{t3mim:tab:p3-A}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+& $N = 146$ (19\,\%) & $N = 238$ (31\,\%) \\
+\midrule
+défauts à $\beta = 0$ & 216\,397 (succès 0,5589) & 108\,472 (succès 0,7789) \\
+V1 (tous résidents), $\beta = 0{,}03$ & $-5{,}1\,\%$ ; 6,0\,\% changées & $-7{,}5\,\%$ ; 5,4\,\% \\
+V1, $\beta = 0{,}06$ & $-9{,}9\,\%$ ; 11,9\,\% & $-14{,}3\,\%$ ; 10,5\,\% \\
+V1, $\beta = 0{,}1$ & $\mathbf{-16{,}1\,\%}$ ; 19,3\,\% & $\mathbf{-22{,}6\,\%}$ ; 16,6\,\% \\
+V1, $\beta = 0{,}3$ & $-40{,}9\,\%$ ; 48,2\,\% & $-53{,}0\,\%$ ; 37,7\,\% \\
+V2 (4\textsuperscript{e}/5\textsuperscript{e} seul), $\beta = 0{,}1$ & $-10{,}4\,\%$ ; 12,7\,\% & $-15{,}3\,\%$ ; 11,4\,\% \\
+franchissement de $-10\,\%$ (V1) & $\beta = 0{,}060$ ; 12,0\,\% & $\beta = 0{,}041$ ; 7,3\,\% \\
+KL a priori à ce franchissement ($0{,}309 \times$ part) & 0,037 & 0,023 \\
+$\beta = -0{,}1$ (on favorise les absents) & $+17{,}4\,\%$ & $+28{,}2\,\%$ \\
+masque au hasard, même densité, $\beta = 0{,}1$ & $+0{,}7\,\%$ & $+1{,}9\,\%$ (juge : $+1{,}48\,\%$) \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{genome/mimetisme/P3/resultat.md} §\,2 ; \fichier{mesures/mimetisme/P3/etage-A.csv}, \fichier{affinage.csv} ; juge : \fichier{genome/mimetisme/P3/JUGEMENT.md} §\,2.}
+\end{table}
+
+Le levier a de l'amplitude, et elle vient de la résidence : le masque au hasard de même densité ne gagne rien, le signe inversé perd (\cref{t3mim:tab:p3-A}). Aux petits $\beta$, un seul expert change par cellule changée (1,00 à 1,02), et l'expert de plus haut logit reste choisi dans 99,98 à 100\,\% des cellules : le levier ne touche que les derniers rangs. Les courbes V1 et V2 se superposent dans le plan (part changée, défauts évités) (\cref{fig:t3-mim-p3-pareto}) : la monnaie du levier est le nombre de cellules changées, pas la forme du biais. Si la vitesse suivait $1/\text{défauts}$, $-10$, $-16$ et $-23\,\%$ de défauts donneraient $\times 1{,}11$, $\times 1{,}19$ et $\times 1{,}29$ \calc, ce qui n'est pas mesuré.
+
+\begin{figure}[tbp]
+\centering
+\FigureHorsStyle{\Mimetisme/P3/figures/fig-pareto.pdf}
+\caption[P3, étage A : défauts évités contre cellules changées]{\textbf{La monnaie du levier est le nombre de cellules changées : les deux variantes du biais tombent sur la même courbe.} \mes~Défauts évités contre part de cellules à ensemble changé, V1 et V2, aux deux budgets ; repères à $-10\,\%$ de défauts et au franchissement. L'étiquette « KL a priori 0,037 » est la constante des bascules spontanées ; le juge montre qu'elle est probablement trop basse pour un routeur en ligne (0,090 par racine de cascade). Dans l'original, cette étiquette chevauche la légende. \HorsStyle\sourcefig{\fichier{mesures/mimetisme/P3/series/*.csv} ; \fichier{genome/mimetisme/P3/figures/fig-pareto.tex}, script \fichier{outils/mimetisme/P3/p3\_series.py}.}}
+\label{fig:t3-mim-p3-pareto}
+\end{figure}
+
+Témoins \mes : W1, les logits recalculés depuis $h$ et le routeur F32 retrouvent l'ensemble de la capture dans 122\,640 cellules sur 122\,640 (cassure : sans le biais du routeur, 0,6544) ; W2, $\beta = 0$ redonne les défauts du rejeu ; W3, les signes ; W4, la borne E7 respectée (rapports 0,53 à 0,78 ; tolérance de 1,5 non dérivée, dite) ; W5, un second LRU indépendant redonne le compte exact sur les 16 lignes ; W6, causalité par troncature. Verdict déclaré de l'étage A : \textbf{ouvert, étage B justifié} ($-10\,\%$ atteint aux deux budgets, KL a priori sous 0,07).
+
+\paragraph{Ce que le juge de l'étage A ajoute} (\fichier{genome/mimetisme/P3/JUGEMENT.md} §\,4). Les nombres sont exacts. Deux lectures sont trop optimistes. (1) L'étage B, tel qu'il est écrit, impose à la référence f64 les ensembles de la boucle ouverte à \emph{toutes} les cellules : il interdit les bascules secondaires que la bascule voulue déclencherait aux couches suivantes. Or 59\,\% des bascules du lot R sont des secondaires (3\,006 sur 5\,087), et $P(\text{bascule en } \ell+1 \mid \text{bascule en } \ell) = 26{,}6\,\%$ contre 3,4\,\% (\cref{t3tro:ch}). L'étage B mesure donc le coût \emph{direct} des bascules, une borne basse vraisemblable : une KL d'étage B au-dessus de 0,07 tue P3, une KL sous 0,038 ne suffit pas pour « tient ». (2) Le sens de l'erreur de la KL a priori est probablement connu : rapportée aux seules racines des cascades, la constante vaut $0{,}0128/(2\,081/122\,640) = 0{,}755$ au lieu de 0,309 \calc, d'où une KL a priori de 0,090 à $N = 146$ (au-dessus de la mort) et 0,055 à $N = 238$.
+
+\subsection{L'étage B : la KL excédentaire mesurée}\label{t3mim:sec:p3-etageB}
+
+L'étage B impose, dans la référence f64 du lot R, les ensembles biaisés, et mesure la KL excédentaire et le premier choix de sortie contre la référence. Seuils (déclarés avec l'étage A, rappelés dans \fichier{mesures/mimetisme/P3/02-etage-B-declare.md}, commit \texttt{c4a037a}, avant toute passe) : « tient » si, au même $\beta$, $-10\,\%$ de défauts, KL $\le 0{,}038$ et premier choix identique $\ge 95\,\%$ ; « tombe » si KL $> 0{,}07$ au $\beta$ à $-10\,\%$.
+
+\paragraph{À $N = 146$.} À $\beta = 0{,}06$ : défauts $-9{,}93\,\%$ (194\,904), KL 0,0209, premier choix 88,4\,\% ; à $\beta = 0{,}07$ : $-11{,}53\,\%$, KL 0,0239, premier choix 87,6\,\% \mes. Le juge les relit des fichiers \texttt{.kld} par un second lecteur, au dernier chiffre affiché (KL 0,0208902 et 0,0239339), et le témoin $\beta = 0$ tombe à zéro au bit (même empreinte SHA-256 que la référence). La KL tient, le premier choix tombe : \textbf{non concluant au seuil littéral}. Le juge a demandé d'où viennent les désaccords de premier choix (\cref{t3mim:tab:p3-quasi}) : en grande partie de quasi-égalités de la référence (la moitié sous 0,1 logit de marge, 86\,\% sous 0,3, contre 14 et 37\,\% des positions), mais pas seulement : hors des positions à marge $< 0{,}1$, le premier choix reste à 93,7 et 93,2\,\%, sous 95\,\%. Ce découpage est post hoc et ne change pas le verdict.
+
+\begin{table}[tbp]
+\centering\small
+\caption[P3, étage B à $N = 146$ : les désaccords de premier choix]{P3, étage B à $N = 146$ : où tombent les désaccords de premier choix, selon la marge de la référence (log-probabilité du 1\textsuperscript{er} moins celle du 2\textsuperscript{e}) \mes~par le juge.}
+\label{t3mim:tab:p3-quasi}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+& cassure T1 (51) & $\beta = 0{,}06$ (295) & $\beta = 0{,}07$ (317) & toutes positions \\
+\midrule
+désaccords à marge $< 0{,}1$ & 84,3\,\% & 53,6\,\% & 53,3\,\% & 14,4\,\% des positions \\
+désaccords à marge $< 0{,}3$ & 94,1\,\% & 86,1\,\% & 85,8\,\% & 37,2\,\% des positions \\
+marge médiane des désaccords & 0,015 & 0,087 & 0,088 & (accords : 0,51) \\
+premier choix si marge $\ge 0{,}1$ & 99,6\,\% & 93,7\,\% & 93,2\,\% & \\
+premier choix si marge $\ge 0{,}3$ & 99,8\,\% & 97,4\,\% & 97,2\,\% & \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{genome/mimetisme/P3/JUGEMENT-etage-B.md} §\,4 ; \fichier{mesures/mimetisme/P3/juge/etage-B/}.}
+\end{table}
+
+\paragraph{À $N = 238$, avec un critère pondéré fixé après lecture.} Le critère suivant a été écrit \emph{après} avoir lu $N = 146$, et le dit en toutes lettres (\fichier{mesures/mimetisme/P3/03-critere-marge-declare.md}, commit \texttt{e8bf954}, avant toute passe à $N = 238$) : la lecture « pondérée » exige le premier choix $\ge 95\,\%$ sur les seules positions où la marge de la référence est au moins 0,3 logit. Sa raison, indépendante du chiffre lu : prendre le 2\textsuperscript{e} jeton au lieu du 1\textsuperscript{er} coûte au plus la marge en log-probabilité ; une bascule à marge $< 0{,}3$ est bon marché. Un « tient » de $N = 238$ seul est dit \emph{partiel}. Au premier pas qui franchit $-10\,\%$, $\beta_1 = 0{,}041$ : défauts 97\,604, soit $-10{,}0192\,\%$ (20,8 défauts sous le seuil de 97\,624,8) ; KL 0,0117202 ; premier choix littéral 91,96\,\% ; pondéré 98,75\,\% (20 désaccords sur 1\,601 positions) \mes, reproduits par le juge au dernier chiffre. Verdict déclaré : \textbf{pondéré « tient, partiel » ; littéral « non concluant »}.
+
+Le juge de $N = 238$ relève un grave de portée (\fichier{genome/mimetisme/P3/JUGEMENT-N238.md} §\,5, G1) : sur les données réelles, la condition pondérée \emph{ne mord jamais avant la KL}. Huit fichiers réels de KL $\le 0{,}029$ la passent tous à 97,1\,\% ou plus, llama.cpp compris (92,55\,\% littéral et 98,06\,\% pondéré contre la même référence) ; le seul fichier réel qui la manque a une KL de 0,243. Le levier à $\beta_1$ est plus proche de la référence que llama.cpp au pondéré, et 0,6 point plus loin au littéral. Le « tient » pondéré dit donc, à ce jour, « $-10\,\%$ de défauts et KL $\le 0{,}038$ », pas une troisième chose.
+
+\subsection{Le routeur biaisé en ligne, dans le moteur}\label{t3mim:sec:p3-ligne}
+
+Seule l'épreuve en ligne lève la boucle ouverte : le biais s'applique aux logits recalculés à chaque couche sur la trajectoire réelle, avec les résidents tirés du cache du moteur au même instant. Mécanisme, grandeurs, seuils, témoin et cassure sont déclarés avant la moindre ligne de code du moteur (\fichier{mesures/mimetisme/P3/06-routeur-ligne-declare.md}, commit \texttt{0f38124}, puis le code en \texttt{eb78770}) : un noyau \texttt{routeur\_topk\_biais} choisit les quatre experts par \texttt{logit + b}, calcule les poids sur les logits non biaisés, derrière un drapeau absent par défaut ; base de comparaison : le même moteur sans biais (P0), 238 emplacements, mêmes fenêtres.
+
+\begin{table}[tbp]
+\centering\small
+\caption[P3 : le routeur biaisé en ligne]{P3, routeur biaisé en ligne dans le moteur, 238 emplacements, contre le même moteur sans biais \mes. Refait par le juge au dernier chiffre affiché ; le pondéré se compte sur les 1\,592 positions de marge $\ge 0{,}3$ de P0.}
+\label{t3mim:tab:p3-ligne}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+$\beta$ & défauts (variation) & KL & littéral & pondéré \\
+\midrule
+0 (P0, et P0b) & 108\,679 & 0 & 100\,\% & 100\,\% \\
+\textbf{0,041} & 97\,780 ($-10{,}0286\,\%$) & \textbf{0,031388} & 88,549\,\% & \textbf{96,357\,\%} \\
+0,05 & 95\,610 ($-12{,}0253\,\%$) & 0,037692 & 87,569\,\% & 96,043\,\% \\
+0,3 (cassure) & 50\,911 ($-53{,}1547\,\%$) & 0,089069 & 76,980\,\% & 88,631\,\% \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{genome/mimetisme/P3/JUGEMENT-routeur-ligne.md} §\,3 ; \fichier{mesures/mimetisme/P3/routeur-ligne/}, \fichier{mesures/mimetisme/P3/juge/routeur-ligne/}.}
+\end{table}
+
+À l'estimation ponctuelle, la lecture pondérée \textbf{tient} et la littérale est \textbf{non concluante} ; la cassure $\beta = 0{,}3$ tombe, et le témoin $\beta = 0$ est égal au bit (trace et 5\,120 empreintes) au moteur d'avant l'option (\cref{t3mim:tab:p3-ligne}). Le juge a lu le noyau ligne à ligne : le biais n'entre que dans la sélection, pas dans les poids ni dans l'ordre ; son émulation sur 20\,000 tirages et les données réelles de la couche 0 ne montrent aucune fuite.
+
+\paragraph{Le grave G1 : rien ne tient à sa borne défavorable.} Par rééchantillonnage des dix fenêtres, la borne haute de la KL est au-dessus de 0,038 pour 20 graines sur 20 (0,03831 à 0,03849) ; la borne basse du pondéré est sous 95\,\% pour 14 graines sur 20 (94,96 à 95,02\,\%) ; la marge de 31 défauts au seuil tombe à $-86$ si le cache repart vide à chaque fenêtre, et le $-10\,\%$ n'est pas atteint à trois budgets voisins sur quatre (230 : $-9{,}45\,\%$ ; 234 : $-9{,}75\,\%$ ; 246 : $-9{,}84\,\%$) \mes. « Tient » est une estimation au bord ; « à la limite » est le bon mot.
+
+\paragraph{La dérive, chiffrée couche par couche.} En ligne, la part de cellules changées monte avec la profondeur, alors qu'elle est plate en boucle ouverte (\cref{t3mim:tab:p3-derive}). Le juge sépare ce qui ne peut pas venir du biais seul : une cellule est « incohérente » si un expert entrant était absent du cache réel, ou un sortant présent, ce qui est impossible si ses logits sont ceux de P0. Au moins 39,3\,\% des cellules changées sont de la dérive certaine (6\,207 sur 15\,799), 0 en couche 0, 59\,\% en couche 23 ; 87,5\,\% d'entre elles ont une couche amont changée au même pas : la dérive passe surtout par le résidu du pas, la cascade de routage, et cinq fois moins par l'historique KV.
+
+\begin{table}[tbp]
+\centering\small
+\caption[P3 en ligne : la dérive par couche]{P3 en ligne, $\beta_1 = 0{,}041$ : part des cellules de la couche (en \%) \mes~par le juge.}
+\label{t3mim:tab:p3-derive}
+\setlength{\tabcolsep}{4.2pt}
+\begin{tabular}{@{}lrrrrrrrrr@{}}
+\toprule
+couche & 0 & 3 & 6 & 9 & 12 & 15 & 18 & 21 & 23 \\
+\midrule
+changées en ligne & 7,38 & 8,65 & 11,12 & 10,02 & 12,64 & 17,63 & 15,19 & 12,41 & 20,12 \\
+changées en boucle ouverte & 7,30 & 6,87 & 8,00 & 5,91 & 6,32 & 9,80 & 8,51 & 5,13 & 7,50 \\
+bascules naturelles (P0 $\ne$ réf.) & 0,04 & 0,27 & 0,57 & 0,55 & 0,88 & 1,57 & 1,60 & 1,94 & 2,95 \\
+dérive certaine & 0 & 1,70 & 3,01 & 3,72 & 5,23 & 7,20 & 6,01 & 6,30 & 11,94 \\
+part incohérente des changées & 0 & 19,6 & 27,1 & 37,0 & 41,3 & 40,8 & 39,5 & 50,7 & 59,3 \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{genome/mimetisme/P3/JUGEMENT-routeur-ligne.md} §\,5 ; \fichier{mesures/mimetisme/P3/juge/routeur-ligne/cellules.json}.}
+\end{table}
+
+\paragraph{Verdict des juges : à la limite, pas une brique.} Le levier existe, il vient du cache, et il est mesuré dans le moteur : $-10\,\%$ de défauts pour une KL de 0,031. Mais aucune des trois conditions ne tient à sa borne défavorable, la porte pondérée ne mord pas avant la KL, et un seul budget, un seul texte de lecture, une seule passe le portent. Le levier ne peut pas servir de brique sans un second tirage (autre texte, autre budget) qui le confirme ; ce tirage est en cours ailleurs, et ce chapitre ne le cite pas.
+
+% =====================================================================================================
+\section{P4 : le préchargement à confiance calibrée}\label{t3mim:sec:p4}
+
+\paragraph{L'idée.} Le préchargement du projet est mort de sa \emph{précision} : $p = 0{,}692$, $+34\,\%$ d'octets, $-11\,\%$ de vitesse (lot O, §\,9.2), et le lot O écrivait qu'il ne reviendrait qu'avec $p > 0{,}9$. Deux emprunts : la prédiction conforme, qui garantit la précision d'un sous-ensemble de prédictions sans hypothèse de loi \cite{angelopoulos2021gentle,angelopoulos2021ltt} ; et le trafic d'arrière-plan qui n'occupe que la ressource libre et recule à la demande \cite{shalunov2012ledbat}. Le prédicteur est un raisonnement par cas, comme une jurisprudence : les 20 jetons antérieurs du même texte dont le chemin d'experts ressemble le plus votent pour les experts de la couche $\ell_0 + d$.
+
+\subsection{La garantie, posée}\label{t3mim:sec:p4-garantie}
+
+Un jeton $t$ traverse $L$ couches ; à la couche $\ell$ il demande $k$ experts. Le cache (LRU global) laisse un ensemble de défauts. À la fin du routage de $\ell_0$, le prédicteur propose pour $\ell = \ell_0 + d$ des candidats $e$ de confiance $s(e) \in [0, 1]$ (part pondérée des 20 voisins qui portent $e$). Un \emph{chargement} est un candidat absent du cache avec $s \ge \theta$ ; sa précision est $p(\theta) = P(e \in S \mid e \text{ chargé}, s \ge \theta)$, sa couverture $u(\theta)$ la part des défauts précédés d'un chargement juste.
+
+\begin{proposition}[Calibration conforme fendue, séquence fixe]\label{t3mim:prop:conforme}
+Sur la moitié de calibration, soit $n(\theta)$ chargements de confiance $\ge \theta$, dont $x(\theta)$ justes, et $\mathrm{LB}(\theta) = B^{-1}(\delta;\, x, n - x + 1)$ la borne de Clopper-Pearson unilatérale \cite{clopper1934} de niveau $1 - \delta$. On teste $H_\theta : p(\theta) < 0{,}9$ en descendant la grille depuis le plus haut seuil qui retient au moins 30 chargements, et l'on s'arrête au premier échec ; $\theta^\ast$ est le dernier seuil rejeté. Si les étiquettes sont échangeables, $P\bigl(p(\theta^\ast) < 0{,}9\bigr) \le \delta$, sans correction de multiplicité.
+\end{proposition}
+\begin{proof}[Esquisse]
+Pour chaque $\theta$ fixé, $P(\mathrm{LB}(\theta) \ge 0{,}9 \mid p(\theta) < 0{,}9) \le \delta$ par construction de la borne de Clopper-Pearson. Dans une séquence fixe arrêtée au premier échec, une erreur de famille exige que la \emph{première} hypothèse vraie rencontrée soit rejetée à tort, ce qui arrive avec probabilité au plus $\delta$ ; c'est le principe de « Learn then Test » \cite{angelopoulos2021ltt}.
+\end{proof}
+Réglage déclaré : $\delta = 0{,}1$ (borne unilatérale à 90\,\%), grille au pas de 0,02 (\fichier{mesures/mimetisme/P4/00-seuils-declares.md}). L'hypothèse d'échangeabilité est fausse pour des jetons ordonnés (l'historique de voisins grandit) ; l'écart va dans le bon sens dans les quatre sessions (précision de test 0,919, 0,905, 0,947, 0,922 contre 0,911, 0,904, 0,918, 0,914 en calibration), sans le démontrer.
+
+\subsection{Le simulateur et le gain}\label{t3mim:sec:p4-gain}
+
+Le temps d'une couche sans prédiction est $t_\ell = a + n_d\tau + \mathbb{1}[n_d > 0]\,q + c + o$, avec $n_d$ défauts, $\tau = 4{,}1$\,ms par lecture, $q = 1{,}0 + 0{,}85$\,ms (copie, décodage), $a + c = 2{,}22$\,ms de calcul et $o$ un écart d'étalonnage (la base fait 460\,ms par jeton). Une lecture de fond ne démarre que dans une fenêtre de calcul mais finit sa course : elle retarde la demande suivante de $\delta_r = \tau - (a + c) = 1{,}9$\,ms. Une lecture juste économise $\tau$ ; une fausse coûte $\delta_r$. Avec $U$ chargements justes et $C$ chargements sur la moitié de test :
+\begin{equation}\label{t3mim:eq:p4-gain}
+\text{économie} = U\tau - C\,\delta_r, \qquad \text{gain} = \frac{\text{économie}}{T_{\text{base}} - \text{économie}} .
+\end{equation}
+Pour le code : $U = 12\,770$, $C = 13\,892$, $T_{\text{base}} = 516{,}7\,\mathrm{ms} \times 1\,271$ jetons ; économie $= 52\,357 - 26\,395 = 25\,962$\,ms, gain $= 25\,962 / (656\,726 - 25\,962) = 4{,}12\,\%$ \calc, contre 3,58\,\% simulé. Quand $\delta_r \to 0$ on retrouve la formule du tri, qui surestime de 2 à 2,4 fois. La formule du lot O, $f - (1-p)/p \times \text{part disque}$ avec $p = 0{,}918$, $f = 80/460 = 0{,}174$ et une part disque de 0,69, donne $+11\,\%$ : elle suppose que toute lecture juste se cache entière, ce qui est faux quand la fenêtre de calcul (2,2\,ms) est plus courte que la lecture (4,1\,ms). Plafond (prédicteur parfait) : $\times 1{,}21$ par le calcul du lot O.
+
+\subsection{La mesure et le verdict}\label{t3mim:sec:p4-verdict}
+
+\paragraph{Seuil déclaré} (commits \texttt{47339c2}, amendement \texttt{4732d35}, avant la première mesure de session) : au moins $+5\,\%$ de vitesse simulée pour au plus 5\,\% d'octets de plus, sur 3 genres de lecture sur 4 et en génération, avec une précision réalisée d'au moins 0,85 ; mort sous $+2\,\%$ ou sous 0,8 de précision. Règle 3 de l'amendement : tant que le simulateur n'est pas validé, le verdict ne peut pas dépasser « ouvert ».
+
+\paragraph{Témoins.} T0 (deux LRU égaux) tient. T2, prédicteur parfait : $\times 1{,}2247$ (v1) puis $\times 1{,}1786$ (v2), qui manque le $\times 1{,}21 \pm 2\,\%$ de 0,6 point. \textbf{T3 manque} : un prédicteur synthétique de précision 0,692 devait redonner le $-11\,\%$ du moteur ; le simulateur rend $+5{,}2$ puis $+4{,}9\,\%$. C'est le seul point mesuré du moteur, et le simulateur ne le retrouve pas : tous ses gains sont des ordres de grandeur, de signe d'erreur inconnu. La cassure par étiquettes mélangées tient : aucune calibration ne trouve de seuil, 7 sessions sur 7.
+
+\begin{table}[tbp]
+\centering\small
+\caption[P4 : la piste et son juge]{P4, 120b, 326 emplacements (7\,\%), $d = 2$, bras « lire d'avance », moitié de test : la piste / le juge \mes. Gains sortis du simulateur, non validé.}
+\label{t3mim:tab:p4}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+Session & $\theta^\ast$ & précision & couverture & octets de plus & gain simulé \\
+\midrule
+code & 0,86 / 0,86 & 0,919 / 0,914 & 10,9 / 10,9\,\% & $+0{,}84$ / $+0{,}91\,\%$ & $+3{,}58$ / $+3{,}46\,\%$ \\
+dialogue & 0,80 / 0,82 & 0,905 / 0,918 & 16,9 / 15,1\,\% & $+1{,}47$ / $+1{,}14\,\%$ & $+4{,}96$ / $+4{,}39\,\%$ \\
+prose-en & 0,90 / 0,90 & 0,947 / 0,947 & 7,9 / 7,9\,\% & $+0{,}41$ / $+0{,}42\,\%$ & $+2{,}60$ / $+2{,}56\,\%$ \\
+prose-fr & 0,86 / 0,86 & 0,922 / 0,920 & 9,5 / 9,4\,\% & $+0{,}72$ / $+0{,}74\,\%$ & $+2{,}89$ / $+2{,}82\,\%$ \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{genome/mimetisme/P4/resultat.md} §\,3 ; \fichier{genome/mimetisme/P4/JUGEMENT.md} §\,1 ; \fichier{mesures/mimetisme/P4/juge/juge-120b.json}.}
+\end{table}
+
+Ce qui tient : la garantie de précision, 0,905 à 0,947 (0,918 agrégée ; 0,922 chez le juge) pour $+0{,}4$ à $+1{,}5\,\%$ d'octets, là où le préchargement tué avait 0,692 pour $+34\,\%$. Ce qui ne tient pas : le gain, $+3{,}51\,\%$ en moyenne ($+3{,}31\,\%$ chez le juge), 0 genre sur 4 à $+5\,\%$ (\cref{t3mim:tab:p4}). Le bras « épingler sans rien lire » est mort ($+0{,}09\,\%$). La \cref{fig:t3-mim-p4} montre le goulot : tenir 0,9 de précision coûte la couverture, 8 à 17\,\% des défauts, avec la même pente pour les quatre genres. Sur le 20b à 154 emplacements, les quatre genres passent $+5\,\%$ ($+5{,}05$ à $+9{,}10\,\%$), non refaits par le juge.
+
+\begin{figure}[tbp]
+\centering
+\FigureHorsStyle{\MimetismeMesures/P4/figures/p4-precision-couverture-gain.png}
+\caption[P4 : précision, couverture et gain simulé]{\textbf{La calibration tient la précision à 0,9 ; c'est la couverture qui reste petite, et avec elle le gain.} \mes~Gauche : courbes précision-couverture de la moitié de test, par session du 120b à 7\,\% ; points : $\theta^\ast$ calibré sur l'autre moitié. Droite : gain de vitesse simulé, bras « lire d'avance », contre le seuil de $+5\,\%$ et la mort à $+2\,\%$ ; simulateur non validé (témoin T3 manqué). \HorsStyle\sourcefig{\fichier{mesures/mimetisme/P4/figures/p4-precision-couverture.csv}, \fichier{p4-gains-par-session.csv} ; script \fichier{outils/mimetisme/P4/p4\_figures.py}.}}
+\label{fig:t3-mim-p4}
+\end{figure}
+
+\paragraph{Ce que le juge ajoute} (\fichier{genome/mimetisme/P4/JUGEMENT.md} §\,3). (1) La jambe « génération » repose sur les deux traces dégénérées de P1 (\cref{t3mim:sec:p1-traces}) : le « 98,9\,\% de succès, rien à précharger » de prose-en est celui d'une boucle de blancs ; sur wiki, la calibration ne trouve aucun seuil parce que sa moitié de calibration (avant la boucle) a une précision de 0,73 à $\theta = 0{,}9$, alors que sa moitié de test (dans la boucle) atteint 0,979. Ni échec ni succès du mécanisme : une donnée non représentative. (2) Le gain dépend de l'ancrage à 460\,ms : le code fait 92 défauts par jeton dans le LRU simulé, ce qui dépasse déjà 460\,ms et rend l'écart d'étalonnage négatif ; ancré par session, le gain du code tombe à $+0{,}42\,\%$ ; la moyenne de lecture va de $+3{,}08$ à $+3{,}61\,\%$ selon l'ancrage, jamais plus d'un genre sur 4 au-dessus de $+5\,\%$. (3) Une phrase du code est inexacte (l'écart $o$ est ajusté sur les quatre mêmes sessions), sans effet sur le gain.
+
+\paragraph{Verdict du juge : ouvert, plutôt du côté de tombe.} La conformalité règle le problème de précision qui avait tué le préchargement ; le goulot est maintenant la couverture. Seul arbitre valable : une passe ABBA du moteur avec la porte $\theta^\ast$, qui validerait aussi le simulateur.
+
+% =====================================================================================================
+\section{P5 : le choix des symboles synonymes comme verre de spin}\label{t3mim:sec:p5}
+
+\paragraph{L'idée.} La mutation synonyme du lot B (\cref{t3sno:ch}) range chaque poids d'expert dans l'un de huit niveaux en minimisant une erreur pondérée par un seul passage glouton ; c'est le seul gain avec perte qui ait passé la KL ($-0{,}0098 \pm 0{,}0033$). Le physicien y reconnaît l'énergie d'un verre de spin, et sait que le glouton s'y arrête dans une vallée ; le recuit simulé \cite{kirkpatrick1983} et l'échange de répliques \cite{hukushima1996} traversent les barrières. C'est le domaine le plus éloigné du calcul de tous les candidats retenus, et l'éclaireur n'a trouvé aucun recuit ni échange de répliques appliqué à la quantification d'un grand modèle de langue.
+
+\subsection{Le problème posé}\label{t3mim:sec:p5-probleme}
+
+Une rangée de matrice d'expert compte $n = 2\,880$ poids $w_j$, par blocs de 32 qui partagent une échelle $s_b = 2^{e_b - 128}$ (MXFP4). La mutation synonyme range chaque poids dans l'un des $k = 8$ niveaux $\pm c_m s_j$ ($m = 0, \dots, 3$, $c = (0{,}4743;\ 2{,}8486;\ 6{,}8372;\ 12)$ en grandeurs doublées). Soit $q$ le vecteur des niveaux choisis et $r = w - q$ le résidu. L'erreur de sortie, moyennée sur les entrées $x_i$ de l'expert pondérées par le carré $g_i^2$ du poids du routeur, et le coût de code sont
+\begin{equation}\label{t3mim:eq:p5-energie}
+E(q) = r^\top H r + \lambda' \sum_j \ell(q_j), \qquad H = \frac{\sum_i g_i^2\,x_i x_i^\top}{\sum_i g_i^2} + \delta\,\bar m\,I,
+\end{equation}
+avec $\ell(m) = -\log_2 p_m$ la longueur de code du niveau $m$, $\bar m$ la moyenne de la diagonale de $H$ sans amortissement et $\delta$ l'amortissement de GPTQ (valeur déployée $\delta = 1$).
+
+\begin{lemme}[Variation d'un seul poids]\label{t3mim:lem:variation}
+Si l'on remplace le niveau de la coordonnée $j$, le résidu change de $\delta r = q_j - q_j'$ en position $j$ seulement, et
+\[
+E(q') - E(q) = 2\,\delta r\,(Hr)_j + \delta r^2 H_{jj} + \lambda'\bigl(\ell(q_j') - \ell(q_j)\bigr).
+\]
+\end{lemme}
+\begin{proof}
+$r' = r + \delta r\,e_j$, donc $r'^\top H r' - r^\top H r = 2\,\delta r\,e_j^\top H r + \delta r^2\,e_j^\top H e_j$.
+\end{proof}
+Tenir le vecteur $Hr$ à jour coûte $n$ opérations par changement accepté ($Hr \mathrel{+}= \delta r\,H_{:,j}$) ; évaluer les $k - 1$ candidats d'une coordonnée coûte $O(k)$. C'est ce qui rend les balayages praticables ; l'énergie tenue de façon incrémentale égale l'énergie recalculée de zéro à $1{,}3 \times 10^{-15}$ relatif \mes.
+
+\paragraph{Trois lectures du même objet.} (i) \emph{Le plus proche vecteur.} Avec $H = VV^\top$, $V$ triangulaire supérieure, $r^\top H r = \sum_i \bigl(\sum_{j \le i} V_{ji} r_j\bigr)^2$ : le terme $i$ ne dépend que de $r_1, \dots, r_i$. Choisir $q_1$ qui minimise le premier terme, puis $q_2$ sachant $q_1$, etc., est l'algorithme du plan le plus proche de Babai \cite{babai1986}, et GPTQ lancé de l'arrière vers l'avant lui est identique \cite{chen2025babai,frantar2022gptq}. Chaque terme est minimisé exactement sachant le passé, jamais en regardant l'avenir. (ii) \emph{Un verre de spin.} En écrivant le niveau de $j$ par un état de Potts $\sigma_{jm} \in \{0,1\}$, $\sum_m \sigma_{jm} = 1$, $r_j = w_j - s_j \sum_m c_m \sigma_{jm}$,
+\begin{equation}\label{t3mim:eq:potts}
+E_{\text{err}} = \text{cte} - 2\sum_{j,m} h_{jm}\,\sigma_{jm} + \sum_{j,j',m,m'} J^{mm'}_{jj'}\,\sigma_{jm}\sigma_{j'm'}, \quad h_{jm} = s_j c_m (Hw)_j,\ J^{mm'}_{jj'} = H_{jj'} s_j s_{j'} c_m c_{m'} ,
+\end{equation}
+un modèle de Potts à huit états sur le graphe complet de 2\,880 sites, dont les couplages ne sont pas indépendants : $H$ est une somme de $N$ termes de rang un (147 à 1\,334 entrées de calibration par expert, d'après les journaux relus par le juge) plus l'amortissement. On cherche un vecteur \emph{discret} presque orthogonal à $N$ motifs $x_i$ : c'est le cadre du perceptron binaire symétrique, dont Aubin, Perkins et Zdeborová conjecturent un paysage « gelé » où les algorithmes locaux butent \cite{aubin2019perceptrons}. Ce rapprochement est un cadre, pas un résultat : leurs motifs sont gaussiens indépendants et leurs poids $\pm 1$. (iii) \emph{Une mesure de Gibbs}, $\pi_T(q) \propto e^{-E(q)/T}$.
+
+\begin{proposition}[Les deux dynamiques préservent $\pi_T$]\label{t3mim:prop:gibbs}
+(a) Le bain thermique sur une coordonnée, qui redessine $q_j$ avec la probabilité $p_m \propto e^{-\Delta E_m/T}$ ($\Delta E_m$ du \cref{t3mim:lem:variation}), vérifie l'équilibre détaillé pour $\pi_T$ ; à $T \to 0$, c'est la descente cyclique de coordonnées. (b) Dans l'échange de répliques à températures $T_1 < \dots < T_{n_t}$, accepter l'échange des états de deux copies $a, b$ avec la probabilité $\min\bigl(1, e^{(\beta_a - \beta_b)(E_a - E_b)}\bigr)$, $\beta = 1/T$, préserve la loi produit $\prod_a \pi_{T_a}$.
+\end{proposition}
+\begin{proof}
+(a) La loi de tirage est $\pi_T$ conditionnée aux autres coordonnées : $P(q \to q') = \pi_T(q') / Z_j$, où $Z_j = \sum_m \pi_T(q \text{ avec } j \leftarrow m)$ ne dépend pas du niveau courant de $j$ ; donc $\pi_T(q)\,P(q \to q') = \pi_T(q)\pi_T(q')/Z_j$, symétrique en $q, q'$. (b) L'échange multiplie le poids de la loi produit par $\dfrac{\pi_{T_a}(q_b)\,\pi_{T_b}(q_a)}{\pi_{T_a}(q_a)\,\pi_{T_b}(q_b)} = e^{-\beta_a E_b - \beta_b E_a + \beta_a E_a + \beta_b E_b} = e^{(\beta_a - \beta_b)(E_a - E_b)}$ ; la règle de Metropolis sur ce rapport rétablit l'équilibre détaillé.
+\end{proof}
+Le recuit simulé est la même idée sans échange : une seule copie dont $T$ décroît. Réglage de l'étape 1 : 8 températures de $0{,}02$ à $1{,}0$ fois l'erreur moyenne de Babai par poids, échange à chaque balayage, 40 balayages, puis trempe à $T = 0$ du meilleur état visité ; toutes les copies partent de Babai.
+
+\subsection{Les témoins : le verre est réel à petite dimension}\label{t3mim:sec:p5-temoins}
+
+Seuils de l'étape 1 commités avant toute lecture de capture (\fichier{mesures/mimetisme/P5/00-seuil-declare.md}, commit \texttt{ab92f4e}) ; trois addendums, chacun commité une seconde avant son premier journal (vérifié par le juge).
+
+\begin{table}[tbp]
+\centering\small
+\caption[P5 : les témoins]{P5 : les témoins, tous déclarés avant d'être lancés \mes.}
+\label{t3mim:tab:p5-temoins}
+\renewcommand{\arraystretch}{1.1}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.2\linewidth}>{\raggedright\arraybackslash}p{0.32\linewidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+Témoin & Montage & Résultat \\
+\midrule
+W1 force brute & 10 poids, 5 niveaux ($5^{10} = 9\,765\,625$ états), 1\,000 $H$ corrélés & Babai manque l'optimum sur \textbf{847 / 1\,000} (excès médian 106\,\%, jusqu'à $\times 33$) : l'instrument peut tomber \\
+W1, échange de répliques & \barre{200 balayages, 8 températures} ; 3\,000 balayages, 12 températures & \barre{à l'optimum partout} : échoue sur 43 / 1\,000 ; réglage final : \textbf{1\,000 / 1\,000} \\
+W2 cassures & 0 balayage ; températures gelées ; $H$ permuté & Babai exactement ; optimum sur 107 / 847 seulement ; 2 / 847 \\
+W3 décodage par sphère & Fincke-Pohst \cite{fincke1985}, $n = 16$, bloc réel de $H$ & échange $=$ sphère sur 10 / 10 ; Babai non optimal sur 6 / 10 (8 à 44\,\% au-dessus) \\
+W4 & Babai générique contre \texttt{synonyme.py::choisir} & 0 symbole différent sur 2\,048 \\
+\bottomrule
+\end{tabularx}
+\sourcefig{\fichier{genome/mimetisme/P5/resultat.md} §\,2 ; \fichier{mesures/mimetisme/P5/temoins-*.json}, \fichier{W3-sphere-n16.json}.}
+\end{table}
+
+À petite dimension et conditionnement fort, le verre est réel (\cref{t3mim:tab:p5-temoins}) : Babai perd jusqu'à $\times 33$ sur le jouet, 44\,\% sur un bloc réel de 16 colonnes, et l'échange de répliques le résout. La \cref{fig:t3-mim-p5-paysage} en montre une coupe : un bassin que le glouton n'atteint pas. La question de la piste est si ce verre existe encore à $n = 2\,880$ et $\delta = 1$, où l'amortissement l'adoucit.
+
+\begin{figure}[tbp]
+\centering
+\FigureHorsStyle[width=0.5\linewidth]{\MimetismeMesures/P5/figures/paysage-toy.pdf}
+\caption[P5 : coupe d'un paysage à $5^{10}$ états]{\textbf{Sur un jouet à dix poids, le glouton s'arrête dans une vallée que l'optimum exact quitte.} \mes~Coupe d'un paysage d'énergie à $5^{10}$ états (instance 464) selon deux coordonnées, les huit autres figées à la solution de Babai ; cercle : Babai ; étoile : niveaux que l'optimum exact donne à ces deux coordonnées. L'énergie d'une case de la coupe n'est pas celle de l'optimum (1\,248 pour Babai, 37,9 pour l'optimum, toutes coordonnées libres). \HorsStyle\sourcefig{\fichier{mesures/mimetisme/P5/figures/paysage-toy.csv} ; script \fichier{outils/mimetisme/P5/figures.py}.}}
+\label{fig:t3-mim-p5-paysage}
+\end{figure}
+
+\subsection{L'étape 1 : le gain se mesure et ne se transfère pas}\label{t3mim:sec:p5-etape1}
+
+Étape 1, sans fichier modèle (le verrou de la carte existait) : le $H$ réel des couches 0, 8, 16, 23, construit depuis les captures d'entrées, avec des poids \emph{synthétiques} gaussiens ; 8 instances (couches $\times$ experts 0 et 16), 64 rangées chacune, $\delta = 1$, débit égal à $\pm 0{,}005$ bit. Seuil : baisse de l'erreur d'évaluation tenue à l'écart d'au moins 10\,\% sur au moins 6 instances sur 8 ; mort sous 3\,\% en médiane.
+
+\begin{table}[tbp]
+\centering\small
+\caption[P5 : gains de la descente cyclique, piste et juge]{P5 : gain d'évaluation tenue à l'écart de la descente cyclique ($\lambda = 0$) contre Babai, en \%, $\delta = 1$, 64 rangées \mes. Le juge refait chaque instance à $4 \times 10^{-14}$ point, puis sur des poids neufs (graine 2026).}
+\label{t3mim:tab:p5}
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+Instance & $N$ calib. & piste & juge, mêmes poids & juge, poids neufs & $\Delta H_0$ (bit) \\
+\midrule
+L0-E0 & 762 & 4,74 & 4,74 & 0,40 & $+0{,}0032$ \\
+L0-E16 & 1\,334 & 8,87 & 8,87 & 6,87 & $+0{,}0045$ \\
+L8-E0 & 1\,329 & 7,88 & 7,88 & 8,06 & $+0{,}0040$ \\
+L8-E16 & 300 & 3,83 & 3,83 & $-0{,}27$ & $+0{,}0033$ \\
+L16-E0 & 330 & 3,23 & 3,23 & 6,87 & $+0{,}0040$ \\
+L16-E16 & 147 & 1,43 & 1,43 & 3,90 & $+0{,}0025$ \\
+L23-E0 & 303 & 7,55 & 7,55 & 12,07 & $+0{,}0035$ \\
+L23-E16 & 239 & 5,43 & 5,43 & 4,07 & $+0{,}0035$ \\
+\midrule
+médiane & & 5,09 & 5,09 & 5,47 & \\
+$\ge 10\,\%$ & & 0 / 8 & 0 / 8 & 1 / 8 & \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{genome/mimetisme/P5/JUGEMENT.md} §\,2 ; \fichier{mesures/mimetisme/P5/etape1/gains-d1.csv}, \fichier{juge/}.}
+\end{table}
+
+Au meilleur des deux $\lambda$ (à débit égal), la médiane monte à 5,46\,\% pour la descente cyclique ; la piste publie 6,8\,\% pour l'échange de répliques. Sur la calibration, la baisse est de 51,5\,\% (descente) et 54,6\,\% (échange) ; sur l'objectif optimisé, 6,8 et 7,8\,\% \mes. \textbf{Ouvert} : sous le seuil de succès, hors de la zone de mort (\cref{t3mim:tab:p5,fig:t3-mim-p5-gains}). L'optimiseur est bon sur ce qu'on lui donne et ce qu'il apprend ne se transfère presque pas : les rapports objectif sur évaluation sont de 8 à 10.
+
+\begin{figure}[tbp]
+\centering
+\FigureHorsStyle{\MimetismeMesures/P5/figures/gains-etape1.pdf}\\[4pt]
+\FigureHorsStyle[width=0.5\linewidth]{\MimetismeMesures/P5/figures/delta.pdf}
+\caption[P5 : gains par instance et amortissement]{\textbf{L'optimiseur retire la moitié de l'erreur de calibration et vingt fois moins de l'erreur tenue à l'écart.} \mes~Haut : baisse de l'erreur contre Babai, par instance, sur la calibration, sur l'objectif optimisé et sur l'évaluation tenue à l'écart ; descente cyclique (gauche) et échange de répliques (droite), seuils de succès (10\,\%) et de mort (3\,\%). Les barres de l'échange de répliques sont celles de la piste ; le juge ne les reproduit qu'en classe (médiane 4,8\,\% contre 6,8\,\%). Bas : erreur d'évaluation moyenne contre l'amortissement $\delta$, rapportée à Babai déployé ($\delta = 1$). Poids synthétiques (étape 1). \HorsStyle\sourcefig{\fichier{mesures/mimetisme/P5/etape1/gains-d1.csv}, \fichier{etape1/table-delta.csv} ; script \fichier{outils/mimetisme/P5/figures.py}.}}
+\label{fig:t3-mim-p5-gains}
+\end{figure}
+
+\paragraph{Pourquoi : l'erreur déplacée dans le noyau de la calibration.} Décomposons l'erreur dans la base propre $(\lambda_k, u_k)$ de $H_{\text{entr}}$ : $E = \sum_k e_k\,(u_k^\top H u_k)$, $e_k = \lVert \Delta W u_k \rVert^2$. Un optimiseur qui minimise $\sum_k \lambda_k e_k$ à budget d'erreur de poids à peu près fixé \emph{déplace} l'erreur vers les directions de petit $\lambda_k$. Or le $H$ de calibration a un rang au plus $N$, de 147 à 1\,334 pour $n = 2\,880$ ; dans son noyau il vaut zéro et seul l'amortissement voit l'erreur, alors que l'évaluation y place 40\,\% (Babai) à 47\,\% (descente) de la sienne. Sur L8-E0 (32 rangées), l'erreur d'évaluation baisse de 38\,\% dans les trois premiers groupes de directions (0,00602 $\to$ 0,00373) et monte de 6\,\% dans les onze autres (0,01225 $\to$ 0,01303) \mes~(\cref{fig:t3-mim-p5-spectre}). C'est le mécanisme d'un modèle appris sur $N$ exemples en dimension $n > N$ : l'énergie empirique est plate là où l'énergie vraie ne l'est pas.
+
+\begin{figure}[tbp]
+\centering
+\FigureHorsStyle{\MimetismeMesures/P5/figures/spectre-erreur.pdf}
+\caption[P5 : où l'erreur est déplacée]{\textbf{L'optimiseur pousse l'erreur vers les directions que la calibration ne voit pas, et l'évaluation l'y retrouve.} \mes~Couche 8, expert 0, $\delta = 1$ : part de l'énergie par groupe de directions propres de $H$, du haut du spectre (0) vers le bas (13), sur les poids (gauche), vue par $H$ d'entraînement (milieu), vue par $H$ tenu à l'écart (droite) ; frontière, Babai, descente cyclique, échange de répliques. Les groupes 7 à 13 sont dans le noyau de la calibration. \HorsStyle\sourcefig{\fichier{mesures/mimetisme/P5/figures/spectre-erreur.csv} ; script \fichier{outils/mimetisme/P5/figures.py}.}}
+\label{fig:t3-mim-p5-spectre}
+\end{figure}
+
+\paragraph{L'amortissement et la chaleur.} Erreur d'évaluation moyenne rapportée à Babai déployé : Babai 1,157, 1,040, 1,000, 1,044 aux $\delta$ = 0,1, 0,3, 1, 3 ; descente 1,191, 1,039, 0,946, 0,946 ; échange 1,196, 1,025, 0,935, 0,945 \mes. $\delta = 1$ est près de l'optimum de Babai ; l'optimiseur ne déplace pas le meilleur $\delta$, et sur-ajuste en dessous. Un tableau qui compare à Babai \emph{au même} $\delta$ rendait « 11\,\% » à $\delta = 3$ : un artefact, barré par la piste elle-même. L'estimateur de Gibbs (un état tiré à $T$ finie généraliserait mieux que le fondamental) a été essayé sur L8-E0 : $-8{,}1$, $-9{,}0$, $-8{,}9$, $-7{,}9$, $-4{,}3$, $-0{,}3\,\%$ aux $T/e_b$ = 0 à 1 ; un plateau dans le bruit, puis la dégradation ; pas de gain de généralisation par la chaleur.
+
+\paragraph{En bits.} À haute résolution, $D \propto 2^{-2R}$, un rapport d'erreur $\rho$ vaut $\Delta R = -\tfrac12 \log_2 \rho$ : $\rho = 0{,}935 \to 0{,}049$ bit par poids, $0{,}946 \to 0{,}040$, $0{,}866 \to 0{,}104$, contre $0{,}80 \to 0{,}161$ visés \calc, vérifiés par le juge. Le coût : la descente prend environ 0,1\,s par rangée contre 6\,ms pour Babai ($\times 15$ à $\times 30$), l'échange environ quinze fois plus.
+
+\subsection{Le mécanisme annoncé, et ce que le juge en dit}\label{t3mim:sec:p5-juge}
+
+La piste a cherché la cause du non-transfert dans la finitude de l'échantillon de calibration et a déclaré un test (addendum 3, commit \texttt{d958a46}) : entraîner sur la calibration plus les fenêtres 0 à 4 de l'évaluation, juger sur les fenêtres 5 à 9 ; « soutenu » si le gain médian de la descente sur le test monte d'au moins 2 points et monte sur au moins 6 instances sur 8. Elle a écrit : « +5,9 à +7,3\,\% (\dots\ +2,6 points ; \barre{seuil soutenu tenu}) ». Le juge (\fichier{genome/mimetisme/P5/JUGEMENT.md} §\,4) relit la déclaration : les deux médianes publiées côte à côte font $+1{,}41$ point, ce qui tombe dans « non tranché » ; le $+2{,}6$ est la médiane des montées par instance, une autre grandeur que la déclaration ne fixait pas. Puis il isole $N$ par un test déclaré avant (J5) : \emph{retirer} la moitié des entrées de calibration, même source, même test. Diviser $N$ par 2,3 en médiane ne baisse le gain médian que de 0,43 point, sous le seuil de 0,5 : \textbf{non soutenu}. Ce que l'addendum 3 a mesuré mêle « plus de $N$ » et « des entrées prises dans le fichier d'évaluation, voisines du test ». Ce qui est net : $N$ compte pour Babai lui-même (diviser $N$ par 2 lui coûte 6\,\% d'erreur d'évaluation en médiane).
+
+L'échange de répliques du juge reproduit la baisse de l'objectif de la piste à 0,1 point près sur chaque instance, mais pas son gain d'évaluation : médiane 4,8\,\%, sous sa propre descente (5,1\,\%), 0 / 8 au-dessus de 10\,\% (le 12,3\,\% de L0-E16 devient 6,3\,\%). À qualité d'objectif égale, deux échanges tombent sur des états dont l'erreur tenue à l'écart diffère de 2 à 6 points : le « $+1{,}4$ point au-dessus de la descente » est du bruit d'optimiseur.
+
+\paragraph{Verdict du juge : ouvert ; le mécanisme ne tient pas au seuil.} Le chiffre principal tient pour la descente cyclique, à l'identique et sur des poids neufs ; celui de l'échange ne se reproduit qu'en classe. L'étape 2 (poids réels) n'est pas autorisée par la règle et n'a pas tourné. Le levier « nombre d'entrées de calibration » reste une hypothèse, à mesurer à source fixe et à fenêtres lointaines.
+
+% =====================================================================================================
+\section{P6 : la fidélité décidée par appel}\label{t3mim:sec:p6}
+
+\paragraph{L'idée.} Les poids de mélange du routeur sont un softmax sur quatre scores, comme les nombres d'occupation de quatre niveaux d'un système physique ; une occupation faible pèse peu dans la sortie. L'image physique (une surface de Fermi) est une analogie : ce qu'elle propose est de servir en \emph{rapide} (le compagnon compressé du lot B) l'expert appelé avec un petit poids, au lieu de le retirer. L'idée de dégrader selon l'importance n'est pas neuve \cite{hobbit2024,lu2024notallexperts}, ni celle de raffiner en précision mixte \cite{haidar2018mixed} ; ce que P6 devait fournir au projet est la courbe qui manque à tout le lot B, la KL en fonction de la part $f$ des défauts servis en rapide, dont seules les extrémités étaient mesurées (0,0044 et 0,145).
+
+\subsection{Le modèle et ses grandeurs}\label{t3mim:sec:p6-modele}
+
+Un accès $a = (t, \ell, s)$ appelle l'expert $x_a$ avec le poids $w_a$ ($\sum_s w = 1$). Un \emph{séjour} $\sigma$ d'un expert dans le cache va de son entrée (un défaut) à son éviction ; $A(\sigma)$ est l'ensemble de ses accès. Le portillon fixe le niveau d'un séjour à son entrée : $\varphi(\sigma) = F$ (rapide) si et seulement si $w_{a_0(\sigma)} < \theta$. Un séjour coûte $\rho = 0{,}718$ expert exact s'il est rapide, 1 sinon. L'énergie perturbée de la règle « accepter » et l'énergie totale sont
+\begin{equation}\label{t3mim:eq:p6-energie}
+\mathcal E = \sum_\sigma \mathbb{1}[\varphi(\sigma) = F] \sum_{a \in A(\sigma)} w_a^2, \qquad \mathcal E_{\text{tout}} = \sum_a w_a^2 .
+\end{equation}
+\begin{hypothese}[Petite perturbation]\label{t3mim:hyp:energie}
+L'écart de sortie à l'accès $a$ est $w_a\,\varepsilon_x$, avec $\varepsilon_x$ un écart d'expert de variance commune ; la variance d'écart totale est alors proportionnelle à l'énergie. Ce n'est pas la KL.
+\end{hypothese}
+Les octets économisés sont $S = (1 - \rho)\,f$, $f$ la part des séjours rapides ; le tout-rapide donne $S_{\text{tout}} = 0{,}282$ et $\mathcal E = \mathcal E_{\text{tout}}$. La grandeur de la piste est l'énergie par octet économisé, rapportée à celle du tout-rapide :
+\begin{equation}\label{t3mim:eq:p6-r}
+r(\theta) = \frac{\mathcal E/\mathcal E_{\text{tout}}}{S / S_{\text{tout}}} = \frac{\mathcal E/\mathcal E_{\text{tout}}}{f} .
+\end{equation}
+
+\begin{proposition}[La cassure par le hasard]\label{t3mim:prop:p6-hasard}
+Si $\varphi$ est tiré indépendamment des poids avec $P(F) = f$, alors $\E[\mathcal E] = f\,\mathcal E_{\text{tout}}$ et $\E[r] = 1$.
+\end{proposition}
+\begin{proof}
+$\mathcal E = \sum_\sigma \varphi(\sigma)\,e(\sigma)$, $e(\sigma) = \sum_{A(\sigma)} w^2$ indépendant de $\varphi(\sigma)$ ; donc $\E[\mathcal E] = f \sum_\sigma e(\sigma) = f\,\mathcal E_{\text{tout}}$.
+\end{proof}
+Mesuré : $1{,}0001 \pm 0{,}023$ sur 50 tirages et 7 traces \mes.
+
+\begin{proposition}[La porte seule]\label{t3mim:prop:p6-porte}
+Soit $p(\theta) = P(w < \theta)$ et $\hat{\mathcal E}(\theta) = \E[w^2 ;\, w < \theta] / \E[w^2]$. Pour un comptage sans portage (chaque accès porte sa propre étiquette) et une sélection indépendante de l'état du cache, $r_0(\theta) = \hat{\mathcal E}(\theta)/p(\theta) = \E[w^2 \mid w < \theta]/\E[w^2] < 1$ dès que la loi de $w$ n'est pas dégénérée.
+\end{proposition}
+\begin{proof}
+$\E[w^2;\, w<\theta] = p(\theta)\,\E[w^2 \mid w < \theta]$ ; comme $w^2$ croît sur $[0, 1]$, $\E[w^2 \mid w < \theta] < \E[w^2]$ si $P(w \ge \theta) > 0$ et $P(w<\theta)>0$.
+\end{proof}
+Mesuré : $r_0(0{,}20) = 0{,}414$, $r_0(0{,}25) = 0{,}614$ \mes. La piste en concluait : \barre{« les défauts ne sont pas corrélés aux petits poids ; le gain de la porte vient de la loi de $w$, non du cache »}. C'est faux, dit le juge (\fichier{genome/mimetisme/P6/JUGEMENT.md} §\,4.2) : les défauts se répartissent en 19,4, 23,1, 26,8 et 30,6\,\% sur les rangs 0 à 3, et 29,6\,\% des défauts sont sous $\theta = 0{,}20$, contre 24,9\,\% quand on détruit le rang dans le groupe ; l'état du cache donne à la porte environ 19\,\% d'octets économisés de plus à $\theta$ égal ($29{,}6/24{,}9 = 1{,}19$). Le test de la piste (mélange des vecteurs par couche) gardait le rang : la corrélation passe dans $S$, pas dans $r$, qui n'en voit rien.
+
+\paragraph{Le portage.} Une étiquette « rapide » fixée à l'entrée vaut pour tout le séjour : $\mathcal E = \mathcal E_{\text{porte}} + \mathcal E_{\text{suite}}$. À $\theta = 0{,}20$ sur les générations du 120b, $\mathcal E_{\text{porte}}/\mathcal E_{\text{tout}} = 0{,}0476$ et $\mathcal E_{\text{suite}}/\mathcal E_{\text{tout}} = 0{,}1609$ : la suite porte 77\,\% de l'énergie \mes. Avec $f = 0{,}0855/0{,}282 = 0{,}303$, $r = 0{,}2085/0{,}303 = 0{,}688$ \calc. Le poids d'entrée prédit mal la suite (corrélation 0,34 et 0,25). La \emph{borne clairvoyante}, qui connaîtrait le plus grand poids que recevra l'expert pendant son séjour ($\varphi^\ast = F \iff \max_{A(\sigma)} w < \theta$), atteint $r^\ast = 0{,}185$ : le portage coûte un facteur 3,7. La règle « remonter à $\theta'$ » relit l'exact entier au premier succès de poids $\ge \theta'$, parce que le fichier rapide n'est pas emboîté dans l'exact.
+
+\paragraph{Variante B, le préremplissage.} Dans un lot de $n_\beta$ jetons, chaque clé $u = (\text{lot}, \ell, x)$ est lue une fois. On lit en rapide les $f$ clés de plus petit score, avec trois scores : le maximum $m_u = \max_j w_j$ (règle A), la masse $M_u = \sum_j w_j$ (règle B), l'énergie $e_u = \sum_j w_j^2$ (règle C).
+
+\begin{proposition}[L'oracle de l'énergie]\label{t3mim:prop:p6-oracle}
+À $f$ fixé, la règle C minimise $\mathcal E$ parmi toutes les parties de $f\,|U|$ clés ; elle borne donc A et B par en dessous.
+\end{proposition}
+\begin{proof}
+$\mathcal E = \sum_{u \in F} e_u$ est additive ; la partie de $f|U|$ clés de plus petite somme est celle des $f|U|$ plus petits termes.
+\end{proof}
+Le maximum est un mauvais substitut de $e_u$ parce qu'il ignore le nombre d'appels ($m_u^2 \le e_u \le n_u m_u^2$) ; la masse $M_u = n_u \bar w_u$ les compte.
+
+\subsection{La mesure, le verdict et ce que le juge corrige}\label{t3mim:sec:p6-verdict}
+
+Seuils (\fichier{mesures/mimetisme/P6/00-seuils-declares.md}, commit \texttt{4d2b915}, amendement \texttt{c206831}, avant toute lecture de trace) : décodage, « tient » si sur \emph{chacune} des deux générations du 120b $r \le 0{,}70$ avec au moins 8\,\% d'octets économisés à $\theta = 0{,}20$ ; variante B, « tient » si $r \le 0{,}70$ à 8\,\% sur 3 genres sur 4 et $r_B \le 0{,}9\,r_A$.
+
+\begin{table}[tbp]
+\centering\small
+\caption[P6 : le décodage du 120b]{P6, décodage du 120b, $\theta = 0{,}20$, 323 emplacements, LFU de demi-vie 8, $\rho = 0{,}718$ : octets économisés $S$ et énergie par octet $r$ \mes. Reproduit par le juge à moins de $10^{-4}$ en $S$ et $10^{-3}$ en $r$.}
+\label{t3mim:tab:p6}
+\begin{tabular}{@{}lrrrl@{}}
+\toprule
+Règle & prose-en $S$ / $r$ & wiki $S$ / $r$ & cumul $S$ / $r$ & tient ? \\
+\midrule
+accepter & 10,10\,\% / 0,725 & \textbf{7,78\,\%} / 0,565 & 8,55\,\% / 0,688 & non \\
+remonter à 0,30 & 8,22\,\% / 0,461 & 6,95\,\% / 0,391 & 7,37\,\% / 0,442 & non \\
+remonter à 0,40 & 9,29\,\% / 0,573 & 7,51\,\% / 0,451 & 8,10\,\% / 0,539 & non \\
+remonter à 0,50 & 9,77\,\% / 0,613 & 7,74\,\% / 0,553 & 8,41\,\% / 0,612 & non \\
+clairvoyant (borne) & 8,85\,\% / 0,140 & 7,19\,\% / 0,227 & 7,74\,\% / 0,185 & hors verdict \\
+\bottomrule
+\end{tabular}
+\sourcefig{\fichier{genome/mimetisme/P6/resultat.md} §\,2 ; \fichier{genome/mimetisme/P6/JUGEMENT.md} §\,1 ; \fichier{mesures/mimetisme/P6/}, \fichier{juge/juge.json}.}
+\end{table}
+
+\paragraph{Décodage : ouvert.} Aucune règle ne passe 8\,\% sur wiki ($7{,}78 \pm 0{,}38\,\%$ pour « accepter »), aucune n'a $r > 0{,}90$ (\cref{t3mim:tab:p6}). Au cumul des deux traces, « accepter » et « remonter à 0,40 » passeraient, mais la règle déclarée voulait chaque trace : verdict \textbf{ouvert}, et la piste n'a pas déplacé son seuil. Le juge ajoute que « ouvert » tient au choix d'un $\theta$ fixe plutôt qu'au mécanisme : les poids se tassent autour de 0,2, et $S$ passe de 2,2\,\% ($\theta = 0{,}15$) à 8,5\,\% (0,20) puis 16\,\% (0,25) ; à $S = 8\,\%$ exact, trace par trace, $r$ vaut 0,669 et 0,573, tous deux sous 0,70 (exploratoire, hors seuil).
+
+\paragraph{Variante B : tient, mais ne pouvait presque pas tomber.} À 8\,\% d'octets du préremplissage, $r_B = 0{,}039$ à $0{,}060$ (seuil 0,70) et $r_B/r_A = 0{,}61$ à $0{,}66$ sur les quatre genres du 120b, et $r_B$ de 0,030 à 0,074 au 20b ; le tirage au hasard rend $r = 1{,}00$ \mes. Le juge mesure l'oracle de la \cref{t3mim:prop:p6-oracle} : $r_B$ est à 4\,\% de lui sur les quatre genres (et à 1,5 à 4,3\,\% sur huit genres, 120b et 20b). Le seuil « tombe si $r_B \ge r_A$ » ne pouvait guère tomber, puisque le maximum est un moins bon substitut de l'énergie que la somme quelle que soit la loi des poids. À l'étape 0, la masse dit seulement que l'énergie d'un lot se concentre dans les experts souvent appelés ; elle ne dit rien de la KL.
+
+\begin{figure}[tbp]
+\centering
+\FigureHorsStyle[width=0.49\linewidth]{\Mimetisme/P6/figures/plan-octets-energie.png}\hfill
+\FigureHorsStyle[width=0.49\linewidth]{\Mimetisme/P6/figures/r-selon-theta.png}
+\caption[P6 : le plan octets--énergie et $r$ selon $\theta$]{\textbf{Une porte sur le poids d'appel coûte moins d'énergie par octet que le tout-rapide, et la masse agrégée du préremplissage presque rien ; mais l'énergie n'est pas la KL.} \mes~Gauche : énergie perturbée contre octets économisés (décodage du 120b : accepter, remonter à 0,40, borne clairvoyante ; préremplissage : masse agrégée par lots de 512 ; tirets : le tout-rapide proportionnel, $r = 1$). Droite : $r$ selon $\theta$, cumul des deux générations, barres à $1\sigma$ (blocs de 32 jetons), seuil 0,70. \HorsStyle\sourcefig{\fichier{mesures/mimetisme/P6/courbe-plan-decodage.csv}, \fichier{courbe-plan-prefill-B.csv} ; script \fichier{outils/mimetisme/P6/figures.py}.}}
+\label{fig:t3-mim-p6}
+\end{figure}
+
+\paragraph{La courbe KL$(f)$, posée comme hypothèse.} L'étape 0, celle du plan octets--énergie de la \cref{fig:t3-mim-p6}, ne peut qu'éliminer. Sous l'hypothèse linéaire $\mathrm{KL}(f) - \mathrm{KL}(0) = (\mathrm{KL}(1) - \mathrm{KL}(0))\,\mathcal E(f)/\mathcal E_{\text{tout}}$, avec les extrémités mesurées au 20b (0,0044 et 0,1448), 8\,\% d'octets du préremplissage coûteraient 0,002 de KL et 14\,\% de 0,006 à 0,009. Ce n'est pas un résultat : 96,5\,\% de la KL du mode rapide vient de bascules de routage, non linéaires, et la convexité pourrait aller dans les deux sens. L'étape 1, qui mesurerait les points $(f, \mathrm{KL})$ au 20b, n'a pas été lancée (verrou de la carte, 8,31\,Go à lire) ; le juge demande qu'elle garde le maximum, le hasard \emph{et} l'oracle de l'énergie comme comparaisons à octets égaux : si la KL suit l'énergie, masse et oracle donnent la même KL.
+
+\paragraph{Verdict du juge.} Décodage du 120b : \textbf{ouvert}, reproduit. Variante B : « tient » à l'étape 0, reproduit, mais quasi l'oracle de sa propre mesure : rien n'est dit de la qualité. Le portillon économise 7,8 à 10,1\,\% des octets lus en génération pour 16 à 26\,\% de l'énergie du tout-rapide ; seule l'étape 1 dira ce que vaut l'énergie.
+
+% =====================================================================================================
+\section{La carte du monde vers le pipeline}\label{t3mim:sec:carte}
+
+Le tri range chaque concept emprunté sur l'étage du pipeline qu'il touche : \textbf{F} le format et le codage entropique, \textbf{Q} le choix des symboles, \textbf{K} le cache d'experts, \textbf{R} le routage, \textbf{L} la lecture, l'ordonnancement et le préchargement, \textbf{J} le juge et la méthode. Le \cref{t3mim:tab:carte} en donne l'essentiel, avec le verdict d'aujourd'hui (la figure III-6.17 qui la dessinerait n'est pas tracée). Le \cref{t3mim:tab:bilan} rassemble les six pistes devant leurs juges.
+
+\begin{table}[tbp]
+\centering\footnotesize
+\caption[La carte du monde vers le pipeline]{La carte du monde vers le pipeline : les concepts empruntés, leur étage, leur verdict (\fichier{genome/mimetisme/tri.md} §\,6, verdicts des pistes mis à jour par leurs juges).}
+\label{t3mim:tab:carte}
+\renewcommand{\arraystretch}{1.08}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.2\linewidth}c>{\raggedright\arraybackslash}p{0.27\linewidth}@{}}
+\toprule
+Concept du monde & Domaine & Étage & Verdict \\
+\midrule
+Réservoir lent et rapide (Hasselmann) ; oubli en loi de puissance (ACT-R) & climat ; psychologie & K & P1 : ouvert \\
+Répliques sismiques (Omori-Utsu), processus de Hawkes & sismologie & K & fermé (E1) \\
+Marées, phase périodique de la couche & géophysique & K & petit gain, comparateur de P1 \\
+Hiérarchie exclusive (démotion) & stockage & K & P2 : ouvert \\
+Cache compressé & architecture & K & dominé par P2 \\
+Nucléation, barrière de germe & thermodynamique & K & fermé (E3) \\
+Allocation par utilité marginale (Charnov, hydraulique, METRIC) & écologie, hydrologie, logistique & K & fermé \\
+Admission par fréquence (TinyLFU) ; segments à listes fantômes & systèmes & K & fermé en génération ; non mesuré \\
+Faille collante ; substitution d'article, deux choix & sismologie ; commerce, files & R & P3 : à la limite \\
+Hypersurface tropicale, marge du top-$k$ & mathématiques & R & garde fermée (\cref{t3tro:ch}) ; bande dans P3 \\
+Lissage de Maslov & mathématiques & R & fermé \\
+Prédiction conforme ; jurisprudence & statistique ; droit & L & P4 : ouvert, plutôt tombe \\
+Circuit olfactif de la mouche & neurosciences & L & variante de P4 \\
+Trafic d'arrière-plan qui cède (TCP Nice, LEDBAT) & réseaux & L & dans P4, non mesuré seul \\
+Parareal, COLA, onde P & simulation, séismes & L & fermé (aucun octet) \\
+Vérification groupée ; codes à effacement & information & L & fermés \\
+Contrôle à tampon (BOLA) & vidéo & L & non mesuré, après P6 \\
+Occupation de Fermi, portillon ; fovéation, triage, queue de Pareto & physique ; vision, médecine, économie & R, L & P6 : ouvert (décodage), étape 0 (B) \\
+Raffinement itératif en précision mixte & calcul scientifique & Q, L & dans P6 \\
+Verre de spin, recuit, échange de répliques & physique des désordres & Q & P5 : ouvert \\
+Remplissage inverse par l'usage & débit-distorsion & Q & non retenu, à greffer \\
+Réseaux de tenseurs, holographie, Landauer & matière condensée & F, Q & défavorable, fermé \\
+Graine, génome, duplication, hebbien, spectres & biologie & F, Q & fermés (\crefrange{t3gen:ch}{t3pre:ch}, \cref{t3spe:ch}) \\
+Arrêt séquentiel de groupe & essais cliniques & J & instrument \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[tbp]
+\centering\footnotesize
+\caption[Les six pistes devant leurs juges]{Les six pistes devant leurs juges.}
+\label{t3mim:tab:bilan}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}p{0.27\linewidth}>{\raggedright\arraybackslash}p{0.17\linewidth}>{\raggedright\arraybackslash}X@{}}
+\toprule
+Piste & Chiffre principal (juge) & Verdict du juge & Ce qui manque pour trancher \\
+\midrule
+P1 & LFU(32) $-$ LRU : $-0{,}0176$ au seuil ; $+0{,}0185$ sur la réponse réelle & ouvert (« tombe » mécanique) & 4 générations du 120b arrêtées à \texttt{<|return|>} \\
+P2 & part disque $-28$ et $-51\,\%$ ; descente 11,5 et 27,2\,\% du jeton & ouvert & recouvrement de la descente (ABBA moteur), contre l'inclusif à $V+R$ \\
+P3 & $-10{,}03\,\%$ de défauts, KL 0,0314 en ligne & à la limite & second tirage (autre texte, autre budget), en cours ailleurs \\
+P4 & précision 0,92 ; gain simulé $+3{,}3\,\%$ & ouvert, plutôt tombe & ABBA moteur avec la porte $\theta^\ast$ \\
+P5 & descente $-5{,}1\,\%$ d'erreur tenue à l'écart & ouvert ; mécanisme non tenu & test de $N$ à source fixe ; poids réels (étape 2) \\
+P6 & décodage $r = 0{,}69$ ; préremplissage $r_B = 0{,}04$ à 0,06 & ouvert ; B tient à l'étape 0 & KL de bout en bout au 20b (étape 1) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% =====================================================================================================
+\section{Ce qui pourrait être faux}\label{t3mim:sec:faux}
+
+\begin{faux}
+\begin{itemize}
+\item \textbf{Deux traces de génération pour le 120b, et elles sont dégénérées.} P1, P2, P4 et P6 jugent la génération sur les deux mêmes traces de 256 jetons ; la moitié de prose-en est faite de jetons produits après la fin du message, et wiki est une complétion brute qui se répète. Les juges de P1 et de P4 l'ont dit ; ceux de P2 et de P6 ne l'ont pas relevé, et leurs chiffres de génération portent la même réserve.
+\item \textbf{Les taux de succès simulés dépassent ceux du moteur} (0,74 contre 0,59 sur prose-en) : tout gain de cache simulé (P1, P2, P4, P6) est une borne haute avant l'ABBA du moteur. Les tailles d'experts y sont égales, la RAM tiède absente.
+\item \textbf{P3 ne repose que sur ses jugements} : un seul budget porte le « tient », un seul texte de lecture, une seule passe en ligne ; le second tirage, en cours ailleurs, peut le confirmer comme le démentir, et ce chapitre ne le connaît pas.
+\item \textbf{Le simulateur de P4 n'est pas validé} (T3 manqué) : ses gains sont des ordres de grandeur de signe d'erreur inconnu.
+\item \textbf{P5 est mesuré sur des poids synthétiques} gaussiens, sur 64 rangées et le seul $H$ d'entrée de gate et up ; les vrais poids ont des colonnes géantes corrélées au $H$, et l'écart Babai--optimum peut y être plus grand ou plus petit. Aucune affirmation sur la qualité du texte.
+\item \textbf{P6 est mesuré en énergie}, pas en KL ; et son « tient » au préremplissage ne pouvait presque pas tomber.
+\item \textbf{La proposition sur l'inclusif} (\cref{t3mim:prop:inclusif}) est posée par la rédaction sous une hypothèse sur la règle du moteur (rafraîchissement de la RAM à chaque accès) lue dans le code par le juge, pas exécutée ; elle explique l'égalité mesurée par le juge, elle ne la remplace pas.
+\item \textbf{Les sources des pistes} : le tri n'a rouvert aucune source externe ; la rédaction a relu le 2026-10-29 les notices de celles que ce chapitre cite (Crossref, arXiv, USENIX, RFC), pas les articles. Les éclaireurs cités par numéro (« vivant \#1 ») ne sont connus ici que par leurs rapports.
+\item \textbf{Le classement du tri n'est pas mesuré} : « gain $\times$ nouveauté $\times$ faisabilité » est un jugement d'ordre ; deux pistes écartées (le remplissage inverse par l'usage, BOLA) pourraient valoir plus que P4 ou P5 une fois chiffrées.
+\item \textbf{Les figures sont hors du style commun} : tracées par chaque piste, avec leurs propres titres (dont celui de la \cref{fig:t3-mim-p1-blocs}, que le juge corrige), leurs décimales à point et un titre de panneau qui déborde ; elles sont incluses telles quelles, et les nombres qu'on y lit ont été vérifiés contre les jugements, pas redessinés.
+\end{itemize}
+\end{faux}

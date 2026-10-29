@@ -1,0 +1,103 @@
+% Graphes du chapitre « Architecture : les candidates, la décision, ce qui vient ».
+% Chaque graphe lit un CSV commité : memoire/figures/donnees/ (tiré par donnees_figures.py) ou
+% decisions/journaux/csv/ (écrit par outils/decisions/partisan_b.py).
+\providecommand{\CsvDecisions}{\Depot/decisions/journaux/csv}
+
+% Plafonds des architectures candidates sur gpt-oss-120b, trois scénarios de localité.
+\newcommand{\GrapheArchitectures}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, xbar=0.5pt, bar width=4.4pt, width=0.58\linewidth, height=0.66\linewidth,
+  xlabel={\EF{ceiling (tokens/s)}{plafond (jetons/s)}}, xmin=0, xmax=19.5,
+  ymin=-0.6, ymax=6.6, ytick={0,...,6}, y dir=reverse,
+  yticklabels from table={\Donnees/archi-plafonds.csv}{\EF{archi_en}{archi_fr}},
+  major y grid style={draw=none}, tick label style={font=\scriptsize},
+  legend style={font=\scriptsize, at={(0.5,1.02)}, anchor=south}, legend columns=2]
+\addplot[fill=SerieF!45, draw=SerieF] table[x=uniforme, y=i] {\Donnees/archi-plafonds.csv};
+\addlegendentry{\EF{uniform}{uniforme}}
+\addplot[fill=SerieA!60, draw=SerieA] table[x=lru, y=i] {\Donnees/archi-plafonds.csv};
+\addlegendentry{\EF{LRU fitted}{LRU calé}}
+\addplot[fill=SerieE!45, draw=SerieE] table[x=belady, y=i] {\Donnees/archi-plafonds.csv};
+\addlegendentry{\EF{Belady fitted}{Belady calé}}
+\addplot[only marks, mark=|, mark size=4.5pt, line width=1.5pt, black] table[x=serie_lru, y=i] {\Donnees/archi-plafonds.csv};
+\addlegendentry{\EF{serial floor, LRU}{plancher en série, LRU}}
+% La ligne barrée (B1 sans compléments) : un trait rouge sur toute la rangée.
+\draw[Signe, line width=1.1pt] (axis cs:0,5) -- (axis cs:15.2,5);
+\end{axis}
+\end{tikzpicture}}
+
+% B3 : plafond selon la part lambda des usages hors VRAM qui exigent l'exact.
+\newcommand{\GrapheBtroisLambda}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=0.9\linewidth, height=0.56\linewidth,
+  xlabel={\EF{share $\lambda$ of the out-of-VRAM uses that demand exact weights}{part $\lambda$ des usages hors VRAM qui exigent l'exact}},
+  ylabel={\EF{ceiling (tokens/s)}{plafond (jetons/s)}}, xmin=0, xmax=1, ymin=0, ymax=19.5,
+  legend pos=north east, legend columns=2]
+\addplot[SerieE, mark=*, mark size=1.5pt] table[x=lambda, y=plafond_belady] {\CsvDecisions/b3-lambda-gptoss120b.csv};
+\addlegendentry{\EF{B3, Belady}{B3, Belady}}
+\addplot[SerieA, mark=square*, mark size=1.5pt, line width=1.2pt] table[x=lambda, y=plafond_lru] {\CsvDecisions/b3-lambda-gptoss120b.csv};
+\addlegendentry{\EF{B3, LRU}{B3, LRU}}
+\addplot[SerieF, mark=triangle*, mark size=1.5pt, dashed] table[x=lambda, y=plafond_uniforme] {\CsvDecisions/b3-lambda-gptoss120b.csv};
+\addlegendentry{\EF{B3, uniform}{B3, uniforme}}
+\addplot[black, densely dashed, no markers] table[x=lambda, y=plafond_A_lru] {\CsvDecisions/b3-lambda-gptoss120b.csv};
+\addlegendentry{\EF{A, LRU}{A, LRU}}
+\end{axis}
+\end{tikzpicture}}
+
+% Mesure F1 de l'arbitre : bits par poids de chaque variante du format, en parts empilées.
+\newcommand{\GrapheFun}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, xbar stacked, bar width=9pt, width=0.6\linewidth, height=0.5\linewidth,
+  xlabel={\EF{bits per weight (12 tensors of gpt-oss-20b)}{bits par poids (12 tenseurs de gpt-oss-20b)}},
+  xmin=0, xmax=4.6, ymin=-0.6, ymax=4.6, ytick={0,...,4}, y dir=reverse,
+  yticklabels from table={\Donnees/archi-f1.csv}{\EF{variante_en}{variante_fr}},
+  major y grid style={draw=none}, tick label style={font=\scriptsize},
+  legend style={font=\scriptsize, at={(0.5,1.03)}, anchor=south}, legend columns=3]
+\addplot[fill=Code!45, draw=Code] table[x=codes, y=i] {\Donnees/archi-f1.csv};
+\addlegendentry{\EF{codes or base}{codes ou base}}
+\addplot[fill=Mant!50, draw=Mant] table[x=complement, y=i] {\Donnees/archi-f1.csv};
+\addlegendentry{\EF{complement}{complément}}
+\addplot[fill=Echelle!60, draw=Echelle, nodes near coords={\pgfmathprintnumber[fixed, precision=4]{\pgfplotspointmeta}},
+  point meta=explicit, every node near coord/.style={font=\scriptsize, anchor=west}]
+  table[x=meta, y=i, meta=total] {\Donnees/archi-f1.csv};
+\addlegendentry{\EF{scales, medians, tables}{échelles, médianes, tables}}
+\end{axis}
+\end{tikzpicture}}
+
+% Première mesure de la localité sur gpt-oss-20b, contre les trois scénarios du chapitre 4.
+\newcommand{\GrapheLocaliteMesuree}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, width=0.92\linewidth, height=0.62\linewidth, unbounded coords=jump,
+  xlabel={\EF{cache budget $c$ (share of the expert bytes)}{budget du cache $c$ (part des octets d'experts)}},
+  ylabel={\EF{hit rate}{taux de succès}}, xmin=0, xmax=0.42, ymin=0, ymax=1.02,
+  xtick={0,0.05,...,0.401}, scaled x ticks=false, xticklabel style={/pgf/number format/fixed, /pgf/number format/precision=2},
+  legend pos=south east, legend columns=2, legend style={font=\scriptsize}]
+\addplot[SerieE, no markers, line width=0.8pt, densely dashed] table[x=c, y=belady] {\Donnees/form-localite.csv};
+\addlegendentry{\EF{hyp.: Belady fitted}{hyp. : Belady calé}}
+\addplot[SerieA, no markers, line width=0.8pt, densely dashed] table[x=c, y=lru] {\Donnees/form-localite.csv};
+\addlegendentry{\EF{hyp.: LRU fitted}{hyp. : LRU calé}}
+\addplot[SerieE, mark=*, mark size=2pt, line width=1.1pt] table[x=c, y=belady_couche] {\Donnees/archi-localite-20b.csv};
+\addlegendentry{\EF{meas.: Belady, per layer}{mes. : Belady, par couche}}
+\addplot[SerieA, mark=square*, mark size=2pt, line width=1.1pt] table[x=c, y=lru_couche] {\Donnees/archi-localite-20b.csv};
+\addlegendentry{\EF{meas.: LRU, per layer}{mes. : LRU, par couche}}
+\addplot[SerieE!60, mark=o, mark size=2pt] table[x=c, y=belady_globale] {\Donnees/archi-localite-20b.csv};
+\addlegendentry{\EF{meas.: Belady, global}{mes. : Belady, global}}
+\addplot[SerieA!60, mark=square, mark size=2pt] table[x=c, y=lru_globale] {\Donnees/archi-localite-20b.csv};
+\addlegendentry{\EF{meas.: LRU, global}{mes. : LRU, global}}
+\addplot[SerieF, no markers, dotted] table[x=c, y=uniforme] {\Donnees/form-localite.csv};
+\addlegendentry{\EF{uniform}{uniforme}}
+\end{axis}
+\end{tikzpicture}}
+
+% Base llama.cpp b11515 sur gpt-oss-20b : génération, trois configurations, min et max (ABBA).
+\newcommand{\GrapheBaseVingt}{%
+\begin{tikzpicture}
+\begin{axis}[memoire, xbar, bar width=9pt, width=0.7\linewidth, height=0.34\linewidth,
+  xlabel={\EF{generation (tokens/s), mean of $n = 4$, bars: min--max}{génération (jetons/s), moyenne de $n = 4$, barres : min--max}},
+  xmin=0, xmax=22, ymin=-0.6, ymax=2.6, ytick={0,1,2}, y dir=reverse,
+  yticklabels from table={\Donnees/archi-base-20b.csv}{\EF{config_en}{config_fr}},
+  major y grid style={draw=none}, tick label style={font=\scriptsize}]
+\addplot[fill=SerieA!55, draw=SerieA, error bars/.cd, x dir=both, x explicit,
+  error bar style={line width=0.7pt}, error mark options={mark size=2pt}]
+  table[x=generation_js, y=i, x error plus=plus, x error minus=moins] {\Donnees/archi-base-20b.csv};
+\end{axis}
+\end{tikzpicture}}
